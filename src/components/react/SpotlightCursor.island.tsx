@@ -114,26 +114,30 @@ export default function SpotlightCursor() {
           mix-blend-mode: difference;
         }
         .cursor-halo {
-          width: 36px;
-          height: 36px;
-          margin: -18px 0 0 -18px;
+          width: 26px;
+          height: 26px;
+          margin: -13px 0 0 -13px;
           border-radius: 50%;
-          border: 1px solid rgba(255,255,255,0.32);
-          background: radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%);
-          backdrop-filter: blur(2px);
+          border: 1px solid rgba(255,255,255,0.28);
+          background: radial-gradient(circle, rgba(255,255,255,0.07) 0%, transparent 70%);
+          backdrop-filter: blur(4px) saturate(120%);
+          -webkit-backdrop-filter: blur(4px) saturate(120%);
           transition:
             width var(--dur-med) var(--ease-soft),
             height var(--dur-med) var(--ease-soft),
             margin var(--dur-med) var(--ease-soft),
             border-color var(--dur-fast) var(--ease-standard),
+            backdrop-filter var(--dur-med) var(--ease-soft),
             opacity var(--dur-fast) var(--ease-standard);
         }
         .cursor-halo.is-interactive {
-          width: 56px;
-          height: 56px;
-          margin: -28px 0 0 -28px;
+          width: 38px;
+          height: 38px;
+          margin: -19px 0 0 -19px;
           border-color: rgba(255,255,255,0.55);
-          background: radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
+          backdrop-filter: blur(6px) saturate(140%);
+          -webkit-backdrop-filter: blur(6px) saturate(140%);
         }
         @media (pointer: coarse) {
           .cursor-dot, .cursor-halo { display: none; }

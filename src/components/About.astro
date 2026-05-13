@@ -3,7 +3,6 @@ import { useTranslations, type Locale } from "../lib/i18n";
 import { config, authorName, authorBio, authorMonogram, socials } from "../lib/config";
 import SectionHeader from "./SectionHeader.astro";
 import Icon from "./Icon/Icon.astro";
-import DotHalo from "./illustration/DotHalo.astro";
 
 interface Props {
   locale: Locale;
@@ -27,17 +26,14 @@ const monogram = authorMonogram(locale);
     />
 
     <div class="about__grid">
-      <div class="about__portrait" data-reveal>
-        <DotHalo size={320} count={18} radius={148} class="about__halo" />
-        <div class="about__portrait-inner glass glass--bordered">
-          {photo ? (
-            <img src={photo} alt={name} class="about__photo" loading="lazy" decoding="async" />
-          ) : (
-            <span class="about__monogram display" aria-label={name}>
-              {monogram}
-            </span>
-          )}
-        </div>
+      <div class="about__portrait glass glass--bordered" data-reveal>
+        {photo ? (
+          <img src={photo} alt={name} class="about__photo" loading="lazy" decoding="async" />
+        ) : (
+          <span class="about__monogram display" aria-label={name}>
+            {monogram}
+          </span>
+        )}
       </div>
 
       <div class="about__content" data-reveal data-reveal-delay="120">
@@ -82,26 +78,8 @@ const monogram = authorMonogram(locale);
     aspect-ratio: 1;
     display: grid;
     place-items: center;
-  }
-
-  .about__halo {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-  }
-
-  .about__portrait-inner {
-    position: relative;
-    width: 78%;
-    height: 78%;
-    display: grid;
-    place-items: center;
     border-radius: var(--r-xl);
     overflow: hidden;
-    transform-origin: center;
-    animation: portrait-pulse var(--dur-slower) var(--ease-soft) both;
   }
 
   .about__photo {
@@ -166,23 +144,6 @@ const monogram = authorMonogram(locale);
     border-color: var(--border-hover);
     background: var(--surface-2);
     opacity: 1;
-  }
-
-  @keyframes portrait-pulse {
-    0% {
-      transform: scale(0.96);
-      opacity: 0;
-    }
-    100% {
-      transform: scale(1);
-      opacity: 1;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .about__portrait-inner {
-      animation: none;
-    }
   }
 
   @media (min-width: 768px) {

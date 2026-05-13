@@ -118,13 +118,13 @@
     "ml": ["faster-whisper", "Demucs", "PyTorch"]
   },
   "architectureNodes": [
-    { "id": "bot", "x": 140, "y": 140, "label": "Telegram Bot", "icon": "telegram" },
-    { "id": "miniapp", "x": 140, "y": 400, "label": "Mini App", "icon": "code" },
-    { "id": "backend", "x": 480, "y": 270, "label": "Backend Hub", "icon": "stack", "emphasis": "strong", "width": 180 },
-    { "id": "pg", "x": 760, "y": 140, "label": "PostgreSQL 16", "icon": "dot" },
-    { "id": "es", "x": 820, "y": 270, "label": "Elasticsearch 8", "icon": "dot" },
-    { "id": "minio", "x": 760, "y": 400, "label": "MinIO", "icon": "dot" },
-    { "id": "worker", "x": 480, "y": 470, "label": "ComputeWorker", "icon": "spark" }
+    { "id": "bot", "x": 140, "y": 150, "label": "Telegram Bot", "icon": "telegram" },
+    { "id": "miniapp", "x": 140, "y": 380, "label": "Mini App", "icon": "code" },
+    { "id": "backend", "x": 480, "y": 265, "label": "Backend Hub", "icon": "stack", "emphasis": "strong", "width": 180 },
+    { "id": "pg", "x": 770, "y": 140, "label": "PostgreSQL 16", "icon": "dot", "width": 160 },
+    { "id": "es", "x": 770, "y": 265, "label": "Elasticsearch 8", "icon": "dot", "width": 160 },
+    { "id": "minio", "x": 770, "y": 390, "label": "MinIO", "icon": "dot", "width": 160 },
+    { "id": "worker", "x": 480, "y": 470, "label": "ComputeWorker", "icon": "spark", "width": 160 }
   ],
   "architectureEdges": [
     { "from": "bot", "to": "backend", "kind": "sync", "label": "HTTPS" },
@@ -135,7 +135,7 @@
     { "from": "worker", "to": "backend", "kind": "async", "label": "HMAC pull" }
   ],
   "clusters": [
-    { "x": 700, "y": 80, "width": 200, "height": 380, "label": "Data plane" }
+    { "x": 670, "y": 80, "width": 220, "height": 360, "label": "Data plane" }
   ],
   "capabilities": [
     {

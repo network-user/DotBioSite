@@ -1,8 +1,6 @@
 ---
 import { useTranslations, type Locale, localePrefix } from "../lib/i18n";
 import Icon from "./Icon/Icon.astro";
-import MeshGradient from "./illustration/MeshGradient.astro";
-import DotConstellation from "./react/DotConstellation.island.tsx";
 
 interface Props {
   locale: Locale;
@@ -18,8 +16,7 @@ const subtitle = t("hero.subtitle");
 ---
 
 <section class="hero" id="hero" aria-label={brand}>
-  <MeshGradient palette="violet" intensity="default" />
-  <DotConstellation client:idle variant="hero" />
+  <div class="hero__bg" aria-hidden="true"></div>
 
   <div class="container hero__inner">
     <p class="hero__eyebrow eyebrow" data-reveal data-reveal-delay="0">
@@ -70,6 +67,18 @@ const subtitle = t("hero.subtitle");
     overflow: hidden;
     padding-block: var(--sp-12) var(--sp-11);
     isolation: isolate;
+  }
+
+  .hero__bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse 80vw 60vh at 50% 30%,
+      rgba(255, 255, 255, 0.035) 0%,
+      transparent 60%
+    );
   }
 
   .hero__inner {

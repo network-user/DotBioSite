@@ -9,8 +9,6 @@ import {
   repoUrl,
 } from "../lib/projects";
 import Icon from "./Icon/Icon.astro";
-import MeshGradient from "./illustration/MeshGradient.astro";
-import DotConstellation from "./react/DotConstellation.island.tsx";
 import Architecture from "./diagram/Architecture.astro";
 import StackMatrix from "./case/StackMatrix.astro";
 import Capabilities from "./case/Capabilities.astro";
@@ -35,8 +33,6 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
 
 const overviewParas = p.overview ? p.overview[locale] : [desc];
 
-const meshPalette = p.slug === "dotsound" ? "violet" : p.slug === "dotmathbot" ? "cool" : "warm";
-
 const hasMetrics = p.metrics && p.metrics.length > 0;
 const hasStackGroups = p.stackGroups && Object.values(p.stackGroups).some((arr) => arr && arr.length > 0);
 const hasArchitecture = p.architectureNodes && p.architectureNodes.length > 0;
@@ -48,8 +44,7 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
 
 <article class="case">
   <section class="case__hero" data-case-hero>
-    <MeshGradient palette={meshPalette} intensity="default" />
-    <DotConstellation client:idle variant="case" />
+    <div class="case__hero-bg" aria-hidden="true"></div>
 
     <div class="container case__hero-inner">
       <a href={backHref} class="case__back">
@@ -296,6 +291,18 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
     isolation: isolate;
   }
 
+  .case__hero-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse 80vw 50vh at 30% 0%,
+      rgba(255, 255, 255, 0.04) 0%,
+      transparent 60%
+    );
+  }
+
   .case__hero-inner {
     position: relative;
     z-index: 2;
@@ -459,9 +466,7 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
   .case__arch {
     border: var(--bw-thin) solid var(--glass-edge);
     border-radius: var(--r-xl);
-    background:
-      radial-gradient(ellipse at 50% 0%, var(--mesh-violet-a), transparent 60%),
-      var(--bg-elevated);
+    background: var(--bg-elevated);
     padding: var(--sp-7);
     overflow: hidden;
   }

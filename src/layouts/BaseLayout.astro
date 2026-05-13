@@ -8,7 +8,6 @@ import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import NoiseBackground from "../components/react/NoiseBackground.island.tsx";
 import SpotlightCursor from "../components/react/SpotlightCursor.island.tsx";
-import SmoothScroll from "../components/react/SmoothScroll.island.tsx";
 
 interface Props {
   locale: Locale;
@@ -83,7 +82,6 @@ const htmlLang = locale === "ru" ? "ru-RU" : "en-US";
     </div>
 
     <SpotlightCursor client:idle />
-    <SmoothScroll client:idle />
 
     {!noChrome && <Header locale={locale} />}
 
