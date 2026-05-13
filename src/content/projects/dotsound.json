@@ -1,0 +1,72 @@
+{
+  "id": "dotsound",
+  "slug": "dotsound",
+  "name": {
+    "ru": "DotSound",
+    "en": "DotSound"
+  },
+  "brand": {
+    "ru": ".звук",
+    "en": ".sound"
+  },
+  "tagline": {
+    "ru": "Музыкальная платформа без рекламы.",
+    "en": "Ad-free music platform."
+  },
+  "description": {
+    "ru": "SoundCloud-style UGC-платформа с загрузкой треков, синхронизированным текстом песни, авто-генерацией lyrics через ASR-каскад и Telegram Mini App в роли основного фронтенда. Архитектура: открытый клиент + закрытое ядро политик. Состоит из четырёх репозиториев — три публичных (Backend, Bot, ComputeWorker) и один приватный (PrivateCore).",
+    "en": "SoundCloud-style UGC platform with track uploads, synchronized lyrics, an ASR cascade for auto-generated lyrics, and a Telegram Mini App as the primary frontend. Architecture: open client + closed policy core. Composed of four repos — three public (Backend, Bot, ComputeWorker) and one private (PrivateCore)."
+  },
+  "stack": [
+    "Python 3.12",
+    "FastAPI",
+    "PostgreSQL",
+    "SQLAlchemy 2",
+    "Redis",
+    "Taskiq",
+    "Elasticsearch",
+    "MinIO",
+    "React 18",
+    "TypeScript",
+    "Vite",
+    "aiogram 3",
+    "faster-whisper",
+    "Demucs"
+  ],
+  "category": "platform",
+  "status": "active",
+  "year": 2024,
+  "repos": [
+    {
+      "name": "Backend",
+      "url": "https://github.com/network-user/DotSoundBackend",
+      "role": "hub",
+      "description": {
+        "ru": "API, БД, очередь задач, раздача React Mini App, дедупликация по SHA-256, HLS-стриминг.",
+        "en": "API, database, task queue, React Mini App delivery, SHA-256 dedup, HLS streaming."
+      }
+    },
+    {
+      "name": "Bot",
+      "url": "https://github.com/network-user/DotSoundBot",
+      "role": "telegram-ui",
+      "description": {
+        "ru": "Тонкий клиент Telegram: загрузка треков, inline-поиск, лайки, открытие Mini App.",
+        "en": "Thin Telegram client: track uploads, inline search, likes, Mini App entry."
+      }
+    },
+    {
+      "name": "ComputeWorker",
+      "url": "https://github.com/network-user/DotSoundComputeWorker",
+      "role": "asr-worker",
+      "description": {
+        "ru": "Pull-based ASR-воркер на faster-whisper + Demucs с HMAC-протоколом.",
+        "en": "Pull-based ASR worker using faster-whisper + Demucs over an HMAC protocol."
+      }
+    }
+  ],
+  "links": {
+    "domain": "https://dotsound.app"
+  },
+  "cover": "/projects/dotsound/cover.webp"
+}

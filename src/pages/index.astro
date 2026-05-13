@@ -1,0 +1,20 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Hero from "../components/Hero.astro";
+import About from "../components/About.astro";
+import Stack from "../components/Stack.astro";
+import Projects from "../components/Projects.astro";
+import Timeline from "../components/Timeline.astro";
+import Contact from "../components/Contact.astro";
+
+const locale = "ru" as const;
+---
+
+<BaseLayout locale={locale}>
+  <Hero locale={locale} />
+  <About locale={locale} />
+  <Stack locale={locale} />
+  <Projects locale={locale} />
+  <Timeline locale={locale} />
+  <Contact locale={locale} />
+</BaseLayout>

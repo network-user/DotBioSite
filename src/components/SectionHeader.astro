@@ -1,0 +1,73 @@
+---
+/**
+ * SectionHeader — единый kicker + title + lede для всех секций.
+ * Уважает Apple-style large titles с отрицательным letter-spacing.
+ */
+interface Props {
+  kicker?: string;
+  title: string;
+  lede?: string;
+  id?: string;
+  align?: "left" | "center";
+}
+
+const { kicker, title, lede, id, align = "left" } = Astro.props;
+---
+
+<header class={`section-header section-header--${align}`} id={id}>
+  {kicker && (
+    <p class="section-header__kicker caption" data-reveal>
+      <span class="section-header__dot" aria-hidden="true">·</span>
+      {kicker}
+    </p>
+  )}
+  <h2 class="section-header__title display" data-reveal data-reveal-delay="60">
+    {title}
+  </h2>
+  {lede && (
+    <p class="section-header__lede subtitle" data-reveal data-reveal-delay="120">
+      {lede}
+    </p>
+  )}
+</header>
+
+<style>
+  .section-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    margin-block-end: var(--sp-9);
+    max-width: 64ch;
+  }
+
+  .section-header--center {
+    align-items: center;
+    text-align: center;
+    margin-inline: auto;
+  }
+
+  .section-header__kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    margin: 0;
+  }
+
+  .section-header__dot {
+    color: var(--text);
+    font-size: 1.4em;
+    line-height: 0;
+    transform: translateY(2px);
+  }
+
+  .section-header__title {
+    font-size: clamp(32px, 5vw, 56px);
+    line-height: var(--lh-tight);
+    color: var(--text);
+  }
+
+  .section-header__lede {
+    font-size: clamp(16px, 1.4vw, 19px);
+    max-width: 56ch;
+  }
+</style>

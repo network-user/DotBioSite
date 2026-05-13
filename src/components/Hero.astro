@@ -1,0 +1,189 @@
+---
+import { useTranslations, type Locale, localePrefix } from "../lib/i18n";
+import Icon from "./Icon/Icon.astro";
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+const prefix = localePrefix(locale);
+
+const brand = t<string>("hero.title");
+const tagline = t<string>("hero.tagline");
+const subtitle = t<string>("hero.subtitle");
+---
+
+<section class="hero" id="hero" aria-label={brand}>
+  <div class="hero__bg" aria-hidden="true"></div>
+
+  <div class="container hero__inner">
+    <h1 class="hero__brand display" data-reveal data-reveal-delay="0">
+      {brand}
+    </h1>
+
+    <p class="hero__tagline title" data-reveal data-reveal-delay="120">
+      {tagline}
+    </p>
+
+    <p class="hero__subtitle subtitle" data-reveal data-reveal-delay="240">
+      {subtitle}
+    </p>
+
+    <div class="hero__ctas" data-reveal data-reveal-delay="360">
+      <a href={`${prefix}/#projects`} class="cta cta--primary magnetic">
+        <span>{t<string>("hero.ctaProjects")}</span>
+        <Icon name="arrow-right" size={18} />
+      </a>
+      <a href={`${prefix}/#contact`} class="cta cta--ghost magnetic">
+        <span>{t<string>("hero.ctaContact")}</span>
+      </a>
+    </div>
+  </div>
+
+  <a href={`${prefix}/#about`} class="hero__scroll-cue" aria-label={t<string>("hero.scrollCue")}>
+    <span class="caption">{t<string>("hero.scrollCue")}</span>
+    <Icon name="arrow-down" size={16} />
+  </a>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    padding-block: var(--sp-12) var(--sp-11);
+  }
+
+  .hero__bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      circle at 50% 30%,
+      rgba(255, 255, 255, 0.04) 0%,
+      transparent 60%
+    );
+    pointer-events: none;
+  }
+
+  .hero__inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-5);
+  }
+
+  .hero__brand {
+    font-size: clamp(64px, 14vw, 200px);
+    line-height: 0.92;
+    margin-block-end: var(--sp-2);
+    background: linear-gradient(180deg, var(--text) 0%, var(--text-secondary) 130%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  .hero__tagline {
+    font-size: clamp(20px, 2.4vw, 34px);
+    color: var(--text);
+    margin-block-end: var(--sp-3);
+  }
+
+  .hero__subtitle {
+    max-width: 56ch;
+    font-size: clamp(15px, 1.4vw, 18px);
+    color: var(--text-secondary);
+    margin-block-end: var(--sp-5);
+  }
+
+  .hero__ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+  }
+
+  .cta {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-3) var(--sp-5);
+    min-height: var(--tap-min);
+    border-radius: var(--r-pill);
+    font-size: var(--fs-15);
+    font-weight: var(--fw-semibold);
+    letter-spacing: var(--ls-snug);
+    border: var(--bw-thin) solid var(--border);
+    transition:
+      transform var(--dur-fast) var(--ease-soft),
+      background-color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard),
+      color var(--dur-fast) var(--ease-standard);
+    will-change: transform;
+  }
+
+  .cta--primary {
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
+  }
+
+  .cta--primary:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+    transform: translateY(-1px);
+    opacity: 1;
+  }
+
+  .cta--ghost {
+    background: transparent;
+    color: var(--text);
+  }
+
+  .cta--ghost:hover {
+    background: var(--surface-2);
+    border-color: var(--border-hover);
+    transform: translateY(-1px);
+    opacity: 1;
+  }
+
+  .hero__scroll-cue {
+    position: absolute;
+    bottom: var(--sp-7);
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-2);
+    color: var(--text-muted);
+    animation: scrollPulse 2.4s var(--ease-soft) infinite;
+  }
+
+  .hero__scroll-cue:hover {
+    color: var(--text-secondary);
+  }
+
+  @keyframes scrollPulse {
+    0%,
+    100% {
+      transform: translate(-50%, 0);
+      opacity: 0.4;
+    }
+    50% {
+      transform: translate(-50%, 6px);
+      opacity: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__scroll-cue {
+      animation: none;
+    }
+  }
+</style>

@@ -1,0 +1,189 @@
+/* =============================================================================
+ * tokens.css — Design tokens (порт из DotSound)
+ *
+ * Палитра строго монохромная. Никаких градиентов как декоративного приёма —
+ * только полупрозрачные белые блики поверх тёмных стеклянных поверхностей.
+ * Любое изменение токенов должно происходить здесь, не точечно в компонентах.
+ * ============================================================================= */
+
+:root {
+  /* ---------- Палитра: фоны и поверхности ---------- */
+  --bg: #0a0a0a;
+  --bg-elevated: #111111;
+  --surface: #1a1a1a;
+  --surface-2: #242424;
+  --surface-3: #2e2e2e;
+
+  /* ---------- Палитра: текст ---------- */
+  --text: #ffffff;
+  --text-secondary: #a0a0a0;
+  --text-muted: #5a5a5a;
+  --text-faint: #3a3a3a;
+
+  /* ---------- Палитра: границы ---------- */
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.16);
+  --border-strong: rgba(255, 255, 255, 0.24);
+
+  /* ---------- Акценты (монохром: акцент = белый) ---------- */
+  --accent: #ffffff;
+  --accent-hover: #e0e0e0;
+  --accent-active: #c8c8c8;
+
+  /* ---------- Статусные цвета (iOS-style, для нечастого использования) ---------- */
+  --state-ok: #34c759;
+  --state-warn: #ffcc00;
+  --state-error: #ff453a;
+  --state-info: #5e9eff;
+  --state-unknown: #6e6e6e;
+
+  /* ---------- Liquid Glass / Frutiger-Aero ---------- */
+  --glass-tint-1: rgba(18, 18, 18, 0.5);
+  --glass-tint-2: rgba(16, 16, 16, 0.7);
+  --glass-tint-3: rgba(12, 12, 12, 0.84);
+  --glass-tint-liquid: rgba(20, 20, 20, 0.38);
+  --glass-edge: rgba(255, 255, 255, 0.11);
+  --glass-edge-bright: rgba(255, 255, 255, 0.24);
+  --glass-top-shine: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.18) 0%,
+    rgba(255, 255, 255, 0.04) 35%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  --glass-blur: 18px;
+  --glass-blur-strong: 28px;
+  --glass-saturate: 135%;
+  --glass-brightness: 1.04;
+
+  /* ---------- Spacing (8pt grid) ---------- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 40px;
+  --sp-9: 56px;
+  --sp-10: 72px;
+  --sp-11: 96px;
+  --sp-12: 128px;
+
+  /* ---------- Радиусы ---------- */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+  --r-2xl: 32px;
+  --r-pill: 999px;
+
+  /* ---------- Типографика: font stacks ---------- */
+  --font-stack-system:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-stack-display: "Inter", var(--font-stack-system);
+  --font-stack-mono:
+    ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+
+  /* ---------- Типографика: размеры ---------- */
+  --fs-10: 10px;
+  --fs-11: 11px;
+  --fs-12: 12px;
+  --fs-13: 13px;
+  --fs-14: 14px;
+  --fs-15: 15px;
+  --fs-16: 16px;
+  --fs-17: 17px;
+  --fs-18: 18px;
+  --fs-20: 20px;
+  --fs-22: 22px;
+  --fs-24: 24px;
+  --fs-28: 28px;
+  --fs-32: 32px;
+  --fs-40: 40px;
+  --fs-48: 48px;
+  --fs-64: 64px;
+  --fs-80: 80px;
+  --fs-tt: 28px;
+  --fs-lt: 34px;
+
+  /* ---------- Типографика: letter-spacing ---------- */
+  --ls-display: -0.022em;
+  --ls-tight: -0.014em;
+  --ls-snug: -0.006em;
+  --ls-normal: 0;
+  --ls-wide: 0.04em;
+
+  /* ---------- Типографика: line-height ---------- */
+  --lh-tight: 1.12;
+  --lh-snug: 1.28;
+  --lh-normal: 1.5;
+  --lh-loose: 1.7;
+
+  /* ---------- Типографика: веса ---------- */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-extrabold: 800;
+
+  /* ---------- Motion: длительности ---------- */
+  --dur-instant: 80ms;
+  --dur-fast: 160ms;
+  --dur-med: 240ms;
+  --dur-slow: 360ms;
+  --dur-slower: 560ms;
+  --dur-glacial: 840ms;
+
+  /* ---------- Motion: easing ---------- */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
+  --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* ---------- Focus ring ---------- */
+  --ring-focus: rgba(255, 255, 255, 0.55);
+  --ring-focus-strong: rgba(255, 255, 255, 0.85);
+  --ring-width: 2px;
+
+  /* ---------- Минимальные тап-таргеты (Apple HIG / WCAG 2.1) ---------- */
+  --tap-min: 44px;
+
+  /* ---------- Z-index ---------- */
+  --z-base: 0;
+  --z-elevated: 10;
+  --z-sticky: 100;
+  --z-overlay: 1000;
+  --z-modal: 2000;
+  --z-toast: 3000;
+  --z-cursor: 9999;
+
+  /* ---------- Контейнеры ---------- */
+  --container-narrow: 720px;
+  --container-medium: 960px;
+  --container-wide: 1200px;
+  --container-max: 1440px;
+
+  /* ---------- Border thickness ---------- */
+  --bw-thin: 1px;
+  --bw-med: 1.5px;
+  --bw-thick: 2px;
+}
+
+/* =============================================================================
+ * Reduced motion — все длительности обнуляются. Любая анимация должна читать
+ * --dur-* и --ease-* переменные, чтобы корректно реагировать.
+ * ============================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 0ms;
+    --dur-fast: 0ms;
+    --dur-med: 0ms;
+    --dur-slow: 0ms;
+    --dur-slower: 0ms;
+    --dur-glacial: 0ms;
+  }
+}

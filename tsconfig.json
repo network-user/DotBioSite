@@ -1,0 +1,32 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "include": [".astro/types.d.ts", "**/*", "src/env.d.ts"],
+  "exclude": ["dist", "node_modules", ".astro"],
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": false,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "module": "ESNext",
+    "target": "ES2022",
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "allowJs": false,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@components/*": ["src/components/*"],
+      "@styles/*": ["src/styles/*"],
+      "@lib/*": ["src/lib/*"],
+      "@content/*": ["src/content/*"],
+      "@layouts/*": ["src/layouts/*"]
+    }
+  }
+}

@@ -1,0 +1,45 @@
+---
+import { useTranslations, type Locale } from "../lib/i18n";
+import { projects } from "../lib/projects";
+import SectionHeader from "./SectionHeader.astro";
+import ProjectCard from "./ProjectCard.astro";
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+
+const visible = projects.filter((p) => !p.comingSoon);
+---
+
+<section class="section projects" id="projects" aria-labelledby="projects-title">
+  <div class="container projects__inner">
+    <SectionHeader
+      id="projects-title"
+      kicker={t<string>("projects.kicker")}
+      title={t<string>("projects.title")}
+      lede={t<string>("projects.lede")}
+    />
+
+    <div class="projects__grid">
+      {visible.map((p, i) => (
+        <ProjectCard project={p} locale={locale} index={i} />
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .projects__grid {
+    display: grid;
+    gap: var(--sp-5);
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 900px) {
+    .projects__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>

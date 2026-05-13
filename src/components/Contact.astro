@@ -1,0 +1,102 @@
+---
+import { useTranslations, type Locale } from "../lib/i18n";
+import { socials } from "../lib/config";
+import { emailB64, hasEmail, emailDecoderScript } from "../lib/contacts";
+import SectionHeader from "./SectionHeader.astro";
+import Icon from "./Icon/Icon.astro";
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+---
+
+<section class="section contact" id="contact" aria-labelledby="contact-title">
+  <div class="container contact__inner">
+    <SectionHeader
+      id="contact-title"
+      kicker={t<string>("contact.kicker")}
+      title={t<string>("contact.title")}
+      lede={t<string>("contact.lede")}
+      align="center"
+    />
+
+    <div class="contact__channels">
+      {hasEmail ? (
+        <button
+          type="button"
+          class="contact__channel contact-email glass glass--hover"
+          data-e={emailB64}
+          aria-label={t<string>("contact.email")}
+          data-reveal
+        >
+          <Icon name="mail" size={22} />
+          <span class="contact__channel-label">{t<string>("contact.email")}</span>
+          <Icon name="arrow-right" size={16} />
+        </button>
+      ) : (
+        <span class="contact__channel contact__channel--disabled glass" aria-disabled="true">
+          <Icon name="mail" size={22} />
+          <span class="contact__channel-label">{t<string>("contact.emailUnavailable")}</span>
+        </span>
+      )}
+
+      {socials.map((s, i) => (
+        <a
+          href={s.url}
+          target="_blank"
+          rel="noopener noreferrer me"
+          class="contact__channel glass glass--hover"
+          aria-label={t<string>(`contact.${s.id}`)}
+          data-reveal
+          data-reveal-delay={(i + 1) * 80}
+        >
+          <Icon name={s.id} size={22} />
+          <span class="contact__channel-label">{t<string>(`contact.${s.id}`)}</span>
+          <Icon name="external" size={16} />
+        </a>
+      ))}
+    </div>
+  </div>
+</section>
+
+{hasEmail && <script is:inline set:html={emailDecoderScript} />}
+
+<style>
+  .contact__channels {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--sp-3);
+    max-width: 560px;
+    margin-inline: auto;
+  }
+
+  .contact__channel {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-4) var(--sp-5);
+    min-height: 56px;
+    border-radius: var(--r-lg);
+    color: var(--text);
+    font-size: var(--fs-15);
+    font-weight: var(--fw-medium);
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .contact__channel-label {
+    flex: 1;
+  }
+
+  .contact__channel--disabled {
+    color: var(--text-muted);
+    cursor: not-allowed;
+  }
+
+  .contact__channel--disabled:hover {
+    transform: none;
+  }
+</style>

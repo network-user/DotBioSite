@@ -1,0 +1,26 @@
+/// <reference path="../.astro/types.d.ts" />
+/// <reference types="astro/client" />
+
+interface ImportMetaEnv {
+  readonly PUBLIC_DOMAIN?: string;
+  readonly PUBLIC_GITHUB_USER?: string;
+  readonly PUBLIC_GITHUB_REPO?: string;
+
+  readonly PUBLIC_AUTHOR_NAME_RU?: string;
+  readonly PUBLIC_AUTHOR_NAME_EN?: string;
+  readonly PUBLIC_AUTHOR_PHOTO?: string;
+  readonly PUBLIC_AUTHOR_BIO_RU?: string;
+  readonly PUBLIC_AUTHOR_BIO_EN?: string;
+
+  readonly PUBLIC_SOCIAL_GITHUB?: string;
+  readonly PUBLIC_SOCIAL_TELEGRAM?: string;
+  readonly PUBLIC_SOCIAL_LINKEDIN?: string;
+  readonly PUBLIC_SOCIAL_X?: string;
+  readonly PUBLIC_SOCIAL_VK?: string;
+
+  readonly AUTHOR_EMAIL?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}

@@ -1,0 +1,22 @@
+---
+import type { GetStaticPaths } from "astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import CaseStudy from "../../components/CaseStudy.astro";
+import { projects, projectName, projectTagline } from "../../lib/projects";
+
+export const getStaticPaths = (() => {
+  return projects.map((p) => ({
+    params: { slug: p.slug },
+    props: { project: p },
+  }));
+}) satisfies GetStaticPaths;
+
+const { project } = Astro.props;
+const locale = "ru" as const;
+const title = `${projectName(project, locale)} — .ядро`;
+const description = projectTagline(project, locale);
+---
+
+<BaseLayout locale={locale} title={title} description={description}>
+  <CaseStudy project={project} locale={locale} />
+</BaseLayout>

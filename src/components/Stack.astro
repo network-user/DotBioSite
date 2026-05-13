@@ -1,0 +1,128 @@
+---
+import { useTranslations, type Locale } from "../lib/i18n";
+import SectionHeader from "./SectionHeader.astro";
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+
+/**
+ * Стек жёстко не привязан к i18n — это технические термины,
+ * читаются одинаково на обоих языках.
+ */
+const groups: Array<{ id: string; items: string[] }> = [
+  {
+    id: "backend",
+    items: [
+      "Python 3.12",
+      "FastAPI",
+      "SQLAlchemy 2",
+      "PostgreSQL",
+      "Redis",
+      "Taskiq",
+      "Elasticsearch",
+      "MinIO / S3",
+    ],
+  },
+  {
+    id: "frontend",
+    items: ["TypeScript", "React 18", "Astro 4", "Vite", "CSS custom properties", "framer-motion"],
+  },
+  {
+    id: "devops",
+    items: ["Docker", "GitHub Actions", "Cloudflare Pages", "Alembic", "Nginx", "VPS / serv.host"],
+  },
+  {
+    id: "ml",
+    items: ["faster-whisper", "Demucs", "PyTorch", "HuggingFace Hub", "Yandex SpeechKit"],
+  },
+  {
+    id: "mobile",
+    items: ["aiogram 3", "Telegram Mini Apps", "PWA"],
+  },
+];
+---
+
+<section class="section stack" id="stack" aria-labelledby="stack-title">
+  <div class="container stack__inner">
+    <SectionHeader
+      id="stack-title"
+      kicker={t<string>("stack.kicker")}
+      title={t<string>("stack.title")}
+      lede={t<string>("stack.lede")}
+    />
+
+    <div class="stack__grid">
+      {groups.map((g, i) => (
+        <article class="stack__group glass glass--hover" data-reveal data-reveal-delay={i * 80}>
+          <header class="stack__group-header">
+            <p class="caption">{t<string>(`stack.categories.${g.id}`)}</p>
+          </header>
+          <ul class="stack__chips">
+            {g.items.map((it) => (
+              <li class="stack__chip">{it}</li>
+            ))}
+          </ul>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .stack__grid {
+    display: grid;
+    gap: var(--sp-4);
+    grid-template-columns: 1fr;
+  }
+
+  .stack__group {
+    padding: var(--sp-5) var(--sp-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+  }
+
+  .stack__group-header {
+    color: var(--text-muted);
+  }
+
+  .stack__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+
+  .stack__chip {
+    padding: var(--sp-1) var(--sp-3);
+    border-radius: var(--r-pill);
+    border: var(--bw-thin) solid var(--border);
+    color: var(--text-secondary);
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    background: var(--surface);
+    letter-spacing: var(--ls-snug);
+    transition:
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard);
+  }
+
+  .stack__chip:hover {
+    color: var(--text);
+    border-color: var(--border-hover);
+  }
+
+  @media (min-width: 720px) {
+    .stack__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1100px) {
+    .stack__grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+</style>

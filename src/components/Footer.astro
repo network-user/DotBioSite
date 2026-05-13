@@ -1,0 +1,113 @@
+---
+import { useTranslations, type Locale } from "../lib/i18n";
+import { config } from "../lib/config";
+import Icon from "./Icon/Icon.astro";
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+
+const year = new Date().getFullYear();
+const repoUrl = `https://github.com/${config.PUBLIC_GITHUB_USER}/${config.PUBLIC_GITHUB_REPO}`;
+const brand = t<string>("footer.brand");
+---
+
+<footer class="footer">
+  <div class="container footer__inner">
+    <div class="footer__brand">
+      <span class="footer__brand-name display">{brand}</span>
+      <span class="footer__brand-year">© {year}. {t<string>("footer.rights")}</span>
+    </div>
+
+    <div class="footer__meta">
+      <a
+        href={repoUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="footer__link"
+      >
+        <Icon name="github" size={14} />
+        <span>{t<string>("footer.sourceCode")}</span>
+      </a>
+      <span class="footer__sep" aria-hidden="true">·</span>
+      <a
+        href="https://astro.build"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="footer__link"
+      >
+        <Icon name="spark" size={14} />
+        <span>{t<string>("footer.builtWith")}</span>
+      </a>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-top: var(--bw-thin) solid var(--border);
+    padding-block: var(--sp-7);
+    margin-block-start: var(--sp-11);
+  }
+
+  .footer__inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .footer__brand {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+  }
+
+  .footer__brand-name {
+    font-size: var(--fs-22);
+    color: var(--text);
+    letter-spacing: var(--ls-display);
+  }
+
+  .footer__brand-year {
+    color: var(--text-muted);
+    font-size: var(--fs-12);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+  }
+
+  .footer__meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+    color: var(--text-muted);
+    font-size: var(--fs-13);
+  }
+
+  .footer__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    color: var(--text-secondary);
+  }
+
+  .footer__link:hover {
+    color: var(--text);
+    opacity: 1;
+  }
+
+  .footer__sep {
+    color: var(--text-faint);
+  }
+
+  @media (min-width: 720px) {
+    .footer__inner {
+      flex-direction: row;
+      align-items: center;
+    }
+  }
+</style>

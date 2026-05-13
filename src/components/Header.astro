@@ -1,0 +1,155 @@
+---
+import { useTranslations, alternateUrl, type Locale, localePrefix } from "../lib/i18n";
+import LanguageToggle from "./react/LanguageToggle.island.tsx";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+
+const prefix = localePrefix(locale);
+const altLocale: Locale = locale === "ru" ? "en" : "ru";
+const altHref = alternateUrl(Astro.url, altLocale);
+
+const brand = t<string>("meta.brandShort");
+
+const navLinks = [
+  { href: `${prefix}/#about`, label: t<string>("nav.about") },
+  { href: `${prefix}/#stack`, label: t<string>("nav.stack") },
+  { href: `${prefix}/#projects`, label: t<string>("nav.projects") },
+  { href: `${prefix}/#timeline`, label: t<string>("nav.timeline") },
+  { href: `${prefix}/#contact`, label: t<string>("nav.contact") },
+];
+---
+
+<header class="header">
+  <div class="header__inner container glass glass--liquid">
+    <a href={prefix || "/"} class="header__brand" aria-label={brand}>
+      <span class="header__brand-text display">{brand}</span>
+    </a>
+
+    <nav class="header__nav" aria-label="Primary">
+      {navLinks.map((l) => (
+        <a href={l.href} class="header__nav-link">
+          {l.label}
+        </a>
+      ))}
+    </nav>
+
+    <div class="header__actions">
+      <LanguageToggle
+        client:idle
+        current={locale}
+        alternate={altLocale}
+        alternateUrl={altHref}
+        label={t<string>("nav.toggleLang")}
+      />
+    </div>
+  </div>
+</header>
+
+<style>
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+    padding-block: var(--sp-3);
+    pointer-events: none;
+  }
+
+  .header__inner {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-6);
+    padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-5);
+    border-radius: var(--r-pill);
+    margin-inline: auto;
+    max-width: calc(var(--container-wide) - var(--sp-4));
+  }
+
+  .header__brand {
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-extrabold);
+    font-size: var(--fs-18);
+    letter-spacing: var(--ls-display);
+    line-height: 1;
+    color: var(--text);
+    padding: var(--sp-2) var(--sp-3);
+    flex-shrink: 0;
+  }
+
+  .header__brand-text {
+    display: inline-block;
+  }
+
+  .header__nav {
+    display: none;
+    flex: 1;
+    gap: var(--sp-2);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .header__nav-link {
+    font-size: var(--fs-14);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-snug);
+    color: var(--text-secondary);
+    padding: var(--sp-2) var(--sp-3);
+    border-radius: var(--r-pill);
+    transition:
+      color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard);
+    min-height: var(--tap-min);
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .header__nav-link:hover {
+    color: var(--text);
+    background: var(--surface-2);
+    opacity: 1;
+  }
+
+  .header__actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+  }
+
+  :global(.lang-toggle) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--tap-min);
+    min-height: var(--tap-min);
+    padding-inline: var(--sp-3);
+    border-radius: var(--r-pill);
+    border: var(--bw-thin) solid var(--border);
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-bold);
+    font-size: var(--fs-12);
+    letter-spacing: var(--ls-wide);
+    color: var(--text);
+    text-transform: uppercase;
+    transition:
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard);
+  }
+
+  :global(.lang-toggle:hover) {
+    border-color: var(--border-hover);
+    background: var(--surface-2);
+    opacity: 1;
+  }
+
+  @media (min-width: 768px) {
+    .header__nav {
+      display: flex;
+    }
+  }
+</style>

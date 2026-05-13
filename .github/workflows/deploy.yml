@@ -1,0 +1,95 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Build & deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event_name == 'pull_request' && 'preview' || 'production' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      # ---------------------------------------------------------------------
+      # Материализуем .env из GitHub Secrets через heredoc.
+      # Все значения опциональны — если секрет не задан, переменная пустая,
+      # Zod-схема использует дефолт, UI плавно деградирует (нет фото — монограмма
+      # и т.п.).
+      # ---------------------------------------------------------------------
+      - name: Materialize .env from secrets
+        run: |
+          cat > .env <<'EOF'
+          PUBLIC_DOMAIN=${{ secrets.PUBLIC_DOMAIN }}
+          PUBLIC_GITHUB_USER=${{ secrets.PUBLIC_GITHUB_USER }}
+          PUBLIC_GITHUB_REPO=${{ secrets.PUBLIC_GITHUB_REPO }}
+          PUBLIC_AUTHOR_NAME_RU=${{ secrets.PUBLIC_AUTHOR_NAME_RU }}
+          PUBLIC_AUTHOR_NAME_EN=${{ secrets.PUBLIC_AUTHOR_NAME_EN }}
+          PUBLIC_AUTHOR_PHOTO=${{ secrets.PUBLIC_AUTHOR_PHOTO }}
+          PUBLIC_AUTHOR_BIO_RU=${{ secrets.PUBLIC_AUTHOR_BIO_RU }}
+          PUBLIC_AUTHOR_BIO_EN=${{ secrets.PUBLIC_AUTHOR_BIO_EN }}
+          PUBLIC_SOCIAL_GITHUB=${{ secrets.PUBLIC_SOCIAL_GITHUB }}
+          PUBLIC_SOCIAL_TELEGRAM=${{ secrets.PUBLIC_SOCIAL_TELEGRAM }}
+          PUBLIC_SOCIAL_LINKEDIN=${{ secrets.PUBLIC_SOCIAL_LINKEDIN }}
+          PUBLIC_SOCIAL_X=${{ secrets.PUBLIC_SOCIAL_X }}
+          PUBLIC_SOCIAL_VK=${{ secrets.PUBLIC_SOCIAL_VK }}
+          AUTHOR_EMAIL=${{ secrets.AUTHOR_EMAIL }}
+          EOF
+
+      # ---------------------------------------------------------------------
+      # Подтягиваем приватное фото (если задан секрет с URL).
+      # Кладём в `public/people/` который gitignored, чтобы не светить в репо.
+      # Если секрет не задан — шаг тихо пропускается, About покажет монограмму.
+      # ---------------------------------------------------------------------
+      - name: Fetch private avatar (optional)
+        if: ${{ secrets.AUTHOR_PHOTO_URL != '' }}
+        env:
+          PHOTO_URL: ${{ secrets.AUTHOR_PHOTO_URL }}
+        run: |
+          mkdir -p public/people
+          curl -sSL --fail "$PHOTO_URL" -o public/people/me.webp
+          echo "PUBLIC_AUTHOR_PHOTO=/people/me.webp" >> .env
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Build
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Publish to Cloudflare Pages
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=${{ secrets.CLOUDFLARE_PROJECT_NAME }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

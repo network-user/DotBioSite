@@ -1,0 +1,7 @@
+Положи сюда `Inter-Variable.woff2` (selfhosted шрифт).
+
+Источник: https://github.com/rsms/inter/releases (Inter Variable, WOFF2)
+
+После размещения файла обнови `src/styles/global.css`:
+  1. Удали строку `@import url("https://fonts.googleapis.com/css2?...")`
+  2. Раскомментируй блок `@font-face` (см. TODO.md).

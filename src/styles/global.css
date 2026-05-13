@@ -1,0 +1,264 @@
+/* =============================================================================
+ * global.css — reset + базовые стили
+ *
+ * Порядок импортов важен:
+ *   1) tokens.css — все CSS custom properties
+ *   2) Inter из Google Fonts (TODO: заменить на selfhosted /public/fonts/)
+ *   3) reset + base
+ * ============================================================================= */
+
+@import "./tokens.css";
+
+/* Inter Variable. В проде вынести в selfhosted /public/fonts/, см. TODO.md. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+/* ---------- Reset ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-stack-system);
+  font-size: var(--fs-16);
+  line-height: var(--lh-normal);
+  letter-spacing: var(--ls-snug);
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+img,
+picture,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+}
+
+button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: opacity var(--dur-fast) var(--ease-standard);
+}
+
+a:hover {
+  opacity: 0.78;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+/* ---------- Typography helpers ---------- */
+.display {
+  font-family: var(--font-stack-display);
+  font-weight: var(--fw-extrabold);
+  letter-spacing: var(--ls-display);
+  line-height: var(--lh-tight);
+}
+
+.title-lg {
+  font-size: var(--fs-lt);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-display);
+  line-height: var(--lh-tight);
+}
+
+.title {
+  font-size: var(--fs-tt);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-tight);
+  line-height: var(--lh-snug);
+}
+
+.subtitle {
+  font-size: var(--fs-18);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-snug);
+  line-height: var(--lh-snug);
+  color: var(--text-secondary);
+}
+
+.body {
+  font-size: var(--fs-16);
+  line-height: var(--lh-normal);
+  color: var(--text);
+}
+
+.body-sm {
+  font-size: var(--fs-14);
+  line-height: var(--lh-normal);
+  color: var(--text-secondary);
+}
+
+.caption {
+  font-size: var(--fs-12);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: var(--fw-medium);
+}
+
+.mono {
+  font-family: var(--font-stack-mono);
+}
+
+/* ---------- Focus visible (universal) ---------- */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: var(--ring-width) solid var(--ring-focus);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+/* ---------- Selection ---------- */
+::selection {
+  background: var(--text);
+  color: var(--bg);
+}
+
+/* ---------- Scrollbar (Webkit only, не критично) ---------- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-2);
+  border-radius: var(--r-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--surface-3);
+}
+
+/* ---------- Utility containers ---------- */
+.container {
+  width: 100%;
+  max-width: var(--container-wide);
+  margin: 0 auto;
+  padding-inline: var(--sp-5);
+}
+
+.container-narrow {
+  max-width: var(--container-narrow);
+}
+
+.container-medium {
+  max-width: var(--container-medium);
+}
+
+.container-max {
+  max-width: var(--container-max);
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding-inline: var(--sp-7);
+  }
+}
+
+@media (min-width: 1200px) {
+  .container {
+    padding-inline: var(--sp-8);
+  }
+}
+
+/* ---------- Accessibility: visually hidden ---------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Section helpers ---------- */
+.section {
+  padding-block: var(--sp-11);
+  position: relative;
+}
+
+@media (min-width: 768px) {
+  .section {
+    padding-block: var(--sp-12);
+  }
+}
+
+/* ---------- Scroll-reveal (управление через IntersectionObserver в BaseLayout) ---------- */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity var(--dur-slower) var(--ease-soft),
+    transform var(--dur-slower) var(--ease-soft);
+  transition-delay: calc(var(--reveal-delay, 0) * 1ms);
+  will-change: opacity, transform;
+}
+
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- Magnetic (применяется на CTA, обрабатывается JS-ом в BaseLayout) ---------- */
+.magnetic {
+  transform-origin: center;
+  will-change: transform;
+}

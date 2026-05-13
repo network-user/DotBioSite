@@ -1,0 +1,154 @@
+---
+import { useTranslations, type Locale } from "../lib/i18n";
+import { config, authorName, authorBio, authorMonogram, socials } from "../lib/config";
+import SectionHeader from "./SectionHeader.astro";
+import Icon from "./Icon/Icon.astro";
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+
+const name = authorName(locale);
+const bio = authorBio(locale);
+const photo = config.PUBLIC_AUTHOR_PHOTO;
+const monogram = authorMonogram(locale);
+---
+
+<section class="section about" id="about" aria-labelledby="about-title">
+  <div class="container about__inner">
+    <SectionHeader
+      id="about-title"
+      kicker={t<string>("about.kicker")}
+      title={t<string>("about.title")}
+      lede={t<string>("about.lede")}
+    />
+
+    <div class="about__grid">
+      <div class="about__portrait glass glass--bordered" data-reveal>
+        {photo ? (
+          <img src={photo} alt={name} class="about__photo" loading="lazy" decoding="async" />
+        ) : (
+          <span class="about__monogram display" aria-label={name}>
+            {monogram}
+          </span>
+        )}
+      </div>
+
+      <div class="about__content" data-reveal data-reveal-delay="120">
+        <p class="about__name title">{name}</p>
+        {bio && <p class="about__bio body">{bio}</p>}
+
+        {socials.length > 0 && (
+          <ul class="about__socials" aria-label={t<string>("contact.title")}>
+            {socials.map((s) => (
+              <li>
+                <a
+                  href={s.url}
+                  class="about__social"
+                  target="_blank"
+                  rel="noopener noreferrer me"
+                  aria-label={t<string>(`contact.${s.id}`)}
+                >
+                  <Icon name={s.id} size={20} />
+                  <span class="about__social-label">{t<string>(`contact.${s.id}`)}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .about__grid {
+    display: grid;
+    gap: var(--sp-7);
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .about__portrait {
+    width: 100%;
+    max-width: 320px;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border-radius: var(--r-xl);
+    overflow: hidden;
+  }
+
+  .about__photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(100%) contrast(1.05);
+  }
+
+  .about__monogram {
+    font-size: clamp(64px, 12vw, 120px);
+    color: var(--text-muted);
+    letter-spacing: var(--ls-display);
+    user-select: none;
+  }
+
+  .about__content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+  }
+
+  .about__name {
+    font-size: clamp(28px, 3vw, 40px);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--ls-display);
+  }
+
+  .about__bio {
+    color: var(--text-secondary);
+    max-width: 60ch;
+    font-size: var(--fs-17);
+    line-height: var(--lh-normal);
+  }
+
+  .about__socials {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    margin-block-start: var(--sp-3);
+  }
+
+  .about__social {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-4);
+    min-height: var(--tap-min);
+    border-radius: var(--r-pill);
+    border: var(--bw-thin) solid var(--border);
+    color: var(--text-secondary);
+    font-size: var(--fs-14);
+    font-weight: var(--fw-medium);
+    transition:
+      border-color var(--dur-fast) var(--ease-standard),
+      color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard);
+  }
+
+  .about__social:hover {
+    color: var(--text);
+    border-color: var(--border-hover);
+    background: var(--surface-2);
+    opacity: 1;
+  }
+
+  @media (min-width: 768px) {
+    .about__grid {
+      grid-template-columns: 320px 1fr;
+      gap: var(--sp-10);
+    }
+  }
+</style>

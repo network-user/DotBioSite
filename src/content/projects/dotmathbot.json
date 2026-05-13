@@ -1,0 +1,41 @@
+{
+  "id": "dotmathbot",
+  "slug": "dotmathbot",
+  "name": {
+    "ru": "DotMathBot",
+    "en": "DotMathBot"
+  },
+  "brand": {
+    "ru": ".матем",
+    "en": ".math"
+  },
+  "tagline": {
+    "ru": "Тренажёр умножения и деления в Telegram.",
+    "en": "Multiplication & division trainer in Telegram."
+  },
+  "description": {
+    "ru": "Двуязычный Telegram-бот для тренировки таблицы умножения и деления: три уровня сложности, режимы практики, ежедневные уведомления через APScheduler, профиль с ТОП-ом и шпаргалки. Полностью async, миграции, тесты с покрытием.",
+    "en": "A bilingual Telegram bot for practising multiplication and division: three difficulty levels, practice modes, daily reminders via APScheduler, a profile with leaderboard, and cheat sheets. Fully async, with migrations and unit tests."
+  },
+  "stack": [
+    "Python",
+    "aiogram 3.15",
+    "SQLAlchemy 2",
+    "aiosqlite",
+    "Redis",
+    "APScheduler",
+    "pydantic-settings",
+    "pytest"
+  ],
+  "category": "bot",
+  "status": "active",
+  "year": 2026,
+  "repos": [
+    {
+      "name": "DotMathBot",
+      "url": "https://github.com/network-user/DotMathBot",
+      "role": "telegram-bot"
+    }
+  ],
+  "cover": "/projects/dotmathbot/cover.webp"
+}

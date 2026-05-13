@@ -1,0 +1,135 @@
+---
+import { useTranslations, type Locale } from "../lib/i18n";
+import { projects } from "../lib/projects";
+import SectionHeader from "./SectionHeader.astro";
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+
+/**
+ * Таймлайн строится из проектов (по полю year). Дополнительные пользовательские
+ * вехи (рождение бренда, ребрендинг и т.п.) можно добавить вручную здесь же.
+ */
+const milestones = projects
+  .filter((p) => typeof p.year === "number")
+  .map((p) => ({
+    year: p.year as number,
+    title: p.brand[locale],
+    subtitle: p.tagline[locale],
+    description: p.name[locale],
+  }))
+  .sort((a, b) => b.year - a.year);
+---
+
+<section class="section timeline-section" id="timeline" aria-labelledby="timeline-title">
+  <div class="container timeline-section__inner">
+    <SectionHeader
+      id="timeline-title"
+      kicker={t<string>("timeline.kicker")}
+      title={t<string>("timeline.title")}
+      lede={t<string>("timeline.lede")}
+    />
+
+    <ol class="timeline">
+      {milestones.map((m, i) => (
+        <li class="timeline__item" data-reveal data-reveal-delay={i * 100}>
+          <div class="timeline__bullet" aria-hidden="true"></div>
+          <div class="timeline__year display">{m.year}</div>
+          <div class="timeline__body glass glass--hover">
+            <h3 class="timeline__title">{m.title}</h3>
+            <p class="timeline__subtitle subtitle">{m.subtitle}</p>
+            <p class="timeline__desc body-sm">{m.description}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>
+
+<style>
+  .timeline {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-6);
+    padding-inline-start: var(--sp-7);
+  }
+
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 11px;
+    top: var(--sp-2);
+    bottom: var(--sp-2);
+    width: 1px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      var(--border-hover) 8%,
+      var(--border-hover) 92%,
+      transparent
+    );
+    pointer-events: none;
+  }
+
+  .timeline__item {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--sp-3);
+  }
+
+  .timeline__bullet {
+    position: absolute;
+    left: -27px;
+    top: 14px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--text);
+    box-shadow:
+      0 0 0 4px var(--bg),
+      0 0 0 5px var(--border-hover);
+  }
+
+  .timeline__year {
+    font-size: var(--fs-22);
+    color: var(--text-muted);
+    letter-spacing: var(--ls-display);
+    line-height: 1;
+  }
+
+  .timeline__body {
+    padding: var(--sp-5) var(--sp-6);
+    border-radius: var(--r-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+
+  .timeline__title {
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-bold);
+    letter-spacing: var(--ls-tight);
+    font-size: var(--fs-24);
+  }
+
+  @media (min-width: 720px) {
+    .timeline__item {
+      grid-template-columns: 96px 1fr;
+      align-items: start;
+      gap: var(--sp-6);
+    }
+    .timeline__bullet {
+      left: -27px;
+      top: 24px;
+    }
+    .timeline__year {
+      padding-block-start: var(--sp-4);
+      font-size: var(--fs-28);
+    }
+  }
+</style>

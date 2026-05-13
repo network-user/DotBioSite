@@ -1,0 +1,101 @@
+{
+  "meta": {
+    "locale": "en",
+    "title": ".core — projects forge",
+    "description": "Personal portfolio site and collection point for all projects: DotSound, DotMathBot, and more.",
+    "brandShort": ".core",
+    "brand": ".core",
+    "tagline": "projects forge."
+  },
+  "nav": {
+    "about": "about",
+    "stack": "stack",
+    "projects": "projects",
+    "timeline": "timeline",
+    "contact": "contact",
+    "language": "Language",
+    "menu": "Menu",
+    "toggleLang": "RU"
+  },
+  "hero": {
+    "title": ".core",
+    "tagline": "projects forge.",
+    "subtitle": "A collection point for all projects under one umbrella. Each project has its own identity, mission, and repository. This site is a preview and navigator.",
+    "ctaProjects": "view projects",
+    "ctaContact": "get in touch",
+    "scrollCue": "scroll"
+  },
+  "about": {
+    "kicker": "about",
+    "title": "One person, many dots.",
+    "lede": "A solo developer who builds each solution as 'one task — one repository', yet all of them live under a shared brand.",
+    "noPhoto": "DC"
+  },
+  "stack": {
+    "kicker": "stack",
+    "title": "What I work with every day.",
+    "lede": "Deep backend, lean frontend, plenty of DevOps, ML when needed.",
+    "categories": {
+      "backend": "Backend",
+      "frontend": "Frontend",
+      "devops": "DevOps",
+      "ml": "AI / ML",
+      "mobile": "Mobile / Bots"
+    }
+  },
+  "projects": {
+    "kicker": "projects",
+    "title": "Dots in a constellation.",
+    "lede": "Each project is standalone, with its own repositories and domain. Click to see details.",
+    "viewProject": "details",
+    "viewSource": "source",
+    "openSite": "open site",
+    "repos": "repositories",
+    "stack": "stack",
+    "category": {
+      "platform": "Platform",
+      "bot": "Bot",
+      "tool": "Tool",
+      "site": "Site",
+      "library": "Library"
+    },
+    "status": {
+      "active": "active",
+      "wip": "in progress",
+      "beta": "beta",
+      "archived": "archived"
+    }
+  },
+  "timeline": {
+    "kicker": "timeline",
+    "title": "Dot-to-dot path.",
+    "lede": "Key milestones."
+  },
+  "contact": {
+    "kicker": "contact",
+    "title": "Drop a line.",
+    "lede": "If you want to discuss a joint project, hire, or just ask something — all channels below.",
+    "email": "email me",
+    "emailUnavailable": "Email unavailable",
+    "github": "GitHub",
+    "telegram": "Telegram",
+    "linkedin": "LinkedIn",
+    "x": "X (Twitter)",
+    "vk": "VK"
+  },
+  "footer": {
+    "rights": "All rights reserved.",
+    "builtWith": "Built with Astro",
+    "sourceCode": "Site source",
+    "brand": ".core"
+  },
+  "case": {
+    "back": "← back to all projects",
+    "overview": "overview",
+    "architecture": "architecture",
+    "stack": "stack",
+    "repos": "repositories",
+    "links": "links",
+    "license": "license"
+  }
+}

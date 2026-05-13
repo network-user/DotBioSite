@@ -1,0 +1,258 @@
+---
+import { useTranslations, type Locale, localePrefix } from "../lib/i18n";
+import {
+  type Project,
+  projectName,
+  projectBrand,
+  projectTagline,
+  projectDescription,
+} from "../lib/projects";
+import Icon from "./Icon/Icon.astro";
+
+interface Props {
+  project: Project;
+  locale: Locale;
+  /** Индекс в сетке (для staggered scroll-reveal). */
+  index?: number;
+}
+
+const { project: p, locale, index = 0 } = Astro.props;
+const t = useTranslations(locale);
+const prefix = localePrefix(locale);
+
+const name = projectName(p, locale);
+const brand = projectBrand(p, locale);
+const tagline = projectTagline(p, locale);
+const desc = projectDescription(p, locale);
+const caseHref = `${prefix}/projects/${p.slug}`;
+---
+
+<article
+  class="project-card glass glass--spotlight glass--hover glass--bordered"
+  data-reveal
+  data-reveal-delay={index * 80}
+  data-spotlight
+  aria-labelledby={`project-${p.slug}-title`}
+>
+  <header class="project-card__head">
+    <div class="project-card__meta">
+      <span class="project-card__category caption">
+        {t<string>(`projects.category.${p.category}`)}
+      </span>
+      <span class={`project-card__status project-card__status--${p.status}`}>
+        <Icon name="dot" size={10} />
+        <span>{t<string>(`projects.status.${p.status}`)}</span>
+      </span>
+    </div>
+
+    <h3 class="project-card__brand display" id={`project-${p.slug}-title`}>
+      {brand}
+    </h3>
+    <p class="project-card__name caption">{name}</p>
+    <p class="project-card__tagline subtitle">{tagline}</p>
+  </header>
+
+  <p class="project-card__desc body">{desc}</p>
+
+  <ul class="project-card__stack" aria-label={t<string>("projects.stack")}>
+    {p.stack.slice(0, 8).map((s) => (
+      <li class="project-card__chip">{s}</li>
+    ))}
+    {p.stack.length > 8 && (
+      <li class="project-card__chip project-card__chip--more">
+        +{p.stack.length - 8}
+      </li>
+    )}
+  </ul>
+
+  {p.repos.length > 1 && (
+    <ul class="project-card__repos" aria-label={t<string>("projects.repos")}>
+      {p.repos.map((r) => (
+        <li class="project-card__repo">
+          <Icon name="code" size={14} />
+          <span class="mono">{r.name}</span>
+          {r.role && <span class="project-card__repo-role">{r.role}</span>}
+        </li>
+      ))}
+    </ul>
+  )}
+
+  <footer class="project-card__actions">
+    <a href={caseHref} class="project-card__cta cta cta--primary magnetic">
+      <span>{t<string>("projects.viewProject")}</span>
+      <Icon name="arrow-right" size={16} />
+    </a>
+    {p.repos[0] && (
+      <a
+        href={p.repos[0].url}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="project-card__cta cta cta--ghost"
+      >
+        <Icon name="github" size={16} />
+        <span>{t<string>("projects.viewSource")}</span>
+      </a>
+    )}
+    {p.links?.domain && (
+      <a
+        href={p.links.domain}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="project-card__cta cta cta--ghost"
+      >
+        <Icon name="globe" size={16} />
+        <span>{t<string>("projects.openSite")}</span>
+      </a>
+    )}
+  </footer>
+</article>
+
+<style>
+  .project-card {
+    padding: var(--sp-6) var(--sp-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+    min-height: 360px;
+    border-radius: var(--r-xl);
+  }
+
+  .project-card__head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+
+  .project-card__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    color: var(--text-muted);
+  }
+
+  .project-card__status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-1);
+    font-size: var(--fs-11);
+    font-weight: var(--fw-medium);
+    text-transform: lowercase;
+    letter-spacing: var(--ls-wide);
+    padding: var(--sp-1) var(--sp-2);
+    border-radius: var(--r-pill);
+    border: var(--bw-thin) solid var(--border);
+  }
+
+  .project-card__status--active {
+    color: var(--state-ok);
+  }
+  .project-card__status--wip {
+    color: var(--state-warn);
+  }
+  .project-card__status--beta {
+    color: var(--state-info);
+  }
+  .project-card__status--archived {
+    color: var(--text-muted);
+  }
+
+  .project-card__brand {
+    font-size: clamp(36px, 4vw, 56px);
+    line-height: 0.95;
+    letter-spacing: var(--ls-display);
+  }
+
+  .project-card__name {
+    color: var(--text-secondary);
+  }
+
+  .project-card__tagline {
+    font-size: var(--fs-17);
+    color: var(--text);
+    font-weight: var(--fw-medium);
+    margin-block-start: var(--sp-2);
+  }
+
+  .project-card__desc {
+    color: var(--text-secondary);
+    font-size: var(--fs-15);
+    line-height: var(--lh-normal);
+  }
+
+  .project-card__stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+
+  .project-card__chip {
+    padding: 2px var(--sp-2);
+    font-size: var(--fs-11);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-snug);
+    color: var(--text-muted);
+    background: var(--surface);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-sm);
+  }
+
+  .project-card__chip--more {
+    color: var(--text-secondary);
+  }
+
+  .project-card__repos {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+    padding-block-start: var(--sp-2);
+    border-top: var(--bw-thin) solid var(--border);
+  }
+
+  .project-card__repo {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
+  }
+
+  .project-card__repo-role {
+    color: var(--text-muted);
+    font-size: var(--fs-11);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+    margin-left: auto;
+  }
+
+  .project-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    margin-block-start: auto;
+    padding-block-start: var(--sp-2);
+  }
+
+  .project-card__cta {
+    font-size: var(--fs-13);
+    padding: var(--sp-2) var(--sp-4);
+    min-height: 40px;
+  }
+</style>
+
+<script>
+  // Spotlight: подсветка от курсора через CSS-переменные --mx / --my.
+  // Чистый JS, без зависимостей. Активно только для не-touch устройств.
+  const cards = document.querySelectorAll<HTMLElement>("[data-spotlight]");
+  if (window.matchMedia("(pointer: fine)").matches) {
+    cards.forEach((card) => {
+      card.addEventListener("pointermove", (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        card.style.setProperty("--mx", `${x}%`);
+        card.style.setProperty("--my", `${y}%`);
+      });
+    });
+  }
+</script>
