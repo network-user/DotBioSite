@@ -1,6 +1,8 @@
 ---
 import { useTranslations, type Locale, localePrefix } from "../lib/i18n";
 import Icon from "./Icon/Icon.astro";
+import MeshGradient from "./illustration/MeshGradient.astro";
+import DotConstellation from "./react/DotConstellation.island.tsx";
 
 interface Props {
   locale: Locale;
@@ -10,27 +12,38 @@ const t = useTranslations(locale);
 const prefix = localePrefix(locale);
 
 const brand = t("hero.title");
+const eyebrow = t("hero.eyebrow");
 const tagline = t("hero.tagline");
 const subtitle = t("hero.subtitle");
 ---
 
 <section class="hero" id="hero" aria-label={brand}>
-  <div class="hero__bg" aria-hidden="true"></div>
+  <MeshGradient palette="violet" intensity="default" />
+  <DotConstellation client:idle variant="hero" />
 
   <div class="container hero__inner">
-    <h1 class="hero__brand display" data-reveal data-reveal-delay="0">
+    <p class="hero__eyebrow eyebrow" data-reveal data-reveal-delay="0">
+      {eyebrow}
+    </p>
+
+    <h1
+      class="hero__brand display-xl"
+      data-reveal
+      data-reveal-delay="60"
+      style="view-transition-name: brand-root;"
+    >
       {brand}
     </h1>
 
-    <p class="hero__tagline title" data-reveal data-reveal-delay="120">
+    <p class="hero__tagline title" data-reveal data-reveal-delay="180">
       {tagline}
     </p>
 
-    <p class="hero__subtitle subtitle" data-reveal data-reveal-delay="240">
+    <p class="hero__subtitle subtitle" data-reveal data-reveal-delay="300">
       {subtitle}
     </p>
 
-    <div class="hero__ctas" data-reveal data-reveal-delay="360">
+    <div class="hero__ctas" data-reveal data-reveal-delay="420">
       <a href={`${prefix}/#projects`} class="cta cta--primary magnetic">
         <span>{t("hero.ctaProjects")}</span>
         <Icon name="arrow-right" size={18} />
@@ -56,32 +69,28 @@ const subtitle = t("hero.subtitle");
     align-items: center;
     overflow: hidden;
     padding-block: var(--sp-12) var(--sp-11);
-  }
-
-  .hero__bg {
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(
-      circle at 50% 30%,
-      rgba(255, 255, 255, 0.04) 0%,
-      transparent 60%
-    );
-    pointer-events: none;
+    isolation: isolate;
   }
 
   .hero__inner {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: var(--sp-5);
+    gap: var(--sp-4);
+  }
+
+  .hero__eyebrow {
+    color: var(--text-muted);
+    margin-block-end: var(--sp-3);
   }
 
   .hero__brand {
-    font-size: clamp(64px, 14vw, 200px);
-    line-height: 0.92;
-    margin-block-end: var(--sp-2);
+    font-size: clamp(72px, 18vw, 220px);
+    letter-spacing: var(--ls-display-xl);
+    line-height: var(--lh-display-xl);
+    margin: 0;
     background: linear-gradient(180deg, var(--text) 0%, var(--text-secondary) 130%);
     -webkit-background-clip: text;
     background-clip: text;
@@ -90,16 +99,16 @@ const subtitle = t("hero.subtitle");
   }
 
   .hero__tagline {
-    font-size: clamp(20px, 2.4vw, 34px);
+    font-size: clamp(22px, 2.6vw, 36px);
     color: var(--text);
-    margin-block-end: var(--sp-3);
+    margin-block-start: var(--sp-3);
   }
 
   .hero__subtitle {
     max-width: 56ch;
     font-size: clamp(15px, 1.4vw, 18px);
     color: var(--text-secondary);
-    margin-block-end: var(--sp-5);
+    margin-block-end: var(--sp-4);
   }
 
   .hero__ctas {
@@ -136,7 +145,6 @@ const subtitle = t("hero.subtitle");
   .cta--primary:hover {
     background: var(--accent-hover);
     border-color: var(--accent-hover);
-    transform: translateY(-1px);
     opacity: 1;
   }
 
@@ -148,7 +156,6 @@ const subtitle = t("hero.subtitle");
   .cta--ghost:hover {
     background: var(--surface-2);
     border-color: var(--border-hover);
-    transform: translateY(-1px);
     opacity: 1;
   }
 
@@ -162,6 +169,7 @@ const subtitle = t("hero.subtitle");
     align-items: center;
     gap: var(--sp-2);
     color: var(--text-muted);
+    z-index: 2;
     animation: scrollPulse 2.4s var(--ease-soft) infinite;
   }
 

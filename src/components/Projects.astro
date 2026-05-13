@@ -3,6 +3,7 @@ import { useTranslations, type Locale } from "../lib/i18n";
 import { projects } from "../lib/projects";
 import SectionHeader from "./SectionHeader.astro";
 import ProjectCard from "./ProjectCard.astro";
+import YearStrip from "./illustration/YearStrip.astro";
 
 interface Props {
   locale: Locale;
@@ -11,6 +12,9 @@ const { locale } = Astro.props;
 const t = useTranslations(locale);
 
 const visible = projects.filter((p) => !p.comingSoon);
+const years = visible
+  .map((p) => p.year)
+  .filter((y): y is number => typeof y === "number");
 ---
 
 <section class="section projects" id="projects" aria-labelledby="projects-title">
@@ -27,14 +31,32 @@ const visible = projects.filter((p) => !p.comingSoon);
         <ProjectCard project={p} locale={locale} index={i} />
       ))}
     </div>
+
+    {years.length > 1 && (
+      <div class="projects__year-strip" data-reveal>
+        <YearStrip years={years} />
+        <p class="projects__hint caption">{t("projects.scrollHint")}</p>
+      </div>
+    )}
   </div>
 </section>
 
 <style>
   .projects__grid {
     display: grid;
-    gap: var(--sp-5);
+    gap: var(--sp-7);
     grid-template-columns: 1fr;
+  }
+
+  .projects__year-strip {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+
+  .projects__hint {
+    text-align: center;
+    color: var(--text-faint);
   }
 
   @media (min-width: 900px) {

@@ -1,0 +1,155 @@
+---
+/**
+ * Architecture.astro — оркестратор архитектурной диаграммы.
+ *
+ * Принимает массивы узлов, рёбер и кластеров (опционально) и рендерит единый
+ * SVG в системе координат 960×540 с `preserveAspectRatio="xMidYMid meet"`.
+ * Каждый узел получает `data-reveal` со staggered delay (i * 80ms), чтобы
+ * диаграмма «собиралась» при появлении в viewport через общий IO в BaseLayout.
+ *
+ * Узел адресуется по `id`; рёбра ссылаются на пару `from`/`to` — компонент
+ * сам находит координаты центров капсул и направляет линию от края до края.
+ */
+
+import ArchNode from "./ArchNode.astro";
+import ArchEdge from "./ArchEdge.astro";
+import ArchCluster from "./ArchCluster.astro";
+
+type IconKey = "code" | "stack" | "rocket" | "spark" | "telegram" | "globe" | "user" | "dot";
+type EdgeKind = "sync" | "async" | "data";
+
+interface NodeInput {
+  id: string;
+  x: number;
+  y: number;
+  label: string;
+  icon?: IconKey;
+  width?: number;
+  height?: number;
+  emphasis?: "default" | "strong";
+}
+
+interface EdgeInput {
+  from: string;
+  to: string;
+  kind?: EdgeKind;
+  label?: string;
+  bend?: number;
+}
+
+interface ClusterInput {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  label: string;
+}
+
+interface Props {
+  nodes: ReadonlyArray<NodeInput>;
+  edges?: ReadonlyArray<EdgeInput>;
+  clusters?: ReadonlyArray<ClusterInput>;
+  viewBox?: string;
+  class?: string;
+  ariaLabel?: string;
+}
+
+const {
+  nodes,
+  edges = [],
+  clusters = [],
+  viewBox = "0 0 960 540",
+  class: className = "",
+  ariaLabel = "Architecture diagram",
+} = Astro.props;
+
+const DEFAULT_W = 140;
+const DEFAULT_H = 56;
+
+interface Resolved {
+  id: string;
+  x: number;
+  y: number;
+  hw: number;
+  hh: number;
+}
+
+const resolved = new Map<string, Resolved>();
+nodes.forEach((n) => {
+  resolved.set(n.id, {
+    id: n.id,
+    x: n.x,
+    y: n.y,
+    hw: (n.width ?? DEFAULT_W) / 2,
+    hh: (n.height ?? DEFAULT_H) / 2,
+  });
+});
+
+/**
+ * Вычисляет точку выхода ребра из капсулы: пересечение луча `(cx,cy) → (tx,ty)`
+ * с прямоугольной рамкой капсулы (с округлыми концами — упрощаем до rect).
+ */
+function edgeAnchor(a: Resolved, b: Resolved): { x: number; y: number } {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  if (dx === 0 && dy === 0) return { x: a.x, y: a.y };
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+  const scale = Math.min(a.hw / Math.max(absDx, 0.001), a.hh / Math.max(absDy, 0.001));
+  return { x: a.x + dx * scale, y: a.y + dy * scale };
+}
+
+const edgeData = edges
+  .map((e) => {
+    const a = resolved.get(e.from);
+    const b = resolved.get(e.to);
+    if (!a || !b) return null;
+    const from = edgeAnchor(a, b);
+    const to = edgeAnchor(b, a);
+    return { ...e, from, to };
+  })
+  .filter(
+    (e): e is EdgeInput & { from: { x: number; y: number }; to: { x: number; y: number } } =>
+      e !== null
+  );
+---
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox={viewBox}
+  preserveAspectRatio="xMidYMid meet"
+  class:list={["architecture", className]}
+  role="img"
+  aria-label={ariaLabel}
+>
+  {clusters.map((c) => <ArchCluster {...c} />)}
+  {
+    edgeData.map((e) => (
+      <ArchEdge from={e.from} to={e.to} kind={e.kind} label={e.label} bend={e.bend} />
+    ))
+  }
+  {
+    nodes.map((n, i) => (
+      <g data-reveal data-reveal-delay={i * 80}>
+        <ArchNode
+          x={n.x}
+          y={n.y}
+          label={n.label}
+          icon={n.icon}
+          width={n.width}
+          height={n.height}
+          emphasis={n.emphasis}
+        />
+      </g>
+    ))
+  }
+</svg>
+
+<style>
+  .architecture {
+    display: block;
+    width: 100%;
+    height: auto;
+    color: var(--text);
+  }
+</style>

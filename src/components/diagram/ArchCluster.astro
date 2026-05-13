@@ -1,0 +1,81 @@
+---
+/**
+ * ArchCluster.astro — пунктирная «область» группировки на диаграмме.
+ *
+ * Рамка с штриховой границей и подписью в левом-верхнем углу. Используется
+ * для визуального выделения подсистем (например, «Backend hub» вокруг
+ * нескольких узлов). Координата `x,y` — левый-верхний угол области.
+ */
+
+interface Props {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  label: string;
+  class?: string;
+}
+
+const { x, y, width, height, label, class: className = "" } = Astro.props;
+
+const radius = 16;
+const captionPadX = 12;
+const captionPadY = 6;
+// Pixel-width estimate for the caption pill, used to clip the dashed border behind it.
+const captionWidth = Math.max(48, label.length * 6.5 + captionPadX * 2);
+const captionHeight = 20;
+---
+
+<g class:list={["arch-cluster", className]} transform={`translate(${x}, ${y})`}>
+  <rect
+    class="arch-cluster__frame"
+    x="0.5"
+    y="0.5"
+    width={width - 1}
+    height={height - 1}
+    rx={radius}
+    ry={radius}
+  />
+  <rect
+    class="arch-cluster__caption-bg"
+    x={12}
+    y={-captionHeight / 2}
+    width={captionWidth}
+    height={captionHeight}
+    rx={captionHeight / 2}
+    ry={captionHeight / 2}
+  />
+  <text
+    x={12 + captionWidth / 2}
+    y={captionPadY / 2 - captionHeight / 2 + captionHeight / 2 + 0.5}
+    text-anchor="middle"
+    dominant-baseline="middle"
+    class="arch-cluster__caption"
+  >
+    {label}
+  </text>
+</g>
+
+<style>
+  .arch-cluster__frame {
+    fill: none;
+    stroke: var(--glass-edge);
+    stroke-width: 1;
+    stroke-dasharray: 4 6;
+  }
+
+  .arch-cluster__caption-bg {
+    fill: var(--bg-deep);
+    stroke: var(--glass-edge);
+    stroke-width: 1;
+  }
+
+  .arch-cluster__caption {
+    fill: var(--text-secondary);
+    font-family: var(--font-stack-display);
+    font-size: 10px;
+    font-weight: var(--fw-semibold);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+  }
+</style>

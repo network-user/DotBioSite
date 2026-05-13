@@ -1,0 +1,93 @@
+---
+/**
+ * YearStrip.astro — тонкая горизонтальная шкала с тиками годов.
+ *
+ * Помещается под сеткой проектов на главной. Однопиксельная линия с
+ * подсветками на каждой дате. Подписывает первый и последний год.
+ */
+
+interface Props {
+  years: ReadonlyArray<number>;
+  endLabel?: string;
+  class?: string;
+}
+
+const { years, endLabel, class: className = "" } = Astro.props;
+
+const sorted = [...new Set(years)].sort((a, b) => a - b);
+const min = sorted[0] ?? new Date().getFullYear();
+const max = sorted[sorted.length - 1] ?? min;
+const span = Math.max(1, max - min);
+
+const ticks = sorted.map((y) => ({
+  year: y,
+  pos: ((y - min) / span) * 100,
+}));
+---
+
+<div class:list={["year-strip", className]} aria-hidden="true">
+  <div class="year-strip__rail"></div>
+  {
+    ticks.map((t) => (
+      <span class="year-strip__tick" style={`left: ${t.pos}%`}>
+        <span class="year-strip__label caption">{t.year}</span>
+      </span>
+    ))
+  }
+  {
+    endLabel && (
+      <span class="year-strip__end caption">{endLabel}</span>
+    )
+  }
+</div>
+
+<style>
+  .year-strip {
+    position: relative;
+    width: 100%;
+    height: 56px;
+    margin-block-start: var(--sp-9);
+  }
+
+  .year-strip__rail {
+    position: absolute;
+    inset-inline: 0;
+    top: 50%;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      var(--border) 12%,
+      var(--border) 88%,
+      transparent 100%
+    );
+  }
+
+  .year-strip__tick {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    border-radius: var(--r-pill);
+    background: var(--text-secondary);
+    box-shadow: 0 0 0 4px var(--bg);
+  }
+
+  .year-strip__label {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 10px;
+  }
+
+  .year-strip__end {
+    position: absolute;
+    right: 0;
+    top: calc(50% + 8px);
+    color: var(--text-faint);
+    font-size: 10px;
+  }
+</style>

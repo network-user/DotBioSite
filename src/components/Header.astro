@@ -28,13 +28,14 @@ const navLinks = [
 const initialHash = Astro.url.hash.replace("#", "");
 ---
 
-<header class="header">
+<header class="header" data-header>
   <div class="header__inner container glass glass--liquid">
     <a href={prefix || "/"} class="header__brand" aria-label={brand}>
       <span class="header__brand-text display">{brand}</span>
     </a>
 
     <nav class="header__nav" aria-label="Primary" data-nav>
+      <span class="header__indicator" aria-hidden="true"></span>
       {navLinks.map((l) => {
         const isActive = l.section === initialHash;
         return (
@@ -80,6 +81,18 @@ const initialHash = Astro.url.hash.replace("#", "");
     border-radius: var(--r-pill);
     margin-inline: auto;
     max-width: calc(var(--container-wide) - var(--sp-4));
+    transition:
+      background-color var(--dur-med) var(--ease-standard),
+      backdrop-filter var(--dur-med) var(--ease-standard),
+      box-shadow var(--dur-med) var(--ease-standard);
+  }
+
+  /* When scrolled, swap to denser tint and stronger blur via shared class. */
+  .header.is-scrolled .header__inner {
+    background-color: var(--glass-tint-ultra);
+    backdrop-filter: blur(var(--glass-blur-strong-2)) saturate(160%);
+    -webkit-backdrop-filter: blur(var(--glass-blur-strong-2)) saturate(160%);
+    box-shadow: var(--shadow-2);
   }
 
   .header__brand {
@@ -98,6 +111,7 @@ const initialHash = Astro.url.hash.replace("#", "");
   }
 
   .header__nav {
+    position: relative;
     display: none;
     flex: 1;
     gap: var(--sp-2);
@@ -105,16 +119,31 @@ const initialHash = Astro.url.hash.replace("#", "");
     justify-content: center;
   }
 
+  .header__indicator {
+    position: absolute;
+    bottom: 4px;
+    left: var(--ind-left, 0);
+    width: var(--ind-width, 0);
+    height: 2px;
+    background: var(--text);
+    border-radius: 1px;
+    opacity: var(--ind-opacity, 0);
+    transition:
+      left var(--dur-slow) var(--ease-soft),
+      width var(--dur-slow) var(--ease-soft),
+      opacity var(--dur-med) var(--ease-standard);
+    pointer-events: none;
+  }
+
   .header__nav-link {
+    position: relative;
     font-size: var(--fs-14);
     font-weight: var(--fw-medium);
     letter-spacing: var(--ls-snug);
     color: var(--text-secondary);
     padding: var(--sp-2) var(--sp-3);
     border-radius: var(--r-pill);
-    transition:
-      color var(--dur-fast) var(--ease-standard),
-      background-color var(--dur-fast) var(--ease-standard);
+    transition: color var(--dur-fast) var(--ease-standard);
     min-height: var(--tap-min);
     display: inline-flex;
     align-items: center;
@@ -122,24 +151,12 @@ const initialHash = Astro.url.hash.replace("#", "");
 
   .header__nav-link:hover {
     color: var(--text);
-    background: var(--surface-2);
     opacity: 1;
   }
 
   .header__nav-link.is-active {
     color: var(--text);
-    background: var(--surface-2);
     font-weight: var(--fw-semibold);
-  }
-
-  .header__nav-link.is-active::after {
-    content: "";
-    display: block;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: var(--text);
-    margin-inline-start: var(--sp-2);
   }
 
   .header__actions {
@@ -184,39 +201,52 @@ const initialHash = Astro.url.hash.replace("#", "");
 
 <script>
   /**
-   * Подсветка активного пункта в хедере.
+   * Header behaviour: active-section underline + scrolled state.
    *
-   * Стратегия:
+   * Active highlight strategy:
    *   1. IntersectionObserver наблюдает за всеми секциями (#about, #stack, ...).
    *   2. Из видимых выбираем ту, у которой наибольший intersectionRatio.
-   *   3. Если ни одна не видна (например, мы на самом верху в Hero) — снимаем
-   *      активность со всех ссылок.
-   *   4. На клик по ссылке моментально включаем её active, не дожидаясь скролла —
-   *      иначе из-за smooth-scroll задержка ощущается как лаг.
+   *   3. Если ни одна не видна — снимаем активность со всех ссылок.
+   *   4. Скользящий underline позиционируется через CSS-переменные на nav-родителе.
+   *      Это даёт один плавный transition вместо отдельных tail-dot'ов.
    *
-   * Скрипт самодостаточен: повторно навешивается на каждой странице, где
-   * рендерится Header. Astro по умолчанию hoist'ит этот <script> и грузит его
-   * как ES-модуль один раз — повторного навешивания между навигациями не будет.
+   * Scrolled state: при scrollY > 24 на <header> ставится `.is-scrolled` —
+   * inner pill переключается на ultra-tint + сильный blur.
    */
   const SECTIONS = ["about", "stack", "projects", "timeline", "contact"];
 
+  function updateIndicator(nav: HTMLElement, active: HTMLElement | null) {
+    if (!active) {
+      nav.style.setProperty("--ind-opacity", "0");
+      return;
+    }
+    const navRect = nav.getBoundingClientRect();
+    const linkRect = active.getBoundingClientRect();
+    nav.style.setProperty("--ind-left", `${linkRect.left - navRect.left}px`);
+    nav.style.setProperty("--ind-width", `${linkRect.width}px`);
+    nav.style.setProperty("--ind-opacity", "1");
+  }
+
   function setActive(section: string | null) {
-    const links = document.querySelectorAll<HTMLAnchorElement>(
-      "[data-nav] [data-section]",
-    );
+    const nav = document.querySelector<HTMLElement>("[data-nav]");
+    if (!nav) return;
+    const links = nav.querySelectorAll<HTMLAnchorElement>("[data-section]");
+    let active: HTMLAnchorElement | null = null;
     links.forEach((link) => {
       const isActive = link.dataset.section === section;
       link.classList.toggle("is-active", isActive);
       if (isActive) {
         link.setAttribute("aria-current", "true");
+        active = link;
       } else {
         link.removeAttribute("aria-current");
       }
     });
+    updateIndicator(nav, active);
   }
 
   function initHeaderNav() {
-    const nav = document.querySelector("[data-nav]");
+    const nav = document.querySelector<HTMLElement>("[data-nav]");
     if (!nav) return;
 
     const sectionEls = SECTIONS.map((id) => document.getElementById(id)).filter(
@@ -238,12 +268,10 @@ const initialHash = Astro.url.hash.replace("#", "");
         });
 
         if (visible.size === 0) {
-          // Hero / выше всех секций — никакой пункт не активен.
           setActive(null);
           return;
         }
 
-        // Активный = секция с максимальной долей видимости.
         let topId: string | null = null;
         let topRatio = -1;
         visible.forEach((ratio, id) => {
@@ -255,8 +283,6 @@ const initialHash = Astro.url.hash.replace("#", "");
         setActive(topId);
       },
       {
-        // Триггерим переключение, когда секция занимает существенную часть
-        // viewport, а не как только её край показался.
         rootMargin: "-40% 0px -40% 0px",
         threshold: [0, 0.25, 0.5, 0.75, 1],
       },
@@ -264,19 +290,39 @@ const initialHash = Astro.url.hash.replace("#", "");
 
     sectionEls.forEach((el) => io.observe(el));
 
-    // Мгновенный отклик на клик — пока smooth-scroll едет, активный пункт
-    // уже на нужном месте.
     nav.querySelectorAll<HTMLAnchorElement>("[data-section]").forEach((link) => {
       link.addEventListener("click", () => {
         const id = link.dataset.section ?? null;
         setActive(id);
       });
     });
+
+    // Reposition the underline when fonts or viewport shift it.
+    const resizeObserver = new ResizeObserver(() => {
+      const current = nav.querySelector<HTMLAnchorElement>(".header__nav-link.is-active");
+      updateIndicator(nav, current);
+    });
+    resizeObserver.observe(nav);
+  }
+
+  function initHeaderScrolled() {
+    const header = document.querySelector<HTMLElement>("[data-header]");
+    if (!header) return;
+    const apply = () => {
+      header.classList.toggle("is-scrolled", window.scrollY > 24);
+    };
+    apply();
+    window.addEventListener("scroll", apply, { passive: true });
+  }
+
+  function init() {
+    initHeaderNav();
+    initHeaderScrolled();
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initHeaderNav, { once: true });
+    document.addEventListener("DOMContentLoaded", init, { once: true });
   } else {
-    initHeaderNav();
+    init();
   }
 </script>

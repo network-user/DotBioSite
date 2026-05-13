@@ -1,0 +1,231 @@
+---
+/**
+ * DeviceFrame.astro — стилизованная рамка устройства с абстрактным контентом.
+ *
+ * Без реальных скриншотов: рисуем монохромный glass-силуэт телефона/мини-аппа/
+ * терминала и заполняем абстрактными формами (полосы, точки, волновая
+ * диаграмма, ряды). Используется на case-study страницах как замена скриншоту.
+ */
+
+type Variant = "phone" | "mini-app" | "terminal";
+type Abstract = "bars" | "waveform" | "dots" | "rows" | "none";
+
+interface Props {
+  variant: Variant;
+  abstract?: Abstract;
+  caption?: string;
+  class?: string;
+}
+
+const {
+  variant,
+  abstract = "rows",
+  caption,
+  class: className = "",
+} = Astro.props;
+
+const sizes: Record<Variant, { w: number; h: number; r: number; pad: number }> = {
+  phone: { w: 320, h: 640, r: 36, pad: 14 },
+  "mini-app": { w: 320, h: 500, r: 24, pad: 12 },
+  terminal: { w: 480, h: 280, r: 16, pad: 16 },
+};
+
+const s = sizes[variant];
+const innerW = s.w - s.pad * 2;
+const headerH = variant === "terminal" ? 28 : variant === "mini-app" ? 36 : 44;
+const screenY = s.pad + headerH;
+const screenH = s.h - s.pad * 2 - headerH;
+
+const ROW_WIDTHS = [0.85, 0.6, 0.92, 0.5, 0.78, 0.66] as const;
+const rows = ROW_WIDTHS.map((ratio, i) => ({
+  y: screenY + 24 + i * 36,
+  w: innerW * ratio,
+}));
+
+const BAR_HEIGHTS = [0.4, 0.7, 0.55, 0.85, 0.3, 0.62, 0.48, 0.74] as const;
+const BAR_GAP = 14;
+const BAR_W = (innerW - BAR_GAP * (BAR_HEIGHTS.length - 1)) / BAR_HEIGHTS.length;
+const bars = BAR_HEIGHTS.map((ratio, i) => ({
+  x: s.pad + i * (BAR_W + BAR_GAP),
+  h: screenH * ratio * 0.6,
+  w: BAR_W,
+}));
+
+const waveformPath = () => {
+  const steps = 40;
+  const baseY = screenY + screenH / 2;
+  const amp = screenH * 0.22;
+  let d = `M ${s.pad} ${baseY}`;
+  for (let i = 1; i <= steps; i += 1) {
+    const x = s.pad + (innerW * i) / steps;
+    const y = baseY + Math.sin(i * 0.7) * amp * Math.cos(i * 0.3);
+    d += ` L ${x} ${y}`;
+  }
+  return d;
+};
+
+const dots = Array.from({ length: 24 }, (_, i) => {
+  const col = i % 6;
+  const row = Math.floor(i / 6);
+  const cellW = innerW / 6;
+  const cellH = (screenH - 40) / 4;
+  return {
+    cx: s.pad + cellW * col + cellW / 2,
+    cy: screenY + 24 + cellH * row + cellH / 2,
+    r: 4 + (i % 3),
+  };
+});
+---
+
+<figure class:list={["device-frame", `device-frame--${variant}`, className]}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox={`0 0 ${s.w} ${s.h}`}
+    width={s.w}
+    height={s.h}
+    class="device-frame__svg"
+    aria-hidden="true"
+  >
+    <defs>
+      <linearGradient id={`shine-${variant}`} x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="rgba(255,255,255,0.16)" />
+        <stop offset="35%" stop-color="rgba(255,255,255,0.04)" />
+        <stop offset="100%" stop-color="rgba(255,255,255,0)" />
+      </linearGradient>
+    </defs>
+
+    <rect
+      x="0.5"
+      y="0.5"
+      width={s.w - 1}
+      height={s.h - 1}
+      rx={s.r}
+      ry={s.r}
+      class="device-frame__shell"
+    />
+    <rect x="0.5" y="0.5" width={s.w - 1} height={s.h - 1} rx={s.r} ry={s.r} fill={`url(#shine-${variant})`} opacity="0.6" />
+
+    {/* header */}
+    {variant === "phone" && (
+      <>
+        <rect
+          x={s.w / 2 - 50}
+          y={s.pad}
+          width="100"
+          height="20"
+          rx="10"
+          fill="var(--bg-deep)"
+        />
+        <circle cx={s.w / 2 + 30} cy={s.pad + 10} r="3" fill="var(--text-muted)" />
+      </>
+    )}
+    {variant === "mini-app" && (
+      <>
+        <rect
+          x={s.pad}
+          y={s.pad}
+          width={innerW}
+          height="28"
+          rx="6"
+          class="device-frame__bar"
+        />
+        <circle cx={s.pad + 16} cy={s.pad + 14} r="6" fill="var(--surface-3)" />
+        <rect x={s.pad + 32} y={s.pad + 10} width="100" height="8" rx="4" fill="var(--surface-3)" />
+      </>
+    )}
+    {variant === "terminal" && (
+      <>
+        <rect
+          x={s.pad}
+          y={s.pad}
+          width={innerW}
+          height="20"
+          rx="4"
+          class="device-frame__bar"
+        />
+        <circle cx={s.pad + 10} cy={s.pad + 10} r="4" fill="var(--state-error)" opacity="0.6" />
+        <circle cx={s.pad + 24} cy={s.pad + 10} r="4" fill="var(--state-warn)" opacity="0.6" />
+        <circle cx={s.pad + 38} cy={s.pad + 10} r="4" fill="var(--state-ok)" opacity="0.6" />
+      </>
+    )}
+
+    {/* abstract content */}
+    {abstract === "rows" &&
+      rows.map((r) => (
+        <rect
+          x={s.pad}
+          y={r.y}
+          width={r.w}
+          height="10"
+          rx="5"
+          class="device-frame__row"
+        />
+      ))}
+    {abstract === "bars" &&
+      bars.map((b) => (
+        <rect
+          x={b.x}
+          y={s.h - s.pad - b.h}
+          width={b.w}
+          height={b.h}
+          rx="3"
+          class="device-frame__bar-fill"
+        />
+      ))}
+    {abstract === "waveform" && (
+      <path
+        d={waveformPath()}
+        fill="none"
+        stroke="var(--text-secondary)"
+        stroke-width="1.4"
+        stroke-linecap="round"
+        opacity="0.8"
+      />
+    )}
+    {abstract === "dots" &&
+      dots.map((d) => (
+        <circle cx={d.cx} cy={d.cy} r={d.r} fill="var(--text-muted)" opacity="0.8" />
+      ))}
+  </svg>
+
+  {caption && <figcaption class="device-frame__caption caption">{caption}</figcaption>}
+</figure>
+
+<style>
+  .device-frame {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-3);
+  }
+
+  .device-frame__svg {
+    max-width: 100%;
+    height: auto;
+    filter: drop-shadow(0 24px 60px rgba(0, 0, 0, 0.45));
+  }
+
+  .device-frame__shell {
+    fill: var(--glass-tint-2);
+    stroke: var(--glass-edge);
+    stroke-width: 1;
+  }
+
+  .device-frame__bar {
+    fill: var(--surface);
+  }
+
+  .device-frame__row {
+    fill: var(--surface-2);
+  }
+
+  .device-frame__bar-fill {
+    fill: var(--text-secondary);
+    opacity: 0.55;
+  }
+
+  .device-frame__caption {
+    text-align: center;
+  }
+</style>

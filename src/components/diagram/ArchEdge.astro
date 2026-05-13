@@ -1,0 +1,139 @@
+---
+/**
+ * ArchEdge.astro — ребро архитектурной диаграммы.
+ *
+ * Тонкая SVG-линия между двумя точками (центрами узлов с учётом радиуса
+ * капсулы). Три kind'а отличаются паттерном штриха:
+ *   sync  → сплошная линия
+ *   async → длинный dash (анимированный stroke-dashoffset)
+ *   data  → короткий dot-dash (анимированный поток)
+ *
+ * Линия рисуется как простой L-сегмент с автоматическим обходом — без
+ * умных curves. Это намеренно: для портфолио-визуала важнее аккуратность,
+ * чем универсальный graph router.
+ */
+
+type EdgeKind = "sync" | "async" | "data";
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface Props {
+  from: Point;
+  to: Point;
+  kind?: EdgeKind;
+  label?: string;
+  /** Горизонтальная «ступенька» (in px) если перепад по Y существенный. */
+  bend?: number;
+  class?: string;
+}
+
+const {
+  from,
+  to,
+  kind = "sync",
+  label,
+  bend = 0,
+  class: className = "",
+} = Astro.props;
+
+const dx = to.x - from.x;
+const dy = to.y - from.y;
+
+const path =
+  bend !== 0 && Math.abs(dy) > 8
+    ? `M ${from.x} ${from.y} L ${from.x + bend} ${from.y} L ${from.x + bend} ${to.y} L ${to.x} ${to.y}`
+    : `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
+
+const labelX = from.x + dx / 2;
+const labelY = from.y + dy / 2 - 6;
+---
+
+<g class:list={["arch-edge", `arch-edge--${kind}`, className]}>
+  <path d={path} class="arch-edge__path" />
+  {
+    /* arrow head */
+    (() => {
+      const angle = Math.atan2(dy, dx);
+      const head = 6;
+      const hx = to.x - Math.cos(angle) * 2;
+      const hy = to.y - Math.sin(angle) * 2;
+      const ax = hx - Math.cos(angle) * head + Math.sin(angle) * (head * 0.55);
+      const ay = hy - Math.sin(angle) * head - Math.cos(angle) * (head * 0.55);
+      const bx = hx - Math.cos(angle) * head - Math.sin(angle) * (head * 0.55);
+      const by = hy - Math.sin(angle) * head + Math.cos(angle) * (head * 0.55);
+      return <polyline points={`${ax},${ay} ${hx},${hy} ${bx},${by}`} class="arch-edge__head" />;
+    })()
+  }
+  {
+    label && (
+      <text x={labelX} y={labelY} text-anchor="middle" class="arch-edge__label">
+        {label}
+      </text>
+    )
+  }
+</g>
+
+<style>
+  .arch-edge__path {
+    fill: none;
+    stroke: var(--text-muted);
+    stroke-width: 1;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .arch-edge__head {
+    fill: none;
+    stroke: var(--text-muted);
+    stroke-width: 1;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .arch-edge--sync .arch-edge__path {
+    stroke-dasharray: none;
+  }
+
+  .arch-edge--async .arch-edge__path {
+    stroke-dasharray: 8 6;
+    animation: edge-flow-async 12s linear infinite;
+  }
+
+  .arch-edge--data .arch-edge__path {
+    stroke-dasharray: 2 4;
+    animation: edge-flow-data 8s linear infinite;
+  }
+
+  .arch-edge__label {
+    fill: var(--text-secondary);
+    font-family: var(--font-stack-display);
+    font-size: 10px;
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+    paint-order: stroke fill;
+    stroke: var(--bg-deep);
+    stroke-width: 4;
+  }
+
+  @keyframes edge-flow-async {
+    to {
+      stroke-dashoffset: -56;
+    }
+  }
+
+  @keyframes edge-flow-data {
+    to {
+      stroke-dashoffset: -36;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .arch-edge__path {
+      animation: none !important;
+    }
+  }
+</style>

@@ -20,16 +20,16 @@
   "stack": [
     "Python 3.12",
     "FastAPI",
-    "PostgreSQL",
+    "PostgreSQL 16",
     "SQLAlchemy 2",
     "Redis",
     "Taskiq",
-    "Elasticsearch",
+    "Elasticsearch 8",
     "MinIO",
     "React 18",
     "TypeScript",
     "Vite",
-    "aiogram 3",
+    "aiogram 3.27",
     "faster-whisper",
     "Demucs"
   ],
@@ -65,5 +65,178 @@
       }
     }
   ],
-  "cover": "/projects/dotsound/cover.webp"
+  "cover": "/projects/dotsound/cover.webp",
+  "overview": {
+    "ru": [
+      "DotSound — экосистема из четырёх репозиториев, склеенных вокруг одного бэкенда. Bot и Mini App — тонкие клиенты, ядро держит API, БД, поиск и хранилище. Все вычисления — ASR, разделение источников — выведены в отдельный воркер, который сам забирает задачи через HMAC.",
+      "Принципиально open client + closed policy core: публичные репозитории показывают код API и клиентов, приватный PrivateCore хранит правила модерации и анти-абуз политики. Открытость без рисков.",
+      "Каждый трек загружается один раз — дедупликация по SHA-256. Лирика появляется автоматически: Demucs выделяет вокал, faster-whisper транскрибирует. Результат летит обратно по WebSocket — клиенты подсвечивают строки в реальном времени."
+    ],
+    "en": [
+      "DotSound is a four-repo ecosystem glued around a single backend. Bot and Mini App stay as thin clients; the core owns API, database, search and storage. All heavy compute — ASR, source separation — moved to a separate worker that pulls jobs via HMAC.",
+      "By design it is an open client + closed policy core: public repos expose API and client code, while a private PrivateCore holds moderation rules and anti-abuse policies. Openness without the risks.",
+      "Every track is uploaded once — SHA-256 dedup at the storage layer. Lyrics appear automatically: Demucs isolates vocals, faster-whisper transcribes. Results stream back over WebSocket — clients highlight lines in real time."
+    ]
+  },
+  "metrics": [
+    {
+      "value": "4",
+      "label": {
+        "ru": "репозитория",
+        "en": "repositories"
+      }
+    },
+    {
+      "value": "3",
+      "label": {
+        "ru": "публичных",
+        "en": "public"
+      }
+    },
+    {
+      "value": "<200",
+      "unit": "ms",
+      "label": {
+        "ru": "медиана API",
+        "en": "median API"
+      }
+    },
+    {
+      "value": "WS",
+      "label": {
+        "ru": "live-обновления",
+        "en": "live updates"
+      }
+    }
+  ],
+  "stackGroups": {
+    "language": ["Python 3.12", "TypeScript"],
+    "framework": ["FastAPI", "SQLAlchemy 2", "aiogram 3.27", "React 18", "Vite"],
+    "data": ["PostgreSQL 16", "Elasticsearch 8", "Redis", "MinIO"],
+    "infra": ["Docker", "Taskiq", "HMAC pull-based protocol", "Prometheus"],
+    "client": ["Telegram Mini App", "WebSocket"],
+    "ml": ["faster-whisper", "Demucs", "PyTorch"]
+  },
+  "architectureNodes": [
+    { "id": "bot", "x": 140, "y": 140, "label": "Telegram Bot", "icon": "telegram" },
+    { "id": "miniapp", "x": 140, "y": 400, "label": "Mini App", "icon": "code" },
+    { "id": "backend", "x": 480, "y": 270, "label": "Backend Hub", "icon": "stack", "emphasis": "strong", "width": 180 },
+    { "id": "pg", "x": 760, "y": 140, "label": "PostgreSQL 16", "icon": "dot" },
+    { "id": "es", "x": 820, "y": 270, "label": "Elasticsearch 8", "icon": "dot" },
+    { "id": "minio", "x": 760, "y": 400, "label": "MinIO", "icon": "dot" },
+    { "id": "worker", "x": 480, "y": 470, "label": "ComputeWorker", "icon": "spark" }
+  ],
+  "architectureEdges": [
+    { "from": "bot", "to": "backend", "kind": "sync", "label": "HTTPS" },
+    { "from": "miniapp", "to": "backend", "kind": "sync", "label": "WS" },
+    { "from": "backend", "to": "pg", "kind": "data" },
+    { "from": "backend", "to": "es", "kind": "data" },
+    { "from": "backend", "to": "minio", "kind": "data" },
+    { "from": "worker", "to": "backend", "kind": "async", "label": "HMAC pull" }
+  ],
+  "clusters": [
+    { "x": 700, "y": 80, "width": 200, "height": 380, "label": "Data plane" }
+  ],
+  "capabilities": [
+    {
+      "icon": "telegram",
+      "title": {
+        "ru": "Telegram-загрузка",
+        "en": "Telegram uploads"
+      },
+      "description": {
+        "ru": "Треки заливаются прямо в чат с ботом — без отдельной формы и регистрации.",
+        "en": "Tracks are uploaded right in the bot chat — no separate form or sign-up."
+      }
+    },
+    {
+      "icon": "spark",
+      "title": {
+        "ru": "Авто-лирика",
+        "en": "Auto-lyrics"
+      },
+      "description": {
+        "ru": "Demucs + faster-whisper: вокал отделяется, текст транскрибируется и синхронизируется построчно.",
+        "en": "Demucs + faster-whisper: vocals are split off, then transcribed and synced line by line."
+      }
+    },
+    {
+      "icon": "stack",
+      "title": {
+        "ru": "Хранилище без дублей",
+        "en": "Dedup storage"
+      },
+      "description": {
+        "ru": "SHA-256 по аудио — один и тот же трек хранится один раз для всех пользователей.",
+        "en": "SHA-256 over audio — the same track is stored once for everyone."
+      }
+    },
+    {
+      "icon": "globe",
+      "title": {
+        "ru": "Inline-поиск",
+        "en": "Inline search"
+      },
+      "description": {
+        "ru": "Полнотекстовый Elasticsearch-индекс по метаданным и лирике, рейтинг по популярности.",
+        "en": "Full-text Elasticsearch index over metadata and lyrics, ranked by popularity."
+      }
+    }
+  ],
+  "engineeringChoices": [
+    {
+      "question": {
+        "ru": "Почему отдельный ComputeWorker, а не очередь внутри Backend?",
+        "en": "Why a separate ComputeWorker instead of an in-process queue?"
+      },
+      "answer": {
+        "ru": "ASR требует GPU и десятков секунд на трек. Pull-based воркер с HMAC даёт горизонтальное масштабирование без открытия портов — он сам стучится к ядру.",
+        "en": "ASR needs GPU and tens of seconds per track. A pull-based worker over HMAC scales horizontally without exposing ports — it dials home itself."
+      }
+    },
+    {
+      "question": {
+        "ru": "Почему Telegram Mini App, а не самостоятельный сайт?",
+        "en": "Why a Telegram Mini App instead of a standalone site?"
+      },
+      "answer": {
+        "ru": "Аудитория уже в Telegram. Mini App снимает onboarding-трение: один тап в боте — и React-приложение поверх Telegram-сессии.",
+        "en": "The audience already lives in Telegram. A Mini App removes onboarding friction: one tap in the bot and a React app runs over the existing Telegram session."
+      }
+    },
+    {
+      "question": {
+        "ru": "Зачем приватный PrivateCore?",
+        "en": "Why a private PrivateCore?"
+      },
+      "answer": {
+        "ru": "Правила анти-абуза и модерации не должны быть открытыми — иначе их легко обойти. Открытые репо показывают код API и клиенты, политики держим внутри.",
+        "en": "Moderation and anti-abuse rules shouldn't be public — they're trivial to bypass otherwise. Public repos show API and client code; policy stays inside."
+      }
+    }
+  ],
+  "timeline": [
+    {
+      "date": "2024",
+      "title": {
+        "ru": "Старт DotSound",
+        "en": "DotSound kickoff"
+      },
+      "description": {
+        "ru": "Первая версия Backend + Bot.",
+        "en": "First version of Backend + Bot."
+      }
+    },
+    {
+      "date": "2025",
+      "title": {
+        "ru": "ASR-каскад и Mini App",
+        "en": "ASR cascade and Mini App"
+      },
+      "description": {
+        "ru": "ComputeWorker v0.2.4, React 18 Mini App, дедупликация и HLS.",
+        "en": "ComputeWorker v0.2.4, React 18 Mini App, dedup and HLS."
+      }
+    }
+  ]
 }

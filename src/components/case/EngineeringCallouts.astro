@@ -1,0 +1,77 @@
+---
+/**
+ * EngineeringCallouts.astro — Q&A карточки про инженерные решения проекта.
+ *
+ * Формат «вопрос → ответ» помогает быстро объяснить нетривиальные выборы
+ * (зачем такой стек, почему такой архитектурный вариант). Каждая карточка
+ * — отдельный glass-блок со скромным eyebrow «question».
+ */
+
+import type { ProjectEngineeringChoice } from "../../lib/projects";
+import type { Locale } from "../../lib/i18n";
+
+interface Props {
+  items: ReadonlyArray<ProjectEngineeringChoice>;
+  locale: Locale;
+  class?: string;
+}
+
+const { items, locale, class: className = "" } = Astro.props;
+---
+
+<div class:list={["engineering-callouts", className]}>
+  {
+    items.map((item, i) => (
+      <article class="engineering-callouts__card glass" data-reveal data-reveal-delay={i * 80}>
+        <p class="engineering-callouts__q eyebrow">Q</p>
+        <p class="engineering-callouts__question">{item.question[locale]}</p>
+        <p class="engineering-callouts__a eyebrow">A</p>
+        <p class="engineering-callouts__answer body">{item.answer[locale]}</p>
+      </article>
+    ))
+  }
+</div>
+
+<style>
+  .engineering-callouts {
+    display: grid;
+    gap: var(--sp-4);
+    grid-template-columns: 1fr;
+  }
+
+  .engineering-callouts__card {
+    padding: var(--sp-6) var(--sp-7);
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: var(--sp-4);
+    row-gap: var(--sp-2);
+    border-radius: var(--r-lg);
+  }
+
+  .engineering-callouts__q,
+  .engineering-callouts__a {
+    color: var(--text-muted);
+    padding-top: 0.4em;
+  }
+
+  .engineering-callouts__question {
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-bold);
+    font-size: var(--fs-20);
+    letter-spacing: var(--ls-tight);
+    line-height: var(--lh-snug);
+    color: var(--text);
+  }
+
+  .engineering-callouts__answer {
+    color: var(--text-secondary);
+    font-size: var(--fs-16);
+    line-height: var(--lh-normal);
+  }
+
+  @media (min-width: 900px) {
+    .engineering-callouts {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>

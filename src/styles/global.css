@@ -262,7 +262,7 @@ ol {
 /* ---------- Scroll-reveal (управление через IntersectionObserver в BaseLayout) ---------- */
 [data-reveal] {
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateY(24px);
   transition:
     opacity var(--dur-slower) var(--ease-soft),
     transform var(--dur-slower) var(--ease-soft);
@@ -287,4 +287,90 @@ ol {
 .magnetic {
   transform-origin: center;
   will-change: transform;
+}
+
+/* =============================================================================
+ * Cross-page View Transitions (Astro 4 honors @view-transition on supported browsers;
+ * gracefully no-ops on Firefox/Safari <18 etc.)
+ * ============================================================================= */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--dur-slower);
+  animation-timing-function: var(--ease-soft);
+}
+
+::view-transition-group(brand-root),
+::view-transition-old(brand-root),
+::view-transition-new(brand-root) {
+  animation-duration: var(--dur-glacial);
+  animation-timing-function: var(--ease-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root),
+  ::view-transition-group(brand-root),
+  ::view-transition-old(brand-root),
+  ::view-transition-new(brand-root) {
+    animation-duration: 1ms;
+  }
+}
+
+/* =============================================================================
+ * Typography extras — eyebrow, display-xl, metric, tabular
+ * ============================================================================= */
+.eyebrow {
+  font-family: var(--font-stack-display);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.display-xl {
+  font-family: var(--font-stack-display);
+  font-weight: var(--fw-extrabold);
+  letter-spacing: var(--ls-display-xl);
+  line-height: var(--lh-display-xl);
+}
+
+.tabular {
+  font-feature-settings: var(--fvar-tabular);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.metric {
+  font-family: var(--font-stack-display);
+  font-weight: var(--fw-bold);
+  font-size: clamp(40px, 6vw, 80px);
+  letter-spacing: var(--ls-display);
+  line-height: 0.96;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: var(--fvar-tabular);
+  color: var(--text);
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.metric__unit {
+  color: var(--text-secondary);
+  font-size: 0.42em;
+  margin-left: 0.18em;
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-snug);
+}
+
+.metric__label {
+  display: block;
+  margin-top: var(--sp-2);
+  font-size: var(--fs-12);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: var(--fw-medium);
 }

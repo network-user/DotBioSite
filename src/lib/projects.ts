@@ -36,6 +36,72 @@ export interface ProjectLinks {
 export type ProjectCategory = "platform" | "bot" | "tool" | "site" | "library";
 export type ProjectStatus = "active" | "wip" | "beta" | "archived";
 
+/** Краткая метрика для секции Metrics на case-study странице. */
+export interface ProjectMetric {
+  value: string;
+  unit?: string;
+  label: { ru: string; en: string };
+}
+
+export type ProjectStackGroupKey = "language" | "framework" | "data" | "infra" | "client" | "ml";
+export type ProjectStackGroups = Partial<Record<ProjectStackGroupKey, ReadonlyArray<string>>>;
+
+export type ProjectArchitectureNodeIcon =
+  | "code"
+  | "stack"
+  | "rocket"
+  | "spark"
+  | "telegram"
+  | "globe"
+  | "user"
+  | "dot";
+
+export interface ProjectArchitectureNode {
+  id: string;
+  x: number;
+  y: number;
+  label: string;
+  icon?: ProjectArchitectureNodeIcon;
+  width?: number;
+  height?: number;
+  emphasis?: "default" | "strong";
+}
+
+export type ProjectArchitectureEdgeKind = "sync" | "async" | "data";
+
+export interface ProjectArchitectureEdge {
+  from: string;
+  to: string;
+  kind?: ProjectArchitectureEdgeKind;
+  label?: string;
+  bend?: number;
+}
+
+export interface ProjectCluster {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  label: string;
+}
+
+export interface ProjectCapability {
+  icon: ProjectArchitectureNodeIcon;
+  title: { ru: string; en: string };
+  description: { ru: string; en: string };
+}
+
+export interface ProjectEngineeringChoice {
+  question: { ru: string; en: string };
+  answer: { ru: string; en: string };
+}
+
+export interface ProjectTimelineEntry {
+  date: string;
+  title: { ru: string; en: string };
+  description?: { ru: string; en: string };
+}
+
 export interface Project {
   id: string;
   slug: string;
@@ -54,6 +120,17 @@ export interface Project {
   cover?: string;
   /** Если true — проект показывается в TODO разделе как «скоро». */
   comingSoon?: boolean;
+
+  // ---------- Расширения для case-study страницы (все опциональны) ----------
+  overview?: { ru: ReadonlyArray<string>; en: ReadonlyArray<string> };
+  metrics?: ReadonlyArray<ProjectMetric>;
+  stackGroups?: ProjectStackGroups;
+  architectureNodes?: ReadonlyArray<ProjectArchitectureNode>;
+  architectureEdges?: ReadonlyArray<ProjectArchitectureEdge>;
+  clusters?: ReadonlyArray<ProjectCluster>;
+  capabilities?: ReadonlyArray<ProjectCapability>;
+  engineeringChoices?: ReadonlyArray<ProjectEngineeringChoice>;
+  timeline?: ReadonlyArray<ProjectTimelineEntry>;
 }
 
 const modules = import.meta.glob<{ default: Project }>(

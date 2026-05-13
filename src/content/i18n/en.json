@@ -19,6 +19,7 @@
   },
   "hero": {
     "title": ".core",
+    "eyebrow": "specialist · platforms · automations",
     "tagline": "projects forge.",
     "subtitle": "A collection point for all projects under one umbrella. Each project has its own identity, mission, and repository. This site is a preview and navigator.",
     "ctaProjects": "view projects",
@@ -41,6 +42,13 @@
       "devops": "DevOps",
       "ml": "AI / ML",
       "mobile": "Mobile / Bots"
+    },
+    "iconHints": {
+      "backend": "stack",
+      "frontend": "code",
+      "devops": "rocket",
+      "ml": "spark",
+      "mobile": "telegram"
     }
   },
   "projects": {
@@ -52,6 +60,8 @@
     "openSite": "open site",
     "repos": "repositories",
     "stack": "stack",
+    "showMore": "more projects coming soon",
+    "scrollHint": "scroll — a path through the years",
     "category": {
       "platform": "Platform",
       "bot": "Bot",
@@ -87,6 +97,7 @@
     "rights": "All rights reserved.",
     "builtWith": "Built with Astro",
     "sourceCode": "Site source",
+    "cta": "more projects coming soon — stay tuned.",
     "brand": ".core"
   },
   "case": {
@@ -96,6 +107,35 @@
     "stack": "stack",
     "repos": "repositories",
     "links": "links",
-    "license": "license"
+    "license": "license",
+    "metrics": "metrics",
+    "metricsLede": "what surfaces from instruments and logs.",
+    "capabilities": "capabilities",
+    "capabilitiesLede": "what the project does right now.",
+    "engineering": "engineering choices",
+    "engineeringLede": "why it's built the way it is.",
+    "timeline": "timeline",
+    "timelineLede": "key milestones over time.",
+    "crossLinks": "other projects",
+    "openRepo": "open repository",
+    "primaryRepo": "primary repository",
+    "eyebrow": {
+      "year": "year",
+      "status": "status",
+      "category": "category"
+    },
+    "stackGroups": {
+      "language": "Language",
+      "framework": "Framework",
+      "data": "Data",
+      "infra": "Infrastructure",
+      "client": "Client",
+      "ml": "AI / ML"
+    },
+    "arch": {
+      "kindSync": "sync",
+      "kindAsync": "async",
+      "kindData": "data"
+    }
   }
 }

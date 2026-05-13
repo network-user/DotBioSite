@@ -19,6 +19,7 @@
   },
   "hero": {
     "title": ".ядро",
+    "eyebrow": "специалист · платформы · автоматизация",
     "tagline": "кузница проектов.",
     "subtitle": "Точка сбора всех проектов под одним зонтиком. Каждый проект — со своей айдентикой, своей миссией, своим репозиторием. Сайт — превью и навигатор.",
     "ctaProjects": "посмотреть проекты",
@@ -41,6 +42,13 @@
       "devops": "DevOps",
       "ml": "AI / ML",
       "mobile": "Mobile / Bots"
+    },
+    "iconHints": {
+      "backend": "stack",
+      "frontend": "code",
+      "devops": "rocket",
+      "ml": "spark",
+      "mobile": "telegram"
     }
   },
   "projects": {
@@ -52,6 +60,8 @@
     "openSite": "открыть сайт",
     "repos": "репозиториев",
     "stack": "стек",
+    "showMore": "больше проектов скоро",
+    "scrollHint": "скролл вниз — путь по годам",
     "category": {
       "platform": "Платформа",
       "bot": "Бот",
@@ -87,6 +97,7 @@
     "rights": "Все права защищены.",
     "builtWith": "Сделано на Astro",
     "sourceCode": "Исходники сайта",
+    "cta": "больше проектов скоро — следи за обновлениями.",
     "brand": ".ядро"
   },
   "case": {
@@ -96,6 +107,35 @@
     "stack": "стек",
     "repos": "репозитории",
     "links": "ссылки",
-    "license": "лицензия"
+    "license": "лицензия",
+    "metrics": "цифры",
+    "metricsLede": "то, что видно из инструментов и логов.",
+    "capabilities": "возможности",
+    "capabilitiesLede": "что проект умеет делать прямо сейчас.",
+    "engineering": "инженерные решения",
+    "engineeringLede": "почему сделано именно так.",
+    "timeline": "хронология",
+    "timelineLede": "ключевые этапы развития.",
+    "crossLinks": "другие проекты",
+    "openRepo": "открыть репозиторий",
+    "primaryRepo": "основной репозиторий",
+    "eyebrow": {
+      "year": "год",
+      "status": "статус",
+      "category": "категория"
+    },
+    "stackGroups": {
+      "language": "Язык",
+      "framework": "Фреймворк",
+      "data": "Данные",
+      "infra": "Инфраструктура",
+      "client": "Клиент",
+      "ml": "AI / ML"
+    },
+    "arch": {
+      "kindSync": "sync",
+      "kindAsync": "async",
+      "kindData": "data"
+    }
   }
 }

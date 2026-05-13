@@ -1,6 +1,7 @@
 ---
 import { useTranslations, type Locale } from "../lib/i18n";
 import SectionHeader from "./SectionHeader.astro";
+import Icon from "./Icon/Icon.astro";
 
 interface Props {
   locale: Locale;
@@ -8,13 +9,23 @@ interface Props {
 const { locale } = Astro.props;
 const t = useTranslations(locale);
 
+type StackIcon = "stack" | "code" | "rocket" | "spark" | "telegram";
+
+interface StackGroup {
+  id: string;
+  icon: StackIcon;
+  items: ReadonlyArray<string>;
+}
+
 /**
  * Стек жёстко не привязан к i18n — это технические термины,
- * читаются одинаково на обоих языках.
+ * читаются одинаково на обоих языках. Иконки берутся из общего набора
+ * Icon.astro (24×24 stroke).
  */
-const groups: Array<{ id: string; items: string[] }> = [
+const groups: ReadonlyArray<StackGroup> = [
   {
     id: "backend",
+    icon: "stack",
     items: [
       "Python 3.12",
       "FastAPI",
@@ -28,18 +39,22 @@ const groups: Array<{ id: string; items: string[] }> = [
   },
   {
     id: "frontend",
+    icon: "code",
     items: ["TypeScript", "React 18", "Astro 4", "Vite", "CSS custom properties", "framer-motion"],
   },
   {
     id: "devops",
+    icon: "rocket",
     items: ["Docker", "GitHub Actions", "Cloudflare Pages", "Alembic", "Nginx", "VPS / serv.host"],
   },
   {
     id: "ml",
+    icon: "spark",
     items: ["faster-whisper", "Demucs", "PyTorch", "HuggingFace Hub", "Yandex SpeechKit"],
   },
   {
     id: "mobile",
+    icon: "telegram",
     items: ["aiogram 3", "Telegram Mini Apps", "PWA"],
   },
 ];
@@ -60,7 +75,9 @@ const groups: Array<{ id: string; items: string[] }> = [
         const delay = String(i * 80);
         return (
           <article class="stack__group glass glass--hover" data-reveal data-reveal-delay={delay}>
+            <span class="stack__bar" aria-hidden="true"></span>
             <header class="stack__group-header">
+              <Icon name={g.icon} size={20} class="stack__icon" />
               <p class="caption">{label}</p>
             </header>
             <ul class="stack__chips">
@@ -81,14 +98,45 @@ const groups: Array<{ id: string; items: string[] }> = [
   }
 
   .stack__group {
+    position: relative;
     padding: var(--sp-5) var(--sp-6);
     display: flex;
     flex-direction: column;
     gap: var(--sp-4);
+    overflow: hidden;
+  }
+
+  .stack__bar {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--glass-edge-bright) 30%,
+      var(--glass-edge-bright) 70%,
+      transparent
+    );
+    transition: transform var(--dur-slow) var(--ease-soft);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .stack__group:hover .stack__bar {
+    transform: translateX(100%);
   }
 
   .stack__group-header {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
     color: var(--text-muted);
+  }
+
+  .stack__icon {
+    color: var(--text-secondary);
   }
 
   .stack__chips {
@@ -114,6 +162,12 @@ const groups: Array<{ id: string; items: string[] }> = [
   .stack__chip:hover {
     color: var(--text);
     border-color: var(--border-hover);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stack__bar {
+      transition: none;
+    }
   }
 
   @media (min-width: 720px) {

@@ -20,35 +20,39 @@ const brand = t("footer.brand");
 
 <footer class="footer">
   <div class="container footer__inner">
-    <div class="footer__brand">
-      <span class="footer__brand-name display">{brand}</span>
-      <span class="footer__brand-year">© {year}. {t("footer.rights")}</span>
-    </div>
+    <p class="footer__cta caption">{t("footer.cta")}</p>
 
-    <div class="footer__meta">
-      {repoUrl && (
-        <>
-          <a
-            href={repoUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="footer__link"
-          >
-            <Icon name="github" size={14} />
-            <span>{t("footer.sourceCode")}</span>
-          </a>
-          <span class="footer__sep" aria-hidden="true">·</span>
-        </>
-      )}
-      <a
-        href="https://astro.build"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="footer__link"
-      >
-        <Icon name="spark" size={14} />
-        <span>{t("footer.builtWith")}</span>
-      </a>
+    <div class="footer__row">
+      <div class="footer__brand">
+        <span class="footer__brand-name display">{brand}</span>
+        <span class="footer__brand-year">© {year}. {t("footer.rights")}</span>
+      </div>
+
+      <div class="footer__meta">
+        {repoUrl && (
+          <>
+            <a
+              href={repoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="footer__link"
+            >
+              <Icon name="github" size={14} />
+              <span>{t("footer.sourceCode")}</span>
+            </a>
+            <span class="footer__sep" aria-hidden="true">·</span>
+          </>
+        )}
+        <a
+          href="https://astro.build"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="footer__link"
+        >
+          <Icon name="spark" size={14} />
+          <span>{t("footer.builtWith")}</span>
+        </a>
+      </div>
     </div>
   </div>
 </footer>
@@ -61,6 +65,17 @@ const brand = t("footer.brand");
   }
 
   .footer__inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-5);
+  }
+
+  .footer__cta {
+    color: var(--text-faint);
+    letter-spacing: var(--ls-wide);
+  }
+
+  .footer__row {
     display: flex;
     flex-direction: column;
     gap: var(--sp-3);
@@ -113,7 +128,7 @@ const brand = t("footer.brand");
   }
 
   @media (min-width: 720px) {
-    .footer__inner {
+    .footer__row {
       flex-direction: row;
       align-items: center;
     }

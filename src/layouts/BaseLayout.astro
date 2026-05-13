@@ -119,7 +119,7 @@ const htmlLang = locale === "ru" ? "ru-RU" : "en-US";
               }
             });
           },
-          { rootMargin: "-8% 0px -8% 0px", threshold: 0.05 },
+          { rootMargin: "0px 0px -10% 0px", threshold: 0.15 },
         );
         revealEls.forEach((el) => io.observe(el));
       }
@@ -127,6 +127,8 @@ const htmlLang = locale === "ru" ? "ru-RU" : "en-US";
       // --- Magnetic hover: CTA-кнопки притягиваются к курсору ---
       if (!reduced && window.matchMedia("(pointer: fine)").matches) {
         const STRENGTH = 0.22;
+        const MAX_DISP = 6;
+        const clamp = (v: number) => Math.max(-MAX_DISP, Math.min(MAX_DISP, v));
         const magnets = document.querySelectorAll<HTMLElement>(".magnetic");
         magnets.forEach((el) => {
           let raf: number | null = null;
@@ -136,8 +138,8 @@ const htmlLang = locale === "ru" ? "ru-RU" : "en-US";
             const rect = el.getBoundingClientRect();
             const cx = rect.left + rect.width / 2;
             const cy = rect.top + rect.height / 2;
-            tx = (e.clientX - cx) * STRENGTH;
-            ty = (e.clientY - cy) * STRENGTH;
+            tx = clamp((e.clientX - cx) * STRENGTH);
+            ty = clamp((e.clientY - cy) * STRENGTH);
             if (raf === null) {
               raf = requestAnimationFrame(() => {
                 el.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;

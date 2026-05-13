@@ -1,0 +1,137 @@
+---
+/**
+ * ArchTeaser.astro — мини-диаграмма «3 ноды + рёбра».
+ *
+ * Inline-визуал для DotSound-карточки, заменяющий список репозиториев на
+ * аккуратную монохромную SVG-схему: 3 капсулы с подписями и тонкие dashed
+ * рёбра между ними. Анимация `stroke-dashoffset` создаёт ощущение «потока».
+ */
+
+interface Node {
+  id: string;
+  label: string;
+}
+
+interface Edge {
+  from: string;
+  to: string;
+}
+
+interface Props {
+  nodes: ReadonlyArray<Node>;
+  edges: ReadonlyArray<Edge>;
+  class?: string;
+}
+
+const { nodes, edges, class: className = "" } = Astro.props;
+
+const W = 360;
+const H = 80;
+const cap = { w: 92, h: 36, r: 18 };
+
+const positions = new Map<string, { x: number; y: number }>();
+const spacing = W / (nodes.length + 1);
+nodes.forEach((n, i) => {
+  positions.set(n.id, { x: spacing * (i + 1), y: H / 2 });
+});
+
+const edgePaths = edges
+  .map((e) => {
+    const a = positions.get(e.from);
+    const b = positions.get(e.to);
+    if (!a || !b) return null;
+    const ax = a.x + cap.w / 2;
+    const bx = b.x - cap.w / 2;
+    return { from: e.from, to: e.to, ax, bx, y: a.y };
+  })
+  .filter((p): p is { from: string; to: string; ax: number; bx: number; y: number } => p !== null);
+---
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox={`0 0 ${W} ${H}`}
+  preserveAspectRatio="xMidYMid meet"
+  class:list={["arch-teaser", className]}
+  aria-hidden="true"
+  width="100%"
+  height={H}
+>
+  {
+    edgePaths.map((p) => (
+      <line
+        x1={p.ax}
+        y1={p.y}
+        x2={p.bx}
+        y2={p.y}
+        class="arch-teaser__edge"
+        stroke="currentColor"
+        stroke-width="1"
+        stroke-dasharray="3 4"
+      />
+    ))
+  }
+  {
+    nodes.map((n) => {
+      const p = positions.get(n.id)!;
+      return (
+        <g transform={`translate(${p.x - cap.w / 2}, ${p.y - cap.h / 2})`}>
+          <rect
+            width={cap.w}
+            height={cap.h}
+            rx={cap.r}
+            ry={cap.r}
+            class="arch-teaser__node"
+          />
+          <text
+            x={cap.w / 2}
+            y={cap.h / 2}
+            text-anchor="middle"
+            dominant-baseline="middle"
+            class="arch-teaser__label"
+          >
+            {n.label}
+          </text>
+        </g>
+      );
+    })
+  }
+</svg>
+
+<style>
+  .arch-teaser {
+    display: block;
+    width: 100%;
+    color: var(--text-secondary);
+  }
+
+  .arch-teaser__edge {
+    opacity: 0.6;
+    animation: edge-flow 10s linear infinite;
+  }
+
+  .arch-teaser__node {
+    fill: var(--glass-tint-2);
+    stroke: var(--glass-edge);
+    stroke-width: 1;
+  }
+
+  .arch-teaser__label {
+    fill: var(--text);
+    font-family: var(--font-stack-display);
+    font-size: 11px;
+    font-weight: var(--fw-semibold);
+    letter-spacing: var(--ls-snug);
+  }
+
+  @keyframes edge-flow {
+    to {
+      stroke-dashoffset: -42;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .arch-teaser__edge {
+      animation: none;
+    }
+  }
+</style>

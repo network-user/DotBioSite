@@ -1,0 +1,101 @@
+---
+/**
+ * MeshGradient.astro — чистый CSS mesh-фон.
+ *
+ * Три-четыре radial-gradient слоя с мягкими тональными подсветками поверх
+ * глубокого фонового цвета. Использует токены `--mesh-{warm,cool,violet}-*`,
+ * остаётся монохромным (только тонкие undertones). На reduced-motion дыхание
+ * выключается через медиа-запрос ниже.
+ */
+
+interface Props {
+  palette?: "warm" | "cool" | "violet";
+  intensity?: "soft" | "default" | "rich";
+  breathe?: boolean;
+  class?: string;
+}
+
+const {
+  palette = "violet",
+  intensity = "default",
+  breathe = true,
+  class: className = "",
+} = Astro.props;
+---
+
+<div
+  class:list={[
+    "mesh",
+    `mesh--${palette}`,
+    `mesh--${intensity}`,
+    breathe && "mesh--breathe",
+    className,
+  ]}
+  aria-hidden="true"
+></div>
+
+<style>
+  .mesh {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-color: var(--bg-deep);
+    will-change: transform;
+  }
+
+  .mesh--violet {
+    background-image:
+      radial-gradient(60vw 50vh at 18% 22%, var(--mesh-violet-a), transparent 60%),
+      radial-gradient(70vw 60vh at 82% 80%, var(--mesh-cool-a), transparent 60%),
+      radial-gradient(40vw 40vh at 50% 50%, var(--mesh-violet-b), transparent 65%);
+  }
+
+  .mesh--warm {
+    background-image:
+      radial-gradient(60vw 50vh at 22% 20%, var(--mesh-warm-a), transparent 60%),
+      radial-gradient(70vw 60vh at 80% 78%, var(--mesh-warm-b), transparent 60%),
+      radial-gradient(40vw 40vh at 50% 50%, var(--mesh-violet-b), transparent 65%);
+  }
+
+  .mesh--cool {
+    background-image:
+      radial-gradient(60vw 50vh at 20% 24%, var(--mesh-cool-a), transparent 60%),
+      radial-gradient(70vw 60vh at 78% 80%, var(--mesh-cool-b), transparent 60%),
+      radial-gradient(40vw 40vh at 50% 50%, var(--mesh-violet-a), transparent 65%);
+  }
+
+  .mesh--soft {
+    filter: blur(28px);
+    opacity: 0.7;
+  }
+
+  .mesh--default {
+    filter: blur(40px);
+    opacity: 0.95;
+  }
+
+  .mesh--rich {
+    filter: blur(52px);
+    opacity: 1;
+  }
+
+  .mesh--breathe {
+    animation: mesh-breathe 18s var(--ease-soft) infinite alternate;
+  }
+
+  @keyframes mesh-breathe {
+    0% {
+      transform: scale(1) translate3d(0, 0, 0);
+    }
+    100% {
+      transform: scale(1.08) translate3d(2%, -1%, 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mesh--breathe {
+      animation: none;
+    }
+  }
+</style>

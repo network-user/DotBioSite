@@ -33,11 +33,11 @@ const milestones = projects
       lede={t("timeline.lede")}
     />
 
-    <ol class="timeline">
+    <ol class="timeline" data-timeline>
       {milestones.map((m, i) => (
         <li class="timeline__item" data-reveal data-reveal-delay={i * 100}>
-          <div class="timeline__bullet" aria-hidden="true"></div>
-          <div class="timeline__year display">{m.year}</div>
+          <span class="timeline__bullet" aria-hidden="true"></span>
+          <div class="timeline__year display tabular">{m.year}</div>
           <div class="timeline__body glass glass--hover">
             <h3 class="timeline__title">{m.title}</h3>
             <p class="timeline__subtitle subtitle">{m.subtitle}</p>
@@ -72,6 +72,9 @@ const milestones = projects
       var(--border-hover) 92%,
       transparent
     );
+    background-size: 100% 220%;
+    background-position: 0 100%;
+    animation: timeline-draw var(--dur-glacial) var(--ease-soft) 200ms both;
     pointer-events: none;
   }
 
@@ -93,6 +96,17 @@ const milestones = projects
     box-shadow:
       0 0 0 4px var(--bg),
       0 0 0 5px var(--border-hover);
+    transform: scale(0.6);
+    opacity: 0;
+    transform-origin: center;
+    transition:
+      transform var(--dur-slow) var(--ease-spring),
+      opacity var(--dur-slow) var(--ease-soft);
+  }
+
+  .timeline__item.is-visible .timeline__bullet {
+    transform: scale(1);
+    opacity: 1;
   }
 
   .timeline__year {
@@ -115,6 +129,27 @@ const milestones = projects
     font-weight: var(--fw-bold);
     letter-spacing: var(--ls-tight);
     font-size: var(--fs-24);
+  }
+
+  @keyframes timeline-draw {
+    0% {
+      background-position: 0 100%;
+    }
+    100% {
+      background-position: 0 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .timeline::before {
+      animation: none;
+      background-position: 0 0;
+    }
+    .timeline__bullet {
+      transition: none;
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 
   @media (min-width: 720px) {

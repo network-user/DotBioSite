@@ -1,0 +1,114 @@
+---
+/**
+ * CaseFooterCrossLinks.astro — карточки других проектов в подвале case-study.
+ *
+ * Подсказывает читателю «следующую остановку»: компактные карточки всех
+ * проектов кроме текущего, каждая ведёт на свою case-страницу. Каждый бренд
+ * получает `view-transition-name="project-${slug}-brand"` — браузер сам
+ * сделает морфирующий переход на следующей странице.
+ */
+
+import { projects, projectBrand, projectTagline } from "../../lib/projects";
+import { useTranslations, type Locale, localePrefix } from "../../lib/i18n";
+import Icon from "../Icon/Icon.astro";
+
+interface Props {
+  current: string;
+  locale: Locale;
+  class?: string;
+}
+
+const { current, locale, class: className = "" } = Astro.props;
+const t = useTranslations(locale);
+const prefix = localePrefix(locale);
+
+const others = projects.filter((p) => p.slug !== current && !p.comingSoon);
+---
+
+{
+  others.length > 0 && (
+    <nav class:list={["case-cross", className]} aria-label={t("case.crossLinks")}>
+      <p class="case-cross__eyebrow eyebrow">{t("case.crossLinks")}</p>
+      <div class="case-cross__grid">
+        {others.map((p, i) => (
+          <a
+            href={`${prefix}/projects/${p.slug}`}
+            class="case-cross__card glass glass--hover glass--bordered"
+            data-reveal
+            data-reveal-delay={i * 80}
+          >
+            <span
+              class="case-cross__brand display"
+              style={`view-transition-name: project-${p.slug}-brand;`}
+            >
+              {projectBrand(p, locale)}
+            </span>
+            <p class="case-cross__tagline subtitle">{projectTagline(p, locale)}</p>
+            <span class="case-cross__cta">
+              <span>{t("projects.viewProject")}</span>
+              <Icon name="arrow-right" size={14} />
+            </span>
+          </a>
+        ))}
+      </div>
+    </nav>
+  )
+}
+
+<style>
+  .case-cross {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-5);
+  }
+
+  .case-cross__eyebrow {
+    color: var(--text-muted);
+  }
+
+  .case-cross__grid {
+    display: grid;
+    gap: var(--sp-4);
+    grid-template-columns: 1fr;
+  }
+
+  .case-cross__card {
+    padding: var(--sp-6) var(--sp-7);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    border-radius: var(--r-xl);
+  }
+
+  .case-cross__brand {
+    font-size: clamp(40px, 4.5vw, 56px);
+    letter-spacing: var(--ls-display);
+    line-height: 0.95;
+  }
+
+  .case-cross__tagline {
+    color: var(--text);
+    font-weight: var(--fw-medium);
+  }
+
+  .case-cross__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    color: var(--text-muted);
+    font-size: var(--fs-13);
+    margin-block-start: auto;
+    padding-block-start: var(--sp-3);
+    transition: color var(--dur-fast) var(--ease-standard);
+  }
+
+  .case-cross__card:hover .case-cross__cta {
+    color: var(--text);
+  }
+
+  @media (min-width: 720px) {
+    .case-cross__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>

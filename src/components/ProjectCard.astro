@@ -9,6 +9,7 @@ import {
   repoUrl,
 } from "../lib/projects";
 import Icon from "./Icon/Icon.astro";
+import ArchTeaser from "./illustration/ArchTeaser.astro";
 
 interface Props {
   project: Project;
@@ -27,6 +28,21 @@ const tagline = projectTagline(p, locale);
 const desc = projectDescription(p, locale);
 const caseHref = `${prefix}/projects/${p.slug}`;
 const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
+
+const isDotSound = p.slug === "dotsound";
+const teaserNodes = isDotSound
+  ? [
+      { id: "client", label: locale === "ru" ? "клиент" : "client" },
+      { id: "backend", label: locale === "ru" ? "ядро" : "core" },
+      { id: "worker", label: locale === "ru" ? "воркер" : "worker" },
+    ]
+  : [];
+const teaserEdges = isDotSound
+  ? [
+      { from: "client", to: "backend" },
+      { from: "backend", to: "worker" },
+    ]
+  : [];
 ---
 
 <article
@@ -37,8 +53,8 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
   aria-labelledby={`project-${p.slug}-title`}
 >
   <header class="project-card__head">
-    <div class="project-card__meta">
-      <span class="project-card__category caption">
+    <div class="project-card__eyebrow">
+      <span class="project-card__category eyebrow">
         {t(`projects.category.${p.category}`)}
       </span>
       <span class={`project-card__status project-card__status--${p.status}`}>
@@ -47,7 +63,11 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
       </span>
     </div>
 
-    <h3 class="project-card__brand display" id={`project-${p.slug}-title`}>
+    <h3
+      class="project-card__brand display"
+      id={`project-${p.slug}-title`}
+      style={`view-transition-name: project-${p.slug}-brand;`}
+    >
       {brand}
     </h3>
     <p class="project-card__name caption">{name}</p>
@@ -57,26 +77,32 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
   <p class="project-card__desc body">{desc}</p>
 
   <ul class="project-card__stack" aria-label={t("projects.stack")}>
-    {p.stack.slice(0, 8).map((s) => (
+    {p.stack.slice(0, 6).map((s) => (
       <li class="project-card__chip">{s}</li>
     ))}
-    {p.stack.length > 8 && (
+    {p.stack.length > 6 && (
       <li class="project-card__chip project-card__chip--more">
-        +{p.stack.length - 8}
+        +{p.stack.length - 6}
       </li>
     )}
   </ul>
 
-  {p.repos.length > 1 && (
-    <ul class="project-card__repos" aria-label={t("projects.repos")}>
-      {p.repos.map((r) => (
-        <li class="project-card__repo">
-          <Icon name="code" size={14} />
-          <span class="mono">{r.name}</span>
-          {r.role && <span class="project-card__repo-role">{r.role}</span>}
-        </li>
-      ))}
-    </ul>
+  {isDotSound ? (
+    <div class="project-card__teaser" aria-hidden="true">
+      <ArchTeaser nodes={teaserNodes} edges={teaserEdges} />
+    </div>
+  ) : (
+    p.repos.length > 1 && (
+      <ul class="project-card__repos" aria-label={t("projects.repos")}>
+        {p.repos.map((r) => (
+          <li class="project-card__repo">
+            <Icon name="code" size={14} />
+            <span class="mono">{r.name}</span>
+            {r.role && <span class="project-card__repo-role">{r.role}</span>}
+          </li>
+        ))}
+      </ul>
+    )
   )}
 
   <footer class="project-card__actions">
@@ -111,12 +137,20 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
 
 <style>
   .project-card {
-    padding: var(--sp-6) var(--sp-6);
+    padding: var(--sp-7);
     display: flex;
     flex-direction: column;
     gap: var(--sp-4);
-    min-height: 360px;
+    min-height: clamp(420px, 56vh, 520px);
     border-radius: var(--r-xl);
+    transition:
+      transform var(--dur-med) var(--ease-soft),
+      border-color var(--dur-med) var(--ease-standard),
+      box-shadow var(--dur-med) var(--ease-standard);
+  }
+
+  .project-card:hover {
+    transform: translateY(-2px) scale(1.005);
   }
 
   .project-card__head {
@@ -125,11 +159,15 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
     gap: var(--sp-2);
   }
 
-  .project-card__meta {
+  .project-card__eyebrow {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--sp-3);
+    margin-block-end: var(--sp-2);
+  }
+
+  .project-card__category {
     color: var(--text-muted);
   }
 
@@ -160,7 +198,7 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
   }
 
   .project-card__brand {
-    font-size: clamp(36px, 4vw, 56px);
+    font-size: clamp(40px, 4.6vw, 64px);
     line-height: 0.95;
     letter-spacing: var(--ls-display);
   }
@@ -203,6 +241,10 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
     color: var(--text-secondary);
   }
 
+  .project-card__teaser {
+    padding-block: var(--sp-2);
+  }
+
   .project-card__repos {
     display: flex;
     flex-direction: column;
@@ -239,6 +281,12 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
     font-size: var(--fs-13);
     padding: var(--sp-2) var(--sp-4);
     min-height: 40px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .project-card:hover {
+      transform: none;
+    }
   }
 </style>
 

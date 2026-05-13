@@ -14,11 +14,11 @@
     "en": "Multiplication & division trainer in Telegram."
   },
   "description": {
-    "ru": "Двуязычный Telegram-бот для тренировки таблицы умножения и деления: три уровня сложности, режимы практики, ежедневные уведомления через APScheduler, профиль с ТОП-ом и шпаргалки. Полностью async, миграции, тесты с покрытием.",
-    "en": "A bilingual Telegram bot for practising multiplication and division: three difficulty levels, practice modes, daily reminders via APScheduler, a profile with leaderboard, and cheat sheets. Fully async, with migrations and unit tests."
+    "ru": "Двуязычный Telegram-бот для тренировки таблицы умножения и деления: три уровня сложности, четыре режима практики, ежедневные уведомления через APScheduler, профиль с лидербордом и шпаргалки. Полностью async, миграции, тесты с покрытием.",
+    "en": "A bilingual Telegram bot for practising multiplication and division: three difficulty levels, four practice modes, daily reminders via APScheduler, a profile with leaderboard, and cheat sheets. Fully async, with migrations and unit tests."
   },
   "stack": [
-    "Python",
+    "Python 3.11+",
     "aiogram 3.15",
     "SQLAlchemy 2",
     "aiosqlite",
@@ -36,5 +36,136 @@
       "role": "telegram-bot"
     }
   ],
-  "cover": "/projects/dotmathbot/cover.webp"
+  "cover": "/projects/dotmathbot/cover.webp",
+  "overview": {
+    "ru": [
+      "DotMathBot — небольшой standalone-бот без бэкенда и фронтенда. Один процесс, aiogram 3.15, SQLAlchemy 2 поверх aiosqlite или Redis. Тренирует таблицу умножения и деления в трёх уровнях × четырёх режимах.",
+      "Дневные напоминания и недельные челленджи приходят через APScheduler — он живёт в том же процессе, заметки о расписании хранятся в БД и переживают рестарт. У каждого пользователя — профиль с прогрессом, серией дней и местом в лидерборде.",
+      "Двуязычный изначально: ru/en переключаются на лету в настройках, без перезапуска диалога. Тесты pytest покрывают логику генерации заданий и проверки ответов."
+    ],
+    "en": [
+      "DotMathBot is a small standalone bot — no backend, no frontend. A single process, aiogram 3.15, SQLAlchemy 2 over aiosqlite or Redis. It drills multiplication and division across three levels × four modes.",
+      "Daily reminders and weekly challenges run via APScheduler in the same process; schedule entries persist in the database and survive restarts. Every user has a profile with progress, streaks and a place on the leaderboard.",
+      "Bilingual from the start: ru/en toggle on the fly without restarting the dialog. pytest covers question generation and answer checking logic."
+    ]
+  },
+  "metrics": [
+    {
+      "value": "3",
+      "label": {
+        "ru": "уровня сложности",
+        "en": "difficulty levels"
+      }
+    },
+    {
+      "value": "4",
+      "label": {
+        "ru": "режима практики",
+        "en": "practice modes"
+      }
+    },
+    {
+      "value": "2",
+      "label": {
+        "ru": "языка с переключением на лету",
+        "en": "languages, live switch"
+      }
+    },
+    {
+      "value": "100",
+      "unit": "%",
+      "label": {
+        "ru": "async",
+        "en": "async"
+      }
+    }
+  ],
+  "stackGroups": {
+    "language": ["Python 3.11+"],
+    "framework": ["aiogram 3.15", "SQLAlchemy 2", "APScheduler"],
+    "data": ["aiosqlite", "Redis"],
+    "infra": ["pydantic-settings", "Alembic"],
+    "client": ["Telegram bot API"]
+  },
+  "capabilities": [
+    {
+      "icon": "spark",
+      "title": {
+        "ru": "Тренировки",
+        "en": "Drills"
+      },
+      "description": {
+        "ru": "Three levels × four modes — от простых вопросов до быстрых серий и спринтов.",
+        "en": "Three levels × four modes — from simple questions to fast streaks and sprints."
+      }
+    },
+    {
+      "icon": "user",
+      "title": {
+        "ru": "Профиль и лидерборд",
+        "en": "Profile & leaderboard"
+      },
+      "description": {
+        "ru": "Личный прогресс, серии дней, ТОП по очкам и точности.",
+        "en": "Personal progress, daily streaks, leaderboard by points and accuracy."
+      }
+    },
+    {
+      "icon": "rocket",
+      "title": {
+        "ru": "Расписание",
+        "en": "Schedule"
+      },
+      "description": {
+        "ru": "Ежедневные напоминания через APScheduler с возможностью настроить время.",
+        "en": "Daily reminders via APScheduler with user-configurable time."
+      }
+    },
+    {
+      "icon": "globe",
+      "title": {
+        "ru": "RU + EN на лету",
+        "en": "RU + EN on the fly"
+      },
+      "description": {
+        "ru": "Полная локализация интерфейса бота, переключение без рестарта диалога.",
+        "en": "Full UI localization, switching mid-dialog without restart."
+      }
+    }
+  ],
+  "engineeringChoices": [
+    {
+      "question": {
+        "ru": "Почему aiosqlite + Redis, а не Postgres?",
+        "en": "Why aiosqlite + Redis instead of Postgres?"
+      },
+      "answer": {
+        "ru": "Бот рассчитан на одного оператора и небольшую аудиторию. SQLite одного файла достаточно для всех данных профиля; Redis — только для кеша и расписания.",
+        "en": "The bot targets a single operator and a small audience. A single SQLite file handles all profile data; Redis is only for caching and scheduling."
+      }
+    },
+    {
+      "question": {
+        "ru": "Почему APScheduler внутри процесса, а не Celery?",
+        "en": "Why in-process APScheduler instead of Celery?"
+      },
+      "answer": {
+        "ru": "Нет смысла поднимать брокер и воркера ради десятка пользователей. APScheduler решает то же — таймеры и cron — без внешних зависимостей.",
+        "en": "No reason to spin up a broker and worker for a handful of users. APScheduler covers the same ground — timers and cron — without external dependencies."
+      }
+    }
+  ],
+  "timeline": [
+    {
+      "date": "2026",
+      "title": {
+        "ru": "Старт DotMathBot",
+        "en": "DotMathBot kickoff"
+      },
+      "description": {
+        "ru": "MVP с тремя уровнями, четырьмя режимами и базовой локализацией.",
+        "en": "MVP with three levels, four modes and basic localization."
+      }
+    }
+  ]
 }

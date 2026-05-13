@@ -1,0 +1,104 @@
+---
+/**
+ * CaseTimeline.astro — короткая вертикальная шкала истории проекта.
+ *
+ * Принимает массив из `project.timeline`: {date, title, description?}. Каждый
+ * пункт — точка слева + текст справа. Используется внутри case-study;
+ * отличается от глобального Timeline на главной более компактным размером и
+ * отсутствием обводящего glass-блока.
+ */
+
+import type { ProjectTimelineEntry } from "../../lib/projects";
+import type { Locale } from "../../lib/i18n";
+
+interface Props {
+  items: ReadonlyArray<ProjectTimelineEntry>;
+  locale: Locale;
+  class?: string;
+}
+
+const { items, locale, class: className = "" } = Astro.props;
+---
+
+<ol class:list={["case-timeline", className]}>
+  {
+    items.map((item, i) => (
+      <li class="case-timeline__item" data-reveal data-reveal-delay={i * 80}>
+        <span class="case-timeline__bullet" aria-hidden="true"></span>
+        <p class="case-timeline__date tabular">{item.date}</p>
+        <div class="case-timeline__body">
+          <h3 class="case-timeline__title">{item.title[locale]}</h3>
+          {item.description && (
+            <p class="case-timeline__desc body-sm">{item.description[locale]}</p>
+          )}
+        </div>
+      </li>
+    ))
+  }
+</ol>
+
+<style>
+  .case-timeline {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-5);
+    padding-inline-start: var(--sp-7);
+  }
+
+  .case-timeline::before {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: 6px;
+    bottom: 6px;
+    width: 1px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      var(--border) 8%,
+      var(--border) 92%,
+      transparent
+    );
+  }
+
+  .case-timeline__item {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--sp-2);
+  }
+
+  .case-timeline__bullet {
+    position: absolute;
+    left: -23px;
+    top: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text);
+    box-shadow:
+      0 0 0 3px var(--bg),
+      0 0 0 4px var(--border-hover);
+  }
+
+  .case-timeline__date {
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-12);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .case-timeline__title {
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-semibold);
+    font-size: var(--fs-18);
+    letter-spacing: var(--ls-tight);
+    line-height: var(--lh-snug);
+  }
+
+  .case-timeline__desc {
+    color: var(--text-secondary);
+  }
+</style>

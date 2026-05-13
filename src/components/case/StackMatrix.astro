@@ -1,0 +1,92 @@
+---
+/**
+ * StackMatrix.astro — стек, сгруппированный по типу.
+ *
+ * Отображает `project.stackGroups` как набор колонок с подписями (Язык,
+ * Фреймворк, Данные...). Если группа пустая или отсутствует — она просто
+ * не рендерится. Подписи групп — из `case.stackGroups.*`.
+ */
+
+import type { ProjectStackGroups, ProjectStackGroupKey } from "../../lib/projects";
+import { useTranslations, type Locale } from "../../lib/i18n";
+
+interface Props {
+  groups: ProjectStackGroups;
+  locale: Locale;
+  class?: string;
+}
+
+const { groups, locale, class: className = "" } = Astro.props;
+const t = useTranslations(locale);
+
+const ORDER: ProjectStackGroupKey[] = ["language", "framework", "data", "infra", "client", "ml"];
+const present = ORDER.filter((key) => {
+  const items = groups[key];
+  return items && items.length > 0;
+});
+---
+
+<div class:list={["stack-matrix", className]}>
+  {
+    present.map((key, i) => {
+      const items = groups[key]!;
+      return (
+        <article class="stack-matrix__group glass glass--soft" data-reveal data-reveal-delay={i * 60}>
+          <header class="stack-matrix__head">
+            <p class="eyebrow">{t(`case.stackGroups.${key}`)}</p>
+          </header>
+          <ul class="stack-matrix__items">
+            {items.map((it) => (
+              <li class="stack-matrix__item">{it}</li>
+            ))}
+          </ul>
+        </article>
+      );
+    })
+  }
+</div>
+
+<style>
+  .stack-matrix {
+    display: grid;
+    gap: var(--sp-4);
+    grid-template-columns: 1fr;
+  }
+
+  .stack-matrix__group {
+    padding: var(--sp-5) var(--sp-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+    border-radius: var(--r-lg);
+  }
+
+  .stack-matrix__head {
+    color: var(--text-muted);
+  }
+
+  .stack-matrix__items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+
+  .stack-matrix__item {
+    font-size: var(--fs-14);
+    color: var(--text);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-snug);
+  }
+
+  @media (min-width: 720px) {
+    .stack-matrix {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1100px) {
+    .stack-matrix {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+</style>

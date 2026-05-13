@@ -26,7 +26,7 @@ const t = useTranslations(locale);
       {hasEmail ? (
         <button
           type="button"
-          class="contact__channel contact-email glass glass--hover"
+          class="contact__channel contact__channel--email contact-email glass glass--hover"
           data-e={emailB64}
           aria-label={t("contact.email")}
           data-reveal
@@ -34,6 +34,7 @@ const t = useTranslations(locale);
           <Icon name="mail" size={22} />
           <span class="contact__channel-label">{t("contact.email")}</span>
           <Icon name="arrow-right" size={16} />
+          <span class="contact__channel-ring" aria-hidden="true"></span>
         </button>
       ) : (
         <span class="contact__channel contact__channel--disabled glass" aria-disabled="true">
@@ -68,11 +69,12 @@ const t = useTranslations(locale);
     display: grid;
     grid-template-columns: 1fr;
     gap: var(--sp-3);
-    max-width: 560px;
+    max-width: 720px;
     margin-inline: auto;
   }
 
   .contact__channel {
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: var(--sp-3);
@@ -91,6 +93,44 @@ const t = useTranslations(locale);
     flex: 1;
   }
 
+  .contact__channel--email {
+    /* The full-width email button breaks the symmetric 2-col grid below 720px,
+       so it occupies a full row on its own. */
+    grid-column: 1 / -1;
+    overflow: hidden;
+  }
+
+  /**
+   * Sweeping highlight: a bright line slides across the top edge of the button.
+   * Reuses the same 1px gradient pattern as Stack cards so the motion feels
+   * consistent across the site. Translates from left to right on hover.
+   */
+  .contact__channel-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    pointer-events: none;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--glass-edge-bright) 30%,
+      rgba(255, 255, 255, 0.6) 50%,
+      var(--glass-edge-bright) 70%,
+      transparent
+    );
+    transform: translateX(-100%);
+    transition: transform 1.2s var(--ease-soft);
+    z-index: 2;
+  }
+
+  @media (pointer: fine) {
+    .contact__channel--email:hover .contact__channel-ring {
+      transform: translateX(100%);
+    }
+  }
+
   .contact__channel--disabled {
     color: var(--text-muted);
     cursor: not-allowed;
@@ -98,5 +138,17 @@ const t = useTranslations(locale);
 
   .contact__channel--disabled:hover {
     transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .contact__channel-ring {
+      animation: none;
+    }
+  }
+
+  @media (min-width: 720px) {
+    .contact__channels {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
 </style>

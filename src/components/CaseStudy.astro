@@ -9,6 +9,14 @@ import {
   repoUrl,
 } from "../lib/projects";
 import Icon from "./Icon/Icon.astro";
+import MeshGradient from "./illustration/MeshGradient.astro";
+import DotConstellation from "./react/DotConstellation.island.tsx";
+import Architecture from "./diagram/Architecture.astro";
+import StackMatrix from "./case/StackMatrix.astro";
+import Capabilities from "./case/Capabilities.astro";
+import EngineeringCallouts from "./case/EngineeringCallouts.astro";
+import CaseTimeline from "./case/CaseTimeline.astro";
+import CaseFooterCrossLinks from "./case/CaseFooterCrossLinks.astro";
 
 interface Props {
   project: Project;
@@ -24,34 +32,71 @@ const tagline = projectTagline(p, locale);
 const desc = projectDescription(p, locale);
 const backHref = `${prefix}/#projects`;
 const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
+
+const overviewParas = p.overview ? p.overview[locale] : [desc];
+
+const meshPalette = p.slug === "dotsound" ? "violet" : p.slug === "dotmathbot" ? "cool" : "warm";
+
+const hasMetrics = p.metrics && p.metrics.length > 0;
+const hasStackGroups = p.stackGroups && Object.values(p.stackGroups).some((arr) => arr && arr.length > 0);
+const hasArchitecture = p.architectureNodes && p.architectureNodes.length > 0;
+const hasCapabilities = p.capabilities && p.capabilities.length > 0;
+const hasEngineering = p.engineeringChoices && p.engineeringChoices.length > 0;
+const hasTimeline = p.timeline && p.timeline.length > 0;
+const hasLinks = p.links && Object.keys(p.links).length > 0;
 ---
 
 <article class="case">
-  <div class="container">
-    <a href={backHref} class="case__back">
-      <Icon name="arrow-right" size={16} class="case__back-arrow" />
-      <span>{t("case.back")}</span>
-    </a>
+  <section class="case__hero" data-case-hero>
+    <MeshGradient palette={meshPalette} intensity="default" />
+    <DotConstellation client:idle variant="case" />
 
-    <header class="case__hero" data-reveal>
-      <div class="case__meta">
-        <span class="caption">{t(`projects.category.${p.category}`)}</span>
+    <div class="container case__hero-inner">
+      <a href={backHref} class="case__back">
+        <Icon name="arrow-right" size={16} class="case__back-arrow" />
+        <span>{t("case.back")}</span>
+      </a>
+
+      <div class="case__eyebrow" data-reveal>
+        <span class="eyebrow">{t(`projects.category.${p.category}`)}</span>
+        {p.year && (
+          <span class="eyebrow case__eyebrow-divider" aria-hidden="true">·</span>
+        )}
+        {p.year && <span class="eyebrow tabular">{p.year}</span>}
+        <span class="eyebrow case__eyebrow-divider" aria-hidden="true">·</span>
         <span class={`case__status case__status--${p.status}`}>
           <Icon name="dot" size={10} />
           <span>{t(`projects.status.${p.status}`)}</span>
         </span>
-        {p.year && <span class="caption">{p.year}</span>}
       </div>
 
-      <h1 class="case__brand display">{brand}</h1>
-      <p class="case__name caption">{name}</p>
-      <p class="case__tagline title">{tagline}</p>
+      <h1
+        class="case__brand display-xl"
+        data-reveal
+        data-reveal-delay="60"
+        style={`view-transition-name: project-${p.slug}-brand;`}
+      >
+        {brand}
+      </h1>
+      <p class="case__name caption" data-reveal data-reveal-delay="120">{name}</p>
+      <p class="case__tagline title" data-reveal data-reveal-delay="180">{tagline}</p>
 
-      <div class="case__actions">
+      {p.repos.length > 0 && (
+        <ul class="case__repos-pills" aria-label={t("case.repos")} data-reveal data-reveal-delay="240">
+          {p.repos.map((r) => (
+            <li class="case__repos-pill">
+              <Icon name="code" size={12} />
+              <span class="mono">{r.name}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div class="case__actions" data-reveal data-reveal-delay="300">
         {primaryRepoUrl && (
           <a href={primaryRepoUrl} target="_blank" rel="noopener noreferrer" class="cta cta--primary magnetic">
             <Icon name="github" size={16} />
-            <span>{t("projects.viewSource")}</span>
+            <span>{t("case.primaryRepo")}</span>
           </a>
         )}
         {p.links?.domain && (
@@ -61,61 +106,154 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
           </a>
         )}
       </div>
-    </header>
+    </div>
+  </section>
 
-    <section class="case__section" data-reveal>
-      <h2 class="case__h2 title">{t("case.overview")}</h2>
-      <p class="case__lede body">{desc}</p>
+  <div class="container case__body">
+    <!-- 2. Overview -->
+    <section class="case__section case__section--narrow" data-reveal>
+      <header class="case__h">
+        <p class="eyebrow">{t("case.overview")}</p>
+      </header>
+      {overviewParas.map((para) => <p class="case__lede body">{para}</p>)}
     </section>
 
-    <section class="case__section" data-reveal>
-      <h2 class="case__h2 title">{t("case.stack")}</h2>
-      <ul class="case__chips">
-        {p.stack.map((s) => (
-          <li class="case__chip">{s}</li>
-        ))}
-      </ul>
-    </section>
-
-    <section class="case__section" data-reveal>
-      <h2 class="case__h2 title">{t("case.repos")}</h2>
-      <ul class="case__repos">
-        {p.repos.map((r) => {
-          const rUrl = repoUrl(r);
-          return (
-            <li class="case__repo glass glass--hover">
-              <div class="case__repo-head">
-                <Icon name="code" size={18} />
-                <span class="case__repo-name display">{r.name}</span>
-                {r.role && <span class="case__repo-role">{r.role}</span>}
-              </div>
-              {r.description && (
-                <p class="case__repo-desc body-sm">
-                  {r.description[locale] ?? r.description.ru}
-                </p>
-              )}
-              {rUrl && (
-                <a
-                  href={rUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="case__repo-link"
-                >
-                  <span class="mono">{rUrl.replace(/^https?:\/\//, "")}</span>
-                  <Icon name="external" size={14} />
-                </a>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </section>
-
-    {p.links && (Object.keys(p.links).length > 0) && (
+    <!-- 3. Metrics -->
+    {hasMetrics && (
       <section class="case__section" data-reveal>
-        <h2 class="case__h2 title">{t("case.links")}</h2>
+        <header class="case__h">
+          <p class="eyebrow">{t("case.metrics")}</p>
+          <p class="case__h-lede subtitle">{t("case.metricsLede")}</p>
+        </header>
+        <div class="case__metrics">
+          {p.metrics!.map((m, i) => (
+            <div class="case__metric" data-reveal data-reveal-delay={i * 60}>
+              <span class="metric">
+                <span>{m.value}</span>
+                {m.unit && <span class="metric__unit">{m.unit}</span>}
+              </span>
+              <span class="metric__label">{m.label[locale]}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- 4. Architecture -->
+    {hasArchitecture && (
+      <section class="case__section case__section--bleed" data-reveal>
+        <header class="case__h">
+          <p class="eyebrow">{t("case.architecture")}</p>
+        </header>
+        <div class="case__arch">
+          <Architecture
+            nodes={p.architectureNodes!}
+            edges={p.architectureEdges ?? []}
+            clusters={p.clusters ?? []}
+            ariaLabel={`${name} — ${t("case.architecture")}`}
+          />
+        </div>
+      </section>
+    )}
+
+    <!-- 5. Stack matrix -->
+    {hasStackGroups ? (
+      <section class="case__section" data-reveal>
+        <header class="case__h">
+          <p class="eyebrow">{t("case.stack")}</p>
+        </header>
+        <StackMatrix groups={p.stackGroups!} locale={locale} />
+      </section>
+    ) : (
+      <section class="case__section" data-reveal>
+        <header class="case__h">
+          <p class="eyebrow">{t("case.stack")}</p>
+        </header>
+        <ul class="case__chips">
+          {p.stack.map((s) => <li class="case__chip">{s}</li>)}
+        </ul>
+      </section>
+    )}
+
+    <!-- 6. Capabilities -->
+    {hasCapabilities && (
+      <section class="case__section" data-reveal>
+        <header class="case__h">
+          <p class="eyebrow">{t("case.capabilities")}</p>
+          <p class="case__h-lede subtitle">{t("case.capabilitiesLede")}</p>
+        </header>
+        <Capabilities items={p.capabilities!} locale={locale} />
+      </section>
+    )}
+
+    <!-- 7. Engineering choices -->
+    {hasEngineering && (
+      <section class="case__section" data-reveal>
+        <header class="case__h">
+          <p class="eyebrow">{t("case.engineering")}</p>
+          <p class="case__h-lede subtitle">{t("case.engineeringLede")}</p>
+        </header>
+        <EngineeringCallouts items={p.engineeringChoices!} locale={locale} />
+      </section>
+    )}
+
+    <!-- 8. Project timeline -->
+    {hasTimeline && (
+      <section class="case__section case__section--narrow" data-reveal>
+        <header class="case__h">
+          <p class="eyebrow">{t("case.timeline")}</p>
+          <p class="case__h-lede subtitle">{t("case.timelineLede")}</p>
+        </header>
+        <CaseTimeline items={p.timeline!} locale={locale} />
+      </section>
+    )}
+
+    <!-- Repos (always — shows multiple repos for ecosystems) -->
+    {p.repos.length > 1 && (
+      <section class="case__section" data-reveal>
+        <header class="case__h">
+          <p class="eyebrow">{t("case.repos")}</p>
+        </header>
+        <ul class="case__repos">
+          {p.repos.map((r) => {
+            const rUrl = repoUrl(r);
+            return (
+              <li class="case__repo glass glass--hover">
+                <div class="case__repo-head">
+                  <Icon name="code" size={18} />
+                  <span class="case__repo-name display">{r.name}</span>
+                  {r.role && <span class="case__repo-role">{r.role}</span>}
+                </div>
+                {r.description && (
+                  <p class="case__repo-desc body-sm">
+                    {r.description[locale] ?? r.description.ru}
+                  </p>
+                )}
+                {rUrl && (
+                  <a
+                    href={rUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="case__repo-link"
+                  >
+                    <span class="mono">{rUrl.replace(/^https?:\/\//, "")}</span>
+                    <Icon name="external" size={14} />
+                  </a>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    )}
+
+    {hasLinks && (
+      <section class="case__section case__section--narrow" data-reveal>
+        <header class="case__h">
+          <p class="eyebrow">{t("case.links")}</p>
+        </header>
         <ul class="case__links">
-          {p.links.domain && (
+          {p.links?.domain && (
             <li>
               <a href={p.links.domain} target="_blank" rel="noopener noreferrer" class="case__link">
                 <Icon name="globe" size={16} />
@@ -123,7 +261,7 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
               </a>
             </li>
           )}
-          {p.links.docs && (
+          {p.links?.docs && (
             <li>
               <a href={p.links.docs} target="_blank" rel="noopener noreferrer" class="case__link">
                 <Icon name="code" size={16} />
@@ -131,7 +269,7 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
               </a>
             </li>
           )}
-          {p.links.telegram && (
+          {p.links?.telegram && (
             <li>
               <a href={p.links.telegram} target="_blank" rel="noopener noreferrer" class="case__link">
                 <Icon name="telegram" size={16} />
@@ -142,12 +280,28 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
         </ul>
       </section>
     )}
+
+    <!-- 9. Cross-links to other projects -->
+    <section class="case__section" data-reveal>
+      <CaseFooterCrossLinks current={p.slug} locale={locale} />
+    </section>
   </div>
 </article>
 
 <style>
-  .case {
-    padding-block: var(--sp-9) var(--sp-12);
+  .case__hero {
+    position: relative;
+    overflow: hidden;
+    padding-block: var(--sp-11) var(--sp-10);
+    isolation: isolate;
+  }
+
+  .case__hero-inner {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
   }
 
   .case__back {
@@ -157,7 +311,8 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
     color: var(--text-muted);
     font-size: var(--fs-13);
     padding: var(--sp-2) 0;
-    margin-block-end: var(--sp-7);
+    margin-block-end: var(--sp-6);
+    width: max-content;
   }
 
   .case__back-arrow {
@@ -169,19 +324,16 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
     opacity: 1;
   }
 
-  .case__hero {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-3);
-    margin-block-end: var(--sp-10);
-  }
-
-  .case__meta {
+  .case__eyebrow {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: var(--sp-3);
+    gap: var(--sp-2);
     color: var(--text-muted);
+  }
+
+  .case__eyebrow-divider {
+    color: var(--text-faint);
   }
 
   .case__status {
@@ -189,6 +341,7 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
     align-items: center;
     gap: var(--sp-1);
     font-size: var(--fs-11);
+    font-weight: var(--fw-medium);
     text-transform: lowercase;
     letter-spacing: var(--ls-wide);
     padding: var(--sp-1) var(--sp-2);
@@ -196,34 +349,54 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
     border: var(--bw-thin) solid var(--border);
   }
 
-  .case__status--active {
-    color: var(--state-ok);
-  }
-  .case__status--wip {
-    color: var(--state-warn);
-  }
-  .case__status--beta {
-    color: var(--state-info);
-  }
-  .case__status--archived {
-    color: var(--text-muted);
-  }
+  .case__status--active { color: var(--state-ok); }
+  .case__status--wip { color: var(--state-warn); }
+  .case__status--beta { color: var(--state-info); }
+  .case__status--archived { color: var(--text-muted); }
 
   .case__brand {
-    font-size: clamp(56px, 11vw, 144px);
-    line-height: 0.92;
+    font-size: clamp(64px, 14vw, 180px);
+    line-height: var(--lh-display-xl);
+    letter-spacing: var(--ls-display-xl);
     margin-block-start: var(--sp-3);
+    background: linear-gradient(180deg, var(--text) 0%, var(--text-secondary) 130%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
   }
 
   .case__name {
     color: var(--text-secondary);
+    margin-block-start: var(--sp-2);
   }
 
   .case__tagline {
     font-size: clamp(20px, 2.4vw, 32px);
     color: var(--text);
     max-width: 38ch;
-    margin-block-start: var(--sp-4);
+    margin-block-start: var(--sp-3);
+  }
+
+  .case__repos-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    margin-block-start: var(--sp-3);
+  }
+
+  .case__repos-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-1);
+    padding: var(--sp-1) var(--sp-3);
+    border-radius: var(--r-pill);
+    border: var(--bw-thin) solid var(--border);
+    color: var(--text-secondary);
+    font-size: var(--fs-11);
+    background: var(--glass-tint-1);
+    backdrop-filter: blur(var(--glass-blur-soft));
+    -webkit-backdrop-filter: blur(var(--glass-blur-soft));
   }
 
   .case__actions {
@@ -233,17 +406,35 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
     margin-block-start: var(--sp-5);
   }
 
-  .case__section {
-    margin-block-end: var(--sp-9);
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-4);
+  .case__body {
+    padding-block: var(--sp-11) var(--sp-12);
   }
 
-  .case__h2 {
-    font-size: clamp(24px, 2vw, 32px);
-    color: var(--text);
-    letter-spacing: var(--ls-tight);
+  .case__section {
+    margin-block-end: var(--sp-11);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-5);
+  }
+
+  .case__section--narrow {
+    max-width: var(--container-narrow);
+  }
+
+  .case__section--bleed {
+    /* Architecture diagram benefits from a wider canvas. */
+    max-width: none;
+  }
+
+  .case__h {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+
+  .case__h-lede {
+    color: var(--text-secondary);
+    max-width: 56ch;
   }
 
   .case__lede {
@@ -251,6 +442,28 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
     font-size: var(--fs-17);
     max-width: 70ch;
     line-height: var(--lh-normal);
+  }
+
+  .case__metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--sp-6);
+  }
+
+  .case__metric {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+
+  .case__arch {
+    border: var(--bw-thin) solid var(--glass-edge);
+    border-radius: var(--r-xl);
+    background:
+      radial-gradient(ellipse at 50% 0%, var(--mesh-violet-a), transparent 60%),
+      var(--bg-elevated);
+    padding: var(--sp-7);
+    overflow: hidden;
   }
 
   .case__chips {
