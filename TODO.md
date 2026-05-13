@@ -28,8 +28,8 @@
 
 ## Технические
 
-- [ ] Заменить Google Fonts `@import` на selfhosted `Inter-Variable.woff2`
-      в `/public/fonts/` (GDPR‑friendly, без внешних запросов).
+- [x] ~~Заменить Google Fonts `@import` на selfhosted~~ — сделано через
+      `@fontsource-variable/inter` (npm), шрифт попадает в bundle при билде.
 - [ ] Добавить PWA manifest + service worker для offline‑кеша главной страницы.
 - [ ] Подключить self‑hosted Plausible или Umami (без cookies, GDPR‑friendly).
 - [ ] Настроить custom domain в Cloudflare Pages (`dotcore.app` или другое).

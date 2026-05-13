@@ -16,9 +16,9 @@ const t = useTranslations(locale);
   <div class="container contact__inner">
     <SectionHeader
       id="contact-title"
-      kicker={t<string>("contact.kicker")}
-      title={t<string>("contact.title")}
-      lede={t<string>("contact.lede")}
+      kicker={t("contact.kicker")}
+      title={t("contact.title")}
+      lede={t("contact.lede")}
       align="center"
     />
 
@@ -28,17 +28,17 @@ const t = useTranslations(locale);
           type="button"
           class="contact__channel contact-email glass glass--hover"
           data-e={emailB64}
-          aria-label={t<string>("contact.email")}
+          aria-label={t("contact.email")}
           data-reveal
         >
           <Icon name="mail" size={22} />
-          <span class="contact__channel-label">{t<string>("contact.email")}</span>
+          <span class="contact__channel-label">{t("contact.email")}</span>
           <Icon name="arrow-right" size={16} />
         </button>
       ) : (
         <span class="contact__channel contact__channel--disabled glass" aria-disabled="true">
           <Icon name="mail" size={22} />
-          <span class="contact__channel-label">{t<string>("contact.emailUnavailable")}</span>
+          <span class="contact__channel-label">{t("contact.emailUnavailable")}</span>
         </span>
       )}
 
@@ -48,12 +48,12 @@ const t = useTranslations(locale);
           target="_blank"
           rel="noopener noreferrer me"
           class="contact__channel glass glass--hover"
-          aria-label={t<string>(`contact.${s.id}`)}
+          aria-label={t(`contact.${s.id}`)}
           data-reveal
           data-reveal-delay={(i + 1) * 80}
         >
           <Icon name={s.id} size={22} />
-          <span class="contact__channel-label">{t<string>(`contact.${s.id}`)}</span>
+          <span class="contact__channel-label">{t(`contact.${s.id}`)}</span>
           <Icon name="external" size={16} />
         </a>
       ))}

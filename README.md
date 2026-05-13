@@ -18,7 +18,7 @@
   Liquid Glass / Frutiger‑Aero блики
 - **Анимации:** `framer-motion` + `lenis` (smooth scroll); полное уважение `prefers-reduced-motion`
 - **i18n:** встроенный Astro i18n, авто‑детект `navigator.language` → `localStorage` → toggle
-- **Шрифты:** Inter Variable (selfhosted в `/public/fonts/`) + system‑ui cascade (SF Pro / Roboto)
+- **Шрифты:** Inter Variable (selfhosted через `@fontsource-variable/inter`) + system‑ui cascade (SF Pro / Roboto)
 - **Конфиг:** `.env` + Zod‑валидация на build‑time, обфускация email на клиенте
 - **Деплой:** Cloudflare Pages, CI/CD через GitHub Actions
 

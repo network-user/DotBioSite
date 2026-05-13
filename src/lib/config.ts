@@ -24,8 +24,11 @@ const schema = z.object({
     .string()
     .url()
     .default("https://dotcore.pages.dev"),
-  PUBLIC_GITHUB_USER: z.string().min(1).default("network-user"),
-  PUBLIC_GITHUB_REPO: z.string().min(1).default("DotBioSite"),
+  // Пустые дефолты — сайт работает как шаблон, не привязанный к конкретному
+  // GitHub-аккаунту. Заполни в .env, чтобы появились ссылки на репозиторий
+  // в футере и автоматически собрались URL'ы репо проектов в карточках.
+  PUBLIC_GITHUB_USER: z.string().default(""),
+  PUBLIC_GITHUB_REPO: z.string().default(""),
 
   PUBLIC_AUTHOR_NAME_RU: z.string().min(1).default(".ядро"),
   PUBLIC_AUTHOR_NAME_EN: z.string().min(1).default(".core"),

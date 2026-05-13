@@ -20,9 +20,9 @@ const monogram = authorMonogram(locale);
   <div class="container about__inner">
     <SectionHeader
       id="about-title"
-      kicker={t<string>("about.kicker")}
-      title={t<string>("about.title")}
-      lede={t<string>("about.lede")}
+      kicker={t("about.kicker")}
+      title={t("about.title")}
+      lede={t("about.lede")}
     />
 
     <div class="about__grid">
@@ -41,7 +41,7 @@ const monogram = authorMonogram(locale);
         {bio && <p class="about__bio body">{bio}</p>}
 
         {socials.length > 0 && (
-          <ul class="about__socials" aria-label={t<string>("contact.title")}>
+          <ul class="about__socials" aria-label={t("contact.title")}>
             {socials.map((s) => (
               <li>
                 <a
@@ -49,10 +49,10 @@ const monogram = authorMonogram(locale);
                   class="about__social"
                   target="_blank"
                   rel="noopener noreferrer me"
-                  aria-label={t<string>(`contact.${s.id}`)}
+                  aria-label={t(`contact.${s.id}`)}
                 >
                   <Icon name={s.id} size={20} />
-                  <span class="about__social-label">{t<string>(`contact.${s.id}`)}</span>
+                  <span class="about__social-label">{t(`contact.${s.id}`)}</span>
                 </a>
               </li>
             ))}

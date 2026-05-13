@@ -49,24 +49,26 @@ const groups: Array<{ id: string; items: string[] }> = [
   <div class="container stack__inner">
     <SectionHeader
       id="stack-title"
-      kicker={t<string>("stack.kicker")}
-      title={t<string>("stack.title")}
-      lede={t<string>("stack.lede")}
+      kicker={t("stack.kicker")}
+      title={t("stack.title")}
+      lede={t("stack.lede")}
     />
 
     <div class="stack__grid">
-      {groups.map((g, i) => (
-        <article class="stack__group glass glass--hover" data-reveal data-reveal-delay={i * 80}>
-          <header class="stack__group-header">
-            <p class="caption">{t<string>(`stack.categories.${g.id}`)}</p>
-          </header>
-          <ul class="stack__chips">
-            {g.items.map((it) => (
-              <li class="stack__chip">{it}</li>
-            ))}
-          </ul>
-        </article>
-      ))}
+      {groups.map((g, i) => {
+        const label = t(`stack.categories.${g.id}`);
+        const delay = String(i * 80);
+        return (
+          <article class="stack__group glass glass--hover" data-reveal data-reveal-delay={delay}>
+            <header class="stack__group-header">
+              <p class="caption">{label}</p>
+            </header>
+            <ul class="stack__chips">
+              {g.items.map((it) => <li class="stack__chip">{it}</li>)}
+            </ul>
+          </article>
+        );
+      })}
     </div>
   </div>
 </section>

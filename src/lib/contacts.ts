@@ -13,15 +13,19 @@
 
 import { config } from "./config";
 
-/** Кодируем email безопасно для любого окружения (Node Buffer / btoa). */
+/**
+ * Кодируем email безопасно для любого окружения.
+ * btoa доступен в Node 18+ и во всех современных браузерах. Для не-ASCII
+ * используем TextEncoder → байтовая строка → btoa, чтобы избежать
+ * deprecated unescape() и не тянуть Node Buffer / @types/node.
+ */
 function encodeEmail(email: string): string {
   if (!email) return "";
   const reversed = email.split("").reverse().join("");
-  if (typeof btoa === "function") {
-    return btoa(unescape(encodeURIComponent(reversed)));
-  }
-  // Node.js fallback (Astro/Vite build runs in Node)
-  return Buffer.from(reversed, "utf-8").toString("base64");
+  const bytes = new TextEncoder().encode(reversed);
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary);
 }
 
 export const emailB64 = encodeEmail(config.AUTHOR_EMAIL);
@@ -35,7 +39,10 @@ export const emailDecoderScript = /* js */ `
 (function () {
   function decode(b64) {
     try {
-      var str = decodeURIComponent(escape(atob(b64)));
+      var bin = atob(b64);
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      var str = new TextDecoder('utf-8').decode(bytes);
       return str.split('').reverse().join('');
     } catch (e) { return ''; }
   }

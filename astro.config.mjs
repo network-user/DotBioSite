@@ -4,7 +4,10 @@ import react from "@astrojs/react";
 // https://astro.build/config
 export default defineConfig({
   site: process.env.PUBLIC_DOMAIN || "https://dotcore.pages.dev",
-  trailingSlash: "never",
+  // "ignore" — оба варианта URL валидны (`/en` и `/en/`). С "never" Astro отдавал
+  // 404 на `/en/` в dev-режиме, что ломало UX. Cloudflare Pages самостоятельно
+  // нормализует URL в проде, так что "ignore" здесь безопасно.
+  trailingSlash: "ignore",
   prefetch: {
     prefetchAll: true,
     defaultStrategy: "viewport",
@@ -14,10 +17,6 @@ export default defineConfig({
     locales: ["ru", "en"],
     routing: {
       prefixDefaultLocale: false,
-      redirectToDefaultLocale: false,
-    },
-    fallback: {
-      en: "ru",
     },
   },
   integrations: [

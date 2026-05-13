@@ -6,6 +6,7 @@ import {
   projectBrand,
   projectTagline,
   projectDescription,
+  repoUrl,
 } from "../lib/projects";
 import Icon from "./Icon/Icon.astro";
 
@@ -22,21 +23,22 @@ const brand = projectBrand(p, locale);
 const tagline = projectTagline(p, locale);
 const desc = projectDescription(p, locale);
 const backHref = `${prefix}/#projects`;
+const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
 ---
 
 <article class="case">
   <div class="container">
     <a href={backHref} class="case__back">
       <Icon name="arrow-right" size={16} class="case__back-arrow" />
-      <span>{t<string>("case.back")}</span>
+      <span>{t("case.back")}</span>
     </a>
 
     <header class="case__hero" data-reveal>
       <div class="case__meta">
-        <span class="caption">{t<string>(`projects.category.${p.category}`)}</span>
+        <span class="caption">{t(`projects.category.${p.category}`)}</span>
         <span class={`case__status case__status--${p.status}`}>
           <Icon name="dot" size={10} />
-          <span>{t<string>(`projects.status.${p.status}`)}</span>
+          <span>{t(`projects.status.${p.status}`)}</span>
         </span>
         {p.year && <span class="caption">{p.year}</span>}
       </div>
@@ -46,28 +48,28 @@ const backHref = `${prefix}/#projects`;
       <p class="case__tagline title">{tagline}</p>
 
       <div class="case__actions">
-        {p.repos[0] && (
-          <a href={p.repos[0].url} target="_blank" rel="noopener noreferrer" class="cta cta--primary magnetic">
+        {primaryRepoUrl && (
+          <a href={primaryRepoUrl} target="_blank" rel="noopener noreferrer" class="cta cta--primary magnetic">
             <Icon name="github" size={16} />
-            <span>{t<string>("projects.viewSource")}</span>
+            <span>{t("projects.viewSource")}</span>
           </a>
         )}
         {p.links?.domain && (
           <a href={p.links.domain} target="_blank" rel="noopener noreferrer" class="cta cta--ghost magnetic">
             <Icon name="globe" size={16} />
-            <span>{t<string>("projects.openSite")}</span>
+            <span>{t("projects.openSite")}</span>
           </a>
         )}
       </div>
     </header>
 
     <section class="case__section" data-reveal>
-      <h2 class="case__h2 title">{t<string>("case.overview")}</h2>
+      <h2 class="case__h2 title">{t("case.overview")}</h2>
       <p class="case__lede body">{desc}</p>
     </section>
 
     <section class="case__section" data-reveal>
-      <h2 class="case__h2 title">{t<string>("case.stack")}</h2>
+      <h2 class="case__h2 title">{t("case.stack")}</h2>
       <ul class="case__chips">
         {p.stack.map((s) => (
           <li class="case__chip">{s}</li>
@@ -76,37 +78,42 @@ const backHref = `${prefix}/#projects`;
     </section>
 
     <section class="case__section" data-reveal>
-      <h2 class="case__h2 title">{t<string>("case.repos")}</h2>
+      <h2 class="case__h2 title">{t("case.repos")}</h2>
       <ul class="case__repos">
-        {p.repos.map((r) => (
-          <li class="case__repo glass glass--hover">
-            <div class="case__repo-head">
-              <Icon name="code" size={18} />
-              <span class="case__repo-name display">{r.name}</span>
-              {r.role && <span class="case__repo-role">{r.role}</span>}
-            </div>
-            {r.description && (
-              <p class="case__repo-desc body-sm">
-                {r.description[locale] ?? r.description.ru}
-              </p>
-            )}
-            <a
-              href={r.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="case__repo-link"
-            >
-              <span class="mono">{r.url.replace(/^https?:\/\//, "")}</span>
-              <Icon name="external" size={14} />
-            </a>
-          </li>
-        ))}
+        {p.repos.map((r) => {
+          const rUrl = repoUrl(r);
+          return (
+            <li class="case__repo glass glass--hover">
+              <div class="case__repo-head">
+                <Icon name="code" size={18} />
+                <span class="case__repo-name display">{r.name}</span>
+                {r.role && <span class="case__repo-role">{r.role}</span>}
+              </div>
+              {r.description && (
+                <p class="case__repo-desc body-sm">
+                  {r.description[locale] ?? r.description.ru}
+                </p>
+              )}
+              {rUrl && (
+                <a
+                  href={rUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="case__repo-link"
+                >
+                  <span class="mono">{rUrl.replace(/^https?:\/\//, "")}</span>
+                  <Icon name="external" size={14} />
+                </a>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </section>
 
     {p.links && (Object.keys(p.links).length > 0) && (
       <section class="case__section" data-reveal>
-        <h2 class="case__h2 title">{t<string>("case.links")}</h2>
+        <h2 class="case__h2 title">{t("case.links")}</h2>
         <ul class="case__links">
           {p.links.domain && (
             <li>

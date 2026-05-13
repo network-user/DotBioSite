@@ -39,7 +39,7 @@
   "repos": [
     {
       "name": "Backend",
-      "url": "https://github.com/network-user/DotSoundBackend",
+      "repo": "DotSoundBackend",
       "role": "hub",
       "description": {
         "ru": "API, БД, очередь задач, раздача React Mini App, дедупликация по SHA-256, HLS-стриминг.",
@@ -48,7 +48,7 @@
     },
     {
       "name": "Bot",
-      "url": "https://github.com/network-user/DotSoundBot",
+      "repo": "DotSoundBot",
       "role": "telegram-ui",
       "description": {
         "ru": "Тонкий клиент Telegram: загрузка треков, inline-поиск, лайки, открытие Mini App.",
@@ -57,7 +57,7 @@
     },
     {
       "name": "ComputeWorker",
-      "url": "https://github.com/network-user/DotSoundComputeWorker",
+      "repo": "DotSoundComputeWorker",
       "role": "asr-worker",
       "description": {
         "ru": "Pull-based ASR-воркер на faster-whisper + Demucs с HMAC-протоколом.",
@@ -65,8 +65,5 @@
       }
     }
   ],
-  "links": {
-    "domain": "https://dotsound.app"
-  },
   "cover": "/projects/dotsound/cover.webp"
 }

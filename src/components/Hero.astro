@@ -9,9 +9,9 @@ const { locale } = Astro.props;
 const t = useTranslations(locale);
 const prefix = localePrefix(locale);
 
-const brand = t<string>("hero.title");
-const tagline = t<string>("hero.tagline");
-const subtitle = t<string>("hero.subtitle");
+const brand = t("hero.title");
+const tagline = t("hero.tagline");
+const subtitle = t("hero.subtitle");
 ---
 
 <section class="hero" id="hero" aria-label={brand}>
@@ -32,17 +32,17 @@ const subtitle = t<string>("hero.subtitle");
 
     <div class="hero__ctas" data-reveal data-reveal-delay="360">
       <a href={`${prefix}/#projects`} class="cta cta--primary magnetic">
-        <span>{t<string>("hero.ctaProjects")}</span>
+        <span>{t("hero.ctaProjects")}</span>
         <Icon name="arrow-right" size={18} />
       </a>
       <a href={`${prefix}/#contact`} class="cta cta--ghost magnetic">
-        <span>{t<string>("hero.ctaContact")}</span>
+        <span>{t("hero.ctaContact")}</span>
       </a>
     </div>
   </div>
 
-  <a href={`${prefix}/#about`} class="hero__scroll-cue" aria-label={t<string>("hero.scrollCue")}>
-    <span class="caption">{t<string>("hero.scrollCue")}</span>
+  <a href={`${prefix}/#about`} class="hero__scroll-cue" aria-label={t("hero.scrollCue")}>
+    <span class="caption">{t("hero.scrollCue")}</span>
     <Icon name="arrow-down" size={16} />
   </a>
 </section>

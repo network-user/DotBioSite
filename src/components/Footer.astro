@@ -10,28 +10,36 @@ const { locale } = Astro.props;
 const t = useTranslations(locale);
 
 const year = new Date().getFullYear();
-const repoUrl = `https://github.com/${config.PUBLIC_GITHUB_USER}/${config.PUBLIC_GITHUB_REPO}`;
-const brand = t<string>("footer.brand");
+// Собираем URL репо сайта только если оба значения непустые. Иначе ссылка
+// в футере не рендерится — никакого мёртвого `github.com//` в HTML.
+const ghUser = config.PUBLIC_GITHUB_USER;
+const ghRepo = config.PUBLIC_GITHUB_REPO;
+const repoUrl = ghUser && ghRepo ? `https://github.com/${ghUser}/${ghRepo}` : "";
+const brand = t("footer.brand");
 ---
 
 <footer class="footer">
   <div class="container footer__inner">
     <div class="footer__brand">
       <span class="footer__brand-name display">{brand}</span>
-      <span class="footer__brand-year">© {year}. {t<string>("footer.rights")}</span>
+      <span class="footer__brand-year">© {year}. {t("footer.rights")}</span>
     </div>
 
     <div class="footer__meta">
-      <a
-        href={repoUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        class="footer__link"
-      >
-        <Icon name="github" size={14} />
-        <span>{t<string>("footer.sourceCode")}</span>
-      </a>
-      <span class="footer__sep" aria-hidden="true">·</span>
+      {repoUrl && (
+        <>
+          <a
+            href={repoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="footer__link"
+          >
+            <Icon name="github" size={14} />
+            <span>{t("footer.sourceCode")}</span>
+          </a>
+          <span class="footer__sep" aria-hidden="true">·</span>
+        </>
+      )}
       <a
         href="https://astro.build"
         target="_blank"
@@ -39,7 +47,7 @@ const brand = t<string>("footer.brand");
         class="footer__link"
       >
         <Icon name="spark" size={14} />
-        <span>{t<string>("footer.builtWith")}</span>
+        <span>{t("footer.builtWith")}</span>
       </a>
     </div>
   </div>

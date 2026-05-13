@@ -6,10 +6,23 @@
  */
 
 import type { Locale } from "./i18n";
+import { config } from "./config";
 
 export interface ProjectRepo {
+  /** Короткое отображаемое имя в карточке (например, "Backend"). */
   name: string;
-  url: string;
+  /**
+   * Имя GitHub-репозитория. Если не задано — берётся `name`. URL собирается
+   * как `https://github.com/<PUBLIC_GITHUB_USER>/<repo>`. Указывай явно,
+   * когда отображаемое имя отличается от имени репо (например, "Backend" в
+   * UI, но `DotSoundBackend` в GitHub).
+   */
+  repo?: string;
+  /**
+   * Явный URL репозитория. Перекрывает авто-сборку из `repo`/`name` — полезно
+   * для репозиториев под чужим аккаунтом/организацией.
+   */
+  url?: string;
   role?: string;
   description?: { ru: string; en: string };
 }
@@ -77,4 +90,20 @@ export function projectTagline(p: Project, locale: Locale): string {
 
 export function projectDescription(p: Project, locale: Locale): string {
   return p.description[locale] ?? p.description.ru;
+}
+
+/**
+ * URL репозитория с graceful fallback:
+ *   1) если в JSON явно задан `repo.url` — берём его (например, репо в чужой org);
+ *   2) если задан `PUBLIC_GITHUB_USER` — собираем `https://github.com/<user>/<name>`;
+ *   3) иначе возвращаем пустую строку — компоненты не рендерят ссылку.
+ *
+ * Это позволяет держать JSON-ы проектов без захардкоженного username и
+ * шарить репозиторий как шаблон.
+ */
+export function repoUrl(repo: ProjectRepo): string {
+  if (repo.url && repo.url.length > 0) return repo.url;
+  const user = config.PUBLIC_GITHUB_USER;
+  if (!user) return "";
+  return `https://github.com/${user}/${repo.repo ?? repo.name}`;
 }

@@ -6,6 +6,7 @@ import {
   projectBrand,
   projectTagline,
   projectDescription,
+  repoUrl,
 } from "../lib/projects";
 import Icon from "./Icon/Icon.astro";
 
@@ -25,6 +26,7 @@ const brand = projectBrand(p, locale);
 const tagline = projectTagline(p, locale);
 const desc = projectDescription(p, locale);
 const caseHref = `${prefix}/projects/${p.slug}`;
+const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
 ---
 
 <article
@@ -37,11 +39,11 @@ const caseHref = `${prefix}/projects/${p.slug}`;
   <header class="project-card__head">
     <div class="project-card__meta">
       <span class="project-card__category caption">
-        {t<string>(`projects.category.${p.category}`)}
+        {t(`projects.category.${p.category}`)}
       </span>
       <span class={`project-card__status project-card__status--${p.status}`}>
         <Icon name="dot" size={10} />
-        <span>{t<string>(`projects.status.${p.status}`)}</span>
+        <span>{t(`projects.status.${p.status}`)}</span>
       </span>
     </div>
 
@@ -54,7 +56,7 @@ const caseHref = `${prefix}/projects/${p.slug}`;
 
   <p class="project-card__desc body">{desc}</p>
 
-  <ul class="project-card__stack" aria-label={t<string>("projects.stack")}>
+  <ul class="project-card__stack" aria-label={t("projects.stack")}>
     {p.stack.slice(0, 8).map((s) => (
       <li class="project-card__chip">{s}</li>
     ))}
@@ -66,7 +68,7 @@ const caseHref = `${prefix}/projects/${p.slug}`;
   </ul>
 
   {p.repos.length > 1 && (
-    <ul class="project-card__repos" aria-label={t<string>("projects.repos")}>
+    <ul class="project-card__repos" aria-label={t("projects.repos")}>
       {p.repos.map((r) => (
         <li class="project-card__repo">
           <Icon name="code" size={14} />
@@ -79,18 +81,18 @@ const caseHref = `${prefix}/projects/${p.slug}`;
 
   <footer class="project-card__actions">
     <a href={caseHref} class="project-card__cta cta cta--primary magnetic">
-      <span>{t<string>("projects.viewProject")}</span>
+      <span>{t("projects.viewProject")}</span>
       <Icon name="arrow-right" size={16} />
     </a>
-    {p.repos[0] && (
+    {primaryRepoUrl && (
       <a
-        href={p.repos[0].url}
+        href={primaryRepoUrl}
         target="_blank"
         rel="noopener noreferrer"
         class="project-card__cta cta cta--ghost"
       >
         <Icon name="github" size={16} />
-        <span>{t<string>("projects.viewSource")}</span>
+        <span>{t("projects.viewSource")}</span>
       </a>
     )}
     {p.links?.domain && (
@@ -101,7 +103,7 @@ const caseHref = `${prefix}/projects/${p.slug}`;
         class="project-card__cta cta cta--ghost"
       >
         <Icon name="globe" size={16} />
-        <span>{t<string>("projects.openSite")}</span>
+        <span>{t("projects.openSite")}</span>
       </a>
     )}
   </footer>

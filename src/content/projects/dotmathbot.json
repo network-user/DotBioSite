@@ -33,7 +33,6 @@
   "repos": [
     {
       "name": "DotMathBot",
-      "url": "https://github.com/network-user/DotMathBot",
       "role": "telegram-bot"
     }
   ],

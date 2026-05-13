@@ -13,15 +13,19 @@ const prefix = localePrefix(locale);
 const altLocale: Locale = locale === "ru" ? "en" : "ru";
 const altHref = alternateUrl(Astro.url, altLocale);
 
-const brand = t<string>("meta.brandShort");
+const brand = t("meta.brandShort");
 
 const navLinks = [
-  { href: `${prefix}/#about`, label: t<string>("nav.about") },
-  { href: `${prefix}/#stack`, label: t<string>("nav.stack") },
-  { href: `${prefix}/#projects`, label: t<string>("nav.projects") },
-  { href: `${prefix}/#timeline`, label: t<string>("nav.timeline") },
-  { href: `${prefix}/#contact`, label: t<string>("nav.contact") },
+  { href: `${prefix}/#about`, label: t("nav.about"), section: "about" },
+  { href: `${prefix}/#stack`, label: t("nav.stack"), section: "stack" },
+  { href: `${prefix}/#projects`, label: t("nav.projects"), section: "projects" },
+  { href: `${prefix}/#timeline`, label: t("nav.timeline"), section: "timeline" },
+  { href: `${prefix}/#contact`, label: t("nav.contact"), section: "contact" },
 ];
+
+// Активный пункт по умолчанию — определяется по hash в URL при первой отрисовке.
+// Дальше его обновит скрипт ниже (через IntersectionObserver при скролле).
+const initialHash = Astro.url.hash.replace("#", "");
 ---
 
 <header class="header">
@@ -30,12 +34,20 @@ const navLinks = [
       <span class="header__brand-text display">{brand}</span>
     </a>
 
-    <nav class="header__nav" aria-label="Primary">
-      {navLinks.map((l) => (
-        <a href={l.href} class="header__nav-link">
-          {l.label}
-        </a>
-      ))}
+    <nav class="header__nav" aria-label="Primary" data-nav>
+      {navLinks.map((l) => {
+        const isActive = l.section === initialHash;
+        return (
+          <a
+            href={l.href}
+            class={`header__nav-link${isActive ? " is-active" : ""}`}
+            data-section={l.section}
+            aria-current={isActive ? "true" : undefined}
+          >
+            {l.label}
+          </a>
+        );
+      })}
     </nav>
 
     <div class="header__actions">
@@ -44,7 +56,7 @@ const navLinks = [
         current={locale}
         alternate={altLocale}
         alternateUrl={altHref}
-        label={t<string>("nav.toggleLang")}
+        label={t("nav.toggleLang")}
       />
     </div>
   </div>
@@ -114,6 +126,22 @@ const navLinks = [
     opacity: 1;
   }
 
+  .header__nav-link.is-active {
+    color: var(--text);
+    background: var(--surface-2);
+    font-weight: var(--fw-semibold);
+  }
+
+  .header__nav-link.is-active::after {
+    content: "";
+    display: block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--text);
+    margin-inline-start: var(--sp-2);
+  }
+
   .header__actions {
     margin-left: auto;
     display: flex;
@@ -153,3 +181,102 @@ const navLinks = [
     }
   }
 </style>
+
+<script>
+  /**
+   * Подсветка активного пункта в хедере.
+   *
+   * Стратегия:
+   *   1. IntersectionObserver наблюдает за всеми секциями (#about, #stack, ...).
+   *   2. Из видимых выбираем ту, у которой наибольший intersectionRatio.
+   *   3. Если ни одна не видна (например, мы на самом верху в Hero) — снимаем
+   *      активность со всех ссылок.
+   *   4. На клик по ссылке моментально включаем её active, не дожидаясь скролла —
+   *      иначе из-за smooth-scroll задержка ощущается как лаг.
+   *
+   * Скрипт самодостаточен: повторно навешивается на каждой странице, где
+   * рендерится Header. Astro по умолчанию hoist'ит этот <script> и грузит его
+   * как ES-модуль один раз — повторного навешивания между навигациями не будет.
+   */
+  const SECTIONS = ["about", "stack", "projects", "timeline", "contact"];
+
+  function setActive(section: string | null) {
+    const links = document.querySelectorAll<HTMLAnchorElement>(
+      "[data-nav] [data-section]",
+    );
+    links.forEach((link) => {
+      const isActive = link.dataset.section === section;
+      link.classList.toggle("is-active", isActive);
+      if (isActive) {
+        link.setAttribute("aria-current", "true");
+      } else {
+        link.removeAttribute("aria-current");
+      }
+    });
+  }
+
+  function initHeaderNav() {
+    const nav = document.querySelector("[data-nav]");
+    if (!nav) return;
+
+    const sectionEls = SECTIONS.map((id) => document.getElementById(id)).filter(
+      (el): el is HTMLElement => el !== null,
+    );
+    if (sectionEls.length === 0) return;
+
+    const visible = new Map<string, number>();
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const id = entry.target.id;
+          if (entry.isIntersecting) {
+            visible.set(id, entry.intersectionRatio);
+          } else {
+            visible.delete(id);
+          }
+        });
+
+        if (visible.size === 0) {
+          // Hero / выше всех секций — никакой пункт не активен.
+          setActive(null);
+          return;
+        }
+
+        // Активный = секция с максимальной долей видимости.
+        let topId: string | null = null;
+        let topRatio = -1;
+        visible.forEach((ratio, id) => {
+          if (ratio > topRatio) {
+            topRatio = ratio;
+            topId = id;
+          }
+        });
+        setActive(topId);
+      },
+      {
+        // Триггерим переключение, когда секция занимает существенную часть
+        // viewport, а не как только её край показался.
+        rootMargin: "-40% 0px -40% 0px",
+        threshold: [0, 0.25, 0.5, 0.75, 1],
+      },
+    );
+
+    sectionEls.forEach((el) => io.observe(el));
+
+    // Мгновенный отклик на клик — пока smooth-scroll едет, активный пункт
+    // уже на нужном месте.
+    nav.querySelectorAll<HTMLAnchorElement>("[data-section]").forEach((link) => {
+      link.addEventListener("click", () => {
+        const id = link.dataset.section ?? null;
+        setActive(id);
+      });
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initHeaderNav, { once: true });
+  } else {
+    initHeaderNav();
+  }
+</script>
