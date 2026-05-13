@@ -1,10 +1,7 @@
 {
   "meta": {
     "locale": "en",
-    "title": ".core — projects forge",
     "description": "Personal portfolio site and collection point for all projects: DotSound, DotMathBot, and more.",
-    "brandShort": ".core",
-    "brand": ".core",
     "tagline": "projects forge."
   },
   "nav": {
@@ -18,7 +15,6 @@
     "toggleLang": "RU"
   },
   "hero": {
-    "title": ".core",
     "eyebrow": "specialist · platforms · automations",
     "tagline": "projects forge.",
     "subtitle": "A collection point for all projects under one umbrella. Each project has its own identity, mission, and repository. This site is a preview and navigator.",
@@ -42,13 +38,6 @@
       "devops": "DevOps",
       "ml": "AI / ML",
       "mobile": "Mobile / Bots"
-    },
-    "iconHints": {
-      "backend": "stack",
-      "frontend": "code",
-      "devops": "rocket",
-      "ml": "spark",
-      "mobile": "telegram"
     }
   },
   "projects": {
@@ -60,7 +49,6 @@
     "openSite": "open site",
     "repos": "repositories",
     "stack": "stack",
-    "showMore": "more projects coming soon",
     "scrollHint": "scroll — a path through the years",
     "category": {
       "platform": "Platform",
@@ -97,8 +85,7 @@
     "rights": "All rights reserved.",
     "builtWith": "Built with Astro",
     "sourceCode": "Site source",
-    "cta": "more projects coming soon — stay tuned.",
-    "brand": ".core"
+    "cta": "more projects coming soon — stay tuned."
   },
   "case": {
     "back": "← back to all projects",

@@ -1,5 +1,6 @@
 ---
 import { useTranslations, alternateUrl, type Locale, localePrefix } from "../lib/i18n";
+import { authorName } from "../lib/config";
 import LanguageToggle from "./react/LanguageToggle.island.tsx";
 
 interface Props {
@@ -13,7 +14,7 @@ const prefix = localePrefix(locale);
 const altLocale: Locale = locale === "ru" ? "en" : "ru";
 const altHref = alternateUrl(Astro.url, altLocale);
 
-const brand = t("meta.brandShort");
+const brand = authorName(locale);
 
 const navLinks = [
   { href: `${prefix}/#about`, label: t("nav.about"), section: "about" },

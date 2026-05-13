@@ -3,6 +3,7 @@ import type { GetStaticPaths } from "astro";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import CaseStudy from "../../../components/CaseStudy.astro";
 import { projects, projectName, projectTagline } from "../../../lib/projects";
+import { authorName } from "../../../lib/config";
 
 export const getStaticPaths = (() => {
   return projects.map((p) => ({
@@ -13,7 +14,7 @@ export const getStaticPaths = (() => {
 
 const { project } = Astro.props;
 const locale = "en" as const;
-const title = `${projectName(project, locale)} — .core`;
+const title = `${projectName(project, locale)} — ${authorName(locale)}`;
 const description = projectTagline(project, locale);
 ---
 

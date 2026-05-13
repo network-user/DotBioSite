@@ -1,6 +1,6 @@
 ---
 import { useTranslations, type Locale } from "../lib/i18n";
-import { config } from "../lib/config";
+import { config, authorName } from "../lib/config";
 import Icon from "./Icon/Icon.astro";
 
 interface Props {
@@ -15,7 +15,7 @@ const year = new Date().getFullYear();
 const ghUser = config.PUBLIC_GITHUB_USER;
 const ghRepo = config.PUBLIC_GITHUB_REPO;
 const repoUrl = ghUser && ghRepo ? `https://github.com/${ghUser}/${ghRepo}` : "";
-const brand = t("footer.brand");
+const brand = authorName(locale);
 ---
 
 <footer class="footer">
@@ -71,7 +71,9 @@ const brand = t("footer.brand");
   }
 
   .footer__cta {
-    color: var(--text-faint);
+    /* Was --text-faint (#3a3a3a) — failed WCAG AA on dark bg (contrast 1.74).
+       Bumped to --text-secondary for 4.5:1+ readability. */
+    color: var(--text-secondary);
     letter-spacing: var(--ls-wide);
   }
 
@@ -96,7 +98,8 @@ const brand = t("footer.brand");
   }
 
   .footer__brand-year {
-    color: var(--text-muted);
+    /* Was --text-muted (#5a5a5a) — contrast 2.87 fails AA. */
+    color: var(--text-secondary);
     font-size: var(--fs-12);
     letter-spacing: var(--ls-wide);
     text-transform: uppercase;

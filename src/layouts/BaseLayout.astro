@@ -2,7 +2,7 @@
 import "../styles/global.css";
 import "../styles/glass.css";
 
-import { config } from "../lib/config";
+import { config, authorName } from "../lib/config";
 import { useTranslations, alternateUrl, type Locale } from "../lib/i18n";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
@@ -11,7 +11,7 @@ import SpotlightCursor from "../components/react/SpotlightCursor.island.tsx";
 
 interface Props {
   locale: Locale;
-  /** Заголовок страницы. Если не задан — берётся meta.title из словаря. */
+  /** Заголовок страницы. Если не задан — собирается как `${authorName} — ${meta.tagline}`. */
   title?: string;
   /** Описание для SEO/OG. */
   description?: string;
@@ -30,7 +30,9 @@ const {
 } = Astro.props;
 
 const t = useTranslations(locale);
-const pageTitle = title ?? t("meta.title");
+// Composes <author> — <tagline> so the brand part comes from .env (PUBLIC_AUTHOR_NAME_*)
+// while the i18n string stays for the human-readable tagline.
+const pageTitle = title ?? `${authorName(locale)} — ${t("meta.tagline")}`;
 const pageDescription = description ?? t("meta.description");
 const canonical = new URL(Astro.url.pathname, config.PUBLIC_DOMAIN).toString();
 const altLocale: Locale = locale === "ru" ? "en" : "ru";
