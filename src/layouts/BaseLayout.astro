@@ -2,12 +2,12 @@
 import "../styles/global.css";
 import "../styles/glass.css";
 
-import { config, authorName } from "../lib/config";
+import { config, authorName, socials } from "../lib/config";
 import { useTranslations, alternateUrl, type Locale } from "../lib/i18n";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
-import NoiseBackground from "../components/react/NoiseBackground.island.tsx";
-import SpotlightCursor from "../components/react/SpotlightCursor.island.tsx";
+
+type JsonLd = Record<string, unknown>;
 
 interface Props {
   locale: Locale;
@@ -19,6 +19,11 @@ interface Props {
   mainClass?: string;
   /** Скрыть header/footer (для лендинга hero / случаев когда не нужен). */
   noChrome?: boolean;
+  /** Absolute or site-relative image URL for Open Graph/Twitter previews. */
+  image?: string;
+  imageAlt?: string;
+  /** Additional page-specific JSON-LD objects. Base Person/WebSite graph is always included. */
+  structuredData?: JsonLd | JsonLd[];
 }
 
 const {
@@ -27,6 +32,9 @@ const {
   description,
   mainClass = "",
   noChrome = false,
+  image,
+  imageAlt,
+  structuredData,
 } = Astro.props;
 
 const t = useTranslations(locale);
@@ -37,8 +45,39 @@ const pageDescription = description ?? t("meta.description");
 const canonical = new URL(Astro.url.pathname, config.PUBLIC_DOMAIN).toString();
 const altLocale: Locale = locale === "ru" ? "en" : "ru";
 const altHref = new URL(alternateUrl(Astro.url, altLocale), config.PUBLIC_DOMAIN).toString();
-const ogImage = new URL("/og-image.svg", config.PUBLIC_DOMAIN).toString();
+const ogImage = new URL(image ?? "/og-image.svg", config.PUBLIC_DOMAIN).toString();
 const htmlLang = locale === "ru" ? "ru-RU" : "en-US";
+const personId = new URL("/#person", config.PUBLIC_DOMAIN).toString();
+const websiteId = new URL("/#website", config.PUBLIC_DOMAIN).toString();
+const baseStructuredData: JsonLd[] = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "@id": personId,
+    name: authorName(locale),
+    url: new URL("/", config.PUBLIC_DOMAIN).toString(),
+    sameAs: socials.map((s) => s.url),
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": websiteId,
+    name: authorName(locale),
+    url: new URL("/", config.PUBLIC_DOMAIN).toString(),
+    description: pageDescription,
+    inLanguage: htmlLang,
+    publisher: { "@id": personId },
+  },
+];
+const extraStructuredData = structuredData
+  ? Array.isArray(structuredData)
+    ? structuredData
+    : [structuredData]
+  : [];
+const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).replace(
+  /</g,
+  "\\u003c",
+);
 ---
 
 <!doctype html>
@@ -55,7 +94,11 @@ const htmlLang = locale === "ru" ? "ru-RU" : "en-US";
 
     <link rel="canonical" href={canonical} />
     <link rel="alternate" hreflang={altLocale} href={altHref} />
-    <link rel="alternate" hreflang="x-default" href={new URL("/", config.PUBLIC_DOMAIN).toString()} />
+    <link
+      rel="alternate"
+      hreflang="x-default"
+      href={new URL("/", config.PUBLIC_DOMAIN).toString()}
+    />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/svg+xml" sizes="192x192" href="/icon-192.svg" />
@@ -68,6 +111,7 @@ const htmlLang = locale === "ru" ? "ru-RU" : "en-US";
     <meta property="og:description" content={pageDescription} />
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={ogImage} />
+    {imageAlt && <meta property="og:image:alt" content={imageAlt} />}
     <meta property="og:locale" content={locale === "ru" ? "ru_RU" : "en_US"} />
     <meta property="og:locale:alternate" content={altLocale === "ru" ? "ru_RU" : "en_US"} />
 
@@ -75,15 +119,19 @@ const htmlLang = locale === "ru" ? "ru-RU" : "en-US";
     <meta name="twitter:title" content={pageTitle} />
     <meta name="twitter:description" content={pageDescription} />
     <meta name="twitter:image" content={ogImage} />
+    {imageAlt && <meta name="twitter:image:alt" content={imageAlt} />}
+
+    <script is:inline type="application/ld+json" set:html={jsonLd} />
 
     <slot name="head" />
   </head>
   <body data-locale={locale}>
     <div class="bg-layer" aria-hidden="true">
-      <NoiseBackground client:idle />
+      <canvas class="noise-bg" data-noise-bg></canvas>
     </div>
 
-    <SpotlightCursor client:idle />
+    <div class="cursor-halo" data-cursor-halo aria-hidden="true"></div>
+    <div class="cursor-dot" data-cursor-dot aria-hidden="true"></div>
 
     {!noChrome && <Header locale={locale} />}
 
@@ -152,6 +200,122 @@ const htmlLang = locale === "ru" ? "ru-RU" : "en-US";
           });
         });
       }
+
+      // --- Static canvas grain without React runtime ---
+      const noiseCanvas = document.querySelector<HTMLCanvasElement>("[data-noise-bg]");
+      if (noiseCanvas && document.body.dataset.noNoise !== "1") {
+        const TILE = 128;
+        const tileCanvas = document.createElement("canvas");
+        tileCanvas.width = TILE;
+        tileCanvas.height = TILE;
+        const tctx = tileCanvas.getContext("2d");
+
+        if (tctx) {
+          const imageData = tctx.createImageData(TILE, TILE);
+          const data = imageData.data;
+          for (let i = 0; i < data.length; i += 4) {
+            const v = Math.floor(Math.random() * 36);
+            data[i] = v;
+            data[i + 1] = v;
+            data[i + 2] = v;
+            data[i + 3] = 22;
+          }
+          tctx.putImageData(imageData, 0, 0);
+        }
+
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const drawNoise = () => {
+          const w = window.innerWidth;
+          const h = window.innerHeight;
+          noiseCanvas.width = w * dpr;
+          noiseCanvas.height = h * dpr;
+          noiseCanvas.style.width = `${w}px`;
+          noiseCanvas.style.height = `${h}px`;
+          const ctx = noiseCanvas.getContext("2d");
+          if (!ctx) return;
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          const pattern = ctx.createPattern(tileCanvas, "repeat");
+          if (!pattern) return;
+          ctx.fillStyle = pattern;
+          ctx.fillRect(0, 0, w, h);
+        };
+
+        drawNoise();
+        let noiseRaf: number | null = null;
+        window.addEventListener(
+          "resize",
+          () => {
+            if (noiseRaf !== null) cancelAnimationFrame(noiseRaf);
+            noiseRaf = requestAnimationFrame(drawNoise);
+          },
+          { passive: true },
+        );
+      }
+
+      // --- Cursor halo without React runtime ---
+      if (window.matchMedia("(pointer: fine)").matches) {
+        const dot = document.querySelector<HTMLElement>("[data-cursor-dot]");
+        const halo = document.querySelector<HTMLElement>("[data-cursor-halo]");
+        if (dot && halo) {
+          let mx = window.innerWidth / 2;
+          let my = window.innerHeight / 2;
+          let hx = mx;
+          let hy = my;
+          let cursorRaf: number | null = null;
+
+          const applyCursor = () => {
+            dot.style.transform = `translate3d(${mx}px, ${my}px, 0)`;
+            halo.style.transform = `translate3d(${hx}px, ${hy}px, 0)`;
+          };
+
+          const tickCursor = () => {
+            hx += (mx - hx) * 0.18;
+            hy += (my - hy) * 0.18;
+            applyCursor();
+            if (Math.abs(mx - hx) > 0.3 || Math.abs(my - hy) > 0.3) {
+              cursorRaf = requestAnimationFrame(tickCursor);
+            } else {
+              cursorRaf = null;
+            }
+          };
+
+          document.addEventListener(
+            "mousemove",
+            (e) => {
+              mx = e.clientX;
+              my = e.clientY;
+              if (reduced) {
+                hx = mx;
+                hy = my;
+                applyCursor();
+              } else if (cursorRaf === null) {
+                cursorRaf = requestAnimationFrame(tickCursor);
+              }
+            },
+            { passive: true },
+          );
+
+          document.addEventListener("mouseleave", () => {
+            dot.style.opacity = "0";
+            halo.style.opacity = "0";
+          });
+          document.addEventListener("mouseenter", () => {
+            dot.style.opacity = "1";
+            halo.style.opacity = "1";
+          });
+          document.addEventListener(
+            "mouseover",
+            (e) => {
+              const target = e.target as HTMLElement | null;
+              const interactive = target?.closest(
+                "a, button, [role='button'], input, textarea, select, [data-interactive]",
+              );
+              halo.classList.toggle("is-interactive", Boolean(interactive));
+            },
+            { passive: true },
+          );
+        }
+      }
     </script>
   </body>
 </html>
@@ -170,6 +334,72 @@ const htmlLang = locale === "ru" ? "ru-RU" : "en-US";
     z-index: -1;
     pointer-events: none;
     opacity: 0.55;
+  }
+
+  .noise-bg {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    opacity: 0.5;
+  }
+
+  .cursor-dot,
+  .cursor-halo {
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    will-change: transform, opacity;
+    z-index: var(--z-cursor);
+    opacity: 0;
+    transition: opacity var(--dur-fast) var(--ease-standard);
+  }
+
+  .cursor-dot {
+    width: 6px;
+    height: 6px;
+    margin: -3px 0 0 -3px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.85);
+    mix-blend-mode: difference;
+  }
+
+  .cursor-halo {
+    width: 26px;
+    height: 26px;
+    margin: -13px 0 0 -13px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.07) 0%, transparent 70%);
+    backdrop-filter: blur(4px) saturate(120%);
+    -webkit-backdrop-filter: blur(4px) saturate(120%);
+    transition:
+      width var(--dur-med) var(--ease-soft),
+      height var(--dur-med) var(--ease-soft),
+      margin var(--dur-med) var(--ease-soft),
+      border-color var(--dur-fast) var(--ease-standard),
+      backdrop-filter var(--dur-med) var(--ease-soft),
+      opacity var(--dur-fast) var(--ease-standard);
+  }
+
+  .cursor-halo.is-interactive {
+    width: 38px;
+    height: 38px;
+    margin: -19px 0 0 -19px;
+    border-color: rgba(255, 255, 255, 0.55);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, transparent 70%);
+    backdrop-filter: blur(6px) saturate(140%);
+    -webkit-backdrop-filter: blur(6px) saturate(140%);
+  }
+
+  @media (pointer: coarse) {
+    .cursor-dot,
+    .cursor-halo {
+      display: none;
+    }
   }
 
   .main {

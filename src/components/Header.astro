@@ -1,7 +1,6 @@
 ---
 import { useTranslations, alternateUrl, type Locale, localePrefix } from "../lib/i18n";
 import { authorName } from "../lib/config";
-import LanguageToggle from "./react/LanguageToggle.island.tsx";
 
 interface Props {
   locale: Locale;
@@ -37,29 +36,35 @@ const initialHash = Astro.url.hash.replace("#", "");
 
     <nav class="header__nav" aria-label="Primary" data-nav>
       <span class="header__indicator" aria-hidden="true"></span>
-      {navLinks.map((l) => {
-        const isActive = l.section === initialHash;
-        return (
-          <a
-            href={l.href}
-            class={`header__nav-link${isActive ? " is-active" : ""}`}
-            data-section={l.section}
-            aria-current={isActive ? "true" : undefined}
-          >
-            {l.label}
-          </a>
-        );
-      })}
+      {
+        navLinks.map((l) => {
+          const isActive = l.section === initialHash;
+          return (
+            <a
+              href={l.href}
+              class={`header__nav-link${isActive ? " is-active" : ""}`}
+              data-section={l.section}
+              aria-current={isActive ? "true" : undefined}
+            >
+              {l.label}
+            </a>
+          );
+        })
+      }
     </nav>
 
     <div class="header__actions">
-      <LanguageToggle
-        client:idle
-        current={locale}
-        alternate={altLocale}
-        alternateUrl={altHref}
-        label={t("nav.toggleLang")}
-      />
+      <a
+        href={altHref}
+        class="lang-toggle"
+        data-lang-toggle
+        data-current={locale}
+        data-alternate={altLocale}
+        aria-label={`Switch language to ${altLocale.toUpperCase()}`}
+        lang={altLocale}
+      >
+        <span aria-hidden="true">{t("nav.toggleLang")}</span>
+      </a>
     </div>
   </div>
 </header>
@@ -319,6 +324,38 @@ const initialHash = Astro.url.hash.replace("#", "");
   function init() {
     initHeaderNav();
     initHeaderScrolled();
+    initLanguageToggle();
+  }
+
+  function initLanguageToggle() {
+    const toggle = document.querySelector<HTMLAnchorElement>("[data-lang-toggle]");
+    if (!toggle) return;
+    const current = toggle.dataset.current === "en" ? "en" : "ru";
+    const alternate = toggle.dataset.alternate === "en" ? "en" : "ru";
+
+    try {
+      const saved = localStorage.getItem("dc-locale");
+      if (saved === "ru" || saved === "en") {
+        if (saved !== current) window.location.replace(toggle.href);
+      } else {
+        const nav = (navigator.languages?.[0] || navigator.language || "ru").toLowerCase();
+        const detected = nav.startsWith("ru") ? "ru" : "en";
+        localStorage.setItem("dc-locale", detected);
+        if (detected !== current) window.location.replace(toggle.href);
+      }
+    } catch {
+      /* localStorage may be unavailable in hardened browsers. */
+    }
+
+    toggle.addEventListener("click", (e) => {
+      e.preventDefault();
+      try {
+        localStorage.setItem("dc-locale", alternate);
+      } catch {
+        /* noop */
+      }
+      window.location.assign(toggle.href);
+    });
   }
 
   if (document.readyState === "loading") {

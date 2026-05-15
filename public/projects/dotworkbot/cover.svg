@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">DotWorkBot project preview</title>
+  <desc id="desc">A dark glass workforce bot preview with worker, employer, admin, orders, and storage nodes.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#050706"/>
+      <stop offset="0.5" stop-color="#0d1a12"/>
+      <stop offset="1" stop-color="#07110b"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="68%" cy="28%" r="62%">
+      <stop offset="0" stop-color="#22c55e" stop-opacity="0.34"/>
+      <stop offset="0.48" stop-color="#22c55e" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#22c55e" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="34" stdDeviation="38" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.13"/>
+      <stop offset="0.4" stop-color="#ffffff" stop-opacity="0.035"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.012"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="900" fill="url(#glow)"/>
+  <g opacity="0.13" stroke="#ffffff" stroke-width="1">
+    <path d="M0 250 H1600M0 450 H1600M0 650 H1600"/>
+    <path d="M220 0 V900M460 0 V900M700 0 V900M940 0 V900M1180 0 V900M1420 0 V900"/>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="130" y="118" width="506" height="656" rx="46" fill="#101211" stroke="#ffffff" stroke-opacity="0.14"/>
+    <rect x="160" y="150" width="446" height="592" rx="32" fill="url(#glass)" stroke="#ffffff" stroke-opacity="0.08"/>
+    <rect x="206" y="194" width="118" height="16" rx="8" fill="#ffffff" fill-opacity="0.72"/>
+    <rect x="206" y="228" width="278" height="10" rx="5" fill="#ffffff" fill-opacity="0.18"/>
+    <rect x="206" y="292" width="354" height="104" rx="26" fill="#22c55e" fill-opacity="0.12" stroke="#22c55e" stroke-opacity="0.32"/>
+    <text x="236" y="352" font-size="42" font-family="Inter, Arial, sans-serif" font-weight="800" fill="#ffffff">Order #184</text>
+    <text x="236" y="380" font-size="18" font-family="Inter, Arial, sans-serif" fill="#a3a3a3">3 workers required</text>
+    <rect x="206" y="440" width="168" height="76" rx="22" fill="#ffffff" fill-opacity="0.08" stroke="#ffffff" stroke-opacity="0.16"/>
+    <rect x="392" y="440" width="168" height="76" rx="22" fill="#ffffff" fill-opacity="0.08" stroke="#ffffff" stroke-opacity="0.16"/>
+    <rect x="206" y="548" width="354" height="18" rx="9" fill="#ffffff" fill-opacity="0.13"/>
+    <rect x="206" y="548" width="246" height="18" rx="9" fill="#22c55e" fill-opacity="0.78"/>
+    <rect x="206" y="624" width="354" height="52" rx="26" fill="#ffffff" fill-opacity="0.82"/>
+  </g>
+  <g filter="url(#shadow)" font-family="Inter, Arial, sans-serif">
+    <rect x="780" y="130" width="226" height="116" rx="28" fill="#101211" stroke="#ffffff" stroke-opacity="0.14"/>
+    <rect x="1114" y="130" width="226" height="116" rx="28" fill="#101211" stroke="#ffffff" stroke-opacity="0.14"/>
+    <rect x="780" y="392" width="226" height="116" rx="28" fill="#101211" stroke="#ffffff" stroke-opacity="0.14"/>
+    <rect x="1114" y="392" width="226" height="116" rx="28" fill="#101211" stroke="#ffffff" stroke-opacity="0.14"/>
+    <rect x="946" y="650" width="226" height="116" rx="28" fill="#101211" stroke="#ffffff" stroke-opacity="0.14"/>
+    <text x="824" y="188" font-size="30" font-weight="800" fill="#ffffff">Worker</text>
+    <text x="1158" y="188" font-size="30" font-weight="800" fill="#ffffff">Employer</text>
+    <text x="824" y="450" font-size="30" font-weight="800" fill="#ffffff">Admin</text>
+    <text x="1158" y="450" font-size="30" font-weight="800" fill="#ffffff">Storage</text>
+    <text x="990" y="708" font-size="30" font-weight="800" fill="#ffffff">Orders</text>
+    <text x="824" y="218" font-size="17" fill="#a3a3a3">takes shifts</text>
+    <text x="1158" y="218" font-size="17" fill="#a3a3a3">creates jobs</text>
+    <text x="824" y="480" font-size="17" fill="#a3a3a3">moderates</text>
+    <text x="1158" y="480" font-size="17" fill="#a3a3a3">Postgres + S3</text>
+    <text x="990" y="738" font-size="17" fill="#a3a3a3">status lifecycle</text>
+  </g>
+  <g stroke="#22c55e" stroke-width="3" stroke-linecap="round" opacity="0.74" fill="none">
+    <path d="M1006 188 H1114"/>
+    <path d="M893 246 V392"/>
+    <path d="M1227 246 V392"/>
+    <path d="M1006 450 H1114"/>
+    <path d="M893 508 L1014 650"/>
+    <path d="M1227 508 L1104 650"/>
+    <path d="M636 448 H780"/>
+  </g>
+  <g font-family="Inter, Arial, sans-serif">
+    <text x="130" y="86" font-size="28" fill="#22c55e" font-weight="700">.work</text>
+    <text x="130" y="838" font-size="58" fill="#ffffff" font-weight="800">On-demand workforce in Telegram</text>
+    <text x="130" y="876" font-size="22" fill="#a3a3a3">Workers, employers, admin moderation, PostgreSQL, Redis, MinIO</text>
+  </g>
+</svg>

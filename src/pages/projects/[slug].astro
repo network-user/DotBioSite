@@ -2,8 +2,14 @@
 import type { GetStaticPaths } from "astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import CaseStudy from "../../components/CaseStudy.astro";
-import { projects, projectName, projectTagline } from "../../lib/projects";
-import { authorName } from "../../lib/config";
+import {
+  projects,
+  projectName,
+  projectTagline,
+  projectDescription,
+  repoUrl,
+} from "../../lib/projects";
+import { authorName, config } from "../../lib/config";
 
 export const getStaticPaths = (() => {
   return projects.map((p) => ({
@@ -16,8 +22,30 @@ const { project } = Astro.props;
 const locale = "ru" as const;
 const title = `${projectName(project, locale)} — ${authorName(locale)}`;
 const description = projectTagline(project, locale);
+const codeRepositories = project.repos.map((r) => repoUrl(r)).filter(Boolean);
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  name: projectName(project, locale),
+  description: projectDescription(project, locale),
+  url: new URL(`/projects/${project.slug}`, config.PUBLIC_DOMAIN).toString(),
+  image: project.cover ? new URL(project.cover, config.PUBLIC_DOMAIN).toString() : undefined,
+  codeRepository: codeRepositories.length > 0 ? codeRepositories : undefined,
+  programmingLanguage: project.stack,
+  applicationCategory: project.category,
+  dateCreated: project.year ? String(project.year) : undefined,
+  creator: { "@id": new URL("/#person", config.PUBLIC_DOMAIN).toString() },
+  isPartOf: { "@id": new URL("/#website", config.PUBLIC_DOMAIN).toString() },
+};
 ---
 
-<BaseLayout locale={locale} title={title} description={description}>
+<BaseLayout
+  locale={locale}
+  title={title}
+  description={description}
+  image={project.cover}
+  imageAlt={projectName(project, locale)}
+  structuredData={structuredData}
+>
   <CaseStudy project={project} locale={locale} />
 </BaseLayout>

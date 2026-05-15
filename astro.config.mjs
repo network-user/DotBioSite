@@ -1,5 +1,4 @@
 import { defineConfig } from "astro/config";
-import react from "@astrojs/react";
 
 // https://astro.build/config
 export default defineConfig({
@@ -8,6 +7,9 @@ export default defineConfig({
   // 404 на `/en/` в dev-режиме, что ломало UX. Cloudflare Pages самостоятельно
   // нормализует URL в проде, так что "ignore" здесь безопасно.
   trailingSlash: "ignore",
+  devToolbar: {
+    enabled: false,
+  },
   prefetch: {
     prefetchAll: true,
     defaultStrategy: "viewport",
@@ -19,11 +21,7 @@ export default defineConfig({
       prefixDefaultLocale: false,
     },
   },
-  integrations: [
-    react({
-      include: ["**/components/react/**", "**/*.island.tsx"],
-    }),
-  ],
+  integrations: [],
   build: {
     inlineStylesheets: "auto",
     assets: "_assets",

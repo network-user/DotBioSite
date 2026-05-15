@@ -30,11 +30,13 @@ const tagline = projectTagline(p, locale);
 const desc = projectDescription(p, locale);
 const backHref = `${prefix}/#projects`;
 const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
+const accent = p.accent ?? "var(--accent)";
 
 const overviewParas = p.overview ? p.overview[locale] : [desc];
 
 const hasMetrics = p.metrics && p.metrics.length > 0;
-const hasStackGroups = p.stackGroups && Object.values(p.stackGroups).some((arr) => arr && arr.length > 0);
+const hasStackGroups =
+  p.stackGroups && Object.values(p.stackGroups).some((arr) => arr && arr.length > 0);
 const hasArchitecture = p.architectureNodes && p.architectureNodes.length > 0;
 const hasCapabilities = p.capabilities && p.capabilities.length > 0;
 const hasEngineering = p.engineeringChoices && p.engineeringChoices.length > 0;
@@ -42,65 +44,112 @@ const hasTimeline = p.timeline && p.timeline.length > 0;
 const hasLinks = p.links && Object.keys(p.links).length > 0;
 ---
 
-<article class="case">
+<article class="case" style={`--project-accent: ${accent};`}>
   <section class="case__hero" data-case-hero>
     <div class="case__hero-bg" aria-hidden="true"></div>
 
     <div class="container case__hero-inner">
-      <a href={backHref} class="case__back">
-        <Icon name="arrow-right" size={16} class="case__back-arrow" />
-        <span>{t("case.back")}</span>
-      </a>
+      <div class="case__hero-copy">
+        <a href={backHref} class="case__back">
+          <Icon name="arrow-right" size={16} class="case__back-arrow" />
+          <span>{t("case.back")}</span>
+        </a>
 
-      <div class="case__eyebrow" data-reveal>
-        <span class="eyebrow">{t(`projects.category.${p.category}`)}</span>
-        {p.year && (
+        <div class="case__eyebrow" data-reveal>
+          <span class="eyebrow">{t(`projects.category.${p.category}`)}</span>
+          {
+            p.year && (
+              <span class="eyebrow case__eyebrow-divider" aria-hidden="true">
+                ·
+              </span>
+            )
+          }
+          {p.year && <span class="eyebrow tabular">{p.year}</span>}
           <span class="eyebrow case__eyebrow-divider" aria-hidden="true">·</span>
-        )}
-        {p.year && <span class="eyebrow tabular">{p.year}</span>}
-        <span class="eyebrow case__eyebrow-divider" aria-hidden="true">·</span>
-        <span class={`case__status case__status--${p.status}`}>
-          <Icon name="dot" size={10} />
-          <span>{t(`projects.status.${p.status}`)}</span>
-        </span>
+          <span class={`case__status case__status--${p.status}`}>
+            <Icon name="dot" size={10} />
+            <span>{t(`projects.status.${p.status}`)}</span>
+          </span>
+        </div>
+
+        <h1
+          class="case__brand display-xl"
+          data-reveal
+          data-reveal-delay="60"
+          style={`view-transition-name: project-${p.slug}-brand;`}
+        >
+          {brand}
+        </h1>
+        <p class="case__name caption" data-reveal data-reveal-delay="120">{name}</p>
+        <p class="case__tagline title" data-reveal data-reveal-delay="180">{tagline}</p>
+
+        {
+          p.repos.length > 0 && (
+            <ul
+              class="case__repos-pills"
+              aria-label={t("case.repos")}
+              data-reveal
+              data-reveal-delay="240"
+            >
+              {p.repos.map((r) => (
+                <li class="case__repos-pill">
+                  <Icon name="code" size={12} />
+                  <span class="mono">{r.name}</span>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+
+        <div class="case__actions" data-reveal data-reveal-delay="300">
+          {
+            primaryRepoUrl && (
+              <a
+                href={primaryRepoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="cta cta--primary magnetic"
+              >
+                <Icon name="github" size={16} />
+                <span>{t("case.primaryRepo")}</span>
+              </a>
+            )
+          }
+          {
+            p.links?.domain && (
+              <a
+                href={p.links.domain}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="cta cta--ghost magnetic"
+              >
+                <Icon name="globe" size={16} />
+                <span>{t("projects.openSite")}</span>
+              </a>
+            )
+          }
+        </div>
       </div>
 
-      <h1
-        class="case__brand display-xl"
-        data-reveal
-        data-reveal-delay="60"
-        style={`view-transition-name: project-${p.slug}-brand;`}
-      >
-        {brand}
-      </h1>
-      <p class="case__name caption" data-reveal data-reveal-delay="120">{name}</p>
-      <p class="case__tagline title" data-reveal data-reveal-delay="180">{tagline}</p>
-
-      {p.repos.length > 0 && (
-        <ul class="case__repos-pills" aria-label={t("case.repos")} data-reveal data-reveal-delay="240">
-          {p.repos.map((r) => (
-            <li class="case__repos-pill">
-              <Icon name="code" size={12} />
-              <span class="mono">{r.name}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <div class="case__actions" data-reveal data-reveal-delay="300">
-        {primaryRepoUrl && (
-          <a href={primaryRepoUrl} target="_blank" rel="noopener noreferrer" class="cta cta--primary magnetic">
-            <Icon name="github" size={16} />
-            <span>{t("case.primaryRepo")}</span>
-          </a>
-        )}
-        {p.links?.domain && (
-          <a href={p.links.domain} target="_blank" rel="noopener noreferrer" class="cta cta--ghost magnetic">
-            <Icon name="globe" size={16} />
-            <span>{t("projects.openSite")}</span>
-          </a>
-        )}
-      </div>
+      {
+        p.cover && (
+          <figure
+            class="case__hero-visual glass glass--bordered"
+            data-reveal
+            data-reveal-delay="180"
+          >
+            <img
+              src={p.cover}
+              alt=""
+              class="case__hero-cover"
+              width="1600"
+              height="900"
+              decoding="async"
+              fetchpriority="high"
+            />
+          </figure>
+        )
+      }
     </div>
   </section>
 
@@ -114,167 +163,195 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
     </section>
 
     <!-- 3. Metrics -->
-    {hasMetrics && (
-      <section class="case__section" data-reveal>
-        <header class="case__h">
-          <h2 class="eyebrow">{t("case.metrics")}</h2>
-          <p class="case__h-lede subtitle">{t("case.metricsLede")}</p>
-        </header>
-        <div class="case__metrics">
-          {p.metrics!.map((m, i) => (
-            <div class="case__metric" data-reveal data-reveal-delay={i * 60}>
-              <span class="metric">
-                <span>{m.value}</span>
-                {m.unit && <span class="metric__unit">{m.unit}</span>}
-              </span>
-              <span class="metric__label">{m.label[locale]}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-    )}
+    {
+      hasMetrics && (
+        <section class="case__section" data-reveal>
+          <header class="case__h">
+            <h2 class="eyebrow">{t("case.metrics")}</h2>
+            <p class="case__h-lede subtitle">{t("case.metricsLede")}</p>
+          </header>
+          <div class="case__metrics">
+            {p.metrics!.map((m, i) => (
+              <div class="case__metric" data-reveal data-reveal-delay={i * 60}>
+                <span class="metric">
+                  <span>{m.value}</span>
+                  {m.unit && <span class="metric__unit">{m.unit}</span>}
+                </span>
+                <span class="metric__label">{m.label[locale]}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )
+    }
 
     <!-- 4. Architecture -->
-    {hasArchitecture && (
-      <section class="case__section case__section--bleed" data-reveal>
-        <header class="case__h">
-          <h2 class="eyebrow">{t("case.architecture")}</h2>
-        </header>
-        <div class="case__arch">
-          <Architecture
-            nodes={p.architectureNodes!}
-            edges={p.architectureEdges ?? []}
-            clusters={p.clusters ?? []}
-            ariaLabel={`${name} — ${t("case.architecture")}`}
-          />
-        </div>
-      </section>
-    )}
+    {
+      hasArchitecture && (
+        <section class="case__section case__section--bleed" data-reveal>
+          <header class="case__h">
+            <h2 class="eyebrow">{t("case.architecture")}</h2>
+          </header>
+          <div class="case__arch">
+            <Architecture
+              nodes={p.architectureNodes!}
+              edges={p.architectureEdges ?? []}
+              clusters={p.clusters ?? []}
+              ariaLabel={`${name} — ${t("case.architecture")}`}
+            />
+          </div>
+        </section>
+      )
+    }
 
     <!-- 5. Stack matrix -->
-    {hasStackGroups ? (
-      <section class="case__section" data-reveal>
-        <header class="case__h">
-          <h2 class="eyebrow">{t("case.stack")}</h2>
-        </header>
-        <StackMatrix groups={p.stackGroups!} locale={locale} />
-      </section>
-    ) : (
-      <section class="case__section" data-reveal>
-        <header class="case__h">
-          <h2 class="eyebrow">{t("case.stack")}</h2>
-        </header>
-        <ul class="case__chips">
-          {p.stack.map((s) => <li class="case__chip">{s}</li>)}
-        </ul>
-      </section>
-    )}
+    {
+      hasStackGroups ? (
+        <section class="case__section" data-reveal>
+          <header class="case__h">
+            <h2 class="eyebrow">{t("case.stack")}</h2>
+          </header>
+          <StackMatrix groups={p.stackGroups!} locale={locale} />
+        </section>
+      ) : (
+        <section class="case__section" data-reveal>
+          <header class="case__h">
+            <h2 class="eyebrow">{t("case.stack")}</h2>
+          </header>
+          <ul class="case__chips">
+            {p.stack.map((s) => (
+              <li class="case__chip">{s}</li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
 
     <!-- 6. Capabilities -->
-    {hasCapabilities && (
-      <section class="case__section" data-reveal>
-        <header class="case__h">
-          <h2 class="eyebrow">{t("case.capabilities")}</h2>
-          <p class="case__h-lede subtitle">{t("case.capabilitiesLede")}</p>
-        </header>
-        <Capabilities items={p.capabilities!} locale={locale} />
-      </section>
-    )}
+    {
+      hasCapabilities && (
+        <section class="case__section" data-reveal>
+          <header class="case__h">
+            <h2 class="eyebrow">{t("case.capabilities")}</h2>
+            <p class="case__h-lede subtitle">{t("case.capabilitiesLede")}</p>
+          </header>
+          <Capabilities items={p.capabilities!} locale={locale} />
+        </section>
+      )
+    }
 
     <!-- 7. Engineering choices -->
-    {hasEngineering && (
-      <section class="case__section" data-reveal>
-        <header class="case__h">
-          <h2 class="eyebrow">{t("case.engineering")}</h2>
-          <p class="case__h-lede subtitle">{t("case.engineeringLede")}</p>
-        </header>
-        <EngineeringCallouts items={p.engineeringChoices!} locale={locale} />
-      </section>
-    )}
+    {
+      hasEngineering && (
+        <section class="case__section" data-reveal>
+          <header class="case__h">
+            <h2 class="eyebrow">{t("case.engineering")}</h2>
+            <p class="case__h-lede subtitle">{t("case.engineeringLede")}</p>
+          </header>
+          <EngineeringCallouts items={p.engineeringChoices!} locale={locale} />
+        </section>
+      )
+    }
 
     <!-- 8. Project timeline -->
-    {hasTimeline && (
-      <section class="case__section case__section--narrow" data-reveal>
-        <header class="case__h">
-          <h2 class="eyebrow">{t("case.timeline")}</h2>
-          <p class="case__h-lede subtitle">{t("case.timelineLede")}</p>
-        </header>
-        <CaseTimeline items={p.timeline!} locale={locale} />
-      </section>
-    )}
+    {
+      hasTimeline && (
+        <section class="case__section case__section--narrow" data-reveal>
+          <header class="case__h">
+            <h2 class="eyebrow">{t("case.timeline")}</h2>
+            <p class="case__h-lede subtitle">{t("case.timelineLede")}</p>
+          </header>
+          <CaseTimeline items={p.timeline!} locale={locale} />
+        </section>
+      )
+    }
 
     <!-- Repos (always — shows multiple repos for ecosystems) -->
-    {p.repos.length > 1 && (
-      <section class="case__section" data-reveal>
-        <header class="case__h">
-          <h2 class="eyebrow">{t("case.repos")}</h2>
-        </header>
-        <ul class="case__repos">
-          {p.repos.map((r) => {
-            const rUrl = repoUrl(r);
-            return (
-              <li class="case__repo glass glass--hover">
-                <div class="case__repo-head">
-                  <Icon name="code" size={18} />
-                  <span class="case__repo-name display">{r.name}</span>
-                  {r.role && <span class="case__repo-role">{r.role}</span>}
-                </div>
-                {r.description && (
-                  <p class="case__repo-desc body-sm">
-                    {r.description[locale] ?? r.description.ru}
-                  </p>
-                )}
-                {rUrl && (
-                  <a
-                    href={rUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="case__repo-link"
-                  >
-                    <span class="mono">{rUrl.replace(/^https?:\/\//, "")}</span>
-                    <Icon name="external" size={14} />
-                  </a>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-    )}
+    {
+      p.repos.length > 1 && (
+        <section class="case__section" data-reveal>
+          <header class="case__h">
+            <h2 class="eyebrow">{t("case.repos")}</h2>
+          </header>
+          <ul class="case__repos">
+            {p.repos.map((r) => {
+              const rUrl = repoUrl(r);
+              return (
+                <li class="case__repo glass glass--hover">
+                  <div class="case__repo-head">
+                    <Icon name="code" size={18} />
+                    <span class="case__repo-name display">{r.name}</span>
+                    {r.role && <span class="case__repo-role">{r.role}</span>}
+                  </div>
+                  {r.description && (
+                    <p class="case__repo-desc body-sm">
+                      {r.description[locale] ?? r.description.ru}
+                    </p>
+                  )}
+                  {rUrl && (
+                    <a
+                      href={rUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="case__repo-link"
+                    >
+                      <span class="mono">{rUrl.replace(/^https?:\/\//, "")}</span>
+                      <Icon name="external" size={14} />
+                    </a>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )
+    }
 
-    {hasLinks && (
-      <section class="case__section case__section--narrow" data-reveal>
-        <header class="case__h">
-          <h2 class="eyebrow">{t("case.links")}</h2>
-        </header>
-        <ul class="case__links">
-          {p.links?.domain && (
-            <li>
-              <a href={p.links.domain} target="_blank" rel="noopener noreferrer" class="case__link">
-                <Icon name="globe" size={16} />
-                <span class="mono">{p.links.domain}</span>
-              </a>
-            </li>
-          )}
-          {p.links?.docs && (
-            <li>
-              <a href={p.links.docs} target="_blank" rel="noopener noreferrer" class="case__link">
-                <Icon name="code" size={16} />
-                <span class="mono">{p.links.docs}</span>
-              </a>
-            </li>
-          )}
-          {p.links?.telegram && (
-            <li>
-              <a href={p.links.telegram} target="_blank" rel="noopener noreferrer" class="case__link">
-                <Icon name="telegram" size={16} />
-                <span class="mono">{p.links.telegram}</span>
-              </a>
-            </li>
-          )}
-        </ul>
-      </section>
-    )}
+    {
+      hasLinks && (
+        <section class="case__section case__section--narrow" data-reveal>
+          <header class="case__h">
+            <h2 class="eyebrow">{t("case.links")}</h2>
+          </header>
+          <ul class="case__links">
+            {p.links?.domain && (
+              <li>
+                <a
+                  href={p.links.domain}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="case__link"
+                >
+                  <Icon name="globe" size={16} />
+                  <span class="mono">{p.links.domain}</span>
+                </a>
+              </li>
+            )}
+            {p.links?.docs && (
+              <li>
+                <a href={p.links.docs} target="_blank" rel="noopener noreferrer" class="case__link">
+                  <Icon name="code" size={16} />
+                  <span class="mono">{p.links.docs}</span>
+                </a>
+              </li>
+            )}
+            {p.links?.telegram && (
+              <li>
+                <a
+                  href={p.links.telegram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="case__link"
+                >
+                  <Icon name="telegram" size={16} />
+                  <span class="mono">{p.links.telegram}</span>
+                </a>
+              </li>
+            )}
+          </ul>
+        </section>
+      )
+    }
 
     <!-- 9. Cross-links to other projects -->
     <section class="case__section" data-reveal>
@@ -298,7 +375,7 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
     pointer-events: none;
     background: radial-gradient(
       ellipse 80vw 50vh at 30% 0%,
-      rgba(255, 255, 255, 0.04) 0%,
+      color-mix(in srgb, var(--project-accent) 16%, transparent) 0%,
       transparent 60%
     );
   }
@@ -306,9 +383,17 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
   .case__hero-inner {
     position: relative;
     z-index: 2;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--sp-8);
+    align-items: center;
+  }
+
+  .case__hero-copy {
     display: flex;
     flex-direction: column;
     gap: var(--sp-3);
+    min-width: 0;
   }
 
   .case__back {
@@ -356,10 +441,18 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
     border: var(--bw-thin) solid var(--border);
   }
 
-  .case__status--active { color: var(--state-ok); }
-  .case__status--wip { color: var(--state-warn); }
-  .case__status--beta { color: var(--state-info); }
-  .case__status--archived { color: var(--text-muted); }
+  .case__status--active {
+    color: var(--state-ok);
+  }
+  .case__status--wip {
+    color: var(--state-warn);
+  }
+  .case__status--beta {
+    color: var(--state-info);
+  }
+  .case__status--archived {
+    color: var(--text-muted);
+  }
 
   .case__brand {
     font-size: clamp(64px, 14vw, 180px);
@@ -411,6 +504,37 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
     flex-wrap: wrap;
     gap: var(--sp-3);
     margin-block-start: var(--sp-5);
+  }
+
+  .case__hero-visual {
+    position: relative;
+    margin: 0;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--r-xl);
+    overflow: hidden;
+    box-shadow:
+      var(--shadow-4),
+      0 0 120px color-mix(in srgb, var(--project-accent) 14%, transparent);
+  }
+
+  .case__hero-visual::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.12),
+      transparent 30%,
+      color-mix(in srgb, var(--project-accent) 12%, transparent) 100%
+    );
+    mix-blend-mode: screen;
+  }
+
+  .case__hero-cover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   .case__body {
@@ -560,6 +684,12 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
   @media (min-width: 720px) {
     .case__repos {
       grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 980px) {
+    .case__hero-inner {
+      grid-template-columns: minmax(0, 0.95fr) minmax(420px, 0.8fr);
     }
   }
 </style>

@@ -1,0 +1,315 @@
+{
+  "id": "dotagents",
+  "slug": "dotagents",
+  "name": {
+    "ru": "DotAgents",
+    "en": "DotAgents"
+  },
+  "brand": {
+    "ru": ".агенты",
+    "en": ".agents"
+  },
+  "tagline": {
+    "ru": "Telegram-мост для AI coding agents.",
+    "en": "Telegram bridge for AI coding agents."
+  },
+  "description": {
+    "ru": "Локальный security-first daemon рядом с Cursor IDE, Claude Code CLI, Antigravity и cursor-agent. Он зеркалит агентские сессии в Telegram: live-статус, approve/deny для shell и MCP вызовов, follow-up команды, transcript tail и запуск новых CLI-сессий с телефона.",
+    "en": "A local security-first daemon next to Cursor IDE, Claude Code CLI, Antigravity, and cursor-agent. It mirrors agent sessions into Telegram: live status, approve/deny for shell and MCP calls, follow-up commands, transcript tail, and spawning new CLI sessions from a phone."
+  },
+  "stack": [
+    "Python 3.12",
+    "aiogram 3.27",
+    "FastAPI 0.111",
+    "SQLite",
+    "SQLAlchemy 2",
+    "Alembic",
+    "Typer",
+    "Rich",
+    "argon2id",
+    "HMAC nonce",
+    "Telegram Mini App",
+    "pytest"
+  ],
+  "category": "tool",
+  "status": "beta",
+  "year": 2026,
+  "repos": [
+    {
+      "name": "DotAgents",
+      "role": "daemon-cli"
+    }
+  ],
+  "cover": "/projects/dotagents/cover.svg",
+  "accent": "#a78bfa",
+  "highlights": [
+    {
+      "value": "179",
+      "label": {
+        "ru": "тестов",
+        "en": "tests"
+      }
+    },
+    {
+      "value": "4",
+      "label": {
+        "ru": "агента",
+        "en": "agents"
+      }
+    },
+    {
+      "value": "HMAC",
+      "label": {
+        "ru": "callback security",
+        "en": "callback security"
+      }
+    }
+  ],
+  "overview": {
+    "ru": [
+      "DotAgents — локальный мост между AI coding agents и Telegram. Daemon живёт рядом с рабочими инструментами, принимает hooks от Cursor, Claude Code и Antigravity, держит loopback-only FastAPI API и отправляет в Telegram сжатый live-статус по каждой сессии.",
+      "Главный принцип — всё остаётся на машине разработчика. Telegram используется как канал управления: approve/deny для рискованных shell/MCP вызовов, follow-up через `/say`, просмотр transcript tail и dashboard активных раннеров.",
+      "Stage 2 добавляет запуск новых агентских сессий с телефона: выбор workspace, выбор CLI (`claude-code` или `cursor-agent`), первый prompt и потоковый вывод обратно в live message."
+    ],
+    "en": [
+      "DotAgents is a local bridge between AI coding agents and Telegram. The daemon sits next to the developer tools, receives hooks from Cursor, Claude Code, and Antigravity, exposes a loopback-only FastAPI API, and sends a compact live status for every session to Telegram.",
+      "The core principle is that everything stays on the developer machine. Telegram is only the control channel: approve/deny for risky shell/MCP calls, follow-ups through `/say`, transcript tail, and a dashboard for active runners.",
+      "Stage 2 adds spawning new agent sessions from a phone: pick workspace, pick CLI (`claude-code` or `cursor-agent`), send the first prompt, and stream output back into the live message."
+    ]
+  },
+  "metrics": [
+    {
+      "value": "179",
+      "label": {
+        "ru": "test-функций",
+        "en": "test functions"
+      }
+    },
+    {
+      "value": "4",
+      "label": {
+        "ru": "поддерживаемых агента",
+        "en": "supported agents"
+      }
+    },
+    {
+      "value": "127.0.0.1",
+      "label": {
+        "ru": "loopback API",
+        "en": "loopback API"
+      }
+    },
+    {
+      "value": "5",
+      "label": {
+        "ru": "миграций",
+        "en": "migrations"
+      }
+    }
+  ],
+  "stackGroups": {
+    "language": ["Python 3.12"],
+    "framework": ["aiogram 3.27", "FastAPI 0.111", "Typer", "Rich"],
+    "data": ["SQLite", "SQLAlchemy 2", "Alembic"],
+    "infra": ["CLI hooks", "loopback API", "auto-migrations"],
+    "client": ["Telegram Bot API", "Telegram Mini App"],
+    "ml": ["Claude Code CLI", "cursor-agent", "Cursor IDE", "Antigravity"]
+  },
+  "architectureNodes": [
+    {
+      "id": "telegram",
+      "x": 120,
+      "y": 255,
+      "label": "Telegram",
+      "icon": "telegram",
+      "width": 150
+    },
+    {
+      "id": "bot",
+      "x": 360,
+      "y": 150,
+      "label": "aiogram bot",
+      "icon": "telegram",
+      "width": 160
+    },
+    {
+      "id": "api",
+      "x": 360,
+      "y": 360,
+      "label": "FastAPI 127.0.0.1",
+      "icon": "globe",
+      "emphasis": "strong",
+      "width": 190
+    },
+    {
+      "id": "db",
+      "x": 610,
+      "y": 360,
+      "label": "SQLite",
+      "icon": "dot",
+      "width": 140
+    },
+    {
+      "id": "runner",
+      "x": 610,
+      "y": 150,
+      "label": "AgentRunner",
+      "icon": "rocket",
+      "width": 160
+    },
+    {
+      "id": "hooks",
+      "x": 830,
+      "y": 360,
+      "label": "IDE hooks",
+      "icon": "code",
+      "width": 150
+    },
+    {
+      "id": "cli",
+      "x": 830,
+      "y": 150,
+      "label": "agent CLI",
+      "icon": "spark",
+      "width": 150
+    }
+  ],
+  "architectureEdges": [
+    {
+      "from": "telegram",
+      "to": "bot",
+      "kind": "sync",
+      "label": "polling"
+    },
+    {
+      "from": "bot",
+      "to": "api",
+      "kind": "sync",
+      "label": "commands"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "kind": "data"
+    },
+    {
+      "from": "hooks",
+      "to": "api",
+      "kind": "sync",
+      "label": "events"
+    },
+    {
+      "from": "api",
+      "to": "runner",
+      "kind": "async",
+      "label": "spawn"
+    },
+    {
+      "from": "runner",
+      "to": "cli",
+      "kind": "async",
+      "label": "stream"
+    }
+  ],
+  "clusters": [
+    {
+      "x": 245,
+      "y": 80,
+      "width": 470,
+      "height": 360,
+      "label": "local daemon"
+    }
+  ],
+  "capabilities": [
+    {
+      "icon": "telegram",
+      "title": {
+        "ru": "Live control в Telegram",
+        "en": "Live control in Telegram"
+      },
+      "description": {
+        "ru": "Один редактируемый статус на активную сессию: последний tool, изменённые файлы, ответ агента и быстрые действия.",
+        "en": "One edited live status per active session: latest tool, changed files, last response, and quick actions."
+      }
+    },
+    {
+      "icon": "spark",
+      "title": {
+        "ru": "Approve / deny",
+        "en": "Approve / deny"
+      },
+      "description": {
+        "ru": "Shell и MCP вызовы блокируются до решения владельца, а timeout fail-closed уходит в deny.",
+        "en": "Shell and MCP calls block until the owner decides, and timeout fails closed to deny."
+      }
+    },
+    {
+      "icon": "rocket",
+      "title": {
+        "ru": "Spawn с телефона",
+        "en": "Spawn from phone"
+      },
+      "description": {
+        "ru": "Workspace registry, выбор CLI и запуск новой агентской сессии прямо из Telegram.",
+        "en": "Workspace registry, CLI picker, and starting a new agent session directly from Telegram."
+      }
+    },
+    {
+      "icon": "stack",
+      "title": {
+        "ru": "Security-first",
+        "en": "Security-first"
+      },
+      "description": {
+        "ru": "Passcode auth, owner whitelist, argon2id, HMAC+nonce callbacks, audit log и loopback-only API.",
+        "en": "Passcode auth, owner whitelist, argon2id, HMAC+nonce callbacks, audit log, and loopback-only API."
+      }
+    }
+  ],
+  "engineeringChoices": [
+    {
+      "question": {
+        "ru": "Почему локальный daemon, а не облачный relay?",
+        "en": "Why a local daemon instead of a cloud relay?"
+      },
+      "answer": {
+        "ru": "Код, shell approvals и transcript остаются на машине разработчика. Telegram получает только управляемый канал событий, а API слушает 127.0.0.1.",
+        "en": "Code, shell approvals, and transcript stay on the developer machine. Telegram only receives a controlled event channel, while the API listens on 127.0.0.1."
+      }
+    },
+    {
+      "question": {
+        "ru": "Почему отдельный AgentRunner?",
+        "en": "Why a separate AgentRunner?"
+      },
+      "answer": {
+        "ru": "Запуск CLI — отдельный жизненный цикл: env sanitising, stop button, stream-json output и разные адаптеры под Claude Code / cursor-agent.",
+        "en": "CLI spawning is a separate lifecycle: env sanitising, stop button, stream-json output, and adapters for Claude Code / cursor-agent."
+      }
+    }
+  ],
+  "timeline": [
+    {
+      "date": "2026",
+      "title": {
+        "ru": "Stage 1: safety bridge",
+        "en": "Stage 1: safety bridge"
+      },
+      "description": {
+        "ru": "Hooks, live status, approvals, modes, auth и audit log.",
+        "en": "Hooks, live status, approvals, modes, auth, and audit log."
+      }
+    },
+    {
+      "date": "2026",
+      "title": {
+        "ru": "Stage 2: Telegram IDE UX",
+        "en": "Stage 2: Telegram IDE UX"
+      },
+      "description": {
+        "ru": "Workspace registry, `/new`, dashboard, Mini App и streaming runner.",
+        "en": "Workspace registry, `/new`, dashboard, Mini App, and streaming runner."
+      }
+    }
+  ]
+}

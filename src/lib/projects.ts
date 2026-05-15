@@ -43,6 +43,12 @@ export interface ProjectMetric {
   label: { ru: string; en: string };
 }
 
+/** Compact proof points rendered on project cards. */
+export interface ProjectHighlight {
+  value: string;
+  label: { ru: string; en: string };
+}
+
 export type ProjectStackGroupKey = "language" | "framework" | "data" | "infra" | "client" | "ml";
 export type ProjectStackGroups = Partial<Record<ProjectStackGroupKey, ReadonlyArray<string>>>;
 
@@ -118,6 +124,10 @@ export interface Project {
   links?: ProjectLinks;
   /** Путь к обложке, относительный (`/projects/<slug>/cover.webp`) или абсолютный URL. */
   cover?: string;
+  /** Project accent color used for card borders, media glow, and hero treatment. */
+  accent?: string;
+  /** Short measurable proof points for the project card. */
+  highlights?: ReadonlyArray<ProjectHighlight>;
   /** Если true — проект показывается в TODO разделе как «скоро». */
   comingSoon?: boolean;
 
@@ -133,10 +143,9 @@ export interface Project {
   timeline?: ReadonlyArray<ProjectTimelineEntry>;
 }
 
-const modules = import.meta.glob<{ default: Project }>(
-  "../content/projects/*.json",
-  { eager: true },
-);
+const modules = import.meta.glob<{ default: Project }>("../content/projects/*.json", {
+  eager: true,
+});
 
 /** Все проекты, отсортированные по `year` (новые сверху), затем по `slug`. */
 export const projects: ReadonlyArray<Project> = Object.values(modules)

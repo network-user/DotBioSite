@@ -65,7 +65,31 @@
       }
     }
   ],
-  "cover": "/projects/dotsound/cover.webp",
+  "cover": "/projects/dotsound/cover.svg",
+  "accent": "#67e8f9",
+  "highlights": [
+    {
+      "value": "4",
+      "label": {
+        "ru": "репозитория",
+        "en": "repositories"
+      }
+    },
+    {
+      "value": "HLS",
+      "label": {
+        "ru": "стриминг",
+        "en": "streaming"
+      }
+    },
+    {
+      "value": "ASR",
+      "label": {
+        "ru": "lyrics pipeline",
+        "en": "lyrics pipeline"
+      }
+    }
+  ],
   "overview": {
     "ru": [
       "DotSound — экосистема из четырёх репозиториев, склеенных вокруг одного бэкенда. Bot и Mini App — тонкие клиенты, ядро держит API, БД, поиск и хранилище. Все вычисления — ASR, разделение источников — выведены в отдельный воркер, который сам забирает задачи через HMAC.",
@@ -120,7 +144,15 @@
   "architectureNodes": [
     { "id": "bot", "x": 140, "y": 150, "label": "Telegram Bot", "icon": "telegram" },
     { "id": "miniapp", "x": 140, "y": 380, "label": "Mini App", "icon": "code" },
-    { "id": "backend", "x": 480, "y": 265, "label": "Backend Hub", "icon": "stack", "emphasis": "strong", "width": 180 },
+    {
+      "id": "backend",
+      "x": 480,
+      "y": 265,
+      "label": "Backend Hub",
+      "icon": "stack",
+      "emphasis": "strong",
+      "width": 180
+    },
     { "id": "pg", "x": 770, "y": 140, "label": "PostgreSQL 16", "icon": "dot", "width": 160 },
     { "id": "es", "x": 770, "y": 265, "label": "Elasticsearch 8", "icon": "dot", "width": 160 },
     { "id": "minio", "x": 770, "y": 390, "label": "MinIO", "icon": "dot", "width": 160 },
@@ -134,9 +166,7 @@
     { "from": "backend", "to": "minio", "kind": "data" },
     { "from": "worker", "to": "backend", "kind": "async", "label": "HMAC pull" }
   ],
-  "clusters": [
-    { "x": 670, "y": 80, "width": 220, "height": 360, "label": "Data plane" }
-  ],
+  "clusters": [{ "x": 670, "y": 80, "width": 220, "height": 360, "label": "Data plane" }],
   "capabilities": [
     {
       "icon": "telegram",

@@ -9,7 +9,6 @@ import {
   repoUrl,
 } from "../lib/projects";
 import Icon from "./Icon/Icon.astro";
-import ArchTeaser from "./illustration/ArchTeaser.astro";
 
 interface Props {
   project: Project;
@@ -28,21 +27,8 @@ const tagline = projectTagline(p, locale);
 const desc = projectDescription(p, locale);
 const caseHref = `${prefix}/projects/${p.slug}`;
 const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
-
-const isDotSound = p.slug === "dotsound";
-const teaserNodes = isDotSound
-  ? [
-      { id: "client", label: locale === "ru" ? "клиент" : "client" },
-      { id: "backend", label: locale === "ru" ? "ядро" : "core" },
-      { id: "worker", label: locale === "ru" ? "воркер" : "worker" },
-    ]
-  : [];
-const teaserEdges = isDotSound
-  ? [
-      { from: "client", to: "backend" },
-      { from: "backend", to: "worker" },
-    ]
-  : [];
+const accent = p.accent ?? "var(--accent)";
+const highlights = p.highlights?.slice(0, 3) ?? [];
 ---
 
 <article
@@ -51,6 +37,7 @@ const teaserEdges = isDotSound
   data-reveal-delay={index * 80}
   data-spotlight
   aria-labelledby={`project-${p.slug}-title`}
+  style={`--project-accent: ${accent};`}
 >
   <header class="project-card__head">
     <div class="project-card__eyebrow">
@@ -76,22 +63,46 @@ const teaserEdges = isDotSound
 
   <p class="project-card__desc body">{desc}</p>
 
+  {
+    p.cover && (
+      <a href={caseHref} class="project-card__media" aria-label={t("projects.viewProject")}>
+        <img
+          src={p.cover}
+          alt=""
+          class="project-card__cover"
+          loading="lazy"
+          decoding="async"
+          width="1600"
+          height="900"
+        />
+        <span class="project-card__media-glow" aria-hidden="true" />
+      </a>
+    )
+  }
+
+  {
+    highlights.length > 0 && (
+      <dl class="project-card__highlights" aria-label={t("projects.highlights")}>
+        {highlights.map((h) => (
+          <div class="project-card__highlight">
+            <dt>{h.label[locale]}</dt>
+            <dd>{h.value}</dd>
+          </div>
+        ))}
+      </dl>
+    )
+  }
+
   <ul class="project-card__stack" aria-label={t("projects.stack")}>
-    {p.stack.slice(0, 6).map((s) => (
-      <li class="project-card__chip">{s}</li>
-    ))}
-    {p.stack.length > 6 && (
-      <li class="project-card__chip project-card__chip--more">
-        +{p.stack.length - 6}
-      </li>
-    )}
+    {p.stack.slice(0, 6).map((s) => <li class="project-card__chip">{s}</li>)}
+    {
+      p.stack.length > 6 && (
+        <li class="project-card__chip project-card__chip--more">+{p.stack.length - 6}</li>
+      )
+    }
   </ul>
 
-  {isDotSound ? (
-    <div class="project-card__teaser" aria-hidden="true">
-      <ArchTeaser nodes={teaserNodes} edges={teaserEdges} />
-    </div>
-  ) : (
+  {
     p.repos.length > 1 && (
       <ul class="project-card__repos" aria-label={t("projects.repos")}>
         {p.repos.map((r) => (
@@ -103,35 +114,39 @@ const teaserEdges = isDotSound
         ))}
       </ul>
     )
-  )}
+  }
 
   <footer class="project-card__actions">
     <a href={caseHref} class="project-card__cta cta cta--primary magnetic">
       <span>{t("projects.viewProject")}</span>
       <Icon name="arrow-right" size={16} />
     </a>
-    {primaryRepoUrl && (
-      <a
-        href={primaryRepoUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        class="project-card__cta cta cta--ghost"
-      >
-        <Icon name="github" size={16} />
-        <span>{t("projects.viewSource")}</span>
-      </a>
-    )}
-    {p.links?.domain && (
-      <a
-        href={p.links.domain}
-        target="_blank"
-        rel="noopener noreferrer"
-        class="project-card__cta cta cta--ghost"
-      >
-        <Icon name="globe" size={16} />
-        <span>{t("projects.openSite")}</span>
-      </a>
-    )}
+    {
+      primaryRepoUrl && (
+        <a
+          href={primaryRepoUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="project-card__cta cta cta--ghost"
+        >
+          <Icon name="github" size={16} />
+          <span>{t("projects.viewSource")}</span>
+        </a>
+      )
+    }
+    {
+      p.links?.domain && (
+        <a
+          href={p.links.domain}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="project-card__cta cta cta--ghost"
+        >
+          <Icon name="globe" size={16} />
+          <span>{t("projects.openSite")}</span>
+        </a>
+      )
+    }
   </footer>
 </article>
 
@@ -151,6 +166,10 @@ const teaserEdges = isDotSound
 
   .project-card:hover {
     transform: translateY(-2px) scale(1.005);
+    border-color: color-mix(in srgb, var(--project-accent) 35%, var(--border-hover));
+    box-shadow:
+      var(--shadow-3),
+      0 0 80px color-mix(in srgb, var(--project-accent) 12%, transparent);
   }
 
   .project-card__head {
@@ -220,6 +239,85 @@ const teaserEdges = isDotSound
     line-height: var(--lh-normal);
   }
 
+  .project-card__media {
+    position: relative;
+    display: block;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    border: var(--bw-thin) solid color-mix(in srgb, var(--project-accent) 28%, var(--border));
+    background: var(--bg-elevated);
+    isolation: isolate;
+  }
+
+  .project-card__media:hover {
+    opacity: 1;
+  }
+
+  .project-card__cover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(1.01);
+    transition: transform var(--dur-slow) var(--ease-soft);
+  }
+
+  .project-card:hover .project-card__cover {
+    transform: scale(1.035);
+  }
+
+  .project-card__media-glow {
+    position: absolute;
+    inset: auto 0 0;
+    height: 44%;
+    pointer-events: none;
+    background: linear-gradient(
+      to top,
+      color-mix(in srgb, var(--project-accent) 22%, transparent),
+      transparent
+    );
+    opacity: 0.8;
+    z-index: 1;
+  }
+
+  .project-card__highlights {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--sp-2);
+  }
+
+  .project-card__highlight {
+    min-width: 0;
+    padding: var(--sp-3);
+    border-radius: var(--r-md);
+    border: var(--bw-thin) solid var(--border);
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--project-accent) 10%, transparent),
+        transparent
+      ),
+      var(--surface);
+  }
+
+  .project-card__highlight dt {
+    color: var(--text-muted);
+    font-size: var(--fs-11);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+    line-height: var(--lh-snug);
+  }
+
+  .project-card__highlight dd {
+    color: var(--text);
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-bold);
+    font-size: var(--fs-20);
+    line-height: var(--lh-tight);
+    margin-block-start: var(--sp-1);
+    overflow-wrap: anywhere;
+  }
+
   .project-card__stack {
     display: flex;
     flex-wrap: wrap;
@@ -239,10 +337,6 @@ const teaserEdges = isDotSound
 
   .project-card__chip--more {
     color: var(--text-secondary);
-  }
-
-  .project-card__teaser {
-    padding-block: var(--sp-2);
   }
 
   .project-card__repos {

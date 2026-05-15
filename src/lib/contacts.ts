@@ -46,11 +46,58 @@ export const emailDecoderScript = /* js */ `
       return str.split('').reverse().join('');
     } catch (e) { return ''; }
   }
+
+  function buildMailto(addr, btn) {
+    var params = new URLSearchParams();
+    var subject = btn.getAttribute('data-subject') || '';
+    var body = btn.getAttribute('data-body') || '';
+    if (subject) params.set('subject', subject);
+    if (body) params.set('body', body);
+    var qs = params.toString();
+    return 'mailto:' + addr + (qs ? '?' + qs : '');
+  }
+
+  function setCopied(btn) {
+    var label = btn.querySelector('[data-contact-label]');
+    if (!label) return;
+    if (!btn.dataset.defaultLabel) btn.dataset.defaultLabel = label.textContent || '';
+    label.textContent = btn.getAttribute('data-copied-label') || btn.dataset.defaultLabel;
+    btn.classList.add('is-copied');
+    window.setTimeout(function () {
+      label.textContent = btn.dataset.defaultLabel || label.textContent;
+      btn.classList.remove('is-copied');
+    }, 1800);
+  }
+
+  function copyText(text, done) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(function () {});
+      return;
+    }
+    var textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      done();
+    } catch (e) {}
+    document.body.removeChild(textarea);
+  }
+
   document.querySelectorAll('.contact-email[data-e]').forEach(function (btn) {
     btn.addEventListener('click', function (e) {
       e.preventDefault();
       var addr = decode(btn.getAttribute('data-e') || '');
-      if (addr) window.location.href = 'mailto:' + addr;
+      if (!addr) return;
+      if (btn.getAttribute('data-mode') === 'copy') {
+        copyText(addr, function () { setCopied(btn); });
+      } else {
+        window.location.href = buildMailto(addr, btn);
+      }
     });
   });
 })();

@@ -36,7 +36,31 @@
       "role": "telegram-bot"
     }
   ],
-  "cover": "/projects/dotmathbot/cover.webp",
+  "cover": "/projects/dotmathbot/cover.svg",
+  "accent": "#fbbf24",
+  "highlights": [
+    {
+      "value": "3",
+      "label": {
+        "ru": "уровня",
+        "en": "levels"
+      }
+    },
+    {
+      "value": "4",
+      "label": {
+        "ru": "режима",
+        "en": "modes"
+      }
+    },
+    {
+      "value": "RU/EN",
+      "label": {
+        "ru": "локализация",
+        "en": "localization"
+      }
+    }
+  ],
   "overview": {
     "ru": [
       "DotMathBot — небольшой standalone-бот без бэкенда и фронтенда. Один процесс, aiogram 3.15, SQLAlchemy 2 поверх aiosqlite или Redis. Тренирует таблицу умножения и деления в трёх уровнях × четырёх режимах.",
@@ -89,8 +113,23 @@
   },
   "architectureNodes": [
     { "id": "tg", "x": 170, "y": 250, "label": "Telegram API", "icon": "telegram", "width": 160 },
-    { "id": "bot", "x": 480, "y": 250, "label": "DotMathBot", "icon": "stack", "emphasis": "strong", "width": 180 },
-    { "id": "scheduler", "x": 480, "y": 440, "label": "APScheduler", "icon": "spark", "width": 160 },
+    {
+      "id": "bot",
+      "x": 480,
+      "y": 250,
+      "label": "DotMathBot",
+      "icon": "stack",
+      "emphasis": "strong",
+      "width": 180
+    },
+    {
+      "id": "scheduler",
+      "x": 480,
+      "y": 440,
+      "label": "APScheduler",
+      "icon": "spark",
+      "width": 160
+    },
     { "id": "sqlite", "x": 770, "y": 180, "label": "aiosqlite", "icon": "dot", "width": 160 },
     { "id": "redis", "x": 770, "y": 320, "label": "Redis", "icon": "dot", "width": 160 }
   ],
@@ -100,9 +139,7 @@
     { "from": "bot", "to": "redis", "kind": "data" },
     { "from": "scheduler", "to": "bot", "kind": "async", "label": "tick" }
   ],
-  "clusters": [
-    { "x": 670, "y": 110, "width": 220, "height": 270, "label": "Storage" }
-  ],
+  "clusters": [{ "x": 670, "y": 110, "width": 220, "height": 270, "label": "Storage" }],
   "capabilities": [
     {
       "icon": "spark",

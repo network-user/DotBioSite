@@ -10,6 +10,29 @@ interface Props {
 }
 const { locale } = Astro.props;
 const t = useTranslations(locale);
+
+const briefOptions = hasEmail
+  ? [
+      {
+        id: "project",
+        icon: "rocket" as const,
+        label: t("contact.briefProject"),
+        subject: t("contact.subjectProject"),
+      },
+      {
+        id: "hire",
+        icon: "user" as const,
+        label: t("contact.briefHire"),
+        subject: t("contact.subjectHire"),
+      },
+      {
+        id: "question",
+        icon: "spark" as const,
+        label: t("contact.briefQuestion"),
+        subject: t("contact.subjectQuestion"),
+      },
+    ]
+  : [];
 ---
 
 <section class="section contact" id="contact" aria-labelledby="contact-title">
@@ -22,42 +45,96 @@ const t = useTranslations(locale);
       align="center"
     />
 
-    <div class="contact__channels">
-      {hasEmail ? (
-        <button
-          type="button"
-          class="contact__channel contact__channel--email contact-email glass glass--hover"
-          data-e={emailB64}
-          aria-label={t("contact.email")}
-          data-reveal
-        >
-          <Icon name="mail" size={22} />
-          <span class="contact__channel-label">{t("contact.email")}</span>
-          <Icon name="arrow-right" size={16} />
-          <span class="contact__channel-ring" aria-hidden="true"></span>
-        </button>
-      ) : (
-        <span class="contact__channel contact__channel--disabled glass" aria-disabled="true">
-          <Icon name="mail" size={22} />
-          <span class="contact__channel-label">{t("contact.emailUnavailable")}</span>
-        </span>
-      )}
+    {
+      briefOptions.length > 0 && (
+        <div class="contact__brief glass glass--bordered" data-reveal>
+          <div class="contact__brief-copy">
+            <p class="caption">{t("contact.briefTitle")}</p>
+            <p class="contact__brief-lede body-sm">{t("contact.briefLede")}</p>
+          </div>
+          <div class="contact__brief-actions" aria-label={t("contact.briefTitle")}>
+            {briefOptions.map((option, i) => (
+              <button
+                type="button"
+                class={`contact__brief-action contact__brief-action--${option.id} contact-email`}
+                data-e={emailB64}
+                data-subject={option.subject}
+                data-body={t("contact.emailBody")}
+                data-reveal
+                data-reveal-delay={i * 60}
+              >
+                <Icon name={option.icon} size={18} />
+                <span>{option.label}</span>
+                <Icon name="arrow-right" size={15} />
+              </button>
+            ))}
+          </div>
+        </div>
+      )
+    }
 
-      {socials.map((s, i) => (
-        <a
-          href={s.url}
-          target="_blank"
-          rel="noopener noreferrer me"
-          class="contact__channel glass glass--hover"
-          aria-label={t(`contact.${s.id}`)}
-          data-reveal
-          data-reveal-delay={(i + 1) * 80}
-        >
-          <Icon name={s.id} size={22} />
-          <span class="contact__channel-label">{t(`contact.${s.id}`)}</span>
-          <Icon name="external" size={16} />
-        </a>
-      ))}
+    <div class="contact__channels">
+      {
+        hasEmail ? (
+          <>
+            <button
+              type="button"
+              class="contact__channel contact__channel--email contact-email glass glass--hover"
+              data-e={emailB64}
+              data-subject={t("contact.subjectGeneral")}
+              data-body={t("contact.emailBody")}
+              aria-label={t("contact.email")}
+              data-reveal
+            >
+              <Icon name="mail" size={22} />
+              <span class="contact__channel-label" data-contact-label>
+                {t("contact.email")}
+              </span>
+              <Icon name="arrow-right" size={16} />
+              <span class="contact__channel-ring" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              class="contact__channel contact__channel--copy contact-email glass glass--hover"
+              data-e={emailB64}
+              data-mode="copy"
+              data-copied-label={t("contact.copied")}
+              aria-label={t("contact.copyEmail")}
+              data-reveal
+              data-reveal-delay="80"
+            >
+              <Icon name="copy" size={22} />
+              <span class="contact__channel-label" data-contact-label>
+                {t("contact.copyEmail")}
+              </span>
+              <Icon name="check" size={16} class="contact__copy-check" />
+            </button>
+          </>
+        ) : (
+          <span class="contact__channel contact__channel--disabled glass" aria-disabled="true">
+            <Icon name="mail" size={22} />
+            <span class="contact__channel-label">{t("contact.emailUnavailable")}</span>
+          </span>
+        )
+      }
+
+      {
+        socials.map((s, i) => (
+          <a
+            href={s.url}
+            target="_blank"
+            rel="noopener noreferrer me"
+            class="contact__channel glass glass--hover"
+            aria-label={t(`contact.${s.id}`)}
+            data-reveal
+            data-reveal-delay={(i + 1) * 80}
+          >
+            <Icon name={s.id} size={22} />
+            <span class="contact__channel-label">{t(`contact.${s.id}`)}</span>
+            <Icon name="external" size={16} />
+          </a>
+        ))
+      }
     </div>
   </div>
 </section>
@@ -65,6 +142,60 @@ const t = useTranslations(locale);
 {hasEmail && <script is:inline set:html={emailDecoderScript} />}
 
 <style>
+  .contact__brief {
+    max-width: 900px;
+    margin-inline: auto;
+    margin-block-end: var(--sp-5);
+    padding: var(--sp-5);
+    border-radius: var(--r-xl);
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--sp-4);
+  }
+
+  .contact__brief-copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+
+  .contact__brief-lede {
+    color: var(--text-secondary);
+    max-width: 56ch;
+  }
+
+  .contact__brief-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--sp-2);
+  }
+
+  .contact__brief-action {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--sp-3);
+    min-height: var(--tap-min);
+    padding: var(--sp-3) var(--sp-4);
+    border-radius: var(--r-md);
+    border: var(--bw-thin) solid var(--border);
+    color: var(--text-secondary);
+    background: var(--surface);
+    text-align: left;
+    transition:
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-soft);
+  }
+
+  .contact__brief-action:hover {
+    color: var(--text);
+    border-color: var(--border-hover);
+    background: var(--surface-2);
+    transform: translateY(-1px);
+  }
+
   .contact__channels {
     display: grid;
     grid-template-columns: 1fr;
@@ -98,6 +229,25 @@ const t = useTranslations(locale);
        so it occupies a full row on its own. */
     grid-column: 1 / -1;
     overflow: hidden;
+  }
+
+  .contact__channel--copy.is-copied {
+    color: var(--state-ok);
+    border-color: color-mix(in srgb, var(--state-ok) 42%, var(--border-hover));
+  }
+
+  .contact__copy-check {
+    color: var(--state-ok);
+    opacity: 0;
+    transform: scale(0.8);
+    transition:
+      opacity var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-spring);
+  }
+
+  .contact__channel--copy.is-copied .contact__copy-check {
+    opacity: 1;
+    transform: scale(1);
   }
 
   /**
@@ -147,6 +297,25 @@ const t = useTranslations(locale);
   }
 
   @media (min-width: 720px) {
+    .contact__brief {
+      grid-template-columns: minmax(0, 0.8fr) minmax(360px, 1fr);
+      align-items: center;
+    }
+
+    .contact__brief-actions {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .contact__brief-action {
+      grid-template-columns: 1fr auto;
+      align-content: space-between;
+      min-height: 112px;
+    }
+
+    .contact__brief-action > svg:first-child {
+      grid-column: 1 / -1;
+    }
+
     .contact__channels {
       grid-template-columns: repeat(2, 1fr);
     }
