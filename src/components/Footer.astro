@@ -29,20 +29,19 @@ const brand = authorName(locale);
       </div>
 
       <div class="footer__meta">
-        {repoUrl && (
-          <>
-            <a
-              href={repoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="footer__link"
-            >
-              <Icon name="github" size={14} />
-              <span>{t("footer.sourceCode")}</span>
-            </a>
-            <span class="footer__sep" aria-hidden="true">·</span>
-          </>
-        )}
+        {
+          repoUrl && (
+            <>
+              <a href={repoUrl} target="_blank" rel="noopener noreferrer" class="footer__link">
+                <Icon name="github" size={14} />
+                <span>{t("footer.sourceCode")}</span>
+              </a>
+              <span class="footer__sep" aria-hidden="true">
+                ·
+              </span>
+            </>
+          )
+        }
         <a
           href="https://astro.build"
           target="_blank"
@@ -60,8 +59,8 @@ const brand = authorName(locale);
 <style>
   .footer {
     border-top: var(--bw-thin) solid var(--border);
-    padding-block: var(--sp-7);
-    margin-block-start: var(--sp-11);
+    padding-block: var(--sp-6) calc(var(--sp-7) + env(safe-area-inset-bottom));
+    margin-block-start: var(--sp-8);
   }
 
   .footer__inner {
@@ -109,7 +108,7 @@ const brand = authorName(locale);
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: var(--sp-3);
+    gap: var(--sp-2) var(--sp-3);
     color: var(--text-muted);
     font-size: var(--fs-13);
   }
@@ -131,6 +130,11 @@ const brand = authorName(locale);
   }
 
   @media (min-width: 720px) {
+    .footer {
+      padding-block: var(--sp-7);
+      margin-block-start: var(--sp-11);
+    }
+
     .footer__row {
       flex-direction: row;
       align-items: center;

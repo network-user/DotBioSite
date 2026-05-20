@@ -40,10 +40,10 @@ const { items, locale, class: className = "" } = Astro.props;
   }
 
   .engineering-callouts__card {
-    padding: var(--sp-6) var(--sp-7);
+    padding: var(--sp-5);
     display: grid;
     grid-template-columns: auto 1fr;
-    column-gap: var(--sp-4);
+    column-gap: var(--sp-3);
     row-gap: var(--sp-2);
     border-radius: var(--r-lg);
   }
@@ -57,7 +57,7 @@ const { items, locale, class: className = "" } = Astro.props;
   .engineering-callouts__question {
     font-family: var(--font-stack-display);
     font-weight: var(--fw-bold);
-    font-size: var(--fs-20);
+    font-size: var(--fs-18);
     letter-spacing: var(--ls-tight);
     line-height: var(--lh-snug);
     color: var(--text);
@@ -72,6 +72,15 @@ const { items, locale, class: className = "" } = Astro.props;
   @media (min-width: 900px) {
     .engineering-callouts {
       grid-template-columns: repeat(2, 1fr);
+    }
+
+    .engineering-callouts__card {
+      padding: var(--sp-6) var(--sp-7);
+      column-gap: var(--sp-4);
+    }
+
+    .engineering-callouts__question {
+      font-size: var(--fs-20);
     }
   }
 </style>

@@ -26,13 +26,13 @@
 
 Палитра монохромная, токены копируются один в один из DotSound:
 
-| Токен | Значение | Назначение |
-|-------|----------|-----------|
-| `--bg` | `#0A0A0A` | основной фон |
-| `--surface` | `#1A1A1A` | поверхности |
-| `--text` | `#FFFFFF` | основной текст |
+| Токен              | Значение  | Назначение      |
+| ------------------ | --------- | --------------- |
+| `--bg`             | `#0A0A0A` | основной фон    |
+| `--surface`        | `#1A1A1A` | поверхности     |
+| `--text`           | `#FFFFFF` | основной текст  |
 | `--text-secondary` | `#A0A0A0` | вторичный текст |
-| `--accent` | `#FFFFFF` | акцент = белый |
+| `--accent`         | `#FFFFFF` | акцент = белый  |
 
 Подробности — [`src/styles/tokens.css`](src/styles/tokens.css).
 
@@ -47,15 +47,15 @@ npm run dev        # http://localhost:4321
 
 ### Команды
 
-| Скрипт | Что делает |
-|--------|------------|
-| `npm run dev` | dev‑сервер с HMR |
-| `npm run build` | production‑билд в `dist/` |
-| `npm run preview` | локальный preview production‑билда |
-| `npm run type-check` | `astro check` + `tsc --noEmit` |
-| `npm run lint` | ESLint, fail on warnings |
-| `npm run lint:fix` | ESLint с авто‑фиксом |
-| `npm run format` | Prettier write |
+| Скрипт               | Что делает                         |
+| -------------------- | ---------------------------------- |
+| `npm run dev`        | dev‑сервер с HMR                   |
+| `npm run build`      | production‑билд в `dist/`          |
+| `npm run preview`    | локальный preview production‑билда |
+| `npm run type-check` | `astro check` + `tsc --noEmit`     |
+| `npm run lint`       | ESLint, fail on warnings           |
+| `npm run lint:fix`   | ESLint с авто‑фиксом               |
+| `npm run format`     | Prettier write                     |
 
 ## Конфигурация и секреты
 

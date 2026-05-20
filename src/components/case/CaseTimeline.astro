@@ -24,7 +24,7 @@ const { items, locale, class: className = "" } = Astro.props;
   {
     items.map((item, i) => (
       <li class="case-timeline__item" data-reveal data-reveal-delay={i * 80}>
-        <span class="case-timeline__bullet" aria-hidden="true"></span>
+        <span class="case-timeline__bullet" aria-hidden="true" />
         <p class="case-timeline__date tabular">{item.date}</p>
         <div class="case-timeline__body">
           <h3 class="case-timeline__title">{item.title[locale]}</h3>

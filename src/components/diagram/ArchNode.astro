@@ -49,13 +49,7 @@ const iconY = height / 2;
   class:list={["arch-node", `arch-node--${emphasis}`, className]}
   transform={`translate(${left}, ${top})`}
 >
-  <rect
-    class="arch-node__bg"
-    width={width}
-    height={height}
-    rx={radius}
-    ry={radius}
-  />
+  <rect class="arch-node__bg" width={width} height={height} rx={radius} ry={radius}></rect>
   <rect
     class="arch-node__shine"
     x="1"
@@ -63,8 +57,7 @@ const iconY = height / 2;
     width={width - 2}
     height={height / 2}
     rx={radius - 1}
-    ry={radius - 1}
-  />
+    ry={radius - 1}></rect>
   {
     icon && (
       <g class="arch-node__icon" transform={`translate(${iconX}, ${iconY - iconSize / 2})`}>

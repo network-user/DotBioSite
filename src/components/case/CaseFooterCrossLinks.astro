@@ -73,7 +73,7 @@ const others = projects.filter((p) => p.slug !== current && !p.comingSoon);
   }
 
   .case-cross__card {
-    padding: var(--sp-6) var(--sp-7);
+    padding: var(--sp-5);
     display: flex;
     flex-direction: column;
     gap: var(--sp-3);
@@ -81,7 +81,7 @@ const others = projects.filter((p) => p.slug !== current && !p.comingSoon);
   }
 
   .case-cross__brand {
-    font-size: clamp(40px, 4.5vw, 56px);
+    font-size: var(--fs-40);
     letter-spacing: var(--ls-display);
     line-height: 0.95;
   }
@@ -109,6 +109,14 @@ const others = projects.filter((p) => p.slug !== current && !p.comingSoon);
   @media (min-width: 720px) {
     .case-cross__grid {
       grid-template-columns: repeat(2, 1fr);
+    }
+
+    .case-cross__card {
+      padding: var(--sp-6) var(--sp-7);
+    }
+
+    .case-cross__brand {
+      font-size: 56px;
     }
   }
 </style>

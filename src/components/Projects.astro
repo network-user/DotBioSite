@@ -12,9 +12,7 @@ const { locale } = Astro.props;
 const t = useTranslations(locale);
 
 const visible = projects.filter((p) => !p.comingSoon);
-const years = visible
-  .map((p) => p.year)
-  .filter((y): y is number => typeof y === "number");
+const years = visible.map((p) => p.year).filter((y): y is number => typeof y === "number");
 ---
 
 <section class="section projects" id="projects" aria-labelledby="projects-title">
@@ -27,24 +25,44 @@ const years = visible
     />
 
     <div class="projects__grid">
-      {visible.map((p, i) => (
-        <ProjectCard project={p} locale={locale} index={i} />
-      ))}
+      {visible.map((p, i) => <ProjectCard project={p} locale={locale} index={i} />)}
     </div>
 
-    {years.length > 1 && (
-      <div class="projects__year-strip" data-reveal>
-        <YearStrip years={years} />
-        <p class="projects__hint caption">{t("projects.scrollHint")}</p>
-      </div>
-    )}
+    {
+      years.length > 1 && (
+        <div class="projects__year-strip" data-reveal>
+          <YearStrip years={years} />
+          <p class="projects__hint caption">{t("projects.scrollHint")}</p>
+        </div>
+      )
+    }
   </div>
 </section>
 
 <style>
+  .projects {
+    overflow: hidden;
+  }
+
+  .projects::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: var(--sp-8);
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-hover), transparent);
+    opacity: 0.52;
+  }
+
+  .projects__inner {
+    position: relative;
+    z-index: 1;
+  }
+
   .projects__grid {
+    position: relative;
     display: grid;
-    gap: var(--sp-7);
+    gap: var(--sp-4);
     grid-template-columns: 1fr;
   }
 
@@ -61,6 +79,7 @@ const years = visible
 
   @media (min-width: 900px) {
     .projects__grid {
+      gap: var(--sp-7);
       grid-template-columns: repeat(2, 1fr);
     }
   }

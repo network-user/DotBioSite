@@ -203,7 +203,11 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
 
       // --- Static canvas grain without React runtime ---
       const noiseCanvas = document.querySelector<HTMLCanvasElement>("[data-noise-bg]");
-      if (noiseCanvas && document.body.dataset.noNoise !== "1") {
+      if (
+        noiseCanvas &&
+        document.body.dataset.noNoise !== "1" &&
+        !window.matchMedia("(pointer: coarse)").matches
+      ) {
         const TILE = 128;
         const tileCanvas = document.createElement("canvas");
         tileCanvas.width = TILE;
@@ -398,6 +402,16 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
   @media (pointer: coarse) {
     .cursor-dot,
     .cursor-halo {
+      display: none;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .bg-layer {
+      opacity: 0.42;
+    }
+
+    .noise-bg {
       display: none;
     }
   }

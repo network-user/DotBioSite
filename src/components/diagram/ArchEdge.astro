@@ -30,14 +30,7 @@ interface Props {
   class?: string;
 }
 
-const {
-  from,
-  to,
-  kind = "sync",
-  label,
-  bend = 0,
-  class: className = "",
-} = Astro.props;
+const { from, to, kind = "sync", label, bend = 0, class: className = "" } = Astro.props;
 
 const dx = to.x - from.x;
 const dy = to.y - from.y;
@@ -52,7 +45,7 @@ const labelY = from.y + dy / 2 - 6;
 ---
 
 <g class:list={["arch-edge", `arch-edge--${kind}`, className]}>
-  <path d={path} class="arch-edge__path" />
+  <path d={path} class="arch-edge__path"></path>
   {
     /* arrow head */
     (() => {

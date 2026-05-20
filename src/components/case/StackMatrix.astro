@@ -31,7 +31,11 @@ const present = ORDER.filter((key) => {
     present.map((key, i) => {
       const items = groups[key]!;
       return (
-        <article class="stack-matrix__group glass glass--soft" data-reveal data-reveal-delay={i * 60}>
+        <article
+          class="stack-matrix__group glass glass--soft"
+          data-reveal
+          data-reveal-delay={i * 60}
+        >
           <header class="stack-matrix__head">
             <p class="eyebrow">{t(`case.stackGroups.${key}`)}</p>
           </header>
@@ -54,7 +58,7 @@ const present = ORDER.filter((key) => {
   }
 
   .stack-matrix__group {
-    padding: var(--sp-5) var(--sp-6);
+    padding: var(--sp-5);
     display: flex;
     flex-direction: column;
     gap: var(--sp-4);
@@ -81,6 +85,10 @@ const present = ORDER.filter((key) => {
   @media (min-width: 720px) {
     .stack-matrix {
       grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stack-matrix__group {
+      padding: var(--sp-5) var(--sp-6);
     }
   }
 

@@ -20,10 +20,7 @@ const emptyUrl = z.literal("");
 const urlOrEmpty = z.string().url().or(emptyUrl);
 
 const schema = z.object({
-  PUBLIC_DOMAIN: z
-    .string()
-    .url()
-    .default("https://dotcore.pages.dev"),
+  PUBLIC_DOMAIN: z.string().url().default("https://dotcore.pages.dev"),
   // Пустые дефолты — сайт работает как шаблон, не привязанный к конкретному
   // GitHub-аккаунту. Заполни в .env, чтобы появились ссылки на репозиторий
   // в футере и автоматически собрались URL'ы репо проектов в карточках.
@@ -60,9 +57,7 @@ function pickEnv(): Record<string, string> {
 const parsed = schema.safeParse(pickEnv());
 
 if (!parsed.success) {
-  const issues = parsed.error.issues
-    .map((i) => `  - ${i.path.join(".")}: ${i.message}`)
-    .join("\n");
+  const issues = parsed.error.issues.map((i) => `  - ${i.path.join(".")}: ${i.message}`).join("\n");
   throw new Error(
     `[.core/config] Invalid environment variables:\n${issues}\n\n` +
       `Hint: copy .env.example to .env and fill in the values.`,

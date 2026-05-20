@@ -110,7 +110,7 @@ const edgeData = edges
   })
   .filter(
     (e): e is EdgeInput & { from: { x: number; y: number }; to: { x: number; y: number } } =>
-      e !== null
+      e !== null,
   );
 ---
 

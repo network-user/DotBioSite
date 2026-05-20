@@ -34,17 +34,19 @@ const milestones = projects
     />
 
     <ol class="timeline" data-timeline>
-      {milestones.map((m, i) => (
-        <li class="timeline__item" data-reveal data-reveal-delay={i * 100}>
-          <span class="timeline__bullet" aria-hidden="true"></span>
-          <div class="timeline__year display tabular">{m.year}</div>
-          <div class="timeline__body glass glass--hover">
-            <h3 class="timeline__title">{m.title}</h3>
-            <p class="timeline__subtitle subtitle">{m.subtitle}</p>
-            <p class="timeline__desc body-sm">{m.description}</p>
-          </div>
-        </li>
-      ))}
+      {
+        milestones.map((m, i) => (
+          <li class="timeline__item" data-reveal data-reveal-delay={i * 100}>
+            <span class="timeline__bullet" aria-hidden="true" />
+            <div class="timeline__year display tabular">{m.year}</div>
+            <div class="timeline__body glass glass--hover">
+              <h3 class="timeline__title">{m.title}</h3>
+              <p class="timeline__subtitle subtitle">{m.subtitle}</p>
+              <p class="timeline__desc body-sm">{m.description}</p>
+            </div>
+          </li>
+        ))
+      }
     </ol>
   </div>
 </section>
@@ -54,8 +56,8 @@ const milestones = projects
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: var(--sp-6);
-    padding-inline-start: var(--sp-7);
+    gap: var(--sp-5);
+    padding-inline-start: var(--sp-6);
   }
 
   .timeline::before {
@@ -87,7 +89,7 @@ const milestones = projects
 
   .timeline__bullet {
     position: absolute;
-    left: -27px;
+    left: -23px;
     top: 14px;
     width: 12px;
     height: 12px;
@@ -117,7 +119,7 @@ const milestones = projects
   }
 
   .timeline__body {
-    padding: var(--sp-5) var(--sp-6);
+    padding: var(--sp-5);
     border-radius: var(--r-lg);
     display: flex;
     flex-direction: column;
@@ -128,7 +130,7 @@ const milestones = projects
     font-family: var(--font-stack-display);
     font-weight: var(--fw-bold);
     letter-spacing: var(--ls-tight);
-    font-size: var(--fs-24);
+    font-size: var(--fs-22);
   }
 
   @keyframes timeline-draw {
@@ -158,9 +160,19 @@ const milestones = projects
       align-items: start;
       gap: var(--sp-6);
     }
+    .timeline {
+      gap: var(--sp-6);
+      padding-inline-start: var(--sp-7);
+    }
     .timeline__bullet {
       left: -27px;
       top: 24px;
+    }
+    .timeline__body {
+      padding: var(--sp-5) var(--sp-6);
+    }
+    .timeline__title {
+      font-size: var(--fs-24);
     }
     .timeline__year {
       padding-block-start: var(--sp-4);

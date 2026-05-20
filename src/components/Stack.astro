@@ -70,22 +70,26 @@ const groups: ReadonlyArray<StackGroup> = [
     />
 
     <div class="stack__grid">
-      {groups.map((g, i) => {
-        const label = t(`stack.categories.${g.id}`);
-        const delay = String(i * 80);
-        return (
-          <article class="stack__group glass glass--hover" data-reveal data-reveal-delay={delay}>
-            <span class="stack__bar" aria-hidden="true"></span>
-            <header class="stack__group-header">
-              <Icon name={g.icon} size={20} class="stack__icon" />
-              <p class="caption">{label}</p>
-            </header>
-            <ul class="stack__chips">
-              {g.items.map((it) => <li class="stack__chip">{it}</li>)}
-            </ul>
-          </article>
-        );
-      })}
+      {
+        groups.map((g, i) => {
+          const label = t(`stack.categories.${g.id}`);
+          const delay = String(i * 80);
+          return (
+            <article class="stack__group glass glass--hover" data-reveal data-reveal-delay={delay}>
+              <span class="stack__bar" aria-hidden="true" />
+              <header class="stack__group-header">
+                <Icon name={g.icon} size={20} class="stack__icon" />
+                <p class="caption">{label}</p>
+              </header>
+              <ul class="stack__chips">
+                {g.items.map((it) => (
+                  <li class="stack__chip">{it}</li>
+                ))}
+              </ul>
+            </article>
+          );
+        })
+      }
     </div>
   </div>
 </section>
@@ -99,7 +103,7 @@ const groups: ReadonlyArray<StackGroup> = [
 
   .stack__group {
     position: relative;
-    padding: var(--sp-5) var(--sp-6);
+    padding: var(--sp-5);
     display: flex;
     flex-direction: column;
     gap: var(--sp-4);
@@ -173,6 +177,10 @@ const groups: ReadonlyArray<StackGroup> = [
   @media (min-width: 720px) {
     .stack__grid {
       grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stack__group {
+      padding: var(--sp-5) var(--sp-6);
     }
   }
 

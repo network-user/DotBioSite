@@ -34,11 +34,7 @@ const ticks = sorted.map((y) => ({
       </span>
     ))
   }
-  {
-    endLabel && (
-      <span class="year-strip__end caption">{endLabel}</span>
-    )
-  }
+  {endLabel && <span class="year-strip__end caption">{endLabel}</span>}
 </div>
 
 <style>
@@ -46,7 +42,7 @@ const ticks = sorted.map((y) => ({
     position: relative;
     width: 100%;
     height: 56px;
-    margin-block-start: var(--sp-9);
+    margin-block-start: var(--sp-6);
   }
 
   .year-strip__rail {
@@ -89,5 +85,11 @@ const ticks = sorted.map((y) => ({
     top: calc(50% + 8px);
     color: var(--text-faint);
     font-size: 10px;
+  }
+
+  @media (min-width: 768px) {
+    .year-strip {
+      margin-block-start: var(--sp-9);
+    }
   }
 </style>

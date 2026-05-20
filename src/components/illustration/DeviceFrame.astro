@@ -17,12 +17,7 @@ interface Props {
   class?: string;
 }
 
-const {
-  variant,
-  abstract = "rows",
-  caption,
-  class: className = "",
-} = Astro.props;
+const { variant, abstract = "rows", caption, class: className = "" } = Astro.props;
 
 const sizes: Record<Variant, { w: number; h: number; r: number; pad: number }> = {
   phone: { w: 320, h: 640, r: 36, pad: 14 },
@@ -88,9 +83,9 @@ const dots = Array.from({ length: 24 }, (_, i) => {
   >
     <defs>
       <linearGradient id={`shine-${variant}`} x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="rgba(255,255,255,0.16)" />
-        <stop offset="35%" stop-color="rgba(255,255,255,0.04)" />
-        <stop offset="100%" stop-color="rgba(255,255,255,0)" />
+        <stop offset="0%" stop-color="rgba(255,255,255,0.16)"></stop>
+        <stop offset="35%" stop-color="rgba(255,255,255,0.04)"></stop>
+        <stop offset="100%" stop-color="rgba(255,255,255,0)"></stop>
       </linearGradient>
     </defs>
 
@@ -101,91 +96,91 @@ const dots = Array.from({ length: 24 }, (_, i) => {
       height={s.h - 1}
       rx={s.r}
       ry={s.r}
-      class="device-frame__shell"
-    />
-    <rect x="0.5" y="0.5" width={s.w - 1} height={s.h - 1} rx={s.r} ry={s.r} fill={`url(#shine-${variant})`} opacity="0.6" />
+      class="device-frame__shell"></rect>
+    <rect
+      x="0.5"
+      y="0.5"
+      width={s.w - 1}
+      height={s.h - 1}
+      rx={s.r}
+      ry={s.r}
+      fill={`url(#shine-${variant})`}
+      opacity="0.6"></rect>
 
     {/* header */}
-    {variant === "phone" && (
-      <>
-        <rect
-          x={s.w / 2 - 50}
-          y={s.pad}
-          width="100"
-          height="20"
-          rx="10"
-          fill="var(--bg-deep)"
-        />
-        <circle cx={s.w / 2 + 30} cy={s.pad + 10} r="3" fill="var(--text-muted)" />
-      </>
-    )}
-    {variant === "mini-app" && (
-      <>
-        <rect
-          x={s.pad}
-          y={s.pad}
-          width={innerW}
-          height="28"
-          rx="6"
-          class="device-frame__bar"
-        />
-        <circle cx={s.pad + 16} cy={s.pad + 14} r="6" fill="var(--surface-3)" />
-        <rect x={s.pad + 32} y={s.pad + 10} width="100" height="8" rx="4" fill="var(--surface-3)" />
-      </>
-    )}
-    {variant === "terminal" && (
-      <>
-        <rect
-          x={s.pad}
-          y={s.pad}
-          width={innerW}
-          height="20"
-          rx="4"
-          class="device-frame__bar"
-        />
-        <circle cx={s.pad + 10} cy={s.pad + 10} r="4" fill="var(--state-error)" opacity="0.6" />
-        <circle cx={s.pad + 24} cy={s.pad + 10} r="4" fill="var(--state-warn)" opacity="0.6" />
-        <circle cx={s.pad + 38} cy={s.pad + 10} r="4" fill="var(--state-ok)" opacity="0.6" />
-      </>
-    )}
+    {
+      variant === "phone" && (
+        <>
+          <rect x={s.w / 2 - 50} y={s.pad} width="100" height="20" rx="10" fill="var(--bg-deep)" />
+          <circle cx={s.w / 2 + 30} cy={s.pad + 10} r="3" fill="var(--text-muted)" />
+        </>
+      )
+    }
+    {
+      variant === "mini-app" && (
+        <>
+          <rect x={s.pad} y={s.pad} width={innerW} height="28" rx="6" class="device-frame__bar" />
+          <circle cx={s.pad + 16} cy={s.pad + 14} r="6" fill="var(--surface-3)" />
+          <rect
+            x={s.pad + 32}
+            y={s.pad + 10}
+            width="100"
+            height="8"
+            rx="4"
+            fill="var(--surface-3)"
+          />
+        </>
+      )
+    }
+    {
+      variant === "terminal" && (
+        <>
+          <rect x={s.pad} y={s.pad} width={innerW} height="20" rx="4" class="device-frame__bar" />
+          <circle cx={s.pad + 10} cy={s.pad + 10} r="4" fill="var(--state-error)" opacity="0.6" />
+          <circle cx={s.pad + 24} cy={s.pad + 10} r="4" fill="var(--state-warn)" opacity="0.6" />
+          <circle cx={s.pad + 38} cy={s.pad + 10} r="4" fill="var(--state-ok)" opacity="0.6" />
+        </>
+      )
+    }
 
     {/* abstract content */}
-    {abstract === "rows" &&
-      rows.map((r) => (
-        <rect
-          x={s.pad}
-          y={r.y}
-          width={r.w}
-          height="10"
-          rx="5"
-          class="device-frame__row"
+    {
+      abstract === "rows" &&
+        rows.map((r) => (
+          <rect x={s.pad} y={r.y} width={r.w} height="10" rx="5" class="device-frame__row" />
+        ))
+    }
+    {
+      abstract === "bars" &&
+        bars.map((b) => (
+          <rect
+            x={b.x}
+            y={s.h - s.pad - b.h}
+            width={b.w}
+            height={b.h}
+            rx="3"
+            class="device-frame__bar-fill"
+          />
+        ))
+    }
+    {
+      abstract === "waveform" && (
+        <path
+          d={waveformPath()}
+          fill="none"
+          stroke="var(--text-secondary)"
+          stroke-width="1.4"
+          stroke-linecap="round"
+          opacity="0.8"
         />
-      ))}
-    {abstract === "bars" &&
-      bars.map((b) => (
-        <rect
-          x={b.x}
-          y={s.h - s.pad - b.h}
-          width={b.w}
-          height={b.h}
-          rx="3"
-          class="device-frame__bar-fill"
-        />
-      ))}
-    {abstract === "waveform" && (
-      <path
-        d={waveformPath()}
-        fill="none"
-        stroke="var(--text-secondary)"
-        stroke-width="1.4"
-        stroke-linecap="round"
-        opacity="0.8"
-      />
-    )}
-    {abstract === "dots" &&
-      dots.map((d) => (
-        <circle cx={d.cx} cy={d.cy} r={d.r} fill="var(--text-muted)" opacity="0.8" />
-      ))}
+      )
+    }
+    {
+      abstract === "dots" &&
+        dots.map((d) => (
+          <circle cx={d.cx} cy={d.cy} r={d.r} fill="var(--text-muted)" opacity="0.8" />
+        ))
+    }
   </svg>
 
   {caption && <figcaption class="device-frame__caption caption">{caption}</figcaption>}

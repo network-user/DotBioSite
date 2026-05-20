@@ -129,3 +129,19 @@
   -webkit-backdrop-filter: blur(var(--glass-blur-strong-2)) saturate(160%);
   box-shadow: var(--shadow-2);
 }
+
+@media (pointer: coarse) {
+  .glass {
+    backdrop-filter: blur(var(--glass-blur-soft)) saturate(120%);
+    -webkit-backdrop-filter: blur(var(--glass-blur-soft)) saturate(120%);
+  }
+
+  .glass--hover:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .glass--spotlight::after {
+    display: none;
+  }
+}

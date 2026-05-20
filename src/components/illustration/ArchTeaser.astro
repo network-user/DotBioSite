@@ -75,13 +75,7 @@ const edgePaths = edges
       const p = positions.get(n.id)!;
       return (
         <g transform={`translate(${p.x - cap.w / 2}, ${p.y - cap.h / 2})`}>
-          <rect
-            width={cap.w}
-            height={cap.h}
-            rx={cap.r}
-            ry={cap.r}
-            class="arch-teaser__node"
-          />
+          <rect width={cap.w} height={cap.h} rx={cap.r} ry={cap.r} class="arch-teaser__node" />
           <text
             x={cap.w / 2}
             y={cap.h / 2}

@@ -15,20 +15,26 @@ const { kicker, title, lede, id, align = "left" } = Astro.props;
 ---
 
 <header class={`section-header section-header--${align}`} id={id}>
-  {kicker && (
-    <p class="section-header__kicker caption" data-reveal>
-      <span class="section-header__dot" aria-hidden="true">·</span>
-      {kicker}
-    </p>
-  )}
+  {
+    kicker && (
+      <p class="section-header__kicker caption" data-reveal>
+        <span class="section-header__dot" aria-hidden="true">
+          ·
+        </span>
+        {kicker}
+      </p>
+    )
+  }
   <h2 class="section-header__title display" data-reveal data-reveal-delay="60">
     {title}
   </h2>
-  {lede && (
-    <p class="section-header__lede subtitle" data-reveal data-reveal-delay="120">
-      {lede}
-    </p>
-  )}
+  {
+    lede && (
+      <p class="section-header__lede subtitle" data-reveal data-reveal-delay="120">
+        {lede}
+      </p>
+    )
+  }
 </header>
 
 <style>
@@ -36,7 +42,7 @@ const { kicker, title, lede, id, align = "left" } = Astro.props;
     display: flex;
     flex-direction: column;
     gap: var(--sp-3);
-    margin-block-end: var(--sp-9);
+    margin-block-end: var(--sp-6);
     max-width: 64ch;
   }
 
@@ -61,13 +67,37 @@ const { kicker, title, lede, id, align = "left" } = Astro.props;
   }
 
   .section-header__title {
-    font-size: clamp(32px, 5vw, 56px);
+    font-size: var(--fs-32);
     line-height: var(--lh-tight);
     color: var(--text);
   }
 
   .section-header__lede {
-    font-size: clamp(16px, 1.4vw, 19px);
+    font-size: var(--fs-16);
     max-width: 56ch;
+  }
+
+  @media (min-width: 768px) {
+    .section-header {
+      margin-block-end: var(--sp-9);
+    }
+
+    .section-header__title {
+      font-size: var(--fs-48);
+    }
+
+    .section-header__lede {
+      font-size: var(--fs-18);
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .section-header__title {
+      font-size: 56px;
+    }
+
+    .section-header__lede {
+      font-size: 19px;
+    }
   }
 </style>

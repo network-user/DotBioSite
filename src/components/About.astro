@@ -27,37 +27,41 @@ const monogram = authorMonogram(locale);
 
     <div class="about__grid">
       <div class="about__portrait glass glass--bordered" data-reveal>
-        {photo ? (
-          <img src={photo} alt={name} class="about__photo" loading="lazy" decoding="async" />
-        ) : (
-          <span class="about__monogram display" aria-label={name}>
-            {monogram}
-          </span>
-        )}
+        {
+          photo ? (
+            <img src={photo} alt={name} class="about__photo" loading="lazy" decoding="async" />
+          ) : (
+            <span class="about__monogram display" aria-label={name}>
+              {monogram}
+            </span>
+          )
+        }
       </div>
 
       <div class="about__content" data-reveal data-reveal-delay="120">
         <p class="about__name display">{name}</p>
         {bio && <p class="about__bio body">{bio}</p>}
 
-        {socials.length > 0 && (
-          <ul class="about__socials" aria-label={t("contact.title")}>
-            {socials.map((s) => (
-              <li>
-                <a
-                  href={s.url}
-                  class="about__social"
-                  target="_blank"
-                  rel="noopener noreferrer me"
-                  aria-label={t(`contact.${s.id}`)}
-                >
-                  <Icon name={s.id} size={20} />
-                  <span class="about__social-label">{t(`contact.${s.id}`)}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
+        {
+          socials.length > 0 && (
+            <ul class="about__socials" aria-label={t("contact.title")}>
+              {socials.map((s) => (
+                <li>
+                  <a
+                    href={s.url}
+                    class="about__social"
+                    target="_blank"
+                    rel="noopener noreferrer me"
+                    aria-label={t(`contact.${s.id}`)}
+                  >
+                    <Icon name={s.id} size={20} />
+                    <span class="about__social-label">{t(`contact.${s.id}`)}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )
+        }
       </div>
     </div>
   </div>
@@ -66,7 +70,7 @@ const monogram = authorMonogram(locale);
 <style>
   .about__grid {
     display: grid;
-    gap: var(--sp-7);
+    gap: var(--sp-5);
     grid-template-columns: 1fr;
     align-items: start;
   }
@@ -74,12 +78,14 @@ const monogram = authorMonogram(locale);
   .about__portrait {
     position: relative;
     width: 100%;
-    max-width: 320px;
+    max-width: 220px;
+    margin-inline: auto;
     aspect-ratio: 1;
     display: grid;
     place-items: center;
     border-radius: var(--r-xl);
     overflow: hidden;
+    box-shadow: var(--shadow-2);
   }
 
   .about__photo {
@@ -90,7 +96,7 @@ const monogram = authorMonogram(locale);
   }
 
   .about__monogram {
-    font-size: clamp(64px, 12vw, 120px);
+    font-size: 72px;
     color: var(--text-muted);
     letter-spacing: var(--ls-display);
     user-select: none;
@@ -103,7 +109,7 @@ const monogram = authorMonogram(locale);
   }
 
   .about__name {
-    font-size: clamp(36px, 4.5vw, 56px);
+    font-size: var(--fs-32);
     line-height: var(--lh-tight);
     letter-spacing: var(--ls-display);
   }
@@ -111,7 +117,7 @@ const monogram = authorMonogram(locale);
   .about__bio {
     color: var(--text-secondary);
     max-width: 60ch;
-    font-size: var(--fs-17);
+    font-size: var(--fs-16);
     line-height: var(--lh-normal);
   }
 
@@ -150,6 +156,29 @@ const monogram = authorMonogram(locale);
     .about__grid {
       grid-template-columns: 320px 1fr;
       gap: var(--sp-10);
+    }
+
+    .about__portrait {
+      max-width: 320px;
+      margin-inline: 0;
+    }
+
+    .about__monogram {
+      font-size: 120px;
+    }
+
+    .about__name {
+      font-size: var(--fs-48);
+    }
+
+    .about__bio {
+      font-size: var(--fs-17);
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .about__name {
+      font-size: 56px;
     }
   }
 </style>

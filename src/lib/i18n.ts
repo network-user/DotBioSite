@@ -37,11 +37,7 @@ export function localePrefix(locale: Locale): string {
 /** Альтернативный URL для второй локали (для language toggle). */
 export function alternateUrl(currentUrl: URL, targetLocale: Locale): string {
   const path = currentUrl.pathname;
-  const stripped = path.startsWith("/en/")
-    ? path.slice(3)
-    : path === "/en"
-      ? "/"
-      : path;
+  const stripped = path.startsWith("/en/") ? path.slice(3) : path === "/en" ? "/" : path;
   return `${localePrefix(targetLocale)}${stripped}` || "/";
 }
 
