@@ -257,3 +257,18 @@ export function timelineDateSortKey(date: string): number {
   const yearOnly = date.match(/(\d{4})/);
   return yearOnly && yearOnly[1] ? Number(yearOnly[1]) * 100 : 0;
 }
+
+/**
+ * ISO-дата старта проекта («2025-09» или «2025») для structuredData.dateCreated.
+ * Берётся из `projectStartDate`, поэтому SEO-дата совпадает с тем, что видно
+ * в eyebrow и в таймлайне. Возвращает undefined, если дату распарсить нельзя.
+ */
+export function projectStartISO(p: Project): string | undefined {
+  const start = projectStartDate(p);
+  if (!start) return undefined;
+  const key = timelineDateSortKey(start);
+  if (key === 0) return undefined;
+  const year = Math.floor(key / 100);
+  const month = key % 100;
+  return month > 0 ? `${year}-${String(month).padStart(2, "0")}` : String(year);
+}

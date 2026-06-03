@@ -7,6 +7,7 @@ import {
   projectName,
   projectTagline,
   projectDescription,
+  projectStartISO,
   repoUrl,
 } from "../../lib/projects";
 import { authorName, config } from "../../lib/config";
@@ -33,7 +34,7 @@ const structuredData = {
   codeRepository: codeRepositories.length > 0 ? codeRepositories : undefined,
   programmingLanguage: project.stack,
   applicationCategory: project.category,
-  dateCreated: project.year ? String(project.year) : undefined,
+  dateCreated: projectStartISO(project),
   creator: { "@id": new URL("/#person", config.PUBLIC_DOMAIN).toString() },
   isPartOf: { "@id": new URL("/#website", config.PUBLIC_DOMAIN).toString() },
 };
