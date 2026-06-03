@@ -9,6 +9,7 @@ import {
   repoUrl,
 } from "../lib/projects";
 import Icon from "./Icon/Icon.astro";
+import ProjectGlyph from "./ProjectGlyph.astro";
 
 interface Props {
   project: Project;
@@ -40,26 +41,23 @@ const isFeatured = index === 0;
   aria-labelledby={`project-${p.slug}-title`}
   style={`--project-accent: ${accent};`}
 >
-  {
-    p.cover && (
-      <a href={caseHref} class="project-card__media" aria-label={t("projects.viewProject")}>
-        <img
-          src={p.cover}
-          alt=""
-          class="project-card__cover"
-          loading="lazy"
-          decoding="async"
-          width="1600"
-          height="900"
-        />
-        <span class="project-card__media-glow" aria-hidden="true" />
-        <span class="project-card__media-status" aria-hidden="true">
-          <Icon name="dot" size={10} />
-          <span>{t(`projects.status.${p.status}`)}</span>
-        </span>
-      </a>
-    )
-  }
+  <a
+    href={caseHref}
+    class="project-card__media project-card__media--logo"
+    aria-label={t("projects.viewProject")}
+  >
+    <span class="project-card__logo">
+      <span class="project-card__glyph">
+        <ProjectGlyph slug={p.slug} />
+      </span>
+      <span class="project-card__logo-brand display">{brand}</span>
+    </span>
+    <span class="project-card__media-glow" aria-hidden="true" />
+    <span class="project-card__media-status" aria-hidden="true">
+      <Icon name="dot" size={10} />
+      <span>{t(`projects.status.${p.status}`)}</span>
+    </span>
+  </a>
 
   <header class="project-card__head">
     <div class="project-card__eyebrow">
@@ -170,7 +168,7 @@ const isFeatured = index === 0;
    * (set by [data-tilt] JS in Projects.astro) with a pointer-following sheen.
    * ===================================================================== */
   .project-card {
-    --pad: clamp(18px, 4vw, 30px);
+    --pad: clamp(16px, 3.2vw, 24px);
     --tilt-x: 0deg;
     --tilt-y: 0deg;
     position: relative;
@@ -257,14 +255,46 @@ const isFeatured = index === 0;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   }
 
-  .project-card__cover {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  /* ---------- Logo lockup (replaces the cover image on cards) ---------- */
+  .project-card__media--logo {
+    display: grid;
+    place-items: center;
+    container-type: inline-size;
+    background:
+      radial-gradient(
+        120% 100% at 50% 16%,
+        color-mix(in srgb, var(--project-accent) 16%, transparent),
+        transparent 62%
+      ),
+      var(--bg-elevated);
+  }
+
+  .project-card__logo {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-4);
+    padding: var(--sp-6);
+    color: var(--project-accent);
     transition: transform var(--dur-slow) var(--ease-soft);
   }
 
-  .project-card:hover .project-card__cover {
+  .project-card__glyph {
+    display: block;
+    width: clamp(42px, 16cqi, 68px);
+    filter: drop-shadow(0 4px 14px color-mix(in srgb, var(--project-accent) 28%, transparent));
+  }
+
+  .project-card__logo-brand {
+    font-size: clamp(var(--fs-24), 11cqi, var(--fs-40));
+    line-height: 1;
+    color: var(--project-accent);
+    opacity: 0.94;
+  }
+
+  .project-card:hover .project-card__logo {
     transform: scale(1.04);
   }
 
@@ -370,7 +400,7 @@ const isFeatured = index === 0;
   }
 
   .project-card__brand {
-    font-size: var(--fs-32);
+    font-size: var(--fs-28);
     line-height: 1;
     color: var(--text);
     background: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.74) 130%);
@@ -516,7 +546,7 @@ const isFeatured = index === 0;
     }
 
     .project-card__brand {
-      font-size: var(--fs-32);
+      font-size: var(--fs-28);
     }
 
     .project-card__actions {
@@ -536,7 +566,7 @@ const isFeatured = index === 0;
     }
 
     .project-card__brand {
-      font-size: var(--fs-40);
+      font-size: var(--fs-32);
     }
   }
 
@@ -560,7 +590,7 @@ const isFeatured = index === 0;
     .project-card--featured .project-card__media {
       align-self: stretch;
       height: 100%;
-      min-height: 440px;
+      min-height: 260px;
       aspect-ratio: auto;
     }
 
@@ -569,7 +599,7 @@ const isFeatured = index === 0;
     }
 
     .project-card--featured .project-card__brand {
-      font-size: var(--fs-64);
+      font-size: var(--fs-44);
     }
 
     .project-card--featured .project-card__actions {
@@ -586,8 +616,8 @@ const isFeatured = index === 0;
       transition: border-color var(--dur-med), box-shadow var(--dur-med);
     }
 
-    .project-card__cover,
-    .project-card:hover .project-card__cover {
+    .project-card__logo,
+    .project-card:hover .project-card__logo {
       transition: none;
       transform: none;
     }
@@ -599,7 +629,7 @@ const isFeatured = index === 0;
       transform: none;
     }
 
-    .project-card:hover .project-card__cover {
+    .project-card:hover .project-card__logo {
       transform: none;
     }
   }

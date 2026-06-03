@@ -124,6 +124,8 @@ export interface Project {
   links?: ProjectLinks;
   /** Путь к обложке, относительный (`/projects/<slug>/cover.webp`) или абсолютный URL. */
   cover?: string;
+  /** OG-картинка для соцсетей (логотип-локап). Если не задана — берётся `cover`. */
+  ogImage?: string;
   /** Project accent color used for card borders, media glow, and hero treatment. */
   accent?: string;
   /** Short measurable proof points for the project card. */
@@ -213,4 +215,45 @@ export function repoUrl(repo: ProjectRepo): string {
   const user = config.PUBLIC_GITHUB_USER;
   if (!user) return "";
   return `https://github.com/${user}/${repo.repo ?? repo.name}`;
+}
+
+/**
+ * «Дата старта» проекта для таймлайна и eyebrow — берётся из первой вехи
+ * `timeline` (например, «Sep 2025»). Если timeline пуст — fallback на `year`.
+ * Это единственный источник правды для месяца запуска, чтобы eyebrow на
+ * case-странице и главный Timeline не расходились.
+ */
+export function projectStartDate(p: Project): string {
+  const first = p.timeline?.[0];
+  if (first) return first.date;
+  return p.year ? String(p.year) : "";
+}
+
+const MONTH_INDEX: Record<string, number> = {
+  jan: 1,
+  feb: 2,
+  mar: 3,
+  apr: 4,
+  may: 5,
+  jun: 6,
+  jul: 7,
+  aug: 8,
+  sep: 9,
+  oct: 10,
+  nov: 11,
+  dec: 12,
+};
+
+/**
+ * Сортировочный ключ для строк дат вида «Mon YYYY» или «YYYY».
+ * Возвращает `year * 100 + month` — больше = новее. Парсинг устойчив к регистру.
+ */
+export function timelineDateSortKey(date: string): number {
+  const withMonth = date.match(/([A-Za-z]{3,})\s+(\d{4})/);
+  if (withMonth && withMonth[1] && withMonth[2]) {
+    const month = MONTH_INDEX[withMonth[1].slice(0, 3).toLowerCase()] ?? 1;
+    return Number(withMonth[2]) * 100 + month;
+  }
+  const yearOnly = date.match(/(\d{4})/);
+  return yearOnly && yearOnly[1] ? Number(yearOnly[1]) * 100 : 0;
 }

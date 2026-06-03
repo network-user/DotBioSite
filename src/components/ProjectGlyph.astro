@@ -1,0 +1,79 @@
+---
+/**
+ * ProjectGlyph.astro — минималистичный тематический глиф проекта.
+ *
+ * Один <svg> 48×48 на `currentColor` (наследует цвет от родителя → акцент).
+ * Тема по слагу: .звук — эквалайзер, .матем — операторы +−×÷, .работа — кейс,
+ * .агенты — терминал `>_`. Размер задаёт обёртка (svg тянется на width:100%),
+ * поэтому компонент переиспользуется в карточках, hero кейса и кросс-линках.
+ */
+
+interface Props {
+  slug: string;
+  class?: string;
+}
+
+const { slug, class: className = "" } = Astro.props;
+---
+
+<svg
+  class:list={["project-glyph", className]}
+  viewBox="0 0 48 48"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2.6"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+>
+  {
+    slug === "dotsound" && (
+      <g fill="currentColor" stroke="none">
+        <rect x="3" y="18" width="5" height="12" rx="2.5" />
+        <rect x="12" y="11" width="5" height="26" rx="2.5" />
+        <rect x="21.5" y="4" width="5" height="40" rx="2.5" />
+        <rect x="31" y="13" width="5" height="22" rx="2.5" />
+        <rect x="40" y="19" width="5" height="10" rx="2.5" />
+      </g>
+    )
+  }
+  {
+    slug === "dotmathbot" && (
+      <g>
+        <path d="M13 7 V19 M7 13 H19" />
+        <path d="M29 13 H41" />
+        <path d="M8 30 L18 40 M18 30 L8 40" />
+        <path d="M29 35 H41" />
+        <circle cx="35" cy="29.5" r="1.4" fill="currentColor" stroke="none" />
+        <circle cx="35" cy="40.5" r="1.4" fill="currentColor" stroke="none" />
+      </g>
+    )
+  }
+  {
+    slug === "dotworkbot" && (
+      <g>
+        <rect x="7" y="17" width="34" height="23" rx="4" />
+        <path d="M18 17 v-3 a3 3 0 0 1 3-3 h6 a3 3 0 0 1 3 3 v3" />
+        <path d="M7 27 h34" />
+        <path d="M24 25 v4" />
+      </g>
+    )
+  }
+  {
+    slug === "dotagents" && (
+      <g>
+        <rect x="6" y="10" width="36" height="28" rx="5" />
+        <path d="M14 21 l6 4 -6 4" />
+        <path d="M25 29 h8" />
+      </g>
+    )
+  }
+</svg>
+
+<style>
+  .project-glyph {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+</style>

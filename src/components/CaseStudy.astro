@@ -6,9 +6,11 @@ import {
   projectBrand,
   projectTagline,
   projectDescription,
+  projectStartDate,
   repoUrl,
 } from "../lib/projects";
 import Icon from "./Icon/Icon.astro";
+import ProjectGlyph from "./ProjectGlyph.astro";
 import Architecture from "./diagram/Architecture.astro";
 import StackMatrix from "./case/StackMatrix.astro";
 import StackComposition from "./case/StackComposition.astro";
@@ -29,6 +31,7 @@ const name = projectName(p, locale);
 const brand = projectBrand(p, locale);
 const tagline = projectTagline(p, locale);
 const desc = projectDescription(p, locale);
+const startDate = projectStartDate(p);
 const backHref = `${prefix}/#projects`;
 const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
 const accent = p.accent ?? "var(--accent)";
@@ -59,13 +62,13 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
         <div class="case__eyebrow" data-reveal>
           <span class="eyebrow">{t(`projects.category.${p.category}`)}</span>
           {
-            p.year && (
+            startDate && (
               <span class="eyebrow case__eyebrow-divider" aria-hidden="true">
                 ·
               </span>
             )
           }
-          {p.year && <span class="eyebrow tabular">{p.year}</span>}
+          {startDate && <span class="eyebrow tabular">{startDate}</span>}
           <span class="eyebrow case__eyebrow-divider" aria-hidden="true">·</span>
           <span class={`case__status case__status--${p.status}`}>
             <Icon name="dot" size={10} />
@@ -73,6 +76,9 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
           </span>
         </div>
 
+        <div class="case__glyph" data-reveal aria-hidden="true">
+          <ProjectGlyph slug={p.slug} />
+        </div>
         <h1
           class="case__brand display-xl"
           data-reveal
@@ -459,6 +465,13 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
   }
   .case__status--archived {
     color: var(--text-muted);
+  }
+
+  .case__glyph {
+    width: clamp(40px, 7vw, 60px);
+    color: var(--project-accent);
+    margin-block-start: var(--sp-4);
+    filter: drop-shadow(0 4px 16px color-mix(in srgb, var(--project-accent) 30%, transparent));
   }
 
   .case__brand {

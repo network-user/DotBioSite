@@ -36,7 +36,7 @@
   ],
   "category": "platform",
   "status": "active",
-  "year": 2024,
+  "year": 2025,
   "repos": [
     {
       "name": "Backend",
@@ -67,6 +67,7 @@
     }
   ],
   "cover": "/projects/dotsound/cover.svg",
+  "ogImage": "/projects/dotsound/og.svg",
   "accent": "#67e8f9",
   "highlights": [
     {
@@ -281,7 +282,7 @@
   ],
   "timeline": [
     {
-      "date": "2024",
+      "date": "Sep 2025",
       "title": {
         "ru": "Старт DotSound",
         "en": "DotSound kickoff"
@@ -292,14 +293,25 @@
       }
     },
     {
-      "date": "2025",
+      "date": "Mar 2026",
       "title": {
-        "ru": "ASR-каскад, HLS и Mini App",
-        "en": "ASR cascade, HLS, and Mini App"
+        "ru": "Ядро и Mini App",
+        "en": "Core and Mini App"
       },
       "description": {
-        "ru": "ComputeWorker на faster-whisper + Demucs, React 18 Mini App, content-addressed дедуп и HLS-стриминг.",
-        "en": "ComputeWorker on faster-whisper + Demucs, a React 18 Mini App, content-addressed dedup, and HLS streaming."
+        "ru": "FastAPI-бэкенд, PostgreSQL и Elasticsearch, React 18 Mini App, дедупликация по SHA-256.",
+        "en": "FastAPI backend, PostgreSQL and Elasticsearch, a React 18 Mini App, and SHA-256 dedup."
+      }
+    },
+    {
+      "date": "May 2026",
+      "title": {
+        "ru": "ASR-каскад и HLS",
+        "en": "ASR cascade and HLS"
+      },
+      "description": {
+        "ru": "ComputeWorker на faster-whisper + Demucs, content-addressed storage и HLS-стриминг.",
+        "en": "ComputeWorker on faster-whisper + Demucs, content-addressed storage, and HLS streaming."
       }
     }
   ]

@@ -41,6 +41,7 @@
     }
   ],
   "cover": "/projects/dotagents/cover.svg",
+  "ogImage": "/projects/dotagents/og.svg",
   "accent": "#a78bfa",
   "highlights": [
     {
@@ -290,18 +291,29 @@
   ],
   "timeline": [
     {
-      "date": "2026",
+      "date": "Dec 2025",
+      "title": {
+        "ru": "Старт DotAgents",
+        "en": "DotAgents kickoff"
+      },
+      "description": {
+        "ru": "Концепт безопасного локального Telegram-моста к AI coding agents.",
+        "en": "Concept of a secure local Telegram bridge to AI coding agents."
+      }
+    },
+    {
+      "date": "Apr 2026",
       "title": {
         "ru": "Stage 1: safety bridge",
         "en": "Stage 1: safety bridge"
       },
       "description": {
-        "ru": "Hooks, live status, approvals, modes, auth и audit log.",
+        "ru": "Hooks, live status, approvals, режимы, auth и audit log.",
         "en": "Hooks, live status, approvals, modes, auth, and audit log."
       }
     },
     {
-      "date": "2026",
+      "date": "May 2026",
       "title": {
         "ru": "Stage 2: Telegram IDE UX",
         "en": "Stage 2: Telegram IDE UX"

@@ -43,7 +43,7 @@ const structuredData = {
   locale={locale}
   title={title}
   description={description}
-  image={project.cover}
+  image={project.ogImage ?? project.cover}
   imageAlt={projectName(project, locale)}
   structuredData={structuredData}
 >

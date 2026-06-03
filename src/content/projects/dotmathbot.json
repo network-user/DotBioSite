@@ -38,6 +38,7 @@
     }
   ],
   "cover": "/projects/dotmathbot/cover.svg",
+  "ogImage": "/projects/dotmathbot/og.svg",
   "accent": "#fbbf24",
   "highlights": [
     {
@@ -220,7 +221,7 @@
   ],
   "timeline": [
     {
-      "date": "2026",
+      "date": "Dec 2025",
       "title": {
         "ru": "Старт DotMathBot",
         "en": "DotMathBot kickoff"
@@ -231,7 +232,7 @@
       }
     },
     {
-      "date": "2026",
+      "date": "May 2026",
       "title": {
         "ru": "PostgreSQL и прод-обвязка",
         "en": "PostgreSQL and production wiring"

@@ -40,6 +40,7 @@
     }
   ],
   "cover": "/projects/dotworkbot/cover.svg",
+  "ogImage": "/projects/dotworkbot/og.svg",
   "accent": "#22c55e",
   "highlights": [
     {
@@ -319,25 +320,25 @@
   ],
   "timeline": [
     {
-      "date": "2026",
+      "date": "Nov 2025",
       "title": {
-        "ru": "MVP ролей и заказов",
-        "en": "Roles and orders MVP"
+        "ru": "Старт DotWorkBot",
+        "en": "DotWorkBot kickoff"
       },
       "description": {
-        "ru": "Worker/employer/admin flows, PostgreSQL-модель, FSM-регистрация, заказы и мульти-слотовые смены.",
-        "en": "Worker/employer/admin flows, PostgreSQL model, FSM registration, orders, and multi-slot shifts."
+        "ru": "Проектирование ролей worker/employer/admin, модели заказов и FSM-регистрации.",
+        "en": "Designing worker/employer/admin roles, the order model, and FSM registration."
       }
     },
     {
-      "date": "2026",
+      "date": "May 2026",
       "title": {
-        "ru": "Операционный и эксплуатационный слой",
-        "en": "Operational and ops layer"
+        "ru": "MVP и эксплуатация",
+        "en": "MVP and operations"
       },
       "description": {
-        "ru": "taskiq-контроль смен, шифрованные бэкапы, фото в MinIO, троттлинг, авто-деплой на VPS и 67 тестов.",
-        "en": "taskiq shift control, encrypted backups, MinIO photos, throttling, VPS auto-deploy, and 67 tests."
+        "ru": "PostgreSQL-модель, заказы и мульти-слотовые смены, taskiq-контроль, шифрованные бэкапы, авто-деплой на VPS и 67 тестов.",
+        "en": "PostgreSQL model, orders and multi-slot shifts, taskiq control, encrypted backups, VPS auto-deploy, and 67 tests."
       }
     }
   ]

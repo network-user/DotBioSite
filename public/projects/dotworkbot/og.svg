@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="t d">
+  <title id="t">DotWorkBot — .работа</title>
+  <desc id="d">On-demand workforce coordination in Telegram.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#050706"/>
+      <stop offset="0.5" stop-color="#0d1a12"/>
+      <stop offset="1" stop-color="#07110b"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="78%" cy="22%" r="60%">
+      <stop offset="0" stop-color="#22c55e" stop-opacity="0.30"/>
+      <stop offset="0.5" stop-color="#22c55e" stop-opacity="0.07"/>
+      <stop offset="1" stop-color="#22c55e" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <g opacity="0.05" stroke="#ffffff" stroke-width="1">
+    <path d="M0 210 H1200 M0 420 H1200 M300 0 V630 M600 0 V630 M900 0 V630"/>
+  </g>
+  <svg x="96" y="118" width="132" height="132" viewBox="0 0 48 48" fill="none" stroke="#22c55e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="7" y="17" width="34" height="23" rx="4"/>
+    <path d="M18 17 v-3 a3 3 0 0 1 3-3 h6 a3 3 0 0 1 3 3 v3"/>
+    <path d="M7 27 h34"/>
+    <path d="M24 25 v4"/>
+  </svg>
+  <text x="94" y="392" font-family="Inter, Arial, sans-serif" font-size="120" font-weight="800" fill="#22c55e">.работа</text>
+  <text x="100" y="456" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700" fill="#ffffff">DotWorkBot</text>
+  <text x="100" y="500" font-family="Inter, Arial, sans-serif" font-size="27" fill="#a3a3a3">On-demand workforce coordination in Telegram</text>
+  <text x="96" y="566" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="600" fill="#5a5a5a">.ядро · DotCore</text>
+</svg>
