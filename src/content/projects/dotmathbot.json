@@ -10,21 +10,22 @@
     "en": ".math"
   },
   "tagline": {
-    "ru": "Тренажёр умножения и деления в Telegram.",
-    "en": "Multiplication & division trainer in Telegram."
+    "ru": "Тренажёр устного счёта в Telegram.",
+    "en": "Mental-arithmetic trainer in Telegram."
   },
   "description": {
-    "ru": "Двуязычный Telegram-бот для тренировки таблицы умножения и деления: три уровня сложности, четыре режима практики, ежедневные уведомления через APScheduler, профиль с лидербордом и шпаргалки. Полностью async, миграции, тесты с покрытием.",
-    "en": "A bilingual Telegram bot for practising multiplication and division: three difficulty levels, four practice modes, daily reminders via APScheduler, a profile with leaderboard, and cheat sheets. Fully async, with migrations and unit tests."
+    "ru": "Двуязычный Telegram-бот для тренировки устного счёта: семь типов операций (сложение, вычитание, умножение, деление, деление с остатком, степени, корни) на трёх уровнях сложности. Профиль с сериями дней и лидербордом, детерминированный ежедневный челлендж, настраиваемые напоминания через APScheduler. Полностью async: PostgreSQL через asyncpg, Redis для FSM, Alembic-миграции и 221 тест.",
+    "en": "A bilingual Telegram bot for drilling mental arithmetic: seven operation types (addition, subtraction, multiplication, division, division with remainder, powers, roots) across three difficulty levels. A profile with day-streaks and a leaderboard, a deterministic daily challenge, and configurable reminders via APScheduler. Fully async: PostgreSQL over asyncpg, Redis for FSM, Alembic migrations, and 221 tests."
   },
   "stack": [
-    "Python 3.11+",
+    "Python 3.12",
     "aiogram 3.15",
+    "PostgreSQL 16",
     "SQLAlchemy 2",
-    "aiosqlite",
+    "asyncpg",
     "Redis",
     "APScheduler",
-    "pydantic-settings",
+    "Alembic",
     "pytest"
   ],
   "category": "bot",
@@ -40,17 +41,17 @@
   "accent": "#fbbf24",
   "highlights": [
     {
+      "value": "7",
+      "label": {
+        "ru": "типов операций",
+        "en": "operation types"
+      }
+    },
+    {
       "value": "3",
       "label": {
         "ru": "уровня",
         "en": "levels"
-      }
-    },
-    {
-      "value": "4",
-      "label": {
-        "ru": "режима",
-        "en": "modes"
       }
     },
     {
@@ -63,17 +64,24 @@
   ],
   "overview": {
     "ru": [
-      "DotMathBot — небольшой standalone-бот без бэкенда и фронтенда. Один процесс, aiogram 3.15, SQLAlchemy 2 поверх aiosqlite или Redis. Тренирует таблицу умножения и деления в трёх уровнях × четырёх режимах.",
-      "Дневные напоминания и недельные челленджи приходят через APScheduler — он живёт в том же процессе, заметки о расписании хранятся в БД и переживают рестарт. У каждого пользователя — профиль с прогрессом, серией дней и местом в лидерборде.",
-      "Двуязычный изначально: ru/en переключаются на лету в настройках, без перезапуска диалога. Тесты pytest покрывают логику генерации заданий и проверки ответов."
+      "DotMathBot — небольшой standalone-бот без отдельного бэкенда и фронтенда. Один процесс на aiogram 3.15, данные в PostgreSQL через async-SQLAlchemy и asyncpg, FSM-состояние — в Redis с graceful-фолбэком в память. Генератор задач покрывает семь типов операций на трёх уровнях сложности.",
+      "Ежедневный челлендж детерминирован: зерно RNG выводится из даты, поэтому всем пользователям выпадает один и тот же набор задач. У каждого — профиль с прогрессом, сериями дней и местом в лидерборде по четырём критериям (стрик, решено, точность, очки). Напоминания и резервные pg_dump-бэкапы крутятся в том же процессе на APScheduler.",
+      "Двуязычный изначально: ru/en переключаются на лету в настройках, без перезапуска диалога. Покрытие — 221 pytest-тест (проблемы-генератор, UI, inline, уведомления) с testcontainers для реальной PostgreSQL."
     ],
     "en": [
-      "DotMathBot is a small standalone bot — no backend, no frontend. A single process, aiogram 3.15, SQLAlchemy 2 over aiosqlite or Redis. It drills multiplication and division across three levels × four modes.",
-      "Daily reminders and weekly challenges run via APScheduler in the same process; schedule entries persist in the database and survive restarts. Every user has a profile with progress, streaks and a place on the leaderboard.",
-      "Bilingual from the start: ru/en toggle on the fly without restarting the dialog. pytest covers question generation and answer checking logic."
+      "DotMathBot is a small standalone bot — no separate backend or frontend. A single aiogram 3.15 process, data in PostgreSQL through async SQLAlchemy and asyncpg, FSM state in Redis with a graceful in-memory fallback. The problem generator covers seven operation types across three difficulty levels.",
+      "The daily challenge is deterministic: the RNG seed is derived from the date, so every user gets the same problem set. Each user has a profile with progress, day-streaks, and a leaderboard place across four criteria (streak, solved, accuracy, points). Reminders and pg_dump backups run in-process on APScheduler.",
+      "Bilingual from the start: ru/en toggle on the fly in settings, without restarting the dialog. Covered by 221 pytest tests (problem generator, UI, inline, notifications) with testcontainers for a real PostgreSQL."
     ]
   },
   "metrics": [
+    {
+      "value": "7",
+      "label": {
+        "ru": "типов операций",
+        "en": "operation types"
+      }
+    },
     {
       "value": "3",
       "label": {
@@ -82,10 +90,10 @@
       }
     },
     {
-      "value": "4",
+      "value": "221",
       "label": {
-        "ru": "режима практики",
-        "en": "practice modes"
+        "ru": "pytest-теста",
+        "en": "pytest tests"
       }
     },
     {
@@ -94,52 +102,44 @@
         "ru": "языка с переключением на лету",
         "en": "languages, live switch"
       }
-    },
-    {
-      "value": "100",
-      "unit": "%",
-      "label": {
-        "ru": "async",
-        "en": "async"
-      }
     }
   ],
   "stackGroups": {
-    "language": ["Python 3.11+"],
-    "framework": ["aiogram 3.15", "SQLAlchemy 2", "APScheduler"],
-    "data": ["aiosqlite", "Redis"],
-    "infra": ["pydantic-settings", "Alembic"],
-    "client": ["Telegram bot API"]
+    "language": ["Python 3.12"],
+    "framework": ["aiogram 3.15", "SQLAlchemy 2", "APScheduler 3.10"],
+    "data": ["PostgreSQL 16", "Redis", "asyncpg"],
+    "infra": ["Alembic", "Docker", "pg_dump backups", "testcontainers"],
+    "client": ["Telegram Bot API"]
   },
   "architectureNodes": [
-    { "id": "tg", "x": 170, "y": 250, "label": "Telegram API", "icon": "telegram", "width": 160 },
+    { "id": "tg", "x": 160, "y": 250, "label": "Telegram API", "icon": "telegram", "width": 170 },
     {
       "id": "bot",
-      "x": 480,
+      "x": 470,
       "y": 250,
       "label": "DotMathBot",
       "icon": "stack",
       "emphasis": "strong",
-      "width": 180
+      "width": 190
     },
     {
       "id": "scheduler",
-      "x": 480,
+      "x": 470,
       "y": 440,
       "label": "APScheduler",
       "icon": "spark",
-      "width": 160
+      "width": 180
     },
-    { "id": "sqlite", "x": 770, "y": 180, "label": "aiosqlite", "icon": "dot", "width": 160 },
-    { "id": "redis", "x": 770, "y": 320, "label": "Redis", "icon": "dot", "width": 160 }
+    { "id": "pg", "x": 790, "y": 180, "label": "PostgreSQL 16", "icon": "dot", "width": 180 },
+    { "id": "redis", "x": 790, "y": 330, "label": "Redis · FSM", "icon": "dot", "width": 180 }
   ],
   "architectureEdges": [
     { "from": "tg", "to": "bot", "kind": "sync", "label": "Bot API" },
-    { "from": "bot", "to": "sqlite", "kind": "data" },
+    { "from": "bot", "to": "pg", "kind": "data" },
     { "from": "bot", "to": "redis", "kind": "data" },
-    { "from": "scheduler", "to": "bot", "kind": "async", "label": "tick" }
+    { "from": "scheduler", "to": "bot", "kind": "async", "label": "cron" }
   ],
-  "clusters": [{ "x": 670, "y": 110, "width": 220, "height": 270, "label": "Storage" }],
+  "clusters": [{ "x": 690, "y": 115, "width": 200, "height": 290, "label": "storage" }],
   "capabilities": [
     {
       "icon": "spark",
@@ -148,8 +148,8 @@
         "en": "Drills"
       },
       "description": {
-        "ru": "Three levels × four modes — от простых вопросов до быстрых серий и спринтов.",
-        "en": "Three levels × four modes — from simple questions to fast streaks and sprints."
+        "ru": "Семь типов операций (от сложения до степеней и корней) на трёх уровнях сложности, плюс быстрый старт с любимым режимом.",
+        "en": "Seven operation types (from addition to powers and roots) across three difficulty levels, plus a quick start with a favourite mode."
       }
     },
     {
@@ -159,19 +159,19 @@
         "en": "Profile & leaderboard"
       },
       "description": {
-        "ru": "Личный прогресс, серии дней, ТОП по очкам и точности.",
-        "en": "Personal progress, daily streaks, leaderboard by points and accuracy."
+        "ru": "Личный прогресс, серии дней и место в рейтинге по четырём критериям: стрик, решено, точность и взвешенные очки.",
+        "en": "Personal progress, day-streaks, and ranking across four criteria: streak, solved, accuracy, and weighted points."
       }
     },
     {
       "icon": "rocket",
       "title": {
-        "ru": "Расписание",
-        "en": "Schedule"
+        "ru": "Дейли и напоминания",
+        "en": "Daily & reminders"
       },
       "description": {
-        "ru": "Ежедневные напоминания через APScheduler с возможностью настроить время.",
-        "en": "Daily reminders via APScheduler with user-configurable time."
+        "ru": "Детерминированный ежедневный челлендж (один набор для всех) и настраиваемые напоминания через in-process APScheduler.",
+        "en": "A deterministic daily challenge (one set for everyone) and configurable reminders via in-process APScheduler."
       }
     },
     {
@@ -181,20 +181,20 @@
         "en": "RU + EN on the fly"
       },
       "description": {
-        "ru": "Полная локализация интерфейса бота, переключение без рестарта диалога.",
-        "en": "Full UI localization, switching mid-dialog without restart."
+        "ru": "Полная локализация интерфейса, переключение языка без рестарта диалога, плюс честный повтор ошибок без подсказки ответа.",
+        "en": "Full UI localization, language switch without restarting the dialog, plus a fair mistakes-retry that never reveals the answer."
       }
     }
   ],
   "engineeringChoices": [
     {
       "question": {
-        "ru": "Почему aiosqlite + Redis, а не Postgres?",
-        "en": "Why aiosqlite + Redis instead of Postgres?"
+        "ru": "Почему PostgreSQL, а не SQLite?",
+        "en": "Why PostgreSQL instead of SQLite?"
       },
       "answer": {
-        "ru": "Бот рассчитан на одного оператора и небольшую аудиторию. SQLite одного файла достаточно для всех данных профиля; Redis — только для кеша и расписания.",
-        "en": "The bot targets a single operator and a small audience. A single SQLite file handles all profile data; Redis is only for caching and scheduling."
+        "ru": "Проект мигрировал с SQLite на PostgreSQL ради конкурентного доступа и целостности данных при нескольких пользователях. Отдельный скрипт перенёс легаси-данные с сохранением внешних ключей, а pg_dump даёт надёжные бэкапы.",
+        "en": "The project migrated off SQLite to PostgreSQL for concurrent access and data integrity under multiple users. A dedicated script moved legacy data while preserving foreign keys, and pg_dump provides reliable backups."
       }
     },
     {
@@ -203,8 +203,18 @@
         "en": "Why in-process APScheduler instead of Celery?"
       },
       "answer": {
-        "ru": "Нет смысла поднимать брокер и воркера ради десятка пользователей. APScheduler решает то же — таймеры и cron — без внешних зависимостей.",
-        "en": "No reason to spin up a broker and worker for a handful of users. APScheduler covers the same ground — timers and cron — without external dependencies."
+        "ru": "Напоминания и бэкапы — это простые cron-задачи. AsyncIOScheduler живёт в том же event loop бота, а расписание восстанавливается из БД при старте — без брокера и отдельного воркера.",
+        "en": "Reminders and backups are simple cron jobs. AsyncIOScheduler lives in the bot's own event loop and the schedule is rebuilt from the database on startup — no broker, no separate worker."
+      }
+    },
+    {
+      "question": {
+        "ru": "Зачем детерминированный ежедневный челлендж?",
+        "en": "Why a deterministic daily challenge?"
+      },
+      "answer": {
+        "ru": "Зерно генератора выводится из даты, поэтому всем пользователям выпадает один и тот же набор задач — это делает лидерборд честным. RNG инжектируется, так что логика воспроизводима в тестах.",
+        "en": "The generator's seed is derived from the date, so every user gets the same problem set — which keeps the leaderboard fair. The RNG is injectable, so the logic is reproducible in tests."
       }
     }
   ],
@@ -216,8 +226,19 @@
         "en": "DotMathBot kickoff"
       },
       "description": {
-        "ru": "MVP с тремя уровнями, четырьмя режимами и базовой локализацией.",
-        "en": "MVP with three levels, four modes and basic localization."
+        "ru": "MVP: семь типов операций, три уровня, профиль и базовая локализация ru/en.",
+        "en": "MVP: seven operation types, three levels, a profile, and basic ru/en localization."
+      }
+    },
+    {
+      "date": "2026",
+      "title": {
+        "ru": "PostgreSQL и прод-обвязка",
+        "en": "PostgreSQL and production wiring"
+      },
+      "description": {
+        "ru": "Миграция SQLite → PostgreSQL, Redis FSM, Docker и CI, pg_dump-бэкапы и 221 тест на testcontainers.",
+        "en": "SQLite → PostgreSQL migration, Redis FSM, Docker and CI, pg_dump backups, and 221 tests on testcontainers."
       }
     }
   ]

@@ -10,8 +10,6 @@ const { locale } = Astro.props;
 const t = useTranslations(locale);
 
 const year = new Date().getFullYear();
-// Собираем URL репо сайта только если оба значения непустые. Иначе ссылка
-// в футере не рендерится — никакого мёртвого `github.com//` в HTML.
 const ghUser = config.PUBLIC_GITHUB_USER;
 const ghRepo = config.PUBLIC_GITHUB_REPO;
 const repoUrl = ghUser && ghRepo ? `https://github.com/${ghUser}/${ghRepo}` : "";
@@ -28,36 +26,24 @@ const brand = authorName(locale);
         <span class="footer__brand-year">© {year}. {t("footer.rights")}</span>
       </div>
 
-      <div class="footer__meta">
-        {
-          repoUrl && (
-            <>
-              <a href={repoUrl} target="_blank" rel="noopener noreferrer" class="footer__link">
-                <Icon name="github" size={14} />
-                <span>{t("footer.sourceCode")}</span>
-              </a>
-              <span class="footer__sep" aria-hidden="true">
-                ·
-              </span>
-            </>
-          )
-        }
-        <a
-          href="https://astro.build"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="footer__link"
-        >
-          <Icon name="spark" size={14} />
-          <span>{t("footer.builtWith")}</span>
-        </a>
-      </div>
+      {
+        repoUrl && (
+          <div class="footer__meta">
+            <a href={repoUrl} target="_blank" rel="noopener noreferrer" class="footer__link">
+              <Icon name="github" size={14} />
+              <span>{t("footer.sourceCode")}</span>
+            </a>
+          </div>
+        )
+      }
     </div>
   </div>
 </footer>
 
 <style>
   .footer {
+    position: relative;
+    z-index: 1;
     border-top: var(--bw-thin) solid var(--border);
     padding-block: var(--sp-6) calc(var(--sp-7) + env(safe-area-inset-bottom));
     margin-block-start: var(--sp-8);
@@ -70,8 +56,6 @@ const brand = authorName(locale);
   }
 
   .footer__cta {
-    /* Was --text-faint (#3a3a3a) — failed WCAG AA on dark bg (contrast 1.74).
-       Bumped to --text-secondary for 4.5:1+ readability. */
     color: var(--text-secondary);
     letter-spacing: var(--ls-wide);
   }
@@ -97,7 +81,6 @@ const brand = authorName(locale);
   }
 
   .footer__brand-year {
-    /* Was --text-muted (#5a5a5a) — contrast 2.87 fails AA. */
     color: var(--text-secondary);
     font-size: var(--fs-12);
     letter-spacing: var(--ls-wide);
@@ -123,10 +106,6 @@ const brand = authorName(locale);
   .footer__link:hover {
     color: var(--text);
     opacity: 1;
-  }
-
-  .footer__sep {
-    color: var(--text-faint);
   }
 
   @media (min-width: 720px) {

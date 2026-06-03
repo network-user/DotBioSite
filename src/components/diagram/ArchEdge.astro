@@ -2,15 +2,18 @@
 /**
  * ArchEdge.astro — ребро архитектурной диаграммы.
  *
- * Тонкая SVG-линия между двумя точками (центрами узлов с учётом радиуса
- * капсулы). Три kind'а отличаются паттерном штриха:
- *   sync  → сплошная линия
- *   async → длинный dash (анимированный stroke-dashoffset)
- *   data  → короткий dot-dash (анимированный поток)
+ * Гладкая кубическая кривая между двумя точками-якорями (на краю капсул).
+ * Контрольные точки уходят вдоль доминантной оси (горизонталь для потоков
+ * слева-направо, вертикаль для «сверху-вниз»), поэтому линия выходит из узла
+ * ровно по нормали и плавно подходит к цели — без острых углов и пересечений.
  *
- * Линия рисуется как простой L-сегмент с автоматическим обходом — без
- * умных curves. Это намеренно: для портфолио-визуала важнее аккуратность,
- * чем универсальный graph router.
+ * Три kind'а отличаются паттерном и оттенком штриха:
+ *   sync  → сплошная линия (нейтраль с лёгким акцентом)
+ *   async → длинный dash в цвете акцента (анимированный поток)
+ *   data  → мелкий dot-dash, приглушённый (анимированный поток)
+ *
+ * Наконечник — залитый треугольник, ориентированный по касательной к концу
+ * кривой (направление c2 → to), поэтому всегда смотрит «в узел».
  */
 
 type EdgeKind = "sync" | "async" | "data";
@@ -25,44 +28,52 @@ interface Props {
   to: Point;
   kind?: EdgeKind;
   label?: string;
-  /** Горизонтальная «ступенька» (in px) если перепад по Y существенный. */
+  /** Сохранён для обратной совместимости API; при гладком роутинге не нужен. */
   bend?: number;
   class?: string;
 }
 
-const { from, to, kind = "sync", label, bend = 0, class: className = "" } = Astro.props;
+const { from, to, kind = "sync", label, class: className = "" } = Astro.props;
 
 const dx = to.x - from.x;
 const dy = to.y - from.y;
+const horizontal = Math.abs(dx) >= Math.abs(dy);
 
-const path =
-  bend !== 0 && Math.abs(dy) > 8
-    ? `M ${from.x} ${from.y} L ${from.x + bend} ${from.y} L ${from.x + bend} ${to.y} L ${to.x} ${to.y}`
-    : `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
+// Вынос контрольной точки вдоль доминантной оси. Ограничен сверху, чтобы кривые
+// оставались спокойными, и снизу, чтобы у коротких рёбер был хоть какой-то изгиб.
+const reach = horizontal ? Math.abs(dx) : Math.abs(dy);
+const k = Math.min(96, Math.max(26, reach * 0.45));
 
-const labelX = from.x + dx / 2;
-const labelY = from.y + dy / 2 - 6;
+const sx = Math.sign(dx || 1);
+const sy = Math.sign(dy || 1);
+
+const c1 = horizontal ? { x: from.x + sx * k, y: from.y } : { x: from.x, y: from.y + sy * k };
+const c2 = horizontal ? { x: to.x - sx * k, y: to.y } : { x: to.x, y: to.y - sy * k };
+
+const path = `M ${from.x} ${from.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${to.x} ${to.y}`;
+
+// Наконечник: ориентация = касательная в конце кривой ≈ направление c2 → to.
+const angle = Math.atan2(to.y - c2.y, to.x - c2.x);
+const head = 7.5;
+const wing = head * 0.6;
+const back = { x: to.x - Math.cos(angle) * head, y: to.y - Math.sin(angle) * head };
+const ax = back.x + Math.sin(angle) * wing;
+const ay = back.y - Math.cos(angle) * wing;
+const bx = back.x - Math.sin(angle) * wing;
+const by = back.y + Math.cos(angle) * wing;
+
+// Точка t=0.5 кубической кривой (для подписи).
+const midX = 0.125 * from.x + 0.375 * c1.x + 0.375 * c2.x + 0.125 * to.x;
+const midY = 0.125 * from.y + 0.375 * c1.y + 0.375 * c2.y + 0.125 * to.y;
 ---
 
 <g class:list={["arch-edge", `arch-edge--${kind}`, className]}>
+  <path d={path} class="arch-edge__halo"></path>
   <path d={path} class="arch-edge__path"></path>
-  {
-    /* arrow head */
-    (() => {
-      const angle = Math.atan2(dy, dx);
-      const head = 6;
-      const hx = to.x - Math.cos(angle) * 2;
-      const hy = to.y - Math.sin(angle) * 2;
-      const ax = hx - Math.cos(angle) * head + Math.sin(angle) * (head * 0.55);
-      const ay = hy - Math.sin(angle) * head - Math.cos(angle) * (head * 0.55);
-      const bx = hx - Math.cos(angle) * head - Math.sin(angle) * (head * 0.55);
-      const by = hy - Math.sin(angle) * head + Math.cos(angle) * (head * 0.55);
-      return <polyline points={`${ax},${ay} ${hx},${hy} ${bx},${by}`} class="arch-edge__head" />;
-    })()
-  }
+  <polygon points={`${to.x},${to.y} ${ax},${ay} ${bx},${by}`} class="arch-edge__head"></polygon>
   {
     label && (
-      <text x={labelX} y={labelY} text-anchor="middle" class="arch-edge__label">
+      <text x={midX} y={midY - 7} text-anchor="middle" class="arch-edge__label">
         {label}
       </text>
     )
@@ -70,34 +81,56 @@ const labelY = from.y + dy / 2 - 6;
 </g>
 
 <style>
+  /* Faint wider underlay — gives the thin line a touch of depth on dark glass. */
+  .arch-edge__halo {
+    fill: none;
+    stroke: var(--bg-deep);
+    stroke-width: 4;
+    stroke-linecap: round;
+    opacity: 0.5;
+  }
+
   .arch-edge__path {
     fill: none;
     stroke: var(--text-muted);
-    stroke-width: 1;
+    stroke-width: 1.5;
     stroke-linecap: round;
     stroke-linejoin: round;
   }
 
   .arch-edge__head {
-    fill: none;
-    stroke: var(--text-muted);
-    stroke-width: 1;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+    stroke: none;
+    fill: var(--text-muted);
   }
 
+  /* sync — solid, neutral with a whisper of the project accent. */
+  .arch-edge--sync .arch-edge__path,
+  .arch-edge--sync .arch-edge__head {
+    stroke: none;
+  }
   .arch-edge--sync .arch-edge__path {
-    stroke-dasharray: none;
+    stroke: color-mix(in srgb, var(--text-secondary) 78%, var(--project-accent));
+    fill: none;
+  }
+  .arch-edge--sync .arch-edge__head {
+    fill: color-mix(in srgb, var(--text-secondary) 78%, var(--project-accent));
   }
 
+  /* async — accent-tinted dashed flow (the "special" transport: pull / spawn / cron). */
   .arch-edge--async .arch-edge__path {
-    stroke-dasharray: 8 6;
+    stroke: color-mix(in srgb, var(--project-accent) 68%, var(--text-secondary));
+    stroke-dasharray: 7 7;
     animation: edge-flow-async 12s linear infinite;
   }
+  .arch-edge--async .arch-edge__head {
+    fill: color-mix(in srgb, var(--project-accent) 68%, var(--text-secondary));
+  }
 
+  /* data — muted fine dot-dash, gentle flow toward the store. */
   .arch-edge--data .arch-edge__path {
-    stroke-dasharray: 2 4;
-    animation: edge-flow-data 8s linear infinite;
+    stroke: var(--text-muted);
+    stroke-dasharray: 1.5 5;
+    animation: edge-flow-data 9s linear infinite;
   }
 
   .arch-edge__label {
@@ -120,7 +153,7 @@ const labelY = from.y + dy / 2 - 6;
 
   @keyframes edge-flow-data {
     to {
-      stroke-dashoffset: -36;
+      stroke-dashoffset: -39;
     }
   }
 

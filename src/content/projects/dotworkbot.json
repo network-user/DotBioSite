@@ -14,21 +14,21 @@
     "en": "Telegram bot for on-demand workforce coordination."
   },
   "description": {
-    "ru": "Telegram-платформа для разовых заказов: работники регистрируются и берут смены, работодатели создают заказы, администраторы управляют пользователями, паспортами и заказами. Внутри — aiogram, PostgreSQL, Redis/FSM, Alembic, Docker, taskiq и эксплуатационные сценарии для VPS.",
-    "en": "A Telegram platform for one-off work orders: workers register and take shifts, employers create orders, administrators manage users, passports, and orders. Inside: aiogram, PostgreSQL, Redis/FSM, Alembic, Docker, taskiq, and VPS operation scripts."
+    "ru": "Telegram-платформа для разовых смен: работники регистрируются и берут заказы, работодатели публикуют их, администраторы управляют пользователями и заказами. Внутри — aiogram, PostgreSQL, Redis/FSM, отдельный taskiq-воркер для операционного контроля (подтверждения выхода, авто-релиз и авто-закрытие), фото заказов в MinIO/S3 и шифрованные бэкапы с авто-деплоем на VPS.",
+    "en": "A Telegram platform for one-off shifts: workers register and take orders, employers publish them, administrators manage users and orders. Inside: aiogram, PostgreSQL, Redis/FSM, a dedicated taskiq worker for operational control (departure confirmations, auto-release and auto-close), order photos in MinIO/S3, and encrypted backups with VPS auto-deploy."
   },
   "stack": [
-    "Python 3.11+",
-    "aiogram 3",
-    "PostgreSQL",
+    "Python 3.12",
+    "aiogram 3.27",
+    "PostgreSQL 16",
     "SQLAlchemy 2",
     "Redis",
-    "Alembic",
     "taskiq",
     "MinIO",
-    "Docker",
+    "Alembic",
+    "asyncpg",
     "structlog",
-    "pytest"
+    "Docker"
   ],
   "category": "bot",
   "status": "active",
@@ -66,14 +66,14 @@
   ],
   "overview": {
     "ru": [
-      "DotWorkBot — Telegram-бот для операционной модели «работодатель публикует заказ, работник берёт смену, администратор контролирует качество и доступ». Проект закрывает регистрацию, роли, заказы, паспортную проверку, уведомления и базовую эксплуатацию.",
-      "Внутри — асинхронный aiogram 3, PostgreSQL через SQLAlchemy 2, Redis для FSM, Alembic для миграций и Docker Compose для окружения. Для файлов заказов и документов предусмотрен MinIO/S3-совместимый слой.",
-      "Проект рассчитан на продакшен-MVP: есть deploy-документация для VPS, backup-сценарии, throttling, бан-проверки, service-layer уведомлений и тесты на обработчики, фильтры, middleware, модели и сервисы."
+      "DotWorkBot — Telegram-бот для модели «работодатель публикует заказ, работник берёт смену, администратор контролирует доступ и качество». Проект закрывает регистрацию через FSM, роли, заказы с мульти-слотовыми назначениями, уведомления и эксплуатацию.",
+      "Бот на async-aiogram 3 работает с PostgreSQL через SQLAlchemy 2 и asyncpg; Redis держит FSM-состояние, троттлинг и распределённую блокировку. Фотографии заказов уходят в MinIO/S3, а отдельный taskiq-воркер крутит операционный контроль: напоминания о выходе, авто-релиз неподтверждённых работников и авто-закрытие просроченных заказов.",
+      "Проект рассчитан на продакшен-MVP: Docker Compose, миграции при старте, авто-деплой на VPS с health-rollback, AES-зашифрованные бэкапы (pg_dump + зеркало бакета MinIO) и 67 тестов на хендлеры, фильтры, middleware, модели и сервисы."
     ],
     "en": [
-      "DotWorkBot is a Telegram bot for the operating model where an employer publishes an order, a worker takes a shift, and an administrator controls quality and access. The project covers registration, roles, orders, passport review, notifications, and basic operations.",
-      "Inside: async aiogram 3, PostgreSQL through SQLAlchemy 2, Redis for FSM, Alembic migrations, and Docker Compose for the environment. Order photos and documents use a MinIO/S3-compatible layer.",
-      "The project targets a production-ready MVP: VPS deploy docs, backup scripts, throttling, ban checks, service-layer notifications, and tests for handlers, filters, middleware, models, and services."
+      "DotWorkBot is a Telegram bot for the model where an employer publishes an order, a worker takes a shift, and an administrator controls access and quality. It covers FSM-driven registration, roles, orders with multi-slot assignments, notifications, and operations.",
+      "The async aiogram 3 bot works with PostgreSQL through SQLAlchemy 2 and asyncpg; Redis holds FSM state, throttling, and a distributed lock. Order photos go to MinIO/S3, and a dedicated taskiq worker runs operational control: departure reminders, auto-release of unconfirmed workers, and auto-close of expired orders.",
+      "The project targets a production-ready MVP: Docker Compose, startup migrations, VPS auto-deploy with health rollback, AES-encrypted backups (pg_dump + a mirror of the MinIO bucket), and 67 tests over handlers, filters, middleware, models, and services."
     ]
   },
   "metrics": [
@@ -99,18 +99,18 @@
       }
     },
     {
-      "value": "S3",
+      "value": "16",
       "label": {
-        "ru": "файлы заказов",
-        "en": "order files"
+        "ru": "роутеров хендлеров",
+        "en": "handler routers"
       }
     }
   ],
   "stackGroups": {
-    "language": ["Python 3.11+"],
-    "framework": ["aiogram 3", "SQLAlchemy 2", "pydantic-settings", "structlog"],
-    "data": ["PostgreSQL", "Redis", "MinIO"],
-    "infra": ["Docker", "Docker Compose", "Alembic", "taskiq"],
+    "language": ["Python 3.12"],
+    "framework": ["aiogram 3.27", "SQLAlchemy 2", "pydantic-settings", "structlog"],
+    "data": ["PostgreSQL 16", "Redis", "MinIO / S3"],
+    "infra": ["Docker Compose", "Alembic", "taskiq", "pyzipper backups"],
     "client": ["Telegram Bot API", "reply keyboards", "inline keyboards"]
   },
   "architectureNodes": [
@@ -124,44 +124,44 @@
     },
     {
       "id": "bot",
-      "x": 390,
+      "x": 370,
       "y": 270,
       "label": "aiogram bot",
       "icon": "stack",
       "emphasis": "strong",
-      "width": 170
+      "width": 180
     },
     {
       "id": "pg",
-      "x": 670,
-      "y": 150,
-      "label": "PostgreSQL",
+      "x": 620,
+      "y": 140,
+      "label": "PostgreSQL 16",
       "icon": "dot",
-      "width": 160
+      "width": 170
     },
     {
       "id": "redis",
-      "x": 670,
-      "y": 270,
-      "label": "Redis FSM",
+      "x": 620,
+      "y": 280,
+      "label": "Redis · FSM",
       "icon": "dot",
-      "width": 160
+      "width": 170
     },
     {
       "id": "minio",
-      "x": 670,
-      "y": 390,
-      "label": "MinIO",
+      "x": 620,
+      "y": 420,
+      "label": "MinIO · S3",
       "icon": "dot",
-      "width": 160
+      "width": 170
     },
     {
       "id": "worker",
       "x": 850,
-      "y": 270,
+      "y": 280,
       "label": "taskiq worker",
       "icon": "rocket",
-      "width": 160
+      "width": 170
     }
   ],
   "architectureEdges": [
@@ -188,17 +188,22 @@
     },
     {
       "from": "worker",
-      "to": "bot",
+      "to": "pg",
+      "kind": "data"
+    },
+    {
+      "from": "worker",
+      "to": "redis",
       "kind": "async",
-      "label": "jobs"
+      "label": "lock"
     }
   ],
   "clusters": [
     {
-      "x": 585,
+      "x": 525,
       "y": 90,
-      "width": 180,
-      "height": 360,
+      "width": 190,
+      "height": 400,
       "label": "storage"
     }
   ],
@@ -210,8 +215,8 @@
         "en": "Roles and flows"
       },
       "description": {
-        "ru": "Worker, employer и admin получают разные меню, фильтры доступа и сценарии действий.",
-        "en": "Worker, employer, and admin receive separate menus, access filters, and action flows."
+        "ru": "Worker, employer и admin получают разные меню и фильтры доступа; регистрация работника — пошаговый FSM с телефоном, городом и геолокацией.",
+        "en": "Worker, employer, and admin get separate menus and access filters; worker sign-up is a step-by-step FSM with phone, city, and geolocation."
       }
     },
     {
@@ -221,30 +226,52 @@
         "en": "Orders and shifts"
       },
       "description": {
-        "ru": "Создание заказа, просмотр открытых смен, взятие в работу, статусы и уведомления участникам.",
-        "en": "Order creation, browsing open shifts, taking work, statuses, and participant notifications."
+        "ru": "Создание заказа, мульти-слотовые назначения, жизненный цикл open → in_progress → completed/cancelled и уведомления всем участникам.",
+        "en": "Order creation, multi-slot assignments, an open → in_progress → completed/cancelled lifecycle, and notifications to all participants."
       }
     },
     {
       "icon": "spark",
       "title": {
-        "ru": "Паспортная проверка",
-        "en": "Passport review"
+        "ru": "Операционный контроль",
+        "en": "Operational control"
       },
       "description": {
-        "ru": "Загрузка документов, админская модерация, approve/reject и статус допуска работника.",
-        "en": "Document upload, admin moderation, approve/reject, and worker access status."
+        "ru": "taskiq-воркер шлёт напоминания о выходе, релизит неподтверждённых работников и автоматически закрывает просроченные заказы.",
+        "en": "The taskiq worker sends departure reminders, releases unconfirmed workers, and automatically closes expired orders."
+      }
+    },
+    {
+      "icon": "telegram",
+      "title": {
+        "ru": "Уведомления и троттлинг",
+        "en": "Notifications and throttling"
+      },
+      "description": {
+        "ru": "Рассылка новых заказов с таргетингом по городу и дедупом, админ-рассылки, плюс rate-limit и бан-проверки в middleware.",
+        "en": "New-order broadcasts targeted by city with dedup, admin broadcasts, plus rate-limiting and ban checks in middleware."
       }
     },
     {
       "icon": "rocket",
       "title": {
-        "ru": "Deploy-ready MVP",
-        "en": "Deploy-ready MVP"
+        "ru": "Бэкапы и деплой",
+        "en": "Backups and deploy"
       },
       "description": {
-        "ru": "Docker Compose, миграции при старте, VPS deploy scripts и backup-документация.",
-        "en": "Docker Compose, startup migrations, VPS deploy scripts, and backup documentation."
+        "ru": "AES-зашифрованные бэкапы (pg_dump + зеркало бакета MinIO), restore-скрипты и авто-деплой на VPS с health-rollback.",
+        "en": "AES-encrypted backups (pg_dump + a mirror of the MinIO bucket), restore scripts, and VPS auto-deploy with health rollback."
+      }
+    },
+    {
+      "icon": "globe",
+      "title": {
+        "ru": "Рейтинги и хранилище",
+        "en": "Ratings and storage"
+      },
+      "description": {
+        "ru": "Оценки работников в отдельной модели и фотографии заказов в S3-совместимом хранилище — большие бинарники вне реляционной БД.",
+        "en": "Worker ratings in a dedicated model and order photos in S3-compatible storage — large binaries kept out of the relational DB."
       }
     }
   ],
@@ -255,8 +282,8 @@
         "en": "Why a Telegram bot instead of a standalone web app?"
       },
       "answer": {
-        "ru": "Для разовых смен важны быстрые уведомления, низкий onboarding и привычный мобильный интерфейс. Telegram закрывает вход, меню и push-канал без отдельного приложения.",
-        "en": "For one-off shifts, fast notifications, low onboarding friction, and a familiar mobile UI matter. Telegram covers entry, menus, and push delivery without a separate app."
+        "ru": "Для разовых смен важны быстрые уведомления, низкий onboarding и привычный мобильный интерфейс. Telegram закрывает вход, меню и push-канал без отдельного приложения и установки.",
+        "en": "For one-off shifts, fast notifications, low onboarding friction, and a familiar mobile UI matter. Telegram covers entry, menus, and push delivery without a separate app or install."
       }
     },
     {
@@ -265,8 +292,28 @@
         "en": "Why PostgreSQL + Redis + MinIO for a bot?"
       },
       "answer": {
-        "ru": "Пользователи, заказы, статусы и аудит требуют нормальной реляционной модели; FSM лучше вынести в Redis, а фотографии и документы держать в S3-совместимом хранилище.",
-        "en": "Users, orders, statuses, and audit need a proper relational model; FSM belongs in Redis, while photos and documents fit an S3-compatible object store."
+        "ru": "Пользователи, заказы и статусы требуют нормальной реляционной модели с ограничениями и индексами; эфемерный FSM, троттлинг и блокировки лучше держать в Redis, а фотографии заказов — в S3-совместимом хранилище отдельно от БД.",
+        "en": "Users, orders, and statuses need a proper relational model with constraints and indexes; ephemeral FSM, throttling, and locks belong in Redis, while order photos fit an S3-compatible store kept out of the DB."
+      }
+    },
+    {
+      "question": {
+        "ru": "Зачем отдельный taskiq-воркер с лидер-локом?",
+        "en": "Why a separate taskiq worker with a leader-lock?"
+      },
+      "answer": {
+        "ru": "Фоновые циклы (подтверждения, закрытие заказов, бэкапы) должны выполняться ровно один раз даже при нескольких репликах. Redis-лок `SET nx ex` гарантирует единственного лидера, а воркер изолирован от polling-процесса бота.",
+        "en": "Background loops (confirmations, order closing, backups) must run exactly once even with multiple replicas. A Redis `SET nx ex` lock guarantees a single leader, and the worker is isolated from the bot's polling process."
+      }
+    },
+    {
+      "question": {
+        "ru": "Почему S3-совместимая абстракция, а не жёсткий MinIO?",
+        "en": "Why an S3-compatible abstraction instead of hard-wired MinIO?"
+      },
+      "answer": {
+        "ru": "Конфиг предпочитает `S3_*` над `MINIO_*`, поэтому один и тот же код целится в self-hosted MinIO локально или во внешний S3 в проде — и позволяет хранить офсайт-бэкапы в другом регионе.",
+        "en": "Config prefers `S3_*` over `MINIO_*`, so the same code targets self-hosted MinIO locally or external S3 in production — and enables off-site backups in another region."
       }
     }
   ],
@@ -278,19 +325,19 @@
         "en": "Roles and orders MVP"
       },
       "description": {
-        "ru": "Worker/employer/admin flows, PostgreSQL-модель, базовые handlers и keyboards.",
-        "en": "Worker/employer/admin flows, PostgreSQL model, core handlers, and keyboards."
+        "ru": "Worker/employer/admin flows, PostgreSQL-модель, FSM-регистрация, заказы и мульти-слотовые смены.",
+        "en": "Worker/employer/admin flows, PostgreSQL model, FSM registration, orders, and multi-slot shifts."
       }
     },
     {
       "date": "2026",
       "title": {
-        "ru": "Эксплуатационный слой",
-        "en": "Operations layer"
+        "ru": "Операционный и эксплуатационный слой",
+        "en": "Operational and ops layer"
       },
       "description": {
-        "ru": "Docker, deploy scripts, backup docs, MinIO-файлы, throttling и расширенное тестовое покрытие.",
-        "en": "Docker, deploy scripts, backup docs, MinIO files, throttling, and broader tests."
+        "ru": "taskiq-контроль смен, шифрованные бэкапы, фото в MinIO, троттлинг, авто-деплой на VPS и 67 тестов.",
+        "en": "taskiq shift control, encrypted backups, MinIO photos, throttling, VPS auto-deploy, and 67 tests."
       }
     }
   ]

@@ -170,11 +170,14 @@ const subtitle = t("hero.subtitle");
     box-shadow:
       0 0 0 8px rgba(255, 255, 255, 0.035),
       0 0 40px rgba(255, 255, 255, 0.16);
+    animation: hero-float 8s var(--ease-standard) infinite alternate;
+    will-change: transform;
   }
 
   .hero__node--a {
     top: 24%;
     left: 12%;
+    animation-duration: 9s;
   }
 
   .hero__node--b {
@@ -182,6 +185,8 @@ const subtitle = t("hero.subtitle");
     left: 72%;
     width: 18px;
     height: 18px;
+    animation-duration: 11s;
+    animation-delay: -3s;
   }
 
   .hero__node--c {
@@ -189,11 +194,30 @@ const subtitle = t("hero.subtitle");
     left: 28%;
     width: 9px;
     height: 9px;
+    animation-duration: 7s;
+    animation-delay: -1.5s;
   }
 
   .hero__node--d {
     top: 78%;
     left: 76%;
+    animation-duration: 10s;
+    animation-delay: -4s;
+  }
+
+  @keyframes hero-float {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(8px, -12px, 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__node {
+      animation: none;
+    }
   }
 
   .hero__inner {
@@ -254,29 +278,10 @@ const subtitle = t("hero.subtitle");
     gap: var(--sp-2);
     color: var(--text-muted);
     z-index: 2;
-    animation: scrollPulse 2.4s var(--ease-soft) infinite;
   }
 
   .hero__scroll-cue:hover {
     color: var(--text-secondary);
-  }
-
-  @keyframes scrollPulse {
-    0%,
-    100% {
-      transform: translate(-50%, 0);
-      opacity: 0.4;
-    }
-    50% {
-      transform: translate(-50%, 6px);
-      opacity: 1;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .hero__scroll-cue {
-      animation: none;
-    }
   }
 
   @media (max-width: 479px) {

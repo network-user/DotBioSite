@@ -33,42 +33,13 @@ const isFeatured = index === 0;
 ---
 
 <article
-  class:list={[
-    "project-card glass glass--spotlight glass--hover glass--bordered",
-    { "project-card--featured": isFeatured },
-  ]}
+  class:list={["project-card glass", { "project-card--featured": isFeatured }]}
   data-reveal
   data-reveal-delay={index * 80}
-  data-spotlight
+  data-tilt
   aria-labelledby={`project-${p.slug}-title`}
   style={`--project-accent: ${accent};`}
 >
-  <span class="project-card__accent-line" aria-hidden="true"></span>
-
-  <header class="project-card__head">
-    <div class="project-card__eyebrow">
-      <span class="project-card__category eyebrow">
-        {t(`projects.category.${p.category}`)}
-      </span>
-      <span class={`project-card__status project-card__status--${p.status}`}>
-        <Icon name="dot" size={10} />
-        <span>{t(`projects.status.${p.status}`)}</span>
-      </span>
-    </div>
-
-    <h3
-      class="project-card__brand display"
-      id={`project-${p.slug}-title`}
-      style={`view-transition-name: project-${p.slug}-brand;`}
-    >
-      {brand}
-    </h3>
-    <p class="project-card__name caption">{name}</p>
-    <p class="project-card__tagline subtitle">{tagline}</p>
-  </header>
-
-  <p class="project-card__desc body">{desc}</p>
-
   {
     p.cover && (
       <a href={caseHref} class="project-card__media" aria-label={t("projects.viewProject")}>
@@ -82,9 +53,41 @@ const isFeatured = index === 0;
           height="900"
         />
         <span class="project-card__media-glow" aria-hidden="true" />
+        <span class="project-card__media-status" aria-hidden="true">
+          <Icon name="dot" size={10} />
+          <span>{t(`projects.status.${p.status}`)}</span>
+        </span>
       </a>
     )
   }
+
+  <header class="project-card__head">
+    <div class="project-card__eyebrow">
+      <span class="project-card__category eyebrow">
+        {t(`projects.category.${p.category}`)}
+      </span>
+      <span
+        class={`project-card__status project-card__status--${p.status}`}
+        aria-hidden={p.cover ? "true" : undefined}
+      >
+        <Icon name="dot" size={10} />
+        <span>{t(`projects.status.${p.status}`)}</span>
+      </span>
+    </div>
+
+    <h3
+      class="project-card__brand display"
+      id={`project-${p.slug}-title`}
+      data-text={brand}
+      style={`view-transition-name: project-${p.slug}-brand;`}
+    >
+      {brand}
+    </h3>
+    <p class="project-card__name caption">{name}</p>
+    <p class="project-card__tagline subtitle">{tagline}</p>
+  </header>
+
+  <p class="project-card__desc body">{desc}</p>
 
   {
     highlights.length > 0 && (
@@ -157,48 +160,170 @@ const isFeatured = index === 0;
 </article>
 
 <style>
+  /* =====================================================================
+   * Project card — single liquid-glass pane.
+   *
+   * Apple-dark direction: one cohesive frosted surface (backdrop-filter via
+   * .glass) instead of nested bordered boxes. Monochrome typography with the
+   * project accent used only as a whisper (corner wash, status dot, hover ring,
+   * cover glow). 3D is kept but subtle: the whole pane tilts toward the pointer
+   * (set by [data-tilt] JS in Projects.astro) with a pointer-following sheen.
+   * ===================================================================== */
   .project-card {
-    padding: var(--sp-5);
-    display: flex;
-    flex-direction: column;
+    --pad: clamp(18px, 4vw, 30px);
+    --tilt-x: 0deg;
+    --tilt-y: 0deg;
+    position: relative;
+    display: grid;
+    grid-template-areas:
+      "media"
+      "head"
+      "desc"
+      "highlights"
+      "stack"
+      "repos"
+      "actions";
     gap: var(--sp-4);
-    min-height: auto;
-    border-radius: var(--r-xl);
+    padding: var(--pad);
+    border-radius: var(--r-2xl);
+    background:
+      radial-gradient(
+        130% 90% at 0% 0%,
+        color-mix(in srgb, var(--project-accent) 9%, transparent),
+        transparent 56%
+      ),
+      var(--glass-tint-1);
+    border: var(--bw-thin) solid var(--glass-edge);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 18px 48px rgba(0, 0, 0, 0.42);
+    transform: perspective(1400px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
+    transform-style: preserve-3d;
     transition:
       transform var(--dur-med) var(--ease-soft),
       border-color var(--dur-med) var(--ease-standard),
       box-shadow var(--dur-med) var(--ease-standard);
   }
 
-  .project-card__accent-line {
+  /* Brighter top-shine for the glass on these large surfaces. */
+  .project-card.glass::before {
+    background: var(--glass-top-shine);
+    opacity: 0.9;
+  }
+
+  /* Pointer-following sheen — sits over the glass, under the text (z-index 0,
+     same plane as .glass::before; .glass > * content is bumped to z-index 1). */
+  .project-card::after {
+    content: "";
     position: absolute;
-    top: 0;
-    left: var(--sp-5);
-    right: var(--sp-5);
-    height: 1px;
-    z-index: 2;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      color-mix(in srgb, var(--project-accent) 58%, rgba(255, 255, 255, 0.5)),
-      transparent
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(
+      460px circle at var(--mx, 50%) var(--my, 0%),
+      rgba(255, 255, 255, 0.1),
+      transparent 60%
     );
-    opacity: 0.72;
+    opacity: 0;
+    transition: opacity var(--dur-med) var(--ease-standard);
   }
 
-  .project-card:hover {
-    transform: translateY(-2px) scale(1.005);
-    border-color: color-mix(in srgb, var(--project-accent) 35%, var(--border-hover));
+  .project-card:hover,
+  .project-card:focus-within {
+    border-color: var(--glass-edge-bright);
     box-shadow:
-      var(--shadow-3),
-      0 0 80px color-mix(in srgb, var(--project-accent) 12%, transparent);
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 30px 72px rgba(0, 0, 0, 0.52),
+      0 0 0 1px color-mix(in srgb, var(--project-accent) 22%, transparent);
   }
 
+  .project-card:hover::after,
+  .project-card:focus-within::after {
+    opacity: 1;
+  }
+
+  /* ---------- Cover ---------- */
+  .project-card__media {
+    position: relative;
+    display: block;
+    grid-area: media;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--r-xl);
+    overflow: hidden;
+    border: var(--bw-thin) solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-elevated);
+    isolation: isolate;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+
+  .project-card__cover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--dur-slow) var(--ease-soft);
+  }
+
+  .project-card:hover .project-card__cover {
+    transform: scale(1.04);
+  }
+
+  /* Accent glow rising from the base of the cover — the one place colour leans in. */
+  .project-card__media-glow {
+    position: absolute;
+    inset: auto 0 0;
+    height: 56%;
+    pointer-events: none;
+    background: linear-gradient(
+      to top,
+      color-mix(in srgb, var(--project-accent) 30%, transparent),
+      transparent 86%
+    );
+    opacity: 0.7;
+    z-index: 1;
+  }
+
+  .project-card__media::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+
+  .project-card__media-status {
+    position: absolute;
+    top: var(--sp-3);
+    right: var(--sp-3);
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-1);
+    padding: var(--sp-1) var(--sp-3);
+    border: var(--bw-thin) solid rgba(255, 255, 255, 0.18);
+    border-radius: var(--r-pill);
+    background: rgba(5, 6, 8, 0.5);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    color: var(--text);
+    font-size: var(--fs-11);
+    font-weight: var(--fw-medium);
+    text-transform: lowercase;
+  }
+
+  .project-card__media-status :global(svg) {
+    color: var(--project-accent);
+  }
+
+  /* ---------- Head ---------- */
   .project-card__head {
+    grid-area: head;
     display: flex;
     flex-direction: column;
     gap: var(--sp-2);
-    grid-area: head;
+    min-width: 0;
   }
 
   .project-card__eyebrow {
@@ -207,7 +332,6 @@ const isFeatured = index === 0;
     justify-content: space-between;
     gap: var(--sp-3);
     flex-wrap: wrap;
-    margin-block-end: var(--sp-2);
   }
 
   .project-card__category {
@@ -221,10 +345,15 @@ const isFeatured = index === 0;
     font-size: var(--fs-11);
     font-weight: var(--fw-medium);
     text-transform: lowercase;
-    letter-spacing: var(--ls-wide);
-    padding: var(--sp-1) var(--sp-2);
+    padding: 2px var(--sp-2);
     border-radius: var(--r-pill);
-    border: var(--bw-thin) solid var(--border);
+    border: var(--bw-thin) solid color-mix(in srgb, currentColor 30%, var(--border));
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  /* When a cover already shows the status pill, hide the duplicate in the head. */
+  .project-card__media ~ .project-card__head .project-card__status {
+    display: none;
   }
 
   .project-card__status--active {
@@ -241,96 +370,69 @@ const isFeatured = index === 0;
   }
 
   .project-card__brand {
-    font-size: var(--fs-40);
-    line-height: 0.95;
-    letter-spacing: var(--ls-display);
+    font-size: var(--fs-32);
+    line-height: 1;
+    color: var(--text);
+    background: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.74) 130%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    width: fit-content;
+    max-width: 100%;
   }
 
   .project-card__name {
-    color: var(--text-secondary);
+    color: var(--text-muted);
   }
 
   .project-card__tagline {
     font-size: var(--fs-17);
     color: var(--text);
     font-weight: var(--fw-medium);
-    margin-block-start: var(--sp-2);
+    margin-block-start: var(--sp-1);
   }
 
+  /* ---------- Description ---------- */
   .project-card__desc {
+    grid-area: desc;
     color: var(--text-secondary);
     font-size: var(--fs-15);
     line-height: var(--lh-normal);
-    grid-area: desc;
+    max-width: 64ch;
   }
 
-  .project-card__media {
-    position: relative;
-    display: block;
-    aspect-ratio: 16 / 9;
-    border-radius: var(--r-lg);
-    overflow: hidden;
-    border: var(--bw-thin) solid color-mix(in srgb, var(--project-accent) 28%, var(--border));
-    background: var(--bg-elevated);
-    isolation: isolate;
-    grid-area: media;
-  }
-
-  .project-card__media:hover {
-    opacity: 1;
-  }
-
-  .project-card__cover {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transform: scale(1.01);
-    transition: transform var(--dur-slow) var(--ease-soft);
-  }
-
-  .project-card:hover .project-card__cover {
-    transform: scale(1.035);
-  }
-
-  .project-card__media-glow {
-    position: absolute;
-    inset: auto 0 0;
-    height: 44%;
-    pointer-events: none;
-    background: linear-gradient(
-      to top,
-      color-mix(in srgb, var(--project-accent) 22%, transparent),
-      transparent
-    );
-    opacity: 0.8;
-    z-index: 1;
-  }
-
+  /* ---------- Highlights (flat, divider-separated row) ---------- */
   .project-card__highlights {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--sp-2);
     grid-area: highlights;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+    gap: var(--sp-2) var(--sp-5);
+    padding-block: var(--sp-3);
+    border-block: var(--bw-thin) solid var(--border);
   }
 
   .project-card__highlight {
+    position: relative;
     min-width: 0;
-    padding: var(--sp-3);
-    border-radius: var(--r-md);
-    border: var(--bw-thin) solid var(--border);
-    background:
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--project-accent) 10%, transparent),
-        transparent
-      ),
-      var(--surface);
+    padding-block-start: var(--sp-3);
+  }
+
+  /* Tiny accent tick above each proof point — reads as a chart marker. */
+  .project-card__highlight::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    width: 16px;
+    height: 2px;
+    border-radius: var(--r-pill);
+    background: var(--project-accent);
+    opacity: 0.5;
   }
 
   .project-card__highlight dt {
     color: var(--text-muted);
     font-size: var(--fs-11);
-    letter-spacing: var(--ls-wide);
     text-transform: uppercase;
     line-height: var(--lh-snug);
   }
@@ -339,41 +441,39 @@ const isFeatured = index === 0;
     color: var(--text);
     font-family: var(--font-stack-display);
     font-weight: var(--fw-bold);
-    font-size: var(--fs-20);
+    font-size: var(--fs-22);
     line-height: var(--lh-tight);
-    margin-block-start: var(--sp-1);
+    margin-block-start: 2px;
     overflow-wrap: anywhere;
   }
 
+  /* ---------- Stack chips ---------- */
   .project-card__stack {
+    grid-area: stack;
     display: flex;
     flex-wrap: wrap;
     gap: var(--sp-2);
-    grid-area: stack;
   }
 
   .project-card__chip {
-    padding: 2px var(--sp-2);
+    padding: 3px var(--sp-2);
     font-size: var(--fs-11);
     font-weight: var(--fw-medium);
-    letter-spacing: var(--ls-snug);
-    color: var(--text-muted);
-    background: var(--surface);
-    border: var(--bw-thin) solid var(--border);
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.05);
+    border: var(--bw-thin) solid rgba(255, 255, 255, 0.1);
     border-radius: var(--r-sm);
   }
 
   .project-card__chip--more {
-    color: var(--text-secondary);
+    color: var(--text-muted);
   }
 
+  /* ---------- Repos ---------- */
   .project-card__repos {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-1);
-    padding-block-start: var(--sp-2);
-    border-top: var(--bw-thin) solid var(--border);
     grid-area: repos;
+    display: grid;
+    gap: var(--sp-1);
   }
 
   .project-card__repo {
@@ -388,28 +488,37 @@ const isFeatured = index === 0;
   .project-card__repo-role {
     color: var(--text-muted);
     font-size: var(--fs-11);
-    letter-spacing: var(--ls-wide);
     text-transform: uppercase;
     margin-left: auto;
     flex-shrink: 0;
   }
 
+  /* ---------- Actions ---------- */
   .project-card__actions {
+    grid-area: actions;
     display: flex;
     flex-wrap: wrap;
     gap: var(--sp-2);
-    margin-block-start: auto;
-    padding-block-start: var(--sp-2);
-    grid-area: actions;
+    align-self: end;
+    margin-block-start: var(--sp-1);
   }
 
   .project-card__cta {
     font-size: var(--fs-13);
     padding: var(--sp-2) var(--sp-4);
-    min-height: 40px;
+    min-height: var(--tap-min);
   }
 
+  /* ---------- Mobile ---------- */
   @media (max-width: 479px) {
+    .project-card {
+      border-radius: var(--r-xl);
+    }
+
+    .project-card__brand {
+      font-size: var(--fs-32);
+    }
+
     .project-card__actions {
       display: grid;
       grid-template-columns: 1fr;
@@ -417,86 +526,81 @@ const isFeatured = index === 0;
 
     .project-card__cta {
       width: 100%;
-      min-height: var(--tap-min);
     }
   }
 
-  @media (min-width: 640px) {
-    .project-card__highlights {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-  }
-
+  /* ---------- Standard card on desktop ---------- */
   @media (min-width: 900px) {
     .project-card {
-      padding: var(--sp-7);
-      min-height: 520px;
-    }
-
-    .project-card__accent-line {
-      left: var(--sp-7);
-      right: var(--sp-7);
+      gap: var(--sp-5);
     }
 
     .project-card__brand {
-      font-size: var(--fs-64);
+      font-size: var(--fs-40);
     }
+  }
 
+  /* ---------- Featured card (first in grid): full-width, media beside content ---------- */
+  @media (min-width: 900px) {
     .project-card--featured {
       grid-column: 1 / -1;
-      display: grid;
-      grid-template-columns: minmax(0, 0.9fr) minmax(360px, 0.82fr);
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
       grid-template-areas:
-        "head media"
-        "desc media"
-        "highlights media"
-        "stack actions"
-        "repos actions";
-      align-items: start;
-      column-gap: var(--sp-7);
+        "media head"
+        "media desc"
+        "media highlights"
+        "media stack"
+        "media repos"
+        "media actions";
+      align-content: start;
+      column-gap: var(--sp-8);
       row-gap: var(--sp-4);
-      min-height: 460px;
     }
 
     .project-card--featured .project-card__media {
       align-self: stretch;
-      min-height: 320px;
+      height: 100%;
+      min-height: 440px;
+      aspect-ratio: auto;
+    }
+
+    .project-card--featured .project-card__head {
+      margin-block-start: var(--sp-1);
+    }
+
+    .project-card--featured .project-card__brand {
+      font-size: var(--fs-64);
     }
 
     .project-card--featured .project-card__actions {
-      justify-content: flex-end;
-      align-self: end;
-      margin-block-start: 0;
+      margin-block-start: var(--sp-2);
     }
   }
 
+  /* ---------- Accessibility / input-mode guards ---------- */
   @media (prefers-reduced-motion: reduce) {
-    .project-card:hover {
+    .project-card,
+    .project-card:hover,
+    .project-card:focus-within {
+      transform: none;
+      transition: border-color var(--dur-med), box-shadow var(--dur-med);
+    }
+
+    .project-card__cover,
+    .project-card:hover .project-card__cover {
+      transition: none;
       transform: none;
     }
   }
 
   @media (pointer: coarse) {
-    .project-card:hover,
+    /* No tilt on touch — keep the pane flat and the cover calm. */
+    .project-card {
+      transform: none;
+    }
+
     .project-card:hover .project-card__cover {
       transform: none;
     }
   }
 </style>
-
-<script>
-  // Spotlight: подсветка от курсора через CSS-переменные --mx / --my.
-  // Чистый JS, без зависимостей. Активно только для не-touch устройств.
-  const cards = document.querySelectorAll<HTMLElement>("[data-spotlight]");
-  if (window.matchMedia("(pointer: fine)").matches) {
-    cards.forEach((card) => {
-      card.addEventListener("pointermove", (e) => {
-        const rect = card.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width) * 100;
-        const y = ((e.clientY - rect.top) / rect.height) * 100;
-        card.style.setProperty("--mx", `${x}%`);
-        card.style.setProperty("--my", `${y}%`);
-      });
-    });
-  }
-</script>

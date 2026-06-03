@@ -11,6 +11,7 @@ import {
 import Icon from "./Icon/Icon.astro";
 import Architecture from "./diagram/Architecture.astro";
 import StackMatrix from "./case/StackMatrix.astro";
+import StackComposition from "./case/StackComposition.astro";
 import Capabilities from "./case/Capabilities.astro";
 import EngineeringCallouts from "./case/EngineeringCallouts.astro";
 import CaseTimeline from "./case/CaseTimeline.astro";
@@ -171,15 +172,20 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
             <p class="case__h-lede subtitle">{t("case.metricsLede")}</p>
           </header>
           <div class="case__metrics">
-            {p.metrics!.map((m, i) => (
-              <div class="case__metric" data-reveal data-reveal-delay={i * 60}>
-                <span class="metric">
-                  <span>{m.value}</span>
-                  {m.unit && <span class="metric__unit">{m.unit}</span>}
-                </span>
-                <span class="metric__label">{m.label[locale]}</span>
-              </div>
-            ))}
+            {p.metrics!.map((m, i) => {
+              const vlen = m.value.length;
+              const numClass =
+                vlen >= 7 ? "case__metric-num--xs" : vlen >= 5 ? "case__metric-num--sm" : "";
+              return (
+                <div class="case__metric" data-reveal data-reveal-delay={i * 60}>
+                  <span class:list={["metric", numClass]}>
+                    <span>{m.value}</span>
+                    {m.unit && <span class="metric__unit">{m.unit}</span>}
+                  </span>
+                  <span class="metric__label">{m.label[locale]}</span>
+                </div>
+              );
+            })}
           </div>
         </section>
       )
@@ -211,6 +217,7 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
           <header class="case__h">
             <h2 class="eyebrow">{t("case.stack")}</h2>
           </header>
+          <StackComposition groups={p.stackGroups!} locale={locale} />
           <StackMatrix groups={p.stackGroups!} locale={locale} />
         </section>
       ) : (
@@ -495,8 +502,6 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
     color: var(--text-secondary);
     font-size: var(--fs-11);
     background: var(--glass-tint-1);
-    backdrop-filter: blur(var(--glass-blur-soft));
-    -webkit-backdrop-filter: blur(var(--glass-blur-soft));
   }
 
   .case__actions {
@@ -512,9 +517,7 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
     aspect-ratio: 16 / 9;
     border-radius: var(--r-xl);
     overflow: hidden;
-    box-shadow:
-      var(--shadow-4),
-      0 0 120px color-mix(in srgb, var(--project-accent) 14%, transparent);
+    box-shadow: var(--shadow-3);
   }
 
   .case__hero-visual::after {
@@ -528,7 +531,6 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
       transparent 30%,
       color-mix(in srgb, var(--project-accent) 12%, transparent) 100%
     );
-    mix-blend-mode: screen;
   }
 
   .case__hero-cover {
@@ -582,9 +584,50 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
   }
 
   .case__metric {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: var(--sp-2);
+    padding: var(--sp-5);
+    border-radius: var(--r-lg);
+    background:
+      radial-gradient(
+        120% 100% at 0% 0%,
+        color-mix(in srgb, var(--project-accent) 9%, transparent),
+        transparent 58%
+      ),
+      var(--glass-tint-1);
+    border: var(--bw-thin) solid var(--glass-edge);
+    box-shadow: var(--shadow-2);
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  /* Accent tick at the top-left corner — the data-point marker. */
+  .case__metric::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: var(--sp-5);
+    width: 26px;
+    height: 2px;
+    border-radius: 0 0 var(--r-pill) var(--r-pill);
+    background: var(--project-accent);
+    opacity: 0.75;
+  }
+
+  .case__metric .metric > span:first-child {
+    overflow-wrap: anywhere;
+  }
+
+  /* Long values (e.g. "127.0.0.1") step down so they never overflow the tile.
+     Two-class specificity beats the global responsive `.metric` sizes. */
+  .case__metric .case__metric-num--sm {
+    font-size: var(--fs-32);
+  }
+
+  .case__metric .case__metric-num--xs {
+    font-size: var(--fs-22);
   }
 
   .case__arch {

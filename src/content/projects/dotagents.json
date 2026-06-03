@@ -69,12 +69,12 @@
     "ru": [
       "DotAgents — локальный мост между AI coding agents и Telegram. Daemon живёт рядом с рабочими инструментами, принимает hooks от Cursor, Claude Code и Antigravity, держит loopback-only FastAPI API и отправляет в Telegram сжатый live-статус по каждой сессии.",
       "Главный принцип — всё остаётся на машине разработчика. Telegram используется как канал управления: approve/deny для рискованных shell/MCP вызовов, follow-up через `/say`, просмотр transcript tail и dashboard активных раннеров.",
-      "Stage 2 добавляет запуск новых агентских сессий с телефона: выбор workspace, выбор CLI (`claude-code` или `cursor-agent`), первый prompt и потоковый вывод обратно в live message."
+      "Stage 2 добавляет запуск новых агентских сессий с телефона: выбор workspace, выбор CLI (`claude-code`, `cursor-agent` или `gemini-cli`), первый prompt и потоковый вывод обратно в live message. Три режима — remote (спрашивать), readonly (авто-allow) и standby (авто-deny) — переключаются на лету."
     ],
     "en": [
       "DotAgents is a local bridge between AI coding agents and Telegram. The daemon sits next to the developer tools, receives hooks from Cursor, Claude Code, and Antigravity, exposes a loopback-only FastAPI API, and sends a compact live status for every session to Telegram.",
       "The core principle is that everything stays on the developer machine. Telegram is only the control channel: approve/deny for risky shell/MCP calls, follow-ups through `/say`, transcript tail, and a dashboard for active runners.",
-      "Stage 2 adds spawning new agent sessions from a phone: pick workspace, pick CLI (`claude-code` or `cursor-agent`), send the first prompt, and stream output back into the live message."
+      "Stage 2 adds spawning new agent sessions from a phone: pick workspace, pick CLI (`claude-code`, `cursor-agent`, or `gemini-cli`), send the first prompt, and stream output back into the live message. Three modes — remote (ask), readonly (auto-allow), and standby (auto-deny) — switch on the fly."
     ]
   },
   "metrics": [
@@ -113,7 +113,7 @@
     "data": ["SQLite", "SQLAlchemy 2", "Alembic"],
     "infra": ["CLI hooks", "loopback API", "auto-migrations"],
     "client": ["Telegram Bot API", "Telegram Mini App"],
-    "ml": ["Claude Code CLI", "cursor-agent", "Cursor IDE", "Antigravity"]
+    "ml": ["Claude Code CLI", "cursor-agent", "Gemini CLI", "Cursor IDE", "Antigravity"]
   },
   "architectureNodes": [
     {
@@ -239,8 +239,8 @@
         "en": "Approve / deny"
       },
       "description": {
-        "ru": "Shell и MCP вызовы блокируются до решения владельца, а timeout fail-closed уходит в deny.",
-        "en": "Shell and MCP calls block until the owner decides, and timeout fails closed to deny."
+        "ru": "Shell и MCP вызовы блокируются до решения владельца (timeout fail-closed → deny); три режима — remote, readonly и standby — меняют политику на лету.",
+        "en": "Shell and MCP calls block until the owner decides (timeout fails closed to deny); three modes — remote, readonly, standby — switch the policy on the fly."
       }
     },
     {
@@ -307,8 +307,8 @@
         "en": "Stage 2: Telegram IDE UX"
       },
       "description": {
-        "ru": "Workspace registry, `/new`, dashboard, Mini App и streaming runner.",
-        "en": "Workspace registry, `/new`, dashboard, Mini App, and streaming runner."
+        "ru": "Workspace registry, `/new`, dashboard, Mini App, streaming runner, плюс per-project allowlist, поиск по transcript и адаптер gemini-cli.",
+        "en": "Workspace registry, `/new`, dashboard, Mini App, streaming runner, plus a per-project allowlist, transcript search, and a gemini-cli adapter."
       }
     }
   ]

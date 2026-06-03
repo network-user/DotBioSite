@@ -147,11 +147,32 @@ const modules = import.meta.glob<{ default: Project }>("../content/projects/*.js
   eager: true,
 });
 
-/** Все проекты, отсортированные по `year` (новые сверху), затем по `slug`. */
+/**
+ * Кураторский порядок проектов в сетке на главной. Первый = «featured».
+ * Слаги вне списка попадают в конец и сортируются по `year` (новые выше).
+ * Это единственное место, где задаётся порядок витрины — Timeline и YearStrip
+ * имеют собственную сортировку по году и от этого списка не зависят.
+ */
+const FEATURED_ORDER: ReadonlyArray<string> = [
+  "dotsound", // .звук
+  "dotmathbot", // .матем
+  "dotworkbot", // .работа
+  "dotagents", // .агенты
+];
+
+const orderIndex = (slug: string): number => {
+  const i = FEATURED_ORDER.indexOf(slug);
+  return i === -1 ? FEATURED_ORDER.length : i;
+};
+
+/** Все проекты в кураторском порядке витрины (см. `FEATURED_ORDER`). */
 export const projects: ReadonlyArray<Project> = Object.values(modules)
   .map((m) => m.default)
   .filter((p): p is Project => Boolean(p && p.slug))
   .sort((a, b) => {
+    const oa = orderIndex(a.slug);
+    const ob = orderIndex(b.slug);
+    if (oa !== ob) return oa - ob;
     const ay = a.year ?? 0;
     const by = b.year ?? 0;
     if (by !== ay) return by - ay;

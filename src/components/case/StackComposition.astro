@@ -1,0 +1,163 @@
+---
+/**
+ * StackComposition.astro — состав стека по слоям одной полосой + легендой.
+ *
+ * Берёт `project.stackGroups`, считает число технологий в каждом слое и рисует:
+ *   1) горизонтальную stacked-полосу, где ширина сегмента пропорциональна числу
+ *      технологий слоя (через `flex-grow`, без ручной арифметики процентов);
+ *   2) легенду: образец цвета + название слоя + количество.
+ *
+ * Палитра монохромная с акцентным «шёпотом»: все сегменты — один акцентный
+ * оттенок, яркость ступенчато падает от первого слоя к последнему.
+ */
+
+import type { ProjectStackGroups, ProjectStackGroupKey } from "../../lib/projects";
+import { useTranslations, type Locale } from "../../lib/i18n";
+
+interface Props {
+  groups: ProjectStackGroups;
+  locale: Locale;
+  class?: string;
+}
+
+const { groups, locale, class: className = "" } = Astro.props;
+const t = useTranslations(locale);
+
+const ORDER: ProjectStackGroupKey[] = ["language", "framework", "data", "infra", "client", "ml"];
+
+const layers = ORDER.map((key) => ({ key, count: groups[key]?.length ?? 0 })).filter(
+  (l) => l.count > 0,
+);
+
+const total = layers.reduce((sum, l) => sum + l.count, 0);
+
+// Яркость сегмента ступенчато убывает от первого слоя к последнему.
+const shadeFor = (i: number): string => Math.max(0.32, 0.92 - i * 0.12).toFixed(2);
+---
+
+<figure class:list={["stack-composition", className]} data-reveal>
+  <div class="stack-composition__bar" aria-hidden="true">
+    {
+      layers.map((l, i) => (
+        <span
+          class="stack-composition__seg"
+          style={`flex: ${l.count}; --shade: ${shadeFor(i)};`}
+          title={`${t(`case.stackGroups.${l.key}`)}: ${l.count}`}
+        />
+      ))
+    }
+  </div>
+
+  <figcaption class="stack-composition__caption caption">
+    {t("case.stackComposition")} · <span class="tabular">{total}</span>
+  </figcaption>
+
+  <ul class="stack-composition__legend">
+    {
+      layers.map((l, i) => (
+        <li class="stack-composition__legend-item">
+          <span class="stack-composition__swatch" style={`--shade: ${shadeFor(i)};`} aria-hidden="true" />
+          <span class="stack-composition__legend-label">{t(`case.stackGroups.${l.key}`)}</span>
+          <span class="stack-composition__legend-count tabular">{l.count}</span>
+        </li>
+      ))
+    }
+  </ul>
+</figure>
+
+<style>
+  .stack-composition {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+  }
+
+  .stack-composition__bar {
+    display: flex;
+    gap: 2px;
+    width: 100%;
+    height: 18px;
+    padding: 3px;
+    border-radius: var(--r-pill);
+    background: var(--glass-tint-1);
+    border: var(--bw-thin) solid var(--glass-edge);
+    overflow: hidden;
+  }
+
+  .stack-composition__seg {
+    min-width: 6px;
+    border-radius: var(--r-pill);
+    background: color-mix(in srgb, var(--project-accent) 30%, #ffffff);
+    opacity: var(--shade);
+    transform-origin: left center;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .stack-composition__seg {
+      animation: sc-grow var(--dur-slow) var(--ease-soft) both;
+    }
+  }
+
+  @keyframes sc-grow {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  .stack-composition__caption {
+    color: var(--text-muted);
+  }
+
+  .stack-composition__legend {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--sp-2) var(--sp-5);
+  }
+
+  .stack-composition__legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    min-width: 0;
+    font-size: var(--fs-13);
+  }
+
+  .stack-composition__swatch {
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: var(--r-xs);
+    background: color-mix(in srgb, var(--project-accent) 30%, #ffffff);
+    opacity: var(--shade);
+  }
+
+  .stack-composition__legend-label {
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .stack-composition__legend-count {
+    margin-left: auto;
+    color: var(--text);
+    font-weight: var(--fw-semibold);
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (min-width: 560px) {
+    .stack-composition__legend {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 900px) {
+    .stack-composition__legend {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+</style>

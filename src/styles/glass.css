@@ -14,10 +14,23 @@
   background-color: var(--glass-tint-1);
   border: var(--bw-thin) solid var(--glass-edge);
   border-radius: var(--r-lg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   overflow: hidden;
   isolation: isolate;
+  /* Real frosted glass: blur + saturate the animated aurora behind the surface.
+     Prefixed for Safari/iOS. The translucent tint above guarantees a visible
+     fill even where backdrop-filter is unsupported. */
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate))
+    brightness(var(--glass-brightness));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate))
+    brightness(var(--glass-brightness));
+}
+
+/* Browsers without backdrop-filter (older Firefox): lean on a denser tint so
+   surfaces stay legible rather than washing out over the aurora. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background-color: var(--glass-tint-2);
+  }
 }
 
 .glass::before {
@@ -28,7 +41,6 @@
   pointer-events: none;
   z-index: 0;
   opacity: 0.9;
-  mix-blend-mode: screen;
 }
 
 .glass > * {
@@ -39,10 +51,6 @@
 /* ---------- Варианты по плотности ---------- */
 .glass--liquid {
   background-color: var(--glass-tint-liquid);
-  backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate))
-    brightness(var(--glass-brightness));
-  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate))
-    brightness(var(--glass-brightness));
 }
 
 .glass--dense {
@@ -51,8 +59,10 @@
 
 .glass--solid {
   background-color: var(--glass-tint-3);
-  backdrop-filter: blur(var(--glass-blur-strong)) saturate(150%);
-  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate))
+    brightness(var(--glass-brightness));
+  backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate))
+    brightness(var(--glass-brightness));
 }
 
 /* ---------- Hover-edge: при наведении подсвечивается верхний блик и обводка ---------- */
@@ -88,60 +98,36 @@
   z-index: 2;
 }
 
-/* ---------- Spotlight (для project cards с эффектом подсветки от курсора) ---------- */
-.glass--spotlight {
-  --mx: 50%;
-  --my: 50%;
-}
-
-.glass--spotlight::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    var(--spotlight-radius) circle at var(--mx) var(--my),
-    var(--spotlight-color),
-    transparent 55%
-  );
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--dur-med) var(--ease-standard);
-  z-index: 0;
-}
-
-.glass--spotlight:hover::after {
-  opacity: 1;
-}
-
 /* ---------- Soft glass (lighter blur, for tight overlays) ---------- */
 .glass--soft {
   background-color: var(--glass-tint-1);
   border: var(--bw-thin) solid var(--glass-edge);
   border-radius: var(--r-lg);
-  backdrop-filter: blur(var(--glass-blur-soft)) saturate(var(--glass-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-blur-soft)) saturate(var(--glass-saturate));
 }
 
 /* ---------- Header scrolled state (engaged via JS toggling .is-scrolled) ---------- */
 .glass--header-scrolled {
   background-color: var(--glass-tint-ultra);
-  backdrop-filter: blur(var(--glass-blur-strong-2)) saturate(160%);
-  -webkit-backdrop-filter: blur(var(--glass-blur-strong-2)) saturate(160%);
   box-shadow: var(--shadow-2);
 }
 
 @media (pointer: coarse) {
-  .glass {
-    backdrop-filter: blur(var(--glass-blur-soft)) saturate(120%);
-    -webkit-backdrop-filter: blur(var(--glass-blur-soft)) saturate(120%);
-  }
-
   .glass--hover:hover {
     transform: none;
     box-shadow: none;
   }
+}
 
-  .glass--spotlight::after {
-    display: none;
+/* Mobile/perf: lighter blur radius keeps many stacked glass surfaces cheap on
+   the GPU; slightly denser tints keep them legible at the smaller radius. */
+@media (max-width: 767px) {
+  .glass,
+  .glass--solid {
+    -webkit-backdrop-filter: blur(12px) saturate(var(--glass-saturate));
+    backdrop-filter: blur(12px) saturate(var(--glass-saturate));
+  }
+
+  .glass {
+    background-color: var(--glass-tint-2);
   }
 }

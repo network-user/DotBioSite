@@ -52,12 +52,12 @@
     <rect x="790" y="160" width="520" height="164" rx="32" fill="#101010" stroke="#ffffff" stroke-opacity="0.13"/>
     <rect x="790" y="368" width="520" height="164" rx="32" fill="#101010" stroke="#ffffff" stroke-opacity="0.13"/>
     <rect x="790" y="576" width="520" height="164" rx="32" fill="#101010" stroke="#ffffff" stroke-opacity="0.13"/>
-    <text x="842" y="226" font-size="40" font-weight="800" fill="#ffffff">Practice modes</text>
-    <text x="842" y="274" font-size="24" fill="#a3a3a3">classic, sprint, mistakes, mixed</text>
-    <text x="842" y="434" font-size="40" font-weight="800" fill="#ffffff">Daily schedule</text>
-    <text x="842" y="482" font-size="24" fill="#a3a3a3">APScheduler reminders survive restart</text>
+    <text x="842" y="226" font-size="40" font-weight="800" fill="#ffffff">7 operation types</text>
+    <text x="842" y="274" font-size="24" fill="#a3a3a3">+  −  ×  ÷  ·  mod  ·  powers  ·  roots</text>
+    <text x="842" y="434" font-size="40" font-weight="800" fill="#ffffff">Daily challenge</text>
+    <text x="842" y="482" font-size="24" fill="#a3a3a3">deterministic — same set for everyone</text>
     <text x="842" y="642" font-size="40" font-weight="800" fill="#ffffff">Leaderboard</text>
-    <text x="842" y="690" font-size="24" fill="#a3a3a3">points, accuracy, streaks</text>
+    <text x="842" y="690" font-size="24" fill="#a3a3a3">streak, solved, accuracy, points</text>
     <g fill="#fbbf24">
       <circle cx="1234" cy="242" r="9"/>
       <circle cx="1268" cy="242" r="9" opacity="0.62"/>
@@ -71,6 +71,6 @@
   <g font-family="Inter, Arial, sans-serif">
     <text x="148" y="86" font-size="28" fill="#fbbf24" font-weight="700">.math</text>
     <text x="148" y="840" font-size="58" fill="#ffffff" font-weight="800">Telegram math trainer</text>
-    <text x="148" y="878" font-size="22" fill="#a3a3a3">3 difficulty levels, 4 practice modes, bilingual flow</text>
+    <text x="148" y="878" font-size="22" fill="#a3a3a3">3 difficulty levels · 7 operation types · bilingual (ru/en)</text>
   </g>
 </svg>

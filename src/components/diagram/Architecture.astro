@@ -122,6 +122,13 @@ const edgeData = edges
   role="img"
   aria-label={ariaLabel}
 >
+  <defs>
+    <pattern id="arch-dotgrid" width="34" height="34" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="1" class="architecture__griddot"></circle>
+    </pattern>
+  </defs>
+  <rect class="architecture__grid" x="0" y="0" width="100%" height="100%" fill="url(#arch-dotgrid)"
+  ></rect>
   {clusters.map((c) => <ArchCluster {...c} />)}
   {
     edgeData.map((e) => (
@@ -130,7 +137,7 @@ const edgeData = edges
   }
   {
     nodes.map((n, i) => (
-      <g data-reveal data-reveal-delay={i * 80}>
+      <g class="architecture__node" style={`--node-i: ${i};`}>
         <ArchNode
           x={n.x}
           y={n.y}
@@ -151,5 +158,54 @@ const edgeData = edges
     width: 100%;
     height: auto;
     color: var(--text);
+  }
+
+  /* Faint schematic dot-grid behind the nodes — reads as a blueprint surface,
+     never competes with the lines (kept at very low alpha). */
+  .architecture__griddot {
+    fill: rgba(255, 255, 255, 0.05);
+  }
+
+  .architecture__grid {
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .architecture__grid {
+      opacity: 0;
+      animation: arch-grid-in var(--dur-slower) var(--ease-standard) forwards;
+    }
+  }
+
+  @keyframes arch-grid-in {
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* Nodes default to visible (no dependency on IntersectionObserver firing for
+     SVG <g>). With motion enabled they assemble in a gentle stagger on load;
+     the section-level reveal still handles the scroll-in fade of the whole box. */
+  .architecture__node {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .architecture__node {
+      opacity: 0;
+      animation: arch-node-in var(--dur-slow) var(--ease-soft) forwards;
+      animation-delay: calc(var(--node-i, 0) * 70ms + 200ms);
+    }
+  }
+
+  @keyframes arch-node-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 </style>

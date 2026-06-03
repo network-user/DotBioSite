@@ -106,15 +106,12 @@ const initialHash = Astro.url.hash.replace("#", "");
     max-width: calc(var(--container-wide) - var(--sp-4));
     transition:
       background-color var(--dur-med) var(--ease-standard),
-      backdrop-filter var(--dur-med) var(--ease-standard),
       box-shadow var(--dur-med) var(--ease-standard);
   }
 
   /* When scrolled, swap to denser tint and stronger blur via shared class. */
   .header.is-scrolled .header__inner {
     background-color: var(--glass-tint-ultra);
-    backdrop-filter: blur(var(--glass-blur-strong-2)) saturate(160%);
-    -webkit-backdrop-filter: blur(var(--glass-blur-strong-2)) saturate(160%);
     box-shadow: var(--shadow-2);
   }
 
@@ -284,9 +281,9 @@ const initialHash = Astro.url.hash.replace("#", "");
       border: var(--bw-thin) solid var(--glass-edge);
       border-radius: var(--r-xl);
       background-color: var(--glass-tint-ultra);
+      -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
+      backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
       box-shadow: var(--shadow-3);
-      backdrop-filter: blur(var(--glass-blur-strong-2)) saturate(150%);
-      -webkit-backdrop-filter: blur(var(--glass-blur-strong-2)) saturate(150%);
       opacity: 0;
       visibility: hidden;
       transform: translateY(-6px) scale(0.98);

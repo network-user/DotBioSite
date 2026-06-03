@@ -37,23 +37,25 @@
   --state-info: #5e9eff;
   --state-unknown: #6e6e6e;
 
-  /* ---------- Liquid Glass / Frutiger-Aero ---------- */
-  --glass-tint-1: rgba(18, 18, 18, 0.5);
-  --glass-tint-2: rgba(16, 16, 16, 0.7);
-  --glass-tint-3: rgba(12, 12, 12, 0.84);
-  --glass-tint-liquid: rgba(20, 20, 20, 0.38);
-  --glass-edge: rgba(255, 255, 255, 0.11);
-  --glass-edge-bright: rgba(255, 255, 255, 0.24);
+  /* ---------- Liquid Glass / Frutiger-Aero ----------
+   * Tints stay translucent so the real `backdrop-filter` blur (defined in
+   * glass.css) shows the animated aurora behind every surface. */
+  --glass-tint-1: rgba(20, 20, 22, 0.46);
+  --glass-tint-2: rgba(16, 16, 18, 0.64);
+  --glass-tint-3: rgba(12, 12, 13, 0.8);
+  --glass-tint-liquid: rgba(22, 22, 24, 0.34);
+  --glass-edge: rgba(255, 255, 255, 0.12);
+  --glass-edge-bright: rgba(255, 255, 255, 0.26);
   --glass-top-shine: linear-gradient(
     to bottom,
-    rgba(255, 255, 255, 0.18) 0%,
-    rgba(255, 255, 255, 0.04) 35%,
-    rgba(255, 255, 255, 0) 70%
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.045) 36%,
+    rgba(255, 255, 255, 0) 72%
   );
-  --glass-blur: 18px;
-  --glass-blur-strong: 28px;
-  --glass-saturate: 135%;
-  --glass-brightness: 1.04;
+  --glass-blur: 20px;
+  --glass-blur-strong: 30px;
+  --glass-saturate: 140%;
+  --glass-brightness: 1.05;
 
   /* ---------- Spacing (8pt grid) ---------- */
   --sp-1: 4px;
@@ -195,14 +197,18 @@
   --spotlight-color: rgba(255, 255, 255, 0.1);
   --spotlight-radius: 520px;
 
-  /* ---------- Mesh-gradient palette (still monochrome with tonal lean) ---------- */
-  --mesh-warm-a: rgba(255, 236, 210, 0.045);
-  --mesh-warm-b: rgba(255, 210, 180, 0.03);
-  --mesh-cool-a: rgba(210, 230, 255, 0.045);
-  --mesh-cool-b: rgba(180, 210, 255, 0.03);
-  --mesh-violet-a: rgba(225, 210, 255, 0.04);
-  --mesh-violet-b: rgba(195, 180, 235, 0.025);
-  --mesh-base: rgba(255, 255, 255, 0.02);
+  /* ---------- Aurora background palette ----------
+   * Hues echo the four project accents (cyan / violet / amber / green) but at
+   * low alpha over near-black, so heavily blurred they read as a refined tonal
+   * glow, never a rainbow. Monochrome stays the base; colour is a whisper. */
+  --aurora-cyan: rgba(103, 232, 249, 0.16);
+  --aurora-violet: rgba(167, 139, 250, 0.15);
+  --aurora-amber: rgba(251, 191, 138, 0.12);
+  --aurora-green: rgba(52, 199, 120, 0.1);
+  --aurora-white: rgba(255, 255, 255, 0.08);
+  --aurora-opacity: 0.9;
+  --aurora-opacity-mobile: 0.6;
+  --aurora-grid: rgba(255, 255, 255, 0.022);
 
   /* ---------- Typography extras (display-xl tier) ---------- */
   --fs-96: 96px;

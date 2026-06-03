@@ -127,11 +127,14 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
   </head>
   <body data-locale={locale}>
     <div class="bg-layer" aria-hidden="true">
-      <canvas class="noise-bg" data-noise-bg></canvas>
+      <div class="ambient-bg" data-ambient-bg>
+        <span class="aurora aurora--cyan"></span>
+        <span class="aurora aurora--violet"></span>
+        <span class="aurora aurora--amber"></span>
+        <span class="aurora aurora--white"></span>
+        <span class="ambient-bg__glow ambient-bg__glow--cursor" data-ambient-cursor></span>
+      </div>
     </div>
-
-    <div class="cursor-halo" data-cursor-halo aria-hidden="true"></div>
-    <div class="cursor-dot" data-cursor-dot aria-hidden="true"></div>
 
     {!noChrome && <Header locale={locale} />}
 
@@ -172,153 +175,40 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
         revealEls.forEach((el) => io.observe(el));
       }
 
-      // --- Magnetic hover: CTA-кнопки притягиваются к курсору ---
-      if (!reduced && window.matchMedia("(pointer: fine)").matches) {
-        const STRENGTH = 0.22;
-        const MAX_DISP = 6;
-        const clamp = (v: number) => Math.max(-MAX_DISP, Math.min(MAX_DISP, v));
-        const magnets = document.querySelectorAll<HTMLElement>(".magnetic");
-        magnets.forEach((el) => {
-          let raf: number | null = null;
-          let tx = 0;
-          let ty = 0;
-          el.addEventListener("pointermove", (e) => {
-            const rect = el.getBoundingClientRect();
-            const cx = rect.left + rect.width / 2;
-            const cy = rect.top + rect.height / 2;
-            tx = clamp((e.clientX - cx) * STRENGTH);
-            ty = clamp((e.clientY - cy) * STRENGTH);
-            if (raf === null) {
-              raf = requestAnimationFrame(() => {
-                el.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
-                raf = null;
-              });
-            }
-          });
-          el.addEventListener("pointerleave", () => {
-            el.style.transform = "translate3d(0, 0, 0)";
-          });
-        });
-      }
-
-      // --- Static canvas grain without React runtime ---
-      const noiseCanvas = document.querySelector<HTMLCanvasElement>("[data-noise-bg]");
+      // --- Ambient background: one transform-only cursor layer ---
+      const ambientCursor = document.querySelector<HTMLElement>("[data-ambient-cursor]");
       if (
-        noiseCanvas &&
-        document.body.dataset.noNoise !== "1" &&
-        !window.matchMedia("(pointer: coarse)").matches
+        ambientCursor &&
+        !reduced &&
+        document.body.dataset.noInteractiveBg !== "1" &&
+        window.matchMedia("(pointer: fine)").matches
       ) {
-        const TILE = 128;
-        const tileCanvas = document.createElement("canvas");
-        tileCanvas.width = TILE;
-        tileCanvas.height = TILE;
-        const tctx = tileCanvas.getContext("2d");
+        let ax = window.innerWidth * 0.68;
+        let ay = window.innerHeight * 0.26;
+        let tx = ax;
+        let ty = ay;
+        let ambientRaf: number | null = null;
 
-        if (tctx) {
-          const imageData = tctx.createImageData(TILE, TILE);
-          const data = imageData.data;
-          for (let i = 0; i < data.length; i += 4) {
-            const v = Math.floor(Math.random() * 36);
-            data[i] = v;
-            data[i + 1] = v;
-            data[i + 2] = v;
-            data[i + 3] = 22;
+        const applyAmbient = () => {
+          ax += (tx - ax) * 0.12;
+          ay += (ty - ay) * 0.12;
+          ambientCursor.style.transform = `translate3d(${ax}px, ${ay}px, 0) translate(-50%, -50%)`;
+          if (Math.abs(tx - ax) > 0.8 || Math.abs(ty - ay) > 0.8) {
+            ambientRaf = requestAnimationFrame(applyAmbient);
+          } else {
+            ambientRaf = null;
           }
-          tctx.putImageData(imageData, 0, 0);
-        }
-
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const drawNoise = () => {
-          const w = window.innerWidth;
-          const h = window.innerHeight;
-          noiseCanvas.width = w * dpr;
-          noiseCanvas.height = h * dpr;
-          noiseCanvas.style.width = `${w}px`;
-          noiseCanvas.style.height = `${h}px`;
-          const ctx = noiseCanvas.getContext("2d");
-          if (!ctx) return;
-          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-          const pattern = ctx.createPattern(tileCanvas, "repeat");
-          if (!pattern) return;
-          ctx.fillStyle = pattern;
-          ctx.fillRect(0, 0, w, h);
         };
 
-        drawNoise();
-        let noiseRaf: number | null = null;
-        window.addEventListener(
-          "resize",
-          () => {
-            if (noiseRaf !== null) cancelAnimationFrame(noiseRaf);
-            noiseRaf = requestAnimationFrame(drawNoise);
+        document.addEventListener(
+          "pointermove",
+          (event) => {
+            tx = event.clientX;
+            ty = event.clientY;
+            if (ambientRaf === null) ambientRaf = requestAnimationFrame(applyAmbient);
           },
           { passive: true },
         );
-      }
-
-      // --- Cursor halo without React runtime ---
-      if (window.matchMedia("(pointer: fine)").matches) {
-        const dot = document.querySelector<HTMLElement>("[data-cursor-dot]");
-        const halo = document.querySelector<HTMLElement>("[data-cursor-halo]");
-        if (dot && halo) {
-          let mx = window.innerWidth / 2;
-          let my = window.innerHeight / 2;
-          let hx = mx;
-          let hy = my;
-          let cursorRaf: number | null = null;
-
-          const applyCursor = () => {
-            dot.style.transform = `translate3d(${mx}px, ${my}px, 0)`;
-            halo.style.transform = `translate3d(${hx}px, ${hy}px, 0)`;
-          };
-
-          const tickCursor = () => {
-            hx += (mx - hx) * 0.18;
-            hy += (my - hy) * 0.18;
-            applyCursor();
-            if (Math.abs(mx - hx) > 0.3 || Math.abs(my - hy) > 0.3) {
-              cursorRaf = requestAnimationFrame(tickCursor);
-            } else {
-              cursorRaf = null;
-            }
-          };
-
-          document.addEventListener(
-            "mousemove",
-            (e) => {
-              mx = e.clientX;
-              my = e.clientY;
-              if (reduced) {
-                hx = mx;
-                hy = my;
-                applyCursor();
-              } else if (cursorRaf === null) {
-                cursorRaf = requestAnimationFrame(tickCursor);
-              }
-            },
-            { passive: true },
-          );
-
-          document.addEventListener("mouseleave", () => {
-            dot.style.opacity = "0";
-            halo.style.opacity = "0";
-          });
-          document.addEventListener("mouseenter", () => {
-            dot.style.opacity = "1";
-            halo.style.opacity = "1";
-          });
-          document.addEventListener(
-            "mouseover",
-            (e) => {
-              const target = e.target as HTMLElement | null;
-              const interactive = target?.closest(
-                "a, button, [role='button'], input, textarea, select, [data-interactive]",
-              );
-              halo.classList.toggle("is-interactive", Boolean(interactive));
-            },
-            { passive: true },
-          );
-        }
       }
     </script>
   </body>
@@ -335,84 +225,205 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
   .bg-layer {
     position: fixed;
     inset: 0;
-    z-index: -1;
+    z-index: 0;
     pointer-events: none;
-    opacity: 0.55;
+    opacity: 0.92;
   }
 
-  .noise-bg {
+  .bg-layer::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse at 50% 20%, transparent 0%, rgba(0, 0, 0, 0.1) 45%),
+      linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.56));
+  }
+
+  .ambient-bg {
     position: fixed;
     inset: 0;
     width: 100%;
     height: 100%;
     pointer-events: none;
+    overflow: hidden;
+    opacity: var(--aurora-opacity);
+    /* Deep tonal base under the moving blobs. */
+    background:
+      radial-gradient(120% 80% at 50% -10%, rgba(255, 255, 255, 0.04), transparent 60%),
+      radial-gradient(100% 100% at 50% 120%, rgba(10, 12, 16, 0.6), transparent 70%);
+    transition: opacity var(--dur-med) var(--ease-standard);
+  }
+
+  .ambient-bg::before,
+  .ambient-bg::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+  }
+
+  /* Faint engineering grid — anchors the "constellation / dot" brand motif. */
+  .ambient-bg::before {
+    inset: 0;
+    background:
+      linear-gradient(var(--aurora-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--aurora-grid) 1px, transparent 1px);
+    background-size: 96px 96px;
+    mask-image: radial-gradient(120% 100% at 50% 0%, #000 30%, transparent 85%);
+    -webkit-mask-image: radial-gradient(120% 100% at 50% 0%, #000 30%, transparent 85%);
+    opacity: 0.6;
+    z-index: 1;
+  }
+
+  /* Vignette that keeps text contrast high toward the edges. */
+  .ambient-bg::after {
+    inset: 0;
+    background: radial-gradient(circle at 50% 42%, transparent 0 26%, rgba(0, 0, 0, 0.4) 100%);
+    z-index: 2;
+  }
+
+  /* ---------- Aurora blobs ----------
+     Soft radial gradients blended additively (screen) so overlaps glow like a
+     real aurora over black. Animated transform-only → GPU-composited, no JS. */
+  .aurora {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    will-change: transform;
+    z-index: 0;
+  }
+
+  .aurora--cyan {
+    top: -18vh;
+    left: -8vw;
+    width: clamp(420px, 52vw, 820px);
+    height: clamp(420px, 52vw, 820px);
+    background: radial-gradient(circle at 50% 50%, var(--aurora-cyan), transparent 68%);
+    animation: aurora-drift-a 34s var(--ease-standard) infinite alternate;
+  }
+
+  .aurora--violet {
+    top: 8vh;
+    right: -14vw;
+    width: clamp(440px, 56vw, 900px);
+    height: clamp(440px, 56vw, 900px);
+    background: radial-gradient(circle at 50% 50%, var(--aurora-violet), transparent 68%);
+    animation: aurora-drift-b 42s var(--ease-standard) infinite alternate;
+  }
+
+  .aurora--amber {
+    bottom: -22vh;
+    left: 6vw;
+    width: clamp(420px, 50vw, 820px);
+    height: clamp(420px, 50vw, 820px);
+    background: radial-gradient(circle at 50% 50%, var(--aurora-amber), transparent 70%);
+    animation: aurora-drift-c 38s var(--ease-standard) infinite alternate;
+  }
+
+  .aurora--white {
+    top: 30vh;
+    left: 36vw;
+    width: clamp(360px, 40vw, 640px);
+    height: clamp(360px, 40vw, 640px);
+    background: radial-gradient(circle at 50% 50%, var(--aurora-white), transparent 72%);
+    animation: aurora-drift-d 30s var(--ease-standard) infinite alternate;
+  }
+
+  @keyframes aurora-drift-a {
+    from {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    to {
+      transform: translate3d(12vw, 10vh, 0) scale(1.18);
+    }
+  }
+
+  @keyframes aurora-drift-b {
+    from {
+      transform: translate3d(0, 0, 0) scale(1.05);
+    }
+    to {
+      transform: translate3d(-14vw, 8vh, 0) scale(0.9);
+    }
+  }
+
+  @keyframes aurora-drift-c {
+    from {
+      transform: translate3d(0, 0, 0) scale(0.95);
+    }
+    to {
+      transform: translate3d(10vw, -12vh, 0) scale(1.2);
+    }
+  }
+
+  @keyframes aurora-drift-d {
+    from {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    to {
+      transform: translate3d(-10vw, -8vh, 0) scale(1.25);
+    }
+  }
+
+  .ambient-bg__glow {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    border-radius: 999px;
+  }
+
+  .ambient-bg__glow--cursor {
+    left: 0;
+    top: 0;
+    width: clamp(280px, 34vw, 560px);
+    height: clamp(280px, 34vw, 560px);
+    background: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.22),
+      rgba(146, 204, 255, 0.13) 34%,
+      transparent 72%
+    );
     mix-blend-mode: screen;
     opacity: 0.5;
-  }
-
-  .cursor-dot,
-  .cursor-halo {
-    position: fixed;
-    top: 0;
-    left: 0;
-    pointer-events: none;
-    will-change: transform, opacity;
-    z-index: var(--z-cursor);
-    opacity: 0;
-    transition: opacity var(--dur-fast) var(--ease-standard);
-  }
-
-  .cursor-dot {
-    width: 6px;
-    height: 6px;
-    margin: -3px 0 0 -3px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.85);
-    mix-blend-mode: difference;
-  }
-
-  .cursor-halo {
-    width: 26px;
-    height: 26px;
-    margin: -13px 0 0 -13px;
-    border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.07) 0%, transparent 70%);
-    backdrop-filter: blur(4px) saturate(120%);
-    -webkit-backdrop-filter: blur(4px) saturate(120%);
-    transition:
-      width var(--dur-med) var(--ease-soft),
-      height var(--dur-med) var(--ease-soft),
-      margin var(--dur-med) var(--ease-soft),
-      border-color var(--dur-fast) var(--ease-standard),
-      backdrop-filter var(--dur-med) var(--ease-soft),
-      opacity var(--dur-fast) var(--ease-standard);
-  }
-
-  .cursor-halo.is-interactive {
-    width: 38px;
-    height: 38px;
-    margin: -19px 0 0 -19px;
-    border-color: rgba(255, 255, 255, 0.55);
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, transparent 70%);
-    backdrop-filter: blur(6px) saturate(140%);
-    -webkit-backdrop-filter: blur(6px) saturate(140%);
+    transform: translate3d(68vw, 26vh, 0) translate(-50%, -50%);
+    will-change: transform;
+    z-index: 0;
   }
 
   @media (pointer: coarse) {
-    .cursor-dot,
-    .cursor-halo {
+    .ambient-bg__glow--cursor {
       display: none;
     }
   }
 
   @media (max-width: 767px) {
     .bg-layer {
-      opacity: 0.42;
+      opacity: 0.78;
     }
 
-    .noise-bg {
+    .ambient-bg {
+      opacity: var(--aurora-opacity-mobile);
+    }
+
+    .ambient-bg::before {
+      opacity: 0.4;
+      background-size: 72px 72px;
+    }
+
+    .ambient-bg::after {
+      background: radial-gradient(circle at 50% 42%, transparent 0 18%, rgba(0, 0, 0, 0.46) 100%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ambient-bg__glow--cursor {
       display: none;
+    }
+
+    /* Hold the aurora still — the composition reads fine as a static gradient. */
+    .aurora {
+      animation: none;
     }
   }
 

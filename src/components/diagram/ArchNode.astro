@@ -40,15 +40,36 @@ const radius = height / 2;
 const iconSize = 16;
 const iconGap = 8;
 
-const labelOffset = icon ? (iconSize + iconGap) / 2 : 0;
-const iconX = width / 2 - (iconSize + iconGap) / 2 - iconSize / 2;
+// Центрируем блок [иконка + зазор + текст] как единое целое и выкладываем текст
+// слева-направо от иконки (text-anchor="start"). Ширина текста оценивается по
+// числу символов — этого достаточно, чтобы иконка и подпись не накладывались
+// даже на длинных лейблах («Backend Hub», «Elasticsearch 8»).
+const charW = 7.1;
+const textW = label.length * charW;
+const contentW = icon ? iconSize + iconGap + textW : textW;
+const startX = Math.max(10, (width - contentW) / 2);
+const iconX = startX;
 const iconY = height / 2;
+const textX = startX + (icon ? iconSize + iconGap : 0);
 ---
 
 <g
   class:list={["arch-node", `arch-node--${emphasis}`, className]}
   transform={`translate(${left}, ${top})`}
 >
+  {
+    emphasis === "strong" && (
+      <rect
+        class="arch-node__ring"
+        x={-5}
+        y={-5}
+        width={width + 10}
+        height={height + 10}
+        rx={radius + 5}
+        ry={radius + 5}
+      />
+    )
+  }
   <rect class="arch-node__bg" width={width} height={height} rx={radius} ry={radius}></rect>
   <rect
     class="arch-node__shine"
@@ -107,9 +128,9 @@ const iconY = height / 2;
     )
   }
   <text
-    x={width / 2 + labelOffset}
+    x={textX}
     y={height / 2 + 1}
-    text-anchor="middle"
+    text-anchor="start"
     dominant-baseline="middle"
     class="arch-node__label"
   >
@@ -124,9 +145,17 @@ const iconY = height / 2;
     stroke-width: 1;
   }
 
+  /* Hub node: lit with the project accent — the one point colour leans in. */
   .arch-node--strong .arch-node__bg {
     fill: var(--glass-tint-3);
-    stroke: var(--glass-edge-bright);
+    stroke: color-mix(in srgb, var(--project-accent) 52%, var(--glass-edge-bright));
+    stroke-width: 1.5;
+  }
+
+  .arch-node__ring {
+    fill: none;
+    stroke: color-mix(in srgb, var(--project-accent) 32%, transparent);
+    stroke-width: 1;
   }
 
   .arch-node__shine {
@@ -140,6 +169,10 @@ const iconY = height / 2;
     stroke-width: 1.4;
     stroke-linecap: round;
     stroke-linejoin: round;
+  }
+
+  .arch-node--strong .arch-node__icon {
+    stroke: color-mix(in srgb, var(--project-accent) 72%, var(--text));
   }
 
   .arch-node__label {

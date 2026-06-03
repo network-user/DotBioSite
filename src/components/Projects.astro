@@ -39,6 +39,71 @@ const years = visible.map((p) => p.year).filter((y): y is number => typeof y ===
   </div>
 </section>
 
+<script>
+  /**
+   * Pointer tilt + sheen for [data-tilt] project cards.
+   *
+   * Sets four custom properties the card CSS already consumes:
+   *   --tilt-x / --tilt-y  → subtle 3D rotation of the whole glass pane
+   *   --mx / --my          → position of the pointer-following sheen highlight
+   *
+   * Transform-only, rAF-batched, one shared listener. Skipped entirely on
+   * touch (coarse pointer) and when the user prefers reduced motion.
+   */
+  const MAX_TILT = 5; // degrees
+
+  function initCardTilt() {
+    const fine = window.matchMedia("(pointer: fine)").matches;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!fine || reduced) return;
+
+    const cards = document.querySelectorAll<HTMLElement>("[data-tilt]");
+    cards.forEach((card) => {
+      let raf: number | null = null;
+      let nx = 0.5;
+      let ny = 0.5;
+
+      const apply = () => {
+        raf = null;
+        const ry = (nx - 0.5) * 2 * MAX_TILT; // left/right → rotateY
+        const rx = (0.5 - ny) * 2 * MAX_TILT; // up/down → rotateX
+        card.style.setProperty("--tilt-y", `${ry.toFixed(2)}deg`);
+        card.style.setProperty("--tilt-x", `${rx.toFixed(2)}deg`);
+        card.style.setProperty("--mx", `${(nx * 100).toFixed(1)}%`);
+        card.style.setProperty("--my", `${(ny * 100).toFixed(1)}%`);
+      };
+
+      card.addEventListener(
+        "pointermove",
+        (event) => {
+          const rect = card.getBoundingClientRect();
+          nx = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+          ny = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
+          if (raf === null) raf = requestAnimationFrame(apply);
+        },
+        { passive: true },
+      );
+
+      card.addEventListener("pointerleave", () => {
+        if (raf !== null) {
+          cancelAnimationFrame(raf);
+          raf = null;
+        }
+        card.style.setProperty("--tilt-x", "0deg");
+        card.style.setProperty("--tilt-y", "0deg");
+        card.style.setProperty("--mx", "50%");
+        card.style.setProperty("--my", "0%");
+      });
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initCardTilt, { once: true });
+  } else {
+    initCardTilt();
+  }
+</script>
+
 <style>
   .projects {
     overflow: hidden;
