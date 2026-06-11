@@ -14,12 +14,6 @@ const brand = authorName(locale);
 const eyebrow = t("hero.eyebrow");
 const tagline = t("hero.tagline");
 const subtitle = t("hero.subtitle");
-
-interface ProofStat {
-  value: string;
-  label: string;
-}
-const proof = t<ReadonlyArray<ProofStat>>("hero.proof", []);
 ---
 
 <section class="hero" id="hero" aria-label={brand}>
@@ -65,19 +59,6 @@ const proof = t<ReadonlyArray<ProofStat>>("hero.proof", []);
         <span>{t("hero.ctaContact")}</span>
       </a>
     </div>
-
-    {
-      proof.length > 0 && (
-        <dl class="hero__proof" data-reveal data-reveal-delay="540">
-          {proof.map((s) => (
-            <div class="hero__proof-item">
-              <dt class="hero__proof-value display tabular">{s.value}</dt>
-              <dd class="hero__proof-label caption">{s.label}</dd>
-            </div>
-          ))}
-        </dl>
-      )
-    }
   </div>
 
   <a href={`${prefix}/#about`} class="hero__scroll-cue" aria-label={t("hero.scrollCue")}>
@@ -313,53 +294,6 @@ const proof = t<ReadonlyArray<ProofStat>>("hero.proof", []);
     flex-wrap: wrap;
     gap: var(--sp-3);
     width: 100%;
-  }
-
-  /* ---------- Proof strip: честный масштаб одной строкой ---------- */
-  .hero__proof {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: var(--sp-5) var(--sp-7);
-    margin-block-start: var(--sp-7);
-    padding-block-start: var(--sp-5);
-    border-block-start: var(--bw-thin) solid var(--border);
-    width: 100%;
-  }
-
-  .hero__proof-item {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-1);
-    min-width: 0;
-  }
-
-  .hero__proof-value {
-    font-size: var(--fs-32);
-    line-height: 1;
-    color: var(--text);
-    letter-spacing: var(--ls-display);
-  }
-
-  .hero__proof-label {
-    color: var(--text-muted);
-    text-transform: none;
-    letter-spacing: var(--ls-snug);
-    font-size: var(--fs-12);
-  }
-
-  @media (min-width: 768px) {
-    .hero__proof {
-      gap: var(--sp-6) var(--sp-9);
-    }
-
-    .hero__proof-value {
-      font-size: var(--fs-40);
-    }
-
-    .hero__proof-label {
-      font-size: var(--fs-13);
-    }
   }
 
   .hero__scroll-cue {

@@ -14,13 +14,6 @@ const name = authorName(locale);
 const bio = authorBio(locale);
 const photo = config.PUBLIC_AUTHOR_PHOTO;
 const monogram = authorMonogram(locale);
-
-interface ApproachItem {
-  title: string;
-  description: string;
-}
-const approach = t<ReadonlyArray<ApproachItem>>("about.approach", []);
-const approachTitle = t("about.approachTitle", "");
 ---
 
 <section class="section about" id="about" aria-labelledby="about-title">
@@ -71,20 +64,6 @@ const approachTitle = t("about.approachTitle", "");
         }
       </div>
     </div>
-
-    {
-      approach.length > 0 && (
-        <div class="about__approach" aria-label={approachTitle}>
-          {approach.map((item, i) => (
-            <article class="about__principle glass glass--hover" data-reveal data-reveal-delay={i * 90}>
-              <span class="about__principle-index mono">{`0${i + 1}`}</span>
-              <h3 class="about__principle-title">{item.title}</h3>
-              <p class="about__principle-desc body-sm">{item.description}</p>
-            </article>
-          ))}
-        </div>
-      )
-    }
   </div>
 </section>
 
@@ -171,55 +150,6 @@ const approachTitle = t("about.approachTitle", "");
     border-color: var(--border-hover);
     background: var(--surface-2);
     opacity: 1;
-  }
-
-  /* ---------- Approach: три принципа работы ---------- */
-  .about__approach {
-    margin-block-start: var(--sp-8);
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--sp-4);
-  }
-
-  .about__principle {
-    position: relative;
-    padding: var(--sp-6);
-    border-radius: var(--r-lg);
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-3);
-    overflow: hidden;
-  }
-
-  .about__principle-index {
-    font-size: var(--fs-13);
-    color: var(--text-muted);
-    letter-spacing: var(--ls-wide);
-  }
-
-  .about__principle-title {
-    font-family: var(--font-stack-display);
-    font-weight: var(--fw-bold);
-    font-size: var(--fs-20);
-    letter-spacing: var(--ls-tight);
-    line-height: var(--lh-snug);
-    color: var(--text);
-  }
-
-  .about__principle-desc {
-    color: var(--text-secondary);
-  }
-
-  @media (min-width: 768px) {
-    .about__approach {
-      margin-block-start: var(--sp-10);
-      grid-template-columns: repeat(3, 1fr);
-      gap: var(--sp-5);
-    }
-
-    .about__principle {
-      padding: var(--sp-6) var(--sp-6) var(--sp-7);
-    }
   }
 
   @media (min-width: 768px) {

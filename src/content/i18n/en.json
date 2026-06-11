@@ -15,38 +15,18 @@
     "toggleLang": "RU"
   },
   "hero": {
-    "eyebrow": "DotCore · from idea to production",
-    "tagline": "I take an idea to a live product.",
-    "subtitle": "I design, build, and ship full products solo: backend, data, infrastructure, ML, and clients. Production systems people rely on, not portfolio demos. Each one lives under the shared DotCore brand.",
+    "eyebrow": "DotCore · projects · shared core",
+    "tagline": "project collection point.",
+    "subtitle": ".core gathers different products into one system: each project stands on its own, but ships under the shared DotCore brand. It is the core where ideas, repositories, and directions meet.",
     "ctaProjects": "view projects",
     "ctaContact": "get in touch",
-    "scrollCue": "scroll",
-    "proof": [
-      { "value": "5", "label": "products, not demos" },
-      { "value": "110k+", "label": "lines of code" },
-      { "value": "1", "label": "engineer, full cycle" }
-    ]
+    "scrollCue": "scroll"
   },
   "about": {
     "kicker": "about",
-    "title": "One engineer. The whole cycle.",
-    "lede": "I pick a product up while it's still an idea and carry it to the point where real users rely on it in production. Architecture, backend, database, queues, infrastructure, deploy, and operations - all of it is on me. I write it as if a team has to maintain it tomorrow: type-safe, tested, migrated, dockerized, under CI.",
-    "noPhoto": "DC",
-    "approachTitle": "how I work",
-    "approach": [
-      {
-        "title": "Idea to production",
-        "description": "I finish what I start: not stopping at an MVP, but shipping the product into real operation with deploy, backups, and monitoring."
-      },
-      {
-        "title": "Deep backend",
-        "description": "Server engineering is my strong suit: data, concurrency, queues, security, and performance under load."
-      },
-      {
-        "title": "Decisions, not code for its own sake",
-        "description": "Every architectural choice is defensible. I pick the tool for the job, not the other way around, and keep the system as simple as it can be."
-      }
-    ]
+    "title": "One person, many dots.",
+    "lede": "A solo developer who builds each solution as 'one task — one repository', yet all of them live under a shared brand.",
+    "noPhoto": "DC"
   },
   "stack": {
     "kicker": "stack",
