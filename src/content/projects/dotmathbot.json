@@ -10,12 +10,12 @@
     "en": ".math"
   },
   "tagline": {
-    "ru": "Тренажёр устного счёта в Telegram.",
-    "en": "Mental-arithmetic trainer in Telegram."
+    "ru": "Устный счёт как ежедневная привычка, с честным рейтингом.",
+    "en": "Mental math as a daily habit, with a fair leaderboard."
   },
   "description": {
-    "ru": "Двуязычный Telegram-бот для тренировки устного счёта: семь типов операций (сложение, вычитание, умножение, деление, деление с остатком, степени, корни) на трёх уровнях сложности. Профиль с сериями дней и лидербордом, детерминированный ежедневный челлендж, настраиваемые напоминания через APScheduler. Полностью async: PostgreSQL через asyncpg, Redis для FSM, Alembic-миграции и 221 тест.",
-    "en": "A bilingual Telegram bot for drilling mental arithmetic: seven operation types (addition, subtraction, multiplication, division, division with remainder, powers, roots) across three difficulty levels. A profile with day-streaks and a leaderboard, a deterministic daily challenge, and configurable reminders via APScheduler. Fully async: PostgreSQL over asyncpg, Redis for FSM, Alembic migrations, and 221 tests."
+    "ru": "Двуязычный Telegram-тренажёр устного счёта, построенный вокруг одной идеи - сделать тренировку честной и затягивающей. Семь типов операций на трёх уровнях, серии дней и рейтинг. Ключевое решение: ежедневный челлендж детерминирован, всем выпадает один и тот же набор задач, поэтому лидерборд нельзя обыграть удачей.",
+    "en": "A bilingual Telegram mental-arithmetic trainer built around one idea: make practice fair and addictive. Seven operation types across three levels, day-streaks, and a leaderboard. The key decision: the daily challenge is deterministic - everyone gets the same set of problems, so the leaderboard can't be gamed by luck."
   },
   "stack": [
     "Python 3.12",
@@ -39,7 +39,7 @@
   ],
   "cover": "/projects/dotmathbot/cover.svg",
   "ogImage": "/projects/dotmathbot/og.svg",
-  "accent": "#fbbf24",
+  "accent": "#ffffff",
   "highlights": [
     {
       "value": "7",
@@ -49,52 +49,53 @@
       }
     },
     {
-      "value": "3",
+      "value": "1",
       "label": {
-        "ru": "уровня",
-        "en": "levels"
+        "ru": "дейли на всех",
+        "en": "daily for everyone"
       }
     },
     {
       "value": "RU/EN",
       "label": {
-        "ru": "локализация",
-        "en": "localization"
+        "ru": "на лету",
+        "en": "live switch"
       }
     }
   ],
   "overview": {
     "ru": [
-      "DotMathBot — небольшой standalone-бот без отдельного бэкенда и фронтенда. Один процесс на aiogram 3.15, данные в PostgreSQL через async-SQLAlchemy и asyncpg, FSM-состояние — в Redis с graceful-фолбэком в память. Генератор задач покрывает семь типов операций на трёх уровнях сложности.",
-      "Ежедневный челлендж детерминирован: зерно RNG выводится из даты, поэтому всем пользователям выпадает один и тот же набор задач. У каждого — профиль с прогрессом, сериями дней и местом в лидерборде по четырём критериям (стрик, решено, точность, очки). Напоминания и резервные pg_dump-бэкапы крутятся в том же процессе на APScheduler.",
-      "Двуязычный изначально: ru/en переключаются на лету в настройках, без перезапуска диалога. Покрытие — 221 pytest-тест (проблемы-генератор, UI, inline, уведомления) с testcontainers для реальной PostgreSQL."
+      "DotMathBot решает проблему любого тренажёра-однодневки: им перестают пользоваться через неделю. Здесь за удержание отвечают серии дней, рейтинг и ежедневный челлендж, к которому хочется возвращаться. Семь типов операций - от сложения до степеней и корней - на трёх уровнях сложности, плюс быстрый старт с любимым режимом.",
+      "Самое интересное решение скрыто в дейли. Зерно генератора задач выводится из даты, поэтому всем пользователям в один день выпадает идентичный набор. Это превращает лидерборд в честное соревнование: нельзя перезапросить задачи попроще. Тот же приём делает логику воспроизводимой в тестах - RNG инжектируется, и поведение генератора детерминировано.",
+      "Технически это один аккуратный процесс без лишних движущихся частей. aiogram 3, данные в PostgreSQL через async-SQLAlchemy и asyncpg, FSM-состояние в Redis с мягким фолбэком в память. Напоминания и резервные pg_dump-бэкапы крутятся в том же event loop на APScheduler, без отдельного брокера и воркера. Интерфейс полностью двуязычный и переключается на лету, а ошибки честно повторяются, не подсказывая ответ."
     ],
     "en": [
-      "DotMathBot is a small standalone bot — no separate backend or frontend. A single aiogram 3.15 process, data in PostgreSQL through async SQLAlchemy and asyncpg, FSM state in Redis with a graceful in-memory fallback. The problem generator covers seven operation types across three difficulty levels.",
-      "The daily challenge is deterministic: the RNG seed is derived from the date, so every user gets the same problem set. Each user has a profile with progress, day-streaks, and a leaderboard place across four criteria (streak, solved, accuracy, points). Reminders and pg_dump backups run in-process on APScheduler.",
-      "Bilingual from the start: ru/en toggle on the fly in settings, without restarting the dialog. Covered by 221 pytest tests (problem generator, UI, inline, notifications) with testcontainers for a real PostgreSQL."
+      "DotMathBot solves the problem of every throwaway trainer: people stop using it within a week. Here retention is carried by day-streaks, a leaderboard, and a daily challenge worth coming back to. Seven operation types - from addition to powers and roots - across three difficulty levels, plus a quick start with a favorite mode.",
+      "The most interesting decision hides in the daily. The problem generator's seed is derived from the date, so every user gets an identical set on a given day. That turns the leaderboard into a fair contest: you can't re-roll for easier problems. The same trick makes the logic reproducible in tests - the RNG is injectable and the generator is deterministic.",
+      "Technically it's a single tidy process with no spare moving parts. aiogram 3, data in PostgreSQL through async SQLAlchemy and asyncpg, FSM state in Redis with a graceful in-memory fallback. Reminders and pg_dump backups run in the same event loop on APScheduler, with no separate broker or worker. The interface is fully bilingual and switches on the fly, and mistakes are replayed honestly without revealing the answer."
     ]
   },
   "metrics": [
     {
       "value": "7",
       "label": {
-        "ru": "типов операций",
-        "en": "operation types"
+        "ru": "типов операций × 3 уровня",
+        "en": "operation types × 3 levels"
       }
     },
     {
-      "value": "3",
+      "value": "5.6k",
       "label": {
-        "ru": "уровня сложности",
-        "en": "difficulty levels"
+        "ru": "строк кода",
+        "en": "lines of code"
       }
     },
     {
-      "value": "221",
+      "value": "6",
+      "unit": "мес",
       "label": {
-        "ru": "pytest-теста",
-        "en": "pytest tests"
+        "ru": "от MVP до прод-обвязки",
+        "en": "months from MVP to production"
       }
     },
     {
@@ -149,14 +150,14 @@
         "en": "Drills"
       },
       "description": {
-        "ru": "Семь типов операций (от сложения до степеней и корней) на трёх уровнях сложности, плюс быстрый старт с любимым режимом.",
-        "en": "Seven operation types (from addition to powers and roots) across three difficulty levels, plus a quick start with a favourite mode."
+        "ru": "Семь типов операций (от сложения до степеней и корней) на трёх уровнях, плюс быстрый старт с любимым режимом.",
+        "en": "Seven operation types (from addition to powers and roots) across three levels, plus a quick start with a favorite mode."
       }
     },
     {
       "icon": "user",
       "title": {
-        "ru": "Профиль и лидерборд",
+        "ru": "Профиль и рейтинг",
         "en": "Profile & leaderboard"
       },
       "description": {
@@ -167,12 +168,12 @@
     {
       "icon": "rocket",
       "title": {
-        "ru": "Дейли и напоминания",
-        "en": "Daily & reminders"
+        "ru": "Честный дейли",
+        "en": "Fair daily"
       },
       "description": {
-        "ru": "Детерминированный ежедневный челлендж (один набор для всех) и настраиваемые напоминания через in-process APScheduler.",
-        "en": "A deterministic daily challenge (one set for everyone) and configurable reminders via in-process APScheduler."
+        "ru": "Детерминированный ежедневный челлендж: один и тот же набор задач для всех, плюс настраиваемые напоминания в том же процессе.",
+        "en": "A deterministic daily challenge: the same problem set for everyone, plus configurable reminders in the same process."
       }
     },
     {
@@ -182,8 +183,8 @@
         "en": "RU + EN on the fly"
       },
       "description": {
-        "ru": "Полная локализация интерфейса, переключение языка без рестарта диалога, плюс честный повтор ошибок без подсказки ответа.",
-        "en": "Full UI localization, language switch without restarting the dialog, plus a fair mistakes-retry that never reveals the answer."
+        "ru": "Полная локализация, переключение языка без рестарта диалога, и честный повтор ошибок без подсказки ответа.",
+        "en": "Full localization, language switch without restarting the dialog, and a fair mistakes-retry that never reveals the answer."
       }
     }
   ],
@@ -194,18 +195,18 @@
         "en": "Why PostgreSQL instead of SQLite?"
       },
       "answer": {
-        "ru": "Проект мигрировал с SQLite на PostgreSQL ради конкурентного доступа и целостности данных при нескольких пользователях. Отдельный скрипт перенёс легаси-данные с сохранением внешних ключей, а pg_dump даёт надёжные бэкапы.",
-        "en": "The project migrated off SQLite to PostgreSQL for concurrent access and data integrity under multiple users. A dedicated script moved legacy data while preserving foreign keys, and pg_dump provides reliable backups."
+        "ru": "Проект мигрировал с SQLite на PostgreSQL ради конкурентного доступа и целостности при нескольких пользователях. Отдельный скрипт перенёс легаси-данные, сохранив внешние ключи, а pg_dump даёт надёжные бэкапы.",
+        "en": "The project migrated off SQLite to PostgreSQL for concurrent access and integrity under multiple users. A dedicated script moved legacy data while preserving foreign keys, and pg_dump provides reliable backups."
       }
     },
     {
       "question": {
-        "ru": "Почему APScheduler внутри процесса, а не Celery?",
+        "ru": "Почему APScheduler в процессе, а не Celery?",
         "en": "Why in-process APScheduler instead of Celery?"
       },
       "answer": {
-        "ru": "Напоминания и бэкапы — это простые cron-задачи. AsyncIOScheduler живёт в том же event loop бота, а расписание восстанавливается из БД при старте — без брокера и отдельного воркера.",
-        "en": "Reminders and backups are simple cron jobs. AsyncIOScheduler lives in the bot's own event loop and the schedule is rebuilt from the database on startup — no broker, no separate worker."
+        "ru": "Напоминания и бэкапы - простые cron-задачи. AsyncIOScheduler живёт в том же event loop бота, а расписание восстанавливается из базы при старте. Ни брокера, ни отдельного воркера.",
+        "en": "Reminders and backups are simple cron jobs. AsyncIOScheduler lives in the bot's own event loop and the schedule is rebuilt from the database on startup. No broker, no separate worker."
       }
     },
     {
@@ -214,8 +215,8 @@
         "en": "Why a deterministic daily challenge?"
       },
       "answer": {
-        "ru": "Зерно генератора выводится из даты, поэтому всем пользователям выпадает один и тот же набор задач — это делает лидерборд честным. RNG инжектируется, так что логика воспроизводима в тестах.",
-        "en": "The generator's seed is derived from the date, so every user gets the same problem set — which keeps the leaderboard fair. The RNG is injectable, so the logic is reproducible in tests."
+        "ru": "Зерно генератора выводится из даты, поэтому всем выпадает один и тот же набор задач - это делает рейтинг честным. RNG инжектируется, так что логика воспроизводима в тестах.",
+        "en": "The generator's seed is derived from the date, so everyone gets the same problem set - which keeps the leaderboard fair. The RNG is injectable, so the logic is reproducible in tests."
       }
     }
   ],
@@ -238,8 +239,8 @@
         "en": "PostgreSQL and production wiring"
       },
       "description": {
-        "ru": "Миграция SQLite → PostgreSQL, Redis FSM, Docker и CI, pg_dump-бэкапы и 221 тест на testcontainers.",
-        "en": "SQLite → PostgreSQL migration, Redis FSM, Docker and CI, pg_dump backups, and 221 tests on testcontainers."
+        "ru": "Миграция SQLite → PostgreSQL, Redis FSM, Docker и CI, pg_dump-бэкапы и покрытие тестами на testcontainers.",
+        "en": "SQLite → PostgreSQL migration, Redis FSM, Docker and CI, pg_dump backups, and test coverage on testcontainers."
       }
     }
   ]

@@ -88,7 +88,7 @@ const shadeFor = (i: number): string => Math.max(0.32, 0.92 - i * 0.12).toFixed(
   .stack-composition__seg {
     min-width: 6px;
     border-radius: var(--r-pill);
-    background: color-mix(in srgb, var(--project-accent) 30%, #ffffff);
+    background: color-mix(in srgb, var(--project-accent) 30%, var(--accent));
     opacity: var(--shade);
     transform-origin: left center;
   }
@@ -131,7 +131,7 @@ const shadeFor = (i: number): string => Math.max(0.32, 0.92 - i * 0.12).toFixed(
     width: 10px;
     height: 10px;
     border-radius: var(--r-xs);
-    background: color-mix(in srgb, var(--project-accent) 30%, #ffffff);
+    background: color-mix(in srgb, var(--project-accent) 30%, var(--accent));
     opacity: var(--shade);
   }
 

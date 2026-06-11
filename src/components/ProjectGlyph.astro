@@ -68,6 +68,16 @@ const { slug, class: className = "" } = Astro.props;
       </g>
     )
   }
+  {
+    slug === "dotlearn" && (
+      <g>
+        <path d="M5 19 L24 10 L43 19 L24 28 Z" />
+        <path d="M13 22.5 V31 q11 6 22 0 V22.5" />
+        <path d="M43 19 V29" />
+        <circle cx="43" cy="31.5" r="1.6" fill="currentColor" stroke="none" />
+      </g>
+    )
+  }
 </svg>
 
 <style>

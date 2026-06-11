@@ -1,0 +1,285 @@
+{
+  "id": "dotlearn",
+  "slug": "dotlearn",
+  "name": {
+    "ru": "DotLearn",
+    "en": "DotLearn"
+  },
+  "brand": {
+    "ru": ".учёба",
+    "en": ".learn"
+  },
+  "tagline": {
+    "ru": "Учебная среда, которую AI расширяет сам - и контентом, и интерактивом.",
+    "en": "A learning workbench that AI extends on its own - content and interactivity alike."
+  },
+  "description": {
+    "ru": "Платформа обучения программированию (local-first), где каждая тема - не строка в базе, а типобезопасный код-модуль: теория в MDX, упражнения в YAML, опциональный кастомный sandbox. Поэтому AI-агент может вводить и новый контент, и новые виды интерактивности. Скилл lesson-forge генерирует темы, валидирует их против Zod-контракта и прогоняет решения в браузерном sandbox. Код запускается прямо в браузере: SQL через sql.js, Python через Pyodide.",
+    "en": "A local-first platform for learning to code, where each topic is not a database row but a type-safe code module: theory in MDX, exercises in YAML, an optional custom sandbox. That's why an AI agent can introduce both new content and new kinds of interactivity. The lesson-forge skill generates topics, validates them against a Zod contract, and runs solutions in a browser sandbox. Code executes right in the browser: SQL via sql.js, Python via Pyodide."
+  },
+  "stack": [
+    "TypeScript 5",
+    "React 18",
+    "Vite 5",
+    "NestJS 10",
+    "Zod",
+    "TanStack Router",
+    "Tailwind",
+    "sql.js",
+    "Pyodide",
+    "Monaco",
+    "Dexie / IndexedDB",
+    "ts-fsrs",
+    "MDX + Shiki",
+    "Turborepo",
+    "Elasticsearch"
+  ],
+  "category": "platform",
+  "status": "active",
+  "year": 2026,
+  "repos": [
+    {
+      "name": "DotLearn",
+      "role": "monorepo"
+    }
+  ],
+  "cover": "/projects/dotlearn/cover.svg",
+  "ogImage": "/projects/dotlearn/og.svg",
+  "accent": "#ffffff",
+  "highlights": [
+    {
+      "value": "21",
+      "label": {
+        "ru": "темы в каталоге",
+        "en": "topics in the catalog"
+      }
+    },
+    {
+      "value": "AI",
+      "label": {
+        "ru": "темы пишет lesson-forge",
+        "en": "topics authored by lesson-forge"
+      }
+    },
+    {
+      "value": "local",
+      "label": {
+        "ru": "первый: без бэкенда",
+        "en": "first: no backend"
+      }
+    }
+  ],
+  "overview": {
+    "ru": [
+      "DotLearn вырос из наблюдения за рынком обучающих платформ. Они делятся на два лагеря: генераторы контента льют уроки в фиксированные шаблоны (новый вид интерактивности - только через разработчика), а интерактивные песочницы дают богатый рантайм, но возят статичную, вручную собранную программу. DotLearn занимает третью нишу - codegen-расширяемую: AI-агент вводит и новый контент, и новые типы интерактивности, потому что каждая тема это код-модуль, а не запись в базе.",
+      "Ключевой инвариант - local-first. Фронтенд обязан работать без бэкенда: SPA читает темы напрямую через import.meta.glob, гоняет sandbox в Web Workers и ходит в AI-провайдеры прямо из браузера по схеме BYOK, где ключи никогда не уходят на сервер. Открываешь localhost, и плеер работает офлайн, без аккаунтов и интернета. Код исполняется по-настоящему: SQL в sql.js, Python в Pyodide, с Monaco-редактором и шестью типами упражнений. Бэкенд на NestJS - опциональное усиление для заявок и модерации, а не обязательная зависимость.",
+      "Самое сильное решение - скилл lesson-forge, который владеет контрактом темы. Просишь агента «добавь тему по SQL JOIN», он разворачивает структуру, генерирует теорию и задачи, валидирует их против Zod-схем, прогоняет каждое gold-решение в браузерном sandbox и открывает PR. Фронт и бэк встречаются ровно в одном месте - packages/contracts: web валидирует манифесты теми же схемами, что NestJS использует для DTO, а типы выводятся через z.infer. Один источник правды, чистые мёрджи форков, единый UX для любой темы."
+    ],
+    "en": [
+      "DotLearn grew out of watching the learning-platform market. It splits into two camps: content generators pour lessons into fixed templates (a new kind of interactivity only ships through a developer), while interactive sandboxes offer a rich runtime but carry a static, hand-built curriculum. DotLearn takes the third niche - codegen-extensible: an AI agent introduces both new content and new types of interactivity, because every topic is a code module, not a database record.",
+      "The key invariant is local-first. The frontend must run without a backend: the SPA reads topics directly via import.meta.glob, runs sandboxes in Web Workers, and calls AI providers straight from the browser under a BYOK model where keys never reach a server. Open localhost and the player works offline, with no accounts and no internet. Code executes for real: SQL in sql.js, Python in Pyodide, with a Monaco editor and six exercise types. The NestJS backend is an optional enhancement for submissions and moderation, never a required dependency.",
+      "The strongest decision is the lesson-forge skill, which owns the topic contract. You ask the agent to 'add a topic on SQL JOINs', it scaffolds the structure, generates the theory and exercises, validates them against the Zod schemas, runs every gold solution in a browser sandbox, and opens a PR. Frontend and backend meet in exactly one place - packages/contracts: web validates manifests with the same schemas NestJS uses for DTOs, and types flow from z.infer. One source of truth, clean fork merges, a single UX for any topic."
+    ]
+  },
+  "metrics": [
+    {
+      "value": "21",
+      "label": {
+        "ru": "темы: SQL, Python internals, архитектура",
+        "en": "topics: SQL, Python internals, architecture"
+      }
+    },
+    {
+      "value": "22k",
+      "label": {
+        "ru": "строк TypeScript в монорепо",
+        "en": "lines of TypeScript in the monorepo"
+      }
+    },
+    {
+      "value": "6",
+      "label": {
+        "ru": "типов упражнений · 2 рантайма в браузере",
+        "en": "exercise types · 2 in-browser runtimes"
+      }
+    },
+    {
+      "value": "BYOK",
+      "label": {
+        "ru": "AI-ключи остаются в браузере",
+        "en": "AI keys stay in the browser"
+      }
+    }
+  ],
+  "stackGroups": {
+    "language": ["TypeScript 5 (strict)", "Python (Pyodide)"],
+    "framework": ["React 18", "Vite 5", "NestJS 10 (DDD)", "TanStack Router", "Tailwind"],
+    "data": ["IndexedDB / Dexie", "Zod contracts", "MDX + Shiki", "Elasticsearch"],
+    "infra": ["pnpm workspaces", "Turborepo", "Docker Compose", "GitHub Actions CI"],
+    "client": ["sql.js (WASM)", "Pyodide (WASM)", "Monaco editor", "Web Workers"],
+    "ml": ["lesson-forge skill", "BYOK: OpenAI / Anthropic / Ollama / OpenRouter", "ts-fsrs (SRS)"]
+  },
+  "architectureNodes": [
+    { "id": "agent", "x": 150, "y": 130, "label": "AI agent · lesson-forge", "icon": "spark", "width": 210 },
+    { "id": "topics", "x": 150, "y": 320, "label": "topics/ · code modules", "icon": "code", "width": 200 },
+    { "id": "contracts", "x": 480, "y": 90, "label": "Zod contracts", "icon": "stack", "width": 175 },
+    {
+      "id": "web",
+      "x": 480,
+      "y": 265,
+      "label": "web · local-first",
+      "icon": "globe",
+      "emphasis": "strong",
+      "width": 190
+    },
+    { "id": "sandbox", "x": 480, "y": 445, "label": "sql.js + Pyodide", "icon": "rocket", "width": 190 },
+    { "id": "idb", "x": 810, "y": 150, "label": "IndexedDB", "icon": "dot", "width": 175 },
+    { "id": "ai", "x": 810, "y": 290, "label": "BYOK providers", "icon": "dot", "width": 175 },
+    { "id": "api", "x": 810, "y": 430, "label": "NestJS API · opt", "icon": "stack", "width": 185 }
+  ],
+  "architectureEdges": [
+    { "from": "agent", "to": "topics", "kind": "async", "label": "generates" },
+    { "from": "agent", "to": "contracts", "kind": "data", "label": "validates" },
+    { "from": "topics", "to": "web", "kind": "data", "label": "import.meta.glob" },
+    { "from": "contracts", "to": "web", "kind": "data" },
+    { "from": "contracts", "to": "api", "kind": "data" },
+    { "from": "web", "to": "sandbox", "kind": "sync", "label": "Web Worker" },
+    { "from": "web", "to": "idb", "kind": "data", "label": "progress" },
+    { "from": "web", "to": "ai", "kind": "sync", "label": "BYOK" }
+  ],
+  "clusters": [{ "x": 50, "y": 60, "width": 230, "height": 330, "label": "authoring" }],
+  "capabilities": [
+    {
+      "icon": "code",
+      "title": {
+        "ru": "Темы как код",
+        "en": "Topics as code"
+      },
+      "description": {
+        "ru": "Каждая тема - типобезопасный модуль: теория в MDX, упражнения в YAML, опциональный sandbox. Не строка в базе, поэтому форки мёрджатся чисто.",
+        "en": "Each topic is a type-safe module: theory in MDX, exercises in YAML, an optional sandbox. Not a database row, so forks merge cleanly."
+      }
+    },
+    {
+      "icon": "spark",
+      "title": {
+        "ru": "Codegen через lesson-forge",
+        "en": "Codegen via lesson-forge"
+      },
+      "description": {
+        "ru": "AI-агент генерирует тему, валидирует её против Zod-контракта, прогоняет gold-решения в sandbox и открывает PR. Качество проверяет CI.",
+        "en": "An AI agent generates a topic, validates it against the Zod contract, runs gold solutions in the sandbox, and opens a PR. CI checks quality."
+      }
+    },
+    {
+      "icon": "rocket",
+      "title": {
+        "ru": "Код в браузере",
+        "en": "Code in the browser"
+      },
+      "description": {
+        "ru": "sql.js и Pyodide в Web Workers, Monaco-редактор и шесть типов упражнений. Реальное исполнение без сервера.",
+        "en": "sql.js and Pyodide in Web Workers, a Monaco editor, and six exercise types. Real execution, no server."
+      }
+    },
+    {
+      "icon": "globe",
+      "title": {
+        "ru": "Local-first",
+        "en": "Local-first"
+      },
+      "description": {
+        "ru": "Плеер открывается на localhost без бэкенда, аккаунтов и интернета. Прогресс в IndexedDB, GitHub-style heatmap и FSRS-повторения.",
+        "en": "The player opens on localhost with no backend, accounts, or internet. Progress in IndexedDB, a GitHub-style heatmap, and FSRS reviews."
+      }
+    },
+    {
+      "icon": "stack",
+      "title": {
+        "ru": "BYOK AI",
+        "en": "BYOK AI"
+      },
+      "description": {
+        "ru": "Ключи OpenAI, Anthropic, Ollama и OpenRouter хранятся в браузере и никогда не уходят на сервер. Connection-тест в один клик.",
+        "en": "Keys for OpenAI, Anthropic, Ollama, and OpenRouter live in the browser and never reach a server. One-click connection test."
+      }
+    },
+    {
+      "icon": "user",
+      "title": {
+        "ru": "Сообщество и админка",
+        "en": "Community and admin"
+      },
+      "description": {
+        "ru": "Заявки на темы через PR или форму, модерация в защищённой админке (TOTP, argon2, JWT) и self-hosting в Docker.",
+        "en": "Topic submissions via PR or a form, moderation in a hardened admin (TOTP, argon2, JWT), and self-hosting in Docker."
+      }
+    }
+  ],
+  "engineeringChoices": [
+    {
+      "question": {
+        "ru": "Почему тема - это код, а не контент в базе?",
+        "en": "Why is a topic code, not content in a database?"
+      },
+      "answer": {
+        "ru": "Тогда AI может вводить и новый контент, и новый вид интерактивности. Манифест ссылается на кастомный sandbox только когда без него действительно нельзя, всё остальное - данные. Так темы стандартизованы, а форки сливаются без конфликтов.",
+        "en": "Because then AI can introduce both new content and a new kind of interactivity. A manifest references a custom sandbox only when truly necessary; everything else is data. That keeps topics standardized and lets forks merge without conflicts."
+      }
+    },
+    {
+      "question": {
+        "ru": "Зачем local-first, если есть бэкенд?",
+        "en": "Why local-first if there's a backend?"
+      },
+      "answer": {
+        "ru": "apps/web обязан работать без apps/api. SPA читает темы напрямую, гоняет sandbox в Web Workers и ходит в AI из браузера. Бэкенд - опциональное усиление (заявки, модерация), а не обязательная зависимость.",
+        "en": "apps/web must run without apps/api. The SPA reads topics directly, runs sandboxes in Web Workers, and calls AI from the browser. The backend is an optional enhancement (submissions, moderation), not a required dependency."
+      }
+    },
+    {
+      "question": {
+        "ru": "Где встречаются фронт и бэк?",
+        "en": "Where do frontend and backend meet?"
+      },
+      "answer": {
+        "ru": "Ровно в packages/contracts. Web валидирует манифесты теми же Zod-схемами, что NestJS использует для DTO входящих заявок, а типы выводятся через z.infer. Один источник правды на оба мира.",
+        "en": "In exactly one place: packages/contracts. Web validates manifests with the same Zod schemas NestJS uses for incoming submission DTOs, and the types flow from z.infer. One source of truth for both worlds."
+      }
+    },
+    {
+      "question": {
+        "ru": "Почему модульный монолит в монорепо?",
+        "en": "Why a modular monolith in a monorepo?"
+      },
+      "answer": {
+        "ru": "Скиллу нужно видеть всё в одном месте, а PR с темами не должны прыгать по репозиториям. Монорепо синхронизирует типы бесплатно и сохраняет local-first философию: фронт деплоится статикой отдельно от бэка.",
+        "en": "The skill needs to see everything in one place, and topic PRs shouldn't hop across repositories. A monorepo syncs types for free and preserves the local-first philosophy: the frontend deploys as static, separate from the backend."
+      }
+    }
+  ],
+  "timeline": [
+    {
+      "date": "Jun 2026",
+      "title": {
+        "ru": "Local-first плеер",
+        "en": "Local-first player"
+      },
+      "description": {
+        "ru": "Шесть типов упражнений, sql.js и Pyodide в Web Workers, Monaco, прогресс в IndexedDB с heatmap и FSRS.",
+        "en": "Six exercise types, sql.js and Pyodide in Web Workers, Monaco, IndexedDB progress with a heatmap and FSRS."
+      }
+    },
+    {
+      "date": "Jun 2026",
+      "title": {
+        "ru": "Контракт, контент и сообщество",
+        "en": "Contract, content, and community"
+      },
+      "description": {
+        "ru": "Скилл lesson-forge и Zod-контракт, 21 тема в каталоге, NestJS-бэкенд с заявками и защищённой админкой, Docker self-hosting.",
+        "en": "The lesson-forge skill and Zod contract, 21 topics in the catalog, a NestJS backend with submissions and a hardened admin, and Docker self-hosting."
+      }
+    }
+  ]
+}

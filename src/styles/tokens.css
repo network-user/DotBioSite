@@ -1,61 +1,76 @@
 /* =============================================================================
- * tokens.css — Design tokens (порт из DotSound)
+ * tokens.css — Design tokens
  *
- * Палитра строго монохромная. Никаких градиентов как декоративного приёма —
- * только полупрозрачные белые блики поверх тёмных стеклянных поверхностей.
- * Любое изменение токенов должно происходить здесь, не точечно в компонентах.
+ * Язык дизайна: «Проявление» (darkroom / reveal). Палитра строго монохромная —
+ * мягкий near-black, лента серых и off-white. Никакого цвета как декоративного
+ * приёма: единственный «акцент» — белый свет, который проявляет структуру.
+ * Цвет может вернуться позже через --project-accent, но по умолчанию это белый.
+ *
+ * Любое изменение токенов происходит здесь, не точечно в компонентах.
  * ============================================================================= */
 
 :root {
-  /* ---------- Палитра: фоны и поверхности ---------- */
-  --bg: #0a0a0a;
-  --bg-elevated: #111111;
-  --surface: #1a1a1a;
-  --surface-2: #242424;
-  --surface-3: #2e2e2e;
+  /* ---------- Палитра: фоны и поверхности ----------
+   * Не чистый #000 — мягкий, чуть холодный near-black, чтобы свет «ложился»
+   * на поверхность, а контраст не резал глаз. Лента поднимается ровными шагами. */
+  --bg: #0c0d0f;
+  --bg-elevated: #131418;
+  --surface: #181a1e;
+  --surface-2: #212329;
+  --surface-3: #2c2e35;
 
-  /* ---------- Палитра: текст ---------- */
-  --text: #ffffff;
-  --text-secondary: #a0a0a0;
-  --text-muted: #5a5a5a;
-  --text-faint: #3a3a3a;
+  /* ---------- Палитра: текст ----------
+   * Off-white вместо чистого #FFF — мягче на тёмном, читается как «проявленный»
+   * свет, а не как лампа в глаза. */
+  --text: #f3f3f1;
+  --text-secondary: #a6a7ab;
+  /* AA-safe muted: ~5:1 на --bg, используется для читаемых caption / eyebrow / label. */
+  --text-muted: #878a92;
+  /* Только декор (aria-hidden): контраст ниже AA, не использовать для текста. */
+  --text-faint: #3d3f45;
 
-  /* ---------- Палитра: границы ---------- */
+  /* ---------- Палитра: границы (всегда белый с альфой) ---------- */
   --border: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 255, 255, 0.16);
-  --border-strong: rgba(255, 255, 255, 0.24);
+  --border-hover: rgba(255, 255, 255, 0.18);
+  --border-strong: rgba(255, 255, 255, 0.28);
 
-  /* ---------- Акценты (монохром: акцент = белый) ---------- */
+  /* ---------- Акцент: монохром = белый свет ---------- */
   --accent: #ffffff;
-  --accent-hover: #e0e0e0;
-  --accent-active: #c8c8c8;
+  --accent-hover: #e8e8e6;
+  --accent-active: #d0d0ce;
 
-  /* ---------- Статусные цвета (iOS-style, для нечастого использования) ---------- */
-  --state-ok: #34c759;
-  --state-warn: #ffcc00;
-  --state-error: #ff453a;
-  --state-info: #5e9eff;
+  /* Per-project «подпись». В монохроме это тоже белый — проекты различаются
+   * формой (глиф, генеративный паттерн обложки, контент), а не цветом.
+   * Переменная сохранена, чтобы цвет можно было вернуть точечно. */
+  --project-accent: var(--accent);
+
+  /* ---------- Статусные цвета (используются крайне скупо, почти grayscale) ----------
+   * Десатурированы под монохром: статус читается формой/точкой, не яркостью. */
+  --state-ok: #d8d8d6;
+  --state-warn: #b9b9b6;
+  --state-error: #e6e6e4;
+  --state-info: #cfcfcd;
   --state-unknown: #6e6e6e;
 
-  /* ---------- Liquid Glass / Frutiger-Aero ----------
-   * Tints stay translucent so the real `backdrop-filter` blur (defined in
-   * glass.css) shows the animated aurora behind every surface. */
-  --glass-tint-1: rgba(20, 20, 22, 0.46);
-  --glass-tint-2: rgba(16, 16, 18, 0.64);
-  --glass-tint-3: rgba(12, 12, 13, 0.8);
-  --glass-tint-liquid: rgba(22, 22, 24, 0.34);
-  --glass-edge: rgba(255, 255, 255, 0.12);
-  --glass-edge-bright: rgba(255, 255, 255, 0.26);
+  /* ---------- Glass / soft frosted поверхности ----------
+   * Tint остаётся полупрозрачным, чтобы реальный backdrop-filter (glass.css)
+   * показывал световое поле за поверхностью. Мягче и нейтральнее прежнего. */
+  --glass-tint-1: rgba(22, 24, 28, 0.5);
+  --glass-tint-2: rgba(18, 19, 23, 0.66);
+  --glass-tint-3: rgba(13, 14, 17, 0.82);
+  --glass-tint-liquid: rgba(26, 28, 33, 0.38);
+  --glass-edge: rgba(255, 255, 255, 0.1);
+  --glass-edge-bright: rgba(255, 255, 255, 0.24);
   --glass-top-shine: linear-gradient(
     to bottom,
-    rgba(255, 255, 255, 0.2) 0%,
-    rgba(255, 255, 255, 0.045) 36%,
-    rgba(255, 255, 255, 0) 72%
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(255, 255, 255, 0.04) 38%,
+    rgba(255, 255, 255, 0) 74%
   );
-  --glass-blur: 20px;
-  --glass-blur-strong: 30px;
-  --glass-saturate: 140%;
-  --glass-brightness: 1.05;
+  --glass-blur: 22px;
+  --glass-blur-strong: 32px;
+  --glass-saturate: 105%;
+  --glass-brightness: 1.04;
 
   /* ---------- Spacing (8pt grid) ---------- */
   --sp-1: 4px;
@@ -71,20 +86,24 @@
   --sp-11: 96px;
   --sp-12: 128px;
 
-  /* ---------- Радиусы ---------- */
-  --r-xs: 4px;
-  --r-sm: 6px;
-  --r-md: 10px;
-  --r-lg: 16px;
-  --r-xl: 24px;
-  --r-2xl: 32px;
+  /* ---------- Радиусы (мягче — крупные скругления читаются «приятно») ---------- */
+  --r-xs: 5px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 18px;
+  --r-xl: 26px;
+  --r-2xl: 34px;
   --r-pill: 999px;
 
-  /* ---------- Типографика: font stacks ---------- */
+  /* ---------- Типографика: font stacks ----------
+   * Display — Bricolage Grotesque (характерный, мягкий гротеск). Body — Inter.
+   * Оба selfhosted через @fontsource, без внешних запросов. */
   --font-stack-system:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-  --font-stack-display: "Inter", var(--font-stack-system);
+  --font-stack-body: "Inter Variable", "Inter", var(--font-stack-system);
+  --font-stack-display:
+    "Bricolage Grotesque Variable", "Bricolage Grotesque", "Inter Variable", var(--font-stack-system);
   --font-stack-mono:
     ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", monospace;
@@ -105,23 +124,25 @@
   --fs-28: 28px;
   --fs-32: 32px;
   --fs-40: 40px;
+  --fs-44: 44px;
   --fs-48: 48px;
   --fs-64: 64px;
   --fs-80: 80px;
   --fs-tt: 28px;
   --fs-lt: 34px;
 
-  /* ---------- Типографика: letter-spacing ---------- */
-  --ls-display: 0;
-  --ls-tight: 0;
-  --ls-snug: 0;
+  /* ---------- Типографика: letter-spacing ----------
+   * Bricolage хорошо смотрится с лёгким отрицательным трекингом на крупных кеглях. */
+  --ls-display: -0.02em;
+  --ls-tight: -0.015em;
+  --ls-snug: -0.006em;
   --ls-normal: 0;
-  --ls-wide: 0;
+  --ls-wide: 0.08em;
 
   /* ---------- Типографика: line-height ---------- */
-  --lh-tight: 1.12;
-  --lh-snug: 1.28;
-  --lh-normal: 1.5;
+  --lh-tight: 1.04;
+  --lh-snug: 1.22;
+  --lh-normal: 1.55;
   --lh-loose: 1.7;
 
   /* ---------- Типографика: веса ---------- */
@@ -131,13 +152,13 @@
   --fw-bold: 700;
   --fw-extrabold: 800;
 
-  /* ---------- Motion: длительности ---------- */
-  --dur-instant: 80ms;
-  --dur-fast: 160ms;
-  --dur-med: 240ms;
-  --dur-slow: 360ms;
-  --dur-slower: 560ms;
-  --dur-glacial: 840ms;
+  /* ---------- Motion: длительности (чуть мягче/тягучее под «проявление») ---------- */
+  --dur-instant: 90ms;
+  --dur-fast: 180ms;
+  --dur-med: 280ms;
+  --dur-slow: 420ms;
+  --dur-slower: 640ms;
+  --dur-glacial: 1000ms;
 
   /* ---------- Motion: easing ---------- */
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
@@ -147,8 +168,8 @@
   --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
   /* ---------- Focus ring ---------- */
-  --ring-focus: rgba(255, 255, 255, 0.55);
-  --ring-focus-strong: rgba(255, 255, 255, 0.85);
+  --ring-focus: rgba(255, 255, 255, 0.6);
+  --ring-focus-strong: rgba(255, 255, 255, 0.9);
   --ring-width: 2px;
 
   /* ---------- Минимальные тап-таргеты (Apple HIG / WCAG 2.1) ---------- */
@@ -175,48 +196,59 @@
   --bw-thick: 2px;
 
   /* ---------- Two-tier dark palette ---------- */
-  --bg-deep: #050505;
-  --bg-elevated-2: #141414;
+  --bg-deep: #07080a;
+  --bg-elevated-2: #15171b;
 
-  /* ---------- Depth shadow scale (Apple-style: thin inset highlight + soft drop) ---------- */
-  --shadow-1: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 1px 2px rgba(0, 0, 0, 0.2);
-  --shadow-2: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 6px 14px rgba(0, 0, 0, 0.3);
-  --shadow-3: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 14px 36px rgba(0, 0, 0, 0.45);
-  --shadow-4: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 28px 72px rgba(0, 0, 0, 0.55);
+  /* ---------- Depth shadow scale ----------
+   * Мягче прежнего: тонкий верхний highlight + рассеянная тень. «Soft» = большой
+   * blur при низкой непрозрачности, тень не «прибивает» карточку к фону. */
+  --shadow-1: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 8px rgba(0, 0, 0, 0.28);
+  --shadow-2: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 10px 30px rgba(0, 0, 0, 0.34);
+  --shadow-3: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 22px 60px rgba(0, 0, 0, 0.44);
+  --shadow-4: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 40px 100px rgba(0, 0, 0, 0.52);
 
   /* ---------- Refined glass extras ---------- */
-  --glass-blur-soft: 12px;
-  --glass-blur-strong-2: 36px;
-  --glass-tint-ultra: rgba(8, 8, 8, 0.92);
+  --glass-blur-soft: 14px;
+  --glass-blur-strong-2: 38px;
+  --glass-tint-ultra: rgba(10, 11, 13, 0.9);
 
   /* ---------- Constellation / dot motif ---------- */
-  --dot-density: 0.00018; /* hero canvas particles per px² */
+  --dot-density: 0.00018;
   --dot-density-case: 0.0001;
-  --dot-color: rgba(255, 255, 255, 0.55);
+  --dot-color: rgba(255, 255, 255, 0.5);
   --dot-edge-color: rgba(255, 255, 255, 0.1);
-  --spotlight-color: rgba(255, 255, 255, 0.1);
-  --spotlight-radius: 520px;
 
-  /* ---------- Aurora background palette ----------
-   * Hues echo the four project accents (cyan / violet / amber / green) but at
-   * low alpha over near-black, so heavily blurred they read as a refined tonal
-   * glow, never a rainbow. Monochrome stays the base; colour is a whisper. */
-  --aurora-cyan: rgba(103, 232, 249, 0.16);
-  --aurora-violet: rgba(167, 139, 250, 0.15);
-  --aurora-amber: rgba(251, 191, 138, 0.12);
-  --aurora-green: rgba(52, 199, 120, 0.1);
+  /* ---------- Свет: «проявитель» ----------
+   * Курсор и верхний источник света. Монохромный, мягкий, чуть тёплый белый —
+   * читается как студийная / проявочная лампа, а не как неон. */
+  --light: rgba(255, 255, 255, 1);
+  --light-warm: rgba(255, 252, 245, 1);
+  --spotlight-color: rgba(255, 255, 255, 0.1);
+  --spotlight-radius: 540px;
+  --reveal-strength: 0.22; /* непрозрачность курсорного света на hero/картах */
+
+  /* ---------- Ambient light field (монохром вместо цветной авроры) ----------
+   * Несколько мягких белых/серых световых пятен поверх near-black. Имена с
+   * историческими «cyan/violet/amber» сохранены, но это теперь оттенки белого. */
+  --aurora-cyan: rgba(255, 255, 255, 0.07);
+  --aurora-violet: rgba(214, 218, 226, 0.06);
+  --aurora-amber: rgba(255, 250, 240, 0.05);
+  --aurora-green: rgba(230, 232, 236, 0.045);
   --aurora-white: rgba(255, 255, 255, 0.08);
-  --aurora-opacity: 0.9;
-  --aurora-opacity-mobile: 0.6;
-  --aurora-grid: rgba(255, 255, 255, 0.022);
+  --aurora-opacity: 1;
+  --aurora-opacity-mobile: 0.72;
+  --aurora-grid: rgba(255, 255, 255, 0.02);
+
+  /* ---------- Film grain (мягкая «плёночная» текстура поверх фона) ---------- */
+  --grain-opacity: 0.045;
 
   /* ---------- Typography extras (display-xl tier) ---------- */
   --fs-96: 96px;
   --fs-120: 120px;
   --fs-160: 160px;
-  --ls-display-xl: 0;
-  --ls-eyebrow: 0;
-  --lh-display-xl: 0.92;
+  --ls-display-xl: -0.03em;
+  --ls-eyebrow: 0.14em;
+  --lh-display-xl: 0.9;
 
   /* ---------- Tabular numeric (for .metric) ---------- */
   --fvar-tabular: "tnum" 1, "lnum" 1;

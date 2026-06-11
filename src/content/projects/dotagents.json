@@ -10,12 +10,12 @@
     "en": ".agents"
   },
   "tagline": {
-    "ru": "Telegram-мост для AI coding agents.",
-    "en": "Telegram bridge for AI coding agents."
+    "ru": "Управляй AI-агентами с телефона. Код не покидает машину.",
+    "en": "Drive AI coding agents from your phone. Code never leaves your machine."
   },
   "description": {
-    "ru": "Локальный security-first daemon рядом с Cursor IDE, Claude Code CLI, Antigravity и cursor-agent. Он зеркалит агентские сессии в Telegram: live-статус, approve/deny для shell и MCP вызовов, follow-up команды, transcript tail и запуск новых CLI-сессий с телефона.",
-    "en": "A local security-first daemon next to Cursor IDE, Claude Code CLI, Antigravity, and cursor-agent. It mirrors agent sessions into Telegram: live status, approve/deny for shell and MCP calls, follow-up commands, transcript tail, and spawning new CLI sessions from a phone."
+    "ru": "Локальный security-first демон, который стоит рядом с Cursor, Claude Code, Antigravity и cursor-agent и превращает Telegram в пульт управления ими. Live-статус сессий, approve/deny для shell- и MCP-вызовов, follow-up команды и даже запуск новых сессий с телефона. Принцип жёсткий: канал управления уходит в Telegram, но сам код, approvals и transcript остаются на твоей машине.",
+    "en": "A local, security-first daemon that sits next to Cursor, Claude Code, Antigravity, and cursor-agent and turns Telegram into a remote control for them. Live session status, approve/deny for shell and MCP calls, follow-up commands, and even spawning new sessions from your phone. The principle is strict: the control channel goes to Telegram, but the code, approvals, and transcript stay on your machine."
   },
   "stack": [
     "Python 3.12",
@@ -42,69 +42,69 @@
   ],
   "cover": "/projects/dotagents/cover.svg",
   "ogImage": "/projects/dotagents/og.svg",
-  "accent": "#a78bfa",
+  "accent": "#ffffff",
   "highlights": [
     {
-      "value": "179",
+      "value": "local",
       "label": {
-        "ru": "тестов",
-        "en": "tests"
+        "ru": "код не уходит наружу",
+        "en": "code stays local"
       }
     },
     {
       "value": "4",
       "label": {
-        "ru": "агента",
-        "en": "agents"
+        "ru": "AI-агента",
+        "en": "AI agents"
       }
     },
     {
       "value": "HMAC",
       "label": {
-        "ru": "callback security",
-        "en": "callback security"
+        "ru": "безопасные callbacks",
+        "en": "secure callbacks"
       }
     }
   ],
   "overview": {
     "ru": [
-      "DotAgents — локальный мост между AI coding agents и Telegram. Daemon живёт рядом с рабочими инструментами, принимает hooks от Cursor, Claude Code и Antigravity, держит loopback-only FastAPI API и отправляет в Telegram сжатый live-статус по каждой сессии.",
-      "Главный принцип — всё остаётся на машине разработчика. Telegram используется как канал управления: approve/deny для рискованных shell/MCP вызовов, follow-up через `/say`, просмотр transcript tail и dashboard активных раннеров.",
-      "Stage 2 добавляет запуск новых агентских сессий с телефона: выбор workspace, выбор CLI (`claude-code`, `cursor-agent` или `gemini-cli`), первый prompt и потоковый вывод обратно в live message. Три режима — remote (спрашивать), readonly (авто-allow) и standby (авто-deny) — переключаются на лету."
+      "DotAgents вырос из реальной боли: AI-агент работает в IDE, а ты отошёл от компьютера - и сессия либо висит на approval, либо делает что-то рискованное без присмотра. Демон живёт рядом с рабочими инструментами, принимает хуки от Cursor, Claude Code и Antigravity, держит loopback-only FastAPI и шлёт в Telegram сжатый live-статус по каждой сессии: последний инструмент, изменённые файлы, ответ агента.",
+      "Безопасность здесь - не фича, а фундамент. Рискованные shell- и MCP-вызовы блокируются до решения владельца, и если ответа нет - таймаут срабатывает fail-closed, то есть в deny. Три режима меняют политику на лету: remote (спрашивать), readonly (авто-allow) и standby (авто-deny). Callbacks подписаны HMAC с nonce, доступ закрыт passcode и argon2id, а API слушает только 127.0.0.1. Облачного релея нет вообще: код, approvals и transcript физически не покидают машину разработчика.",
+      "Stage 2 превратил пульт в полноценный мобильный IDE-UX: реестр воркспейсов, запуск новой сессии прямо из Telegram (выбор проекта и CLI - claude-code, cursor-agent или gemini-cli), потоковый вывод обратно в live-сообщение, дашборд активных раннеров, поиск по transcript и per-project allowlist. Отдельный AgentRunner отвечает за жизненный цикл CLI: санитайз окружения, кнопка stop и stream-json вывод под разные адаптеры."
     ],
     "en": [
-      "DotAgents is a local bridge between AI coding agents and Telegram. The daemon sits next to the developer tools, receives hooks from Cursor, Claude Code, and Antigravity, exposes a loopback-only FastAPI API, and sends a compact live status for every session to Telegram.",
-      "The core principle is that everything stays on the developer machine. Telegram is only the control channel: approve/deny for risky shell/MCP calls, follow-ups through `/say`, transcript tail, and a dashboard for active runners.",
-      "Stage 2 adds spawning new agent sessions from a phone: pick workspace, pick CLI (`claude-code`, `cursor-agent`, or `gemini-cli`), send the first prompt, and stream output back into the live message. Three modes — remote (ask), readonly (auto-allow), and standby (auto-deny) — switch on the fly."
+      "DotAgents grew out of a real pain: an AI agent is working in the IDE, you step away from the computer, and the session either hangs on an approval or does something risky unattended. The daemon lives next to the dev tools, receives hooks from Cursor, Claude Code, and Antigravity, runs a loopback-only FastAPI, and sends a compact live status for every session to Telegram: the latest tool, changed files, the agent's response.",
+      "Security here isn't a feature, it's the foundation. Risky shell and MCP calls block until the owner decides, and if there's no answer, the timeout fails closed - to deny. Three modes switch the policy on the fly: remote (ask), readonly (auto-allow), and standby (auto-deny). Callbacks are signed with HMAC plus a nonce, access is gated by a passcode and argon2id, and the API listens only on 127.0.0.1. There is no cloud relay at all: code, approvals, and transcript physically never leave the developer's machine.",
+      "Stage 2 turned the remote into a full mobile IDE UX: a workspace registry, spawning a new session straight from Telegram (pick the project and the CLI - claude-code, cursor-agent, or gemini-cli), streaming output back into the live message, a dashboard of active runners, transcript search, and a per-project allowlist. A separate AgentRunner owns the CLI lifecycle: environment sanitising, a stop button, and stream-json output across adapters."
     ]
   },
   "metrics": [
     {
-      "value": "179",
+      "value": "127.0.0.1",
       "label": {
-        "ru": "test-функций",
-        "en": "test functions"
+        "ru": "loopback-only: код не уходит с машины",
+        "en": "loopback-only: code never leaves the machine"
+      }
+    },
+    {
+      "value": "11k",
+      "label": {
+        "ru": "строк кода",
+        "en": "lines of code"
       }
     },
     {
       "value": "4",
       "label": {
-        "ru": "поддерживаемых агента",
-        "en": "supported agents"
+        "ru": "агента: Claude Code · Cursor · cursor-agent · Antigravity",
+        "en": "agents: Claude Code · Cursor · cursor-agent · Antigravity"
       }
     },
     {
-      "value": "127.0.0.1",
+      "value": "3",
       "label": {
-        "ru": "loopback API",
-        "en": "loopback API"
-      }
-    },
-    {
-      "value": "5",
-      "label": {
-        "ru": "миграций",
-        "en": "migrations"
+        "ru": "режима: remote · readonly · standby",
+        "en": "modes: remote · readonly · standby"
       }
     }
   ],
@@ -225,12 +225,12 @@
     {
       "icon": "telegram",
       "title": {
-        "ru": "Live control в Telegram",
+        "ru": "Live-контроль в Telegram",
         "en": "Live control in Telegram"
       },
       "description": {
-        "ru": "Один редактируемый статус на активную сессию: последний tool, изменённые файлы, ответ агента и быстрые действия.",
-        "en": "One edited live status per active session: latest tool, changed files, last response, and quick actions."
+        "ru": "Один редактируемый статус на сессию: последний инструмент, изменённые файлы, ответ агента и быстрые действия.",
+        "en": "One edited live status per session: latest tool, changed files, the agent's response, and quick actions."
       }
     },
     {
@@ -240,19 +240,19 @@
         "en": "Approve / deny"
       },
       "description": {
-        "ru": "Shell и MCP вызовы блокируются до решения владельца (timeout fail-closed → deny); три режима — remote, readonly и standby — меняют политику на лету.",
-        "en": "Shell and MCP calls block until the owner decides (timeout fails closed to deny); three modes — remote, readonly, standby — switch the policy on the fly."
+        "ru": "Shell- и MCP-вызовы ждут решения владельца (таймаут fail-closed → deny); три режима remote, readonly и standby меняют политику на лету.",
+        "en": "Shell and MCP calls wait for the owner's decision (timeout fails closed to deny); three modes - remote, readonly, standby - switch the policy on the fly."
       }
     },
     {
       "icon": "rocket",
       "title": {
-        "ru": "Spawn с телефона",
+        "ru": "Запуск с телефона",
         "en": "Spawn from phone"
       },
       "description": {
-        "ru": "Workspace registry, выбор CLI и запуск новой агентской сессии прямо из Telegram.",
-        "en": "Workspace registry, CLI picker, and starting a new agent session directly from Telegram."
+        "ru": "Реестр воркспейсов, выбор CLI и запуск новой агентской сессии прямо из Telegram, с потоковым выводом.",
+        "en": "A workspace registry, a CLI picker, and starting a new agent session straight from Telegram, with streaming output."
       }
     },
     {
@@ -262,20 +262,30 @@
         "en": "Security-first"
       },
       "description": {
-        "ru": "Passcode auth, owner whitelist, argon2id, HMAC+nonce callbacks, audit log и loopback-only API.",
-        "en": "Passcode auth, owner whitelist, argon2id, HMAC+nonce callbacks, audit log, and loopback-only API."
+        "ru": "Passcode-auth, whitelist владельца, argon2id, HMAC+nonce callbacks, audit-log и API только на 127.0.0.1.",
+        "en": "Passcode auth, owner whitelist, argon2id, HMAC+nonce callbacks, an audit log, and an API bound to 127.0.0.1 only."
       }
     }
   ],
   "engineeringChoices": [
     {
       "question": {
-        "ru": "Почему локальный daemon, а не облачный relay?",
+        "ru": "Почему локальный демон, а не облачный релей?",
         "en": "Why a local daemon instead of a cloud relay?"
       },
       "answer": {
-        "ru": "Код, shell approvals и transcript остаются на машине разработчика. Telegram получает только управляемый канал событий, а API слушает 127.0.0.1.",
-        "en": "Code, shell approvals, and transcript stay on the developer machine. Telegram only receives a controlled event channel, while the API listens on 127.0.0.1."
+        "ru": "Код, shell-approvals и transcript остаются на машине разработчика. Telegram получает только управляемый канал событий, а API слушает 127.0.0.1. Нет сервера - нет утечки.",
+        "en": "Code, shell approvals, and transcript stay on the developer's machine. Telegram only receives a controlled event channel, while the API listens on 127.0.0.1. No server, no leak."
+      }
+    },
+    {
+      "question": {
+        "ru": "Что происходит, если на approval никто не ответил?",
+        "en": "What happens if no one answers an approval?"
+      },
+      "answer": {
+        "ru": "Срабатывает fail-closed: по таймауту запрос отклоняется. Безопасное поведение по умолчанию важнее удобства - агент не сделает рискованный вызов, пока его явно не разрешили.",
+        "en": "It fails closed: on timeout the request is denied. A safe default matters more than convenience - the agent won't run a risky call until it's explicitly allowed."
       }
     },
     {
@@ -284,23 +294,12 @@
         "en": "Why a separate AgentRunner?"
       },
       "answer": {
-        "ru": "Запуск CLI — отдельный жизненный цикл: env sanitising, stop button, stream-json output и разные адаптеры под Claude Code / cursor-agent.",
-        "en": "CLI spawning is a separate lifecycle: env sanitising, stop button, stream-json output, and adapters for Claude Code / cursor-agent."
+        "ru": "Запуск CLI - отдельный жизненный цикл: санитайз окружения, кнопка stop, stream-json вывод и разные адаптеры под Claude Code и cursor-agent. Его незачем смешивать с обработкой Telegram-апдейтов.",
+        "en": "Spawning a CLI is its own lifecycle: environment sanitising, a stop button, stream-json output, and different adapters for Claude Code and cursor-agent. There's no reason to mix it with Telegram update handling."
       }
     }
   ],
   "timeline": [
-    {
-      "date": "Dec 2025",
-      "title": {
-        "ru": "Старт DotAgents",
-        "en": "DotAgents kickoff"
-      },
-      "description": {
-        "ru": "Концепт безопасного локального Telegram-моста к AI coding agents.",
-        "en": "Concept of a secure local Telegram bridge to AI coding agents."
-      }
-    },
     {
       "date": "Apr 2026",
       "title": {
@@ -308,8 +307,8 @@
         "en": "Stage 1: safety bridge"
       },
       "description": {
-        "ru": "Hooks, live status, approvals, режимы, auth и audit log.",
-        "en": "Hooks, live status, approvals, modes, auth, and audit log."
+        "ru": "Хуки, live-статус, approvals, режимы, auth и audit-log.",
+        "en": "Hooks, live status, approvals, modes, auth, and an audit log."
       }
     },
     {
@@ -319,8 +318,8 @@
         "en": "Stage 2: Telegram IDE UX"
       },
       "description": {
-        "ru": "Workspace registry, `/new`, dashboard, Mini App, streaming runner, плюс per-project allowlist, поиск по transcript и адаптер gemini-cli.",
-        "en": "Workspace registry, `/new`, dashboard, Mini App, streaming runner, plus a per-project allowlist, transcript search, and a gemini-cli adapter."
+        "ru": "Реестр воркспейсов, /new, дашборд, Mini App, streaming runner, per-project allowlist, поиск по transcript и адаптер gemini-cli.",
+        "en": "Workspace registry, /new, a dashboard, a Mini App, a streaming runner, a per-project allowlist, transcript search, and a gemini-cli adapter."
       }
     }
   ]

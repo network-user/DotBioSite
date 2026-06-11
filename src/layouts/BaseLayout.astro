@@ -85,7 +85,7 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#0c0d0f" />
     <meta name="color-scheme" content="dark" />
     <meta name="description" content={pageDescription} />
     <meta name="generator" content={Astro.generator} />
@@ -135,6 +135,7 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
         <span class="ambient-bg__glow ambient-bg__glow--cursor" data-ambient-cursor></span>
       </div>
     </div>
+    <div class="grain" aria-hidden="true"></div>
 
     {!noChrome && <Header locale={locale} />}
 
@@ -376,16 +377,17 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
   .ambient-bg__glow--cursor {
     left: 0;
     top: 0;
-    width: clamp(280px, 34vw, 560px);
-    height: clamp(280px, 34vw, 560px);
+    width: clamp(300px, 36vw, 600px);
+    height: clamp(300px, 36vw, 600px);
+    /* Чисто белый «проявитель» — лампа, а не неон. Плотное ядро, мягкий спад. */
     background: radial-gradient(
       circle,
-      rgba(255, 255, 255, 0.22),
-      rgba(146, 204, 255, 0.13) 34%,
-      transparent 72%
+      rgba(255, 255, 255, 0.26) 0%,
+      rgba(255, 253, 248, 0.12) 30%,
+      transparent 70%
     );
     mix-blend-mode: screen;
-    opacity: 0.5;
+    opacity: 0.6;
     transform: translate3d(68vw, 26vh, 0) translate(-50%, -50%);
     will-change: transform;
     z-index: 0;

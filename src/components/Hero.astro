@@ -14,6 +14,12 @@ const brand = authorName(locale);
 const eyebrow = t("hero.eyebrow");
 const tagline = t("hero.tagline");
 const subtitle = t("hero.subtitle");
+
+interface ProofStat {
+  value: string;
+  label: string;
+}
+const proof = t<ReadonlyArray<ProofStat>>("hero.proof", []);
 ---
 
 <section class="hero" id="hero" aria-label={brand}>
@@ -59,6 +65,19 @@ const subtitle = t("hero.subtitle");
         <span>{t("hero.ctaContact")}</span>
       </a>
     </div>
+
+    {
+      proof.length > 0 && (
+        <dl class="hero__proof" data-reveal data-reveal-delay="540">
+          {proof.map((s) => (
+            <div class="hero__proof-item">
+              <dt class="hero__proof-value display tabular">{s.value}</dt>
+              <dd class="hero__proof-label caption">{s.label}</dd>
+            </div>
+          ))}
+        </dl>
+      )
+    }
   </div>
 
   <a href={`${prefix}/#about`} class="hero__scroll-cue" aria-label={t("hero.scrollCue")}>
@@ -235,15 +254,44 @@ const subtitle = t("hero.subtitle");
   }
 
   .hero__brand {
+    font-family: var(--font-stack-display);
     font-size: 56px;
     letter-spacing: var(--ls-display-xl);
     line-height: var(--lh-display-xl);
     margin: 0;
-    background: linear-gradient(180deg, var(--text) 0%, var(--text-secondary) 130%);
+    /* «Проявление»: мягкая белая полоса света медленно проходит по вордмарку. */
+    background: linear-gradient(
+      100deg,
+      var(--text-secondary) 0%,
+      var(--text) 30%,
+      var(--accent) 46%,
+      var(--text) 62%,
+      var(--text-secondary) 100%
+    );
+    background-size: 240% 100%;
+    background-position: 100% 50%;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
+    animation: brand-sheen 9s var(--ease-standard) infinite;
+  }
+
+  @keyframes brand-sheen {
+    0%,
+    100% {
+      background-position: 100% 50%;
+    }
+    50% {
+      background-position: 0% 50%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__brand {
+      animation: none;
+      background-position: 50% 50%;
+    }
   }
 
   .hero__tagline {
@@ -265,6 +313,53 @@ const subtitle = t("hero.subtitle");
     flex-wrap: wrap;
     gap: var(--sp-3);
     width: 100%;
+  }
+
+  /* ---------- Proof strip: честный масштаб одной строкой ---------- */
+  .hero__proof {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--sp-5) var(--sp-7);
+    margin-block-start: var(--sp-7);
+    padding-block-start: var(--sp-5);
+    border-block-start: var(--bw-thin) solid var(--border);
+    width: 100%;
+  }
+
+  .hero__proof-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+    min-width: 0;
+  }
+
+  .hero__proof-value {
+    font-size: var(--fs-32);
+    line-height: 1;
+    color: var(--text);
+    letter-spacing: var(--ls-display);
+  }
+
+  .hero__proof-label {
+    color: var(--text-muted);
+    text-transform: none;
+    letter-spacing: var(--ls-snug);
+    font-size: var(--fs-12);
+  }
+
+  @media (min-width: 768px) {
+    .hero__proof {
+      gap: var(--sp-6) var(--sp-9);
+    }
+
+    .hero__proof-value {
+      font-size: var(--fs-40);
+    }
+
+    .hero__proof-label {
+      font-size: var(--fs-13);
+    }
   }
 
   .hero__scroll-cue {

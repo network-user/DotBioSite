@@ -1,37 +1,57 @@
 {
   "meta": {
     "locale": "en",
-    "description": ".core is the collection point for projects under the DotCore brand.",
-    "tagline": "project collection point."
+    "description": ".core - a full-cycle engineer: I design, build, and ship real products to production under the DotCore brand.",
+    "tagline": "a full-cycle engineer."
   },
   "nav": {
     "about": "about",
     "stack": "stack",
     "projects": "projects",
-    "timeline": "timeline",
+    "timeline": "journey",
     "contact": "contact",
     "language": "Language",
     "menu": "Menu",
     "toggleLang": "RU"
   },
   "hero": {
-    "eyebrow": "DotCore · projects · shared core",
-    "tagline": "project collection point.",
-    "subtitle": ".core gathers different products into one system: each project stands on its own, but ships under the shared DotCore brand. It is the core where ideas, repositories, and directions meet.",
+    "eyebrow": "DotCore · from idea to production",
+    "tagline": "I take an idea to a live product.",
+    "subtitle": "I design, build, and ship full products solo: backend, data, infrastructure, ML, and clients. Production systems people rely on, not portfolio demos. Each one lives under the shared DotCore brand.",
     "ctaProjects": "view projects",
     "ctaContact": "get in touch",
-    "scrollCue": "scroll"
+    "scrollCue": "scroll",
+    "proof": [
+      { "value": "5", "label": "products, not demos" },
+      { "value": "110k+", "label": "lines of code" },
+      { "value": "1", "label": "engineer, full cycle" }
+    ]
   },
   "about": {
     "kicker": "about",
-    "title": "One person, many dots.",
-    "lede": "A solo developer who builds each solution as 'one task — one repository', yet all of them live under a shared brand.",
-    "noPhoto": "DC"
+    "title": "One engineer. The whole cycle.",
+    "lede": "I pick a product up while it's still an idea and carry it to the point where real users rely on it in production. Architecture, backend, database, queues, infrastructure, deploy, and operations - all of it is on me. I write it as if a team has to maintain it tomorrow: type-safe, tested, migrated, dockerized, under CI.",
+    "noPhoto": "DC",
+    "approachTitle": "how I work",
+    "approach": [
+      {
+        "title": "Idea to production",
+        "description": "I finish what I start: not stopping at an MVP, but shipping the product into real operation with deploy, backups, and monitoring."
+      },
+      {
+        "title": "Deep backend",
+        "description": "Server engineering is my strong suit: data, concurrency, queues, security, and performance under load."
+      },
+      {
+        "title": "Decisions, not code for its own sake",
+        "description": "Every architectural choice is defensible. I pick the tool for the job, not the other way around, and keep the system as simple as it can be."
+      }
+    ]
   },
   "stack": {
     "kicker": "stack",
-    "title": "What I work with every day.",
-    "lede": "Deep backend, lean frontend, plenty of DevOps, ML when needed.",
+    "title": "What I ship products with.",
+    "lede": "Deep backend, pragmatic frontend, real DevOps, and ML where it genuinely earns its place. The tool follows the problem.",
     "categories": {
       "backend": "Backend",
       "frontend": "Frontend",
@@ -42,15 +62,15 @@
   },
   "projects": {
     "kicker": "projects",
-    "title": "Dots in a constellation.",
-    "lede": "Each project is standalone, with its own repositories and domain. Click to see details.",
-    "viewProject": "details",
+    "title": "Products, not demos.",
+    "lede": "Each project is a finished system with its own idea, its own engineering decisions, and its own repository. Open a card: inside is the concept, the architecture, and what sets the project apart.",
+    "viewProject": "break it down",
     "viewSource": "source",
     "openSite": "open site",
     "repos": "repositories",
     "stack": "stack",
-    "highlights": "key metrics",
-    "scrollHint": "scroll — a path through the years",
+    "highlights": "scale at a glance",
+    "scrollHint": "scroll - a path through the months",
     "category": {
       "platform": "Platform",
       "bot": "Bot",
@@ -59,21 +79,21 @@
       "library": "Library"
     },
     "status": {
-      "active": "active",
+      "active": "in production",
       "wip": "in progress",
       "beta": "beta",
       "archived": "archived"
     }
   },
   "timeline": {
-    "kicker": "timeline",
-    "title": "Dot-to-dot path.",
-    "lede": "Key milestones."
+    "kicker": "journey",
+    "title": "How it was built.",
+    "lede": "The products shipped one after another, each with its own challenge. A month-by-month timeline."
   },
   "contact": {
     "kicker": "contact",
-    "title": "Drop a line.",
-    "lede": "If you want to discuss a joint project, hire, or just ask something — all channels below.",
+    "title": "Let's talk.",
+    "lede": "Need an engineer who will carry a product all the way to real users, or want to discuss a project? Write to me. I keep it to the point.",
     "email": "email me",
     "copyEmail": "copy email",
     "copied": "email copied",
@@ -98,30 +118,30 @@
     "rights": "All rights reserved.",
     "builtWith": "Built with Astro",
     "sourceCode": "Site source",
-    "cta": "more projects coming soon — stay tuned."
+    "cta": "from idea to production. new products in the works."
   },
   "case": {
     "back": "← back to all projects",
-    "overview": "overview",
+    "overview": "the essence",
     "architecture": "architecture",
     "stack": "stack",
     "stackComposition": "stack by layer",
     "repos": "repositories",
     "links": "links",
     "license": "license",
-    "metrics": "metrics",
-    "metricsLede": "what surfaces from instruments and logs.",
-    "capabilities": "capabilities",
-    "capabilitiesLede": "what the project does right now.",
-    "engineering": "engineering choices",
-    "engineeringLede": "why it's built the way it is.",
+    "metrics": "scale",
+    "metricsLede": "size and timeframe: what stands behind the product.",
+    "capabilities": "what it does",
+    "capabilitiesLede": "the product's key capabilities right now.",
+    "engineering": "engineering decisions",
+    "engineeringLede": "why it's built this way and not another.",
     "timeline": "timeline",
-    "timelineLede": "key milestones over time.",
+    "timelineLede": "how the product grew from its first version.",
     "crossLinks": "other projects",
     "openRepo": "open repository",
     "primaryRepo": "primary repository",
     "eyebrow": {
-      "year": "year",
+      "year": "start",
       "status": "status",
       "category": "category"
     },

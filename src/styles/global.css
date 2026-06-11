@@ -10,12 +10,13 @@
 @import "./tokens.css";
 
 /*
- * Inter Variable — selfhosted через @fontsource-variable/inter.
- * Шрифт устанавливается через `npm install`, попадает в node_modules,
- * Astro/Vite копирует его в dist/_assets/ с хэшем при билде.
- * Никаких внешних запросов к Google Fonts / CDN — GDPR-friendly, быстро.
+ * Шрифты selfhosted через @fontsource — никаких внешних запросов к Google
+ * Fonts / CDN (GDPR-friendly, быстро). Vite копирует их в dist/_assets/ с хэшем.
+ *   • Inter Variable — body / UI (нейтральный, чистый).
+ *   • Bricolage Grotesque Variable — display / бренд (характерный, мягкий гротеск).
  */
 @import "@fontsource-variable/inter/index.css";
+@import "@fontsource-variable/bricolage-grotesque/index.css";
 
 /* ---------- Reset ---------- */
 *,
@@ -44,7 +45,7 @@ html {
 body {
   background-color: var(--bg);
   color: var(--text);
-  font-family: var(--font-stack-system);
+  font-family: var(--font-stack-body);
   font-size: var(--fs-16);
   line-height: var(--lh-normal);
   letter-spacing: var(--ls-normal);
@@ -276,20 +277,25 @@ ol {
   }
 }
 
-/* ---------- Scroll-reveal (управление через IntersectionObserver в BaseLayout) ---------- */
+/* ---------- Scroll-reveal: «проявление» ----------
+ * Контент проявляется из дымки — лёгкий подъём + рост из чуть размытого и
+ * приглушённого состояния в резкое. Управляется IntersectionObserver в BaseLayout. */
 [data-reveal] {
   opacity: 0;
-  transform: translateY(24px);
+  transform: translateY(22px);
+  filter: blur(8px);
   transition:
     opacity var(--dur-slower) var(--ease-soft),
-    transform var(--dur-slower) var(--ease-soft);
+    transform var(--dur-slower) var(--ease-soft),
+    filter var(--dur-slower) var(--ease-soft);
   transition-delay: calc(var(--reveal-delay, 0) * 1ms);
-  will-change: opacity, transform;
+  will-change: opacity, transform, filter;
 }
 
 [data-reveal].is-visible {
   opacity: 1;
   transform: translateY(0);
+  filter: blur(0);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -297,6 +303,28 @@ ol {
     transition: none;
     opacity: 1;
     transform: none;
+    filter: none;
+  }
+}
+
+/* ---------- Film grain overlay ----------
+ * Тонкая монохромная «плёночная» текстура на всю страницу: смягчает банды
+ * градиентов и придаёт near-black поверхности материальность. Подключается
+ * один раз в BaseLayout (.grain), не перехватывает события. */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grain {
+    display: none;
   }
 }
 

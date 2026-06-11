@@ -3,8 +3,9 @@
   <desc id="d">.ядро — точка сборки проектов под единым брендом DotCore.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0a0a0a"/>
-      <stop offset="1" stop-color="#050505"/>
+      <stop offset="0" stop-color="#0c0d0f"/>
+      <stop offset="0.5" stop-color="#14161a"/>
+      <stop offset="1" stop-color="#0b0c0e"/>
     </linearGradient>
     <radialGradient id="glow" cx="50%" cy="30%" r="58%">
       <stop offset="0" stop-color="#ffffff" stop-opacity="0.08"/>
@@ -30,6 +31,6 @@
     <circle cx="560" cy="217" r="7"/>
   </g>
   <text x="600" y="400" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="140" fill="#ffffff" letter-spacing="-4">.ядро</text>
-  <text x="600" y="462" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="600" font-size="32" fill="#a3a3a3">точка сборки проектов</text>
-  <text x="600" y="542" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="500" font-size="22" fill="#5a5a5a">DotCore · DotSound · DotMathBot · DotWorkBot · DotAgents</text>
+  <text x="600" y="462" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="600" font-size="32" fill="#a6a7ab">инженер полного цикла · от идеи до прода</text>
+  <text x="600" y="542" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="500" font-size="22" fill="#5a5c63">DotSound · DotLearn · DotAgents · DotWorkBot · DotMathBot</text>
 </svg>

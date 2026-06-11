@@ -156,10 +156,11 @@ const modules = import.meta.glob<{ default: Project }>("../content/projects/*.js
  * имеют собственную сортировку по году и от этого списка не зависят.
  */
 const FEATURED_ORDER: ReadonlyArray<string> = [
-  "dotsound", // .звук
-  "dotmathbot", // .матем
-  "dotworkbot", // .работа
+  "dotsound", // .звук — флагман, featured-карточка
+  "dotlearn", // .учёба — новый, full-stack TS платформа
   "dotagents", // .агенты
+  "dotworkbot", // .работа
+  "dotmathbot", // .матем
 ];
 
 const orderIndex = (slug: string): number => {

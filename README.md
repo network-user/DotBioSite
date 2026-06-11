@@ -2,9 +2,9 @@
 
 > кузница проектов.
 
-Персональный портфолио‑сайт под зонтиком бренда **DotCore** — точка сбора и витрина всех моих
-проектов: [DotSound](https://github.com/network-user/DotSoundBackend),
-[DotMathBot](https://github.com/network-user/DotMathBot) и других.
+Персональный портфолио‑сайт под зонтиком бренда **DotCore** — витрина продуктов, которые я довожу
+от идеи до продакшена: [DotSound](https://github.com/network-user/DotSoundBackend),
+DotLearn, DotAgents, [DotMathBot](https://github.com/network-user/DotMathBot), DotWorkBot.
 
 В UI бренд **никогда** не пишется как «DotCore»: только `.core` (EN) или `.ядро` (RU).
 `DotCore` живёт только в коде, репозитории и метаданных.
@@ -15,24 +15,25 @@
   React только для интерактивных компонентов)
 - **Язык:** TypeScript strict
 - **Стили:** чистый CSS + custom properties в `src/styles/tokens.css` (без Tailwind, как в DotSound),
-  Liquid Glass / Frutiger‑Aero блики
-- **Анимации:** `framer-motion` + `lenis` (smooth scroll); полное уважение `prefers-reduced-motion`
+  мягкие frosted‑стекла поверх монохромного светового поля
+- **Анимации:** только CSS + точечный vanilla‑JS (scroll‑reveal, tilt, курсорный свет); полное уважение `prefers-reduced-motion`
 - **i18n:** встроенный Astro i18n, авто‑детект `navigator.language` → `localStorage` → toggle
-- **Шрифты:** Inter Variable (selfhosted через `@fontsource-variable/inter`) + system‑ui cascade (SF Pro / Roboto)
+- **Шрифты:** Bricolage Grotesque Variable (display) + Inter Variable (body), selfhosted через `@fontsource`
 - **Конфиг:** `.env` + Zod‑валидация на build‑time, обфускация email на клиенте
 - **Деплой:** Cloudflare Pages, CI/CD через GitHub Actions
 
 ## Айдентика
 
-Палитра монохромная, токены копируются один в один из DotSound:
+Палитра строго монохромная: мягкий near‑black, лента серых и off‑white. Цвета нет как приёма;
+единственный «акцент» — белый свет, который проявляет структуру.
 
-| Токен              | Значение  | Назначение      |
-| ------------------ | --------- | --------------- |
-| `--bg`             | `#0A0A0A` | основной фон    |
-| `--surface`        | `#1A1A1A` | поверхности     |
-| `--text`           | `#FFFFFF` | основной текст  |
-| `--text-secondary` | `#A0A0A0` | вторичный текст |
-| `--accent`         | `#FFFFFF` | акцент = белый  |
+| Токен              | Значение  | Назначение         |
+| ------------------ | --------- | ------------------ |
+| `--bg`             | `#0C0D0F` | мягкий near‑black  |
+| `--surface`        | `#181A1E` | поверхности        |
+| `--text`           | `#F3F3F1` | off‑white текст    |
+| `--text-secondary` | `#A6A7AB` | вторичный текст    |
+| `--accent`         | `#FFFFFF` | белый свет/акцент  |
 
 Подробности — [`src/styles/tokens.css`](src/styles/tokens.css).
 

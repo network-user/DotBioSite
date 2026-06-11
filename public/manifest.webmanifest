@@ -1,12 +1,12 @@
 {
   "name": ".ядро — кузница проектов",
   "short_name": ".ядро",
-  "description": "Точка сбора всех проектов под зонтиком бренда DotCore: DotSound, DotMathBot и других.",
+  "description": "Инженер полного цикла: проектирую, пишу и вывожу в прод продукты под брендом DotCore - DotSound, DotLearn, DotAgents и другие.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#0c0d0f",
+  "theme_color": "#0c0d0f",
   "orientation": "portrait",
   "lang": "ru",
   "icons": [

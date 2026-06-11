@@ -1,16 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="t d">
   <title id="t">DotSound — .звук</title>
-  <desc id="d">Ad-free music platform: HLS streaming and an auto-lyrics pipeline.</desc>
+  <desc id="d">Ad-free music platform with auto-lyrics on GPU.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#050505"/>
-      <stop offset="0.5" stop-color="#0c1416"/>
-      <stop offset="1" stop-color="#070d0f"/>
+      <stop offset="0" stop-color="#0a0b0d"/>
+      <stop offset="0.5" stop-color="#14161a"/>
+      <stop offset="1" stop-color="#0b0c0e"/>
     </linearGradient>
     <radialGradient id="glow" cx="78%" cy="22%" r="60%">
-      <stop offset="0" stop-color="#67e8f9" stop-opacity="0.30"/>
-      <stop offset="0.5" stop-color="#67e8f9" stop-opacity="0.07"/>
-      <stop offset="1" stop-color="#67e8f9" stop-opacity="0"/>
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.13"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
   </defs>
   <rect width="1200" height="630" fill="url(#bg)"/>
@@ -18,8 +18,8 @@
   <g opacity="0.05" stroke="#ffffff" stroke-width="1">
     <path d="M0 210 H1200 M0 420 H1200 M300 0 V630 M600 0 V630 M900 0 V630"/>
   </g>
-  <svg x="96" y="118" width="132" height="132" viewBox="0 0 48 48">
-    <g fill="#67e8f9">
+  <svg x="96" y="118" width="120" height="120" viewBox="0 0 48 48">
+    <g fill="#f3f3f1">
       <rect x="3" y="18" width="5" height="12" rx="2.5"/>
       <rect x="12" y="11" width="5" height="26" rx="2.5"/>
       <rect x="21.5" y="4" width="5" height="40" rx="2.5"/>
@@ -27,8 +27,8 @@
       <rect x="40" y="19" width="5" height="10" rx="2.5"/>
     </g>
   </svg>
-  <text x="94" y="392" font-family="Inter, Arial, sans-serif" font-size="120" font-weight="800" fill="#67e8f9">.звук</text>
-  <text x="100" y="456" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700" fill="#ffffff">DotSound</text>
-  <text x="100" y="500" font-family="Inter, Arial, sans-serif" font-size="27" fill="#a3a3a3">Ad-free music platform · HLS streaming · auto-lyrics</text>
-  <text x="96" y="566" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="600" fill="#5a5a5a">.ядро · DotCore</text>
+  <text x="94" y="392" font-family="Inter, Arial, sans-serif" font-size="116" font-weight="800" fill="#f3f3f1" letter-spacing="-3">.звук</text>
+  <text x="100" y="452" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700" fill="#f3f3f1">DotSound</text>
+  <text x="100" y="496" font-family="Inter, Arial, sans-serif" font-size="26" fill="#a6a7ab">Ad-free music platform · auto-lyrics on GPU</text>
+  <text x="96" y="566" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="600" fill="#5a5c63">.ядро · DotCore</text>
 </svg>
