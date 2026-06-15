@@ -294,14 +294,15 @@ ol {
     opacity var(--dur-slow) var(--ease-soft),
     transform var(--dur-slow) var(--ease-soft);
   transition-delay: calc(var(--reveal-delay, 0) * 1ms);
-  will-change: opacity, transform;
+  /* will-change УБРАН: он висел на ВСЕХ ещё не проявленных узлах одновременно
+     (десятки промоутнутых слоёв на длинной странице = лишняя видеопамять и работа
+     композитора уже на старте). opacity+transform и так композитятся; браузер
+     промоутит элемент на время самого перехода и сам снимает слой после. */
 }
 
 [data-reveal].is-visible {
   opacity: 1;
   transform: translateY(0);
-  /* Анимация отыграла — снимаем слой, чтобы десятки узлов не висели «горячими». */
-  will-change: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -310,6 +311,21 @@ ol {
     opacity: 1;
     transform: none;
   }
+}
+
+/* ---------- Пауза анимаций за пределами экрана ----------
+ * CSS-анимации (включая бесконечные: пульс/дрейф/орбиты и main-thread-дорогие
+ * stroke-dashoffset «потоки» в схемах) продолжают крутиться, даже когда секция
+ * уехала за экран. Это держит композитор и main-thread занятыми и конкурирует
+ * со скроллом. IntersectionObserver в BaseLayout вешает .anim-paused на секции
+ * вне вьюпорта (с запасом 200px), и всё их движение замирает. Видимое на экране
+ * не меняется. Бесконечные анимации возобновляются бесшовно; entrance-анимации
+ * к моменту появления секции уже разморожены (запас 200px срабатывает раньше). */
+.anim-paused,
+.anim-paused *,
+.anim-paused *::before,
+.anim-paused *::after {
+  animation-play-state: paused !important;
 }
 
 /* ---------- Film grain overlay ----------
@@ -326,6 +342,10 @@ ol {
      на near-black он почти неотличим от обычной полупрозрачности. */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 160px 160px;
+  /* Свой композит-слой: фиксированная зерн-текстура иначе перерисовывается на
+     каждом кадре скролла (fixed-слой над прокручиваемым контентом). */
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -407,16 +427,19 @@ ol {
   navigation: auto;
 }
 
+/* Длительности укорочены (root 460→220, brand 700→340): длинный кросс-фейд
+   успевал показать «заикание» на первом кадре новой страницы (растеризация фона,
+   шрифты). Короткий переход воспринимается как мгновенное, резкое открытие. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: var(--dur-slower);
+  animation-duration: var(--dur-med);
   animation-timing-function: var(--ease-soft);
 }
 
 ::view-transition-group(brand-root),
 ::view-transition-old(brand-root),
 ::view-transition-new(brand-root) {
-  animation-duration: var(--dur-glacial);
+  animation-duration: var(--dur-slow);
   animation-timing-function: var(--ease-soft);
 }
 

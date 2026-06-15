@@ -21,6 +21,8 @@
     </filter>
   </defs>
 
+  <!-- Статичный слой схемы под графитовым фильтром. Анимации здесь НЕТ: фильтр
+       (feTurbulence + feDisplacementMap) растеризуется один раз и кэшируется. -->
   <g filter="url(#bd-graphite)" fill="none" stroke="currentColor">
     <!-- Созвездие: тонкие связи + узлы (dot motif / схема) -->
     <g stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">
@@ -32,11 +34,9 @@
     </g>
     <g fill="currentColor" stroke="none">
       <circle cx="140" cy="160" r="4.5"></circle>
-      <circle class="backdrop-art__pulse" cx="322" cy="118" r="5.5"></circle>
       <circle cx="300" cy="300" r="3.5"></circle>
       <circle cx="162" cy="360" r="4"></circle>
       <circle cx="96" cy="520" r="3"></circle>
-      <circle class="backdrop-art__pulse" cx="262" cy="560" r="5" style="--pulse-i: 1;"></circle>
       <circle cx="432" cy="470" r="3.5"></circle>
       <circle cx="484" cy="250" r="3"></circle>
       <circle cx="610" cy="360" r="4"></circle>
@@ -46,7 +46,6 @@
     <!-- Доп. узлы созвездия справа (ядро-орбиты живут в hero, тут только точки) -->
     <g fill="currentColor" stroke="none">
       <circle cx="820" cy="200" r="3.5"></circle>
-      <circle class="backdrop-art__pulse" cx="980" cy="330" r="4.5" style="--pulse-i: 2;"></circle>
       <circle cx="1080" cy="180" r="3"></circle>
       <circle cx="900" cy="470" r="3"></circle>
     </g>
@@ -54,6 +53,19 @@
       <path d="M610 360 L820 200 L980 330 L1080 180"></path>
       <path d="M820 200 L900 470 L980 330"></path>
     </g>
+  </g>
+
+  <!-- Пульсирующие узлы вынесены ИЗ группы с фильтром. Раньше анимация их
+       opacity ВНУТРИ feTurbulence/feDisplacement заставляла браузер
+       пересчитывать весь дорогой SVG-фильтр на полный экран на каждом кадре
+       пульса (18s × 60fps непрерывно) — постоянная нагрузка на рендер, которая
+       конкурировала со скроллом. Без фильтра пульс — это чистая opacity
+       (композитится бесплатно), а на размере ~5px под общей opacity 0.22
+       отсутствие графитовой текстуры на этих точках неразличимо. -->
+  <g fill="currentColor" stroke="none">
+    <circle class="backdrop-art__pulse" cx="322" cy="118" r="5.5"></circle>
+    <circle class="backdrop-art__pulse" cx="262" cy="560" r="5" style="--pulse-i: 1;"></circle>
+    <circle class="backdrop-art__pulse" cx="980" cy="330" r="4.5" style="--pulse-i: 2;"></circle>
   </g>
 </svg>
 

@@ -12,7 +12,11 @@ export default defineConfig({
   },
   prefetch: {
     prefetchAll: true,
-    defaultStrategy: "viewport",
+    // "viewport" префетчил КАЖДУЮ ссылку, попавшую в кадр при скролле — десятки
+    // фоновых fetch+parse конкурировали со скроллом. "hover" грузит страницу по
+    // наведению/фокусу/touchstart (за миг до клика) — навигация так же мгновенна,
+    // но во время прокрутки фоновой работы нет.
+    defaultStrategy: "hover",
   },
   i18n: {
     defaultLocale: "ru",

@@ -175,6 +175,27 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
           { rootMargin: "0px 0px -10% 0px", threshold: 0.15 },
         );
         revealEls.forEach((el) => io.observe(el));
+
+        // --- Пауза анимаций за экраном ---
+        // Бесконечные декоративные анимации (пульс/дрейф/орбиты, а главное —
+        // main-thread-дорогие stroke-dashoffset «потоки» в схемах) крутятся даже
+        // когда секция вне вьюпорта, и держат рендер-поток занятым во время
+        // скролла. Вешаем .anim-paused на секции за пределами экрана (с запасом
+        // 200px, чтобы движение оживало чуть раньше появления). CSS-правило в
+        // global.css замораживает все их animation-play-state. Видимое на экране
+        // не меняется; user-выбор — гасить только вне экрана.
+        const animSections = document.querySelectorAll<HTMLElement>("section");
+        if (animSections.length > 0) {
+          const animIo = new IntersectionObserver(
+            (entries) => {
+              entries.forEach((e) => {
+                e.target.classList.toggle("anim-paused", !e.isIntersecting);
+              });
+            },
+            { rootMargin: "200px 0px 200px 0px" },
+          );
+          animSections.forEach((el) => animIo.observe(el));
+        }
       }
 
       // --- Курсор-кольцо: лёгкий фокус у указателя (замена «свечению за мышью») ---
@@ -248,6 +269,12 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
     z-index: 0;
     pointer-events: none;
     opacity: 0.92;
+    /* Промоутим фиксированный фон в собственный композит-слой. Иначе при скролле
+       контент «проезжает» над ним и в части движков фон (вместе с дорогим
+       SVG-фильтром схемы) перерисовывается каждый кадр. Свой слой растеризуется
+       один раз и просто переиспользуется — скролл его не трогает. */
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 
   .bg-layer::after {

@@ -334,9 +334,10 @@ const isFeatured = index === 0;
     padding: var(--sp-1) var(--sp-3);
     border: var(--bw-thin) solid rgba(255, 255, 255, 0.18);
     border-radius: var(--r-pill);
-    background: rgba(5, 6, 8, 0.5);
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
+    /* backdrop-filter убран (правило бюджета: реальный blur только в шапке).
+       Над тёмной обложкой плотная заливка читается так же, но не переразмывает
+       фон при тилте карточки и на каждом кадре скролла. */
+    background: rgba(5, 6, 8, 0.78);
     color: var(--text);
     font-size: var(--fs-11);
     font-weight: var(--fw-medium);
