@@ -40,6 +40,14 @@ const ui = {
   prev: { ru: "Назад", en: "Back" },
   next: { ru: "Дальше", en: "Next" },
   replay: { ru: "Сначала", en: "Replay" },
+  hintRail: {
+    ru: "Тыкай: нажми стадию на рейле, чтобы перейти к ней.",
+    en: "Poke it: tap a stage on the rail to jump to it.",
+  },
+  hintEngine: {
+    ru: "Тыкай: нажми реплику — она заберёт лок. Лидер всегда ровно один.",
+    en: "Poke it: tap a replica to make it grab the lock. There is always exactly one leader.",
+  },
   stepOf: { ru: "Шаг", en: "Step" },
   of: { ru: "из", en: "of" },
   play: { ru: "Авто", en: "Auto" },
@@ -188,7 +196,7 @@ const onceTag = { ru: "ровно один раз", en: "exactly once" };
     <ol class="ws__rail">
       {
         rail.map((s, i) => (
-          <li class="ws__node" data-node={i}>
+          <li class="ws__node" data-node={i} role="button" tabindex="0">
             <span class="ws__node-mark" aria-hidden="true" />
             <span class="ws__node-body">
               <span class="ws__node-label">{t(s.label)}</span>
@@ -198,6 +206,7 @@ const onceTag = { ru: "ровно один раз", en: "exactly once" };
         ))
       }
     </ol>
+    <p class="ws__hint">{t(ui.hintRail)}</p>
   </div>
 
   <!-- ── Сцена движка (воркер + лидер-лок) ──────────────────────────── -->
@@ -208,19 +217,25 @@ const onceTag = { ru: "ровно один раз", en: "exactly once" };
         <span class="ws__lock-key">{t({ ru: "Redis · SET nx ex", en: "Redis · SET nx ex" })}</span>
         <span class="ws__lock-once">{t(onceTag)}</span>
       </div>
-      <div class="ws__replicas" role="list">
+      <div class="ws__replicas">
         {
           replicas.map((r) => (
-            <div class="ws__rep" role="listitem" data-rep={r.id} data-lead={r.lead ? "1" : "0"}>
+            <button
+              type="button"
+              class="ws__rep"
+              data-rep={r.id}
+              data-lead={r.lead ? "1" : "0"}
+            >
               <span class="ws__rep-dot" aria-hidden="true" />
               <span class="ws__rep-name">{t(replicaName)}</span>
               <span class="ws__rep-tag ws__rep-tag--lead">{t(leaderTag)}</span>
               <span class="ws__rep-tag ws__rep-tag--idle">{t(idleTag)}</span>
-            </div>
+            </button>
           ))
         }
       </div>
     </div>
+    <p class="ws__hint">{t(ui.hintEngine)}</p>
   </div>
 
   <!-- ── Текстовое объяснение текущего шага ─────────────────────────── -->
@@ -298,6 +313,14 @@ const onceTag = { ru: "ровно один раз", en: "exactly once" };
     color: var(--text-secondary);
   }
 
+  /* Подсказка «потыкай» внутри сцены */
+  .ws__hint {
+    margin: var(--sp-4) 0 0;
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-13);
+    color: color-mix(in srgb, var(--accent) 60%, var(--text-muted));
+  }
+
   /* ── Общий контейнер сцены ───────────────────────────────────────── */
   .ws__stage {
     position: relative;
@@ -347,7 +370,16 @@ const onceTag = { ru: "ровно один раз", en: "exactly once" };
     align-items: center;
     gap: var(--sp-3);
     opacity: 0.34;
+    cursor: pointer;
     transition: opacity var(--dur-slow) var(--ease-standard);
+  }
+  .ws__node:hover {
+    opacity: 0.85;
+  }
+  .ws__node:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 3px;
+    border-radius: var(--r-sm);
   }
 
   .ws__node-mark {
@@ -442,10 +474,17 @@ const onceTag = { ru: "ровно один раз", en: "exactly once" };
 
   .ws__rep {
     position: relative;
+    appearance: none;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
     display: flex;
     align-items: center;
     gap: var(--sp-3);
     padding: var(--sp-3) var(--sp-4);
+    background: transparent;
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-md);
     font-size: var(--fs-14);
@@ -453,6 +492,14 @@ const onceTag = { ru: "ровно один раз", en: "exactly once" };
     transition:
       opacity var(--dur-slow) var(--ease-standard),
       border-color var(--dur-slow) var(--ease-standard);
+  }
+  .ws__rep:hover {
+    opacity: 1;
+    border-color: var(--border-hover);
+  }
+  .ws__rep:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
   }
 
   /* лидер подсвечивается только когда сцена движка активна */
@@ -839,6 +886,31 @@ const onceTag = { ru: "ровно один раз", en: "exactly once" };
           render(i);
         }),
       );
+
+      // ── Интерактив: узлы рейла — прыжок на стадию (li role=button → нужен keydown).
+      railNodes.forEach((node, i) => {
+        const jump = () => {
+          stopAuto();
+          render(i);
+        };
+        node.addEventListener("click", jump);
+        node.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            jump();
+          }
+        });
+      });
+
+      // ── Интерактив: реплики — клик забирает лидер-лок (ровно один лидер).
+      // Это <button>, так что клавиатура (Enter/Space) работает нативно.
+      const reps = Array.from(root.querySelectorAll<HTMLElement>(".ws__rep"));
+      reps.forEach((rep) => {
+        rep.addEventListener("click", () => {
+          reps.forEach((r) => r.setAttribute("data-lead", r === rep ? "1" : "0"));
+        });
+      });
+
       replayBtn?.addEventListener("click", () => {
         render(0);
         if (auto) scheduleAuto();

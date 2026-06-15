@@ -136,6 +136,27 @@ const total = steps.length;
 
 // Глифы под каждый шаг (line-icons, currentColor).
 const glyphs = ["ask", "code", "shield", "play", "branch", "browser"] as const;
+
+// Короткие сноски «что это» — раскрываются по тапу на чип шага. Расширяют уже
+// выверенный текст, не противореча ему.
+const glosses = {
+  ru: [
+    "Навык — сохранённый плейбук агента: одна команда разворачивает строгий план темы.",
+    "Папку темы можно ревьюить в PR, форкать и версионировать — как обычный код.",
+    "Одна схема на веб и бэкенд: лишнее поле или неверный тип отклоняются сразу.",
+    "sql.js — это SQLite в WebAssembly, Pyodide — Python в браузере; прогон в Web Worker не вешает интерфейс.",
+    "Каждый PR проходит тот же контракт и тот же прогон — петля воспроизводима.",
+    "Бэкенд не нужен: темы читаются и исполняются локально, ключи к ИИ остаются у тебя.",
+  ],
+  en: [
+    "A skill is a saved agent playbook: one command unfolds a strict topic plan.",
+    "A topic folder can be reviewed in a PR, forked and versioned — like ordinary code.",
+    "One schema for web and backend: an extra field or a wrong type is rejected at once.",
+    "sql.js is SQLite in WebAssembly, Pyodide is Python in the browser; the Web Worker run never freezes the UI.",
+    "Every PR passes the same contract and the same run — the loop is reproducible.",
+    "No backend needed: topics are read and executed locally, your AI keys stay with you.",
+  ],
+}[locale];
 ---
 
 <figure
@@ -280,7 +301,11 @@ const glyphs = ["ask", "code", "shield", "play", "branch", "browser"] as const;
             <div class="lf__body">
               <h3 class="lf__title">{s.title}</h3>
               <p class="lf__text">{s.body}</p>
-              <code class="lf__chip mono">{s.chip}</code>
+              <button type="button" class="lf__chip mono" data-chip aria-expanded="false">
+                <span class="lf__chip-code">{s.chip}</span>
+                <span class="lf__chip-cue" aria-hidden="true">+</span>
+              </button>
+              <p class="lf__gloss" data-gloss hidden>{glosses[i]}</p>
             </div>
           </article>
         ))
@@ -544,7 +569,12 @@ const glyphs = ["ask", "code", "shield", "play", "branch", "browser"] as const;
   }
 
   .lf__chip {
+    appearance: none;
+    cursor: pointer;
     justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
     font-size: var(--fs-13);
     color: var(--text-muted);
     padding: var(--sp-2) var(--sp-3);
@@ -553,9 +583,71 @@ const glyphs = ["ask", "code", "shield", "play", "branch", "browser"] as const;
     background: var(--bg-elevated);
     letter-spacing: var(--ls-snug);
     max-width: 100%;
+    text-align: left;
+    transition:
+      color var(--dur-med) var(--ease-standard),
+      border-color var(--dur-med) var(--ease-standard);
+  }
+  .lf__chip:hover {
+    color: var(--text-secondary);
+    border-color: var(--border-hover);
+  }
+  .lf__chip:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  .lf__chip-code {
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .lf__chip-cue {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--r-pill);
+    border: 1px solid color-mix(in srgb, var(--lf-on) 45%, var(--border));
+    color: var(--lf-on);
+    font-size: var(--fs-13);
+    line-height: 1;
+    transition: transform var(--dur-med) var(--ease-soft);
+  }
+  .lf__chip[aria-expanded="true"] {
+    color: var(--text);
+    border-color: color-mix(in srgb, var(--lf-on) 50%, var(--border));
+  }
+  .lf__chip[aria-expanded="true"] .lf__chip-cue {
+    transform: rotate(45deg);
+  }
+
+  .lf__gloss {
+    margin: 0;
+    font-size: var(--fs-14);
+    line-height: var(--lh-normal);
+    color: var(--text-secondary);
+    padding-left: var(--sp-3);
+    border-left: 2px solid color-mix(in srgb, var(--lf-on) 50%, var(--border));
+  }
+  .lf__gloss[hidden] {
+    display: none;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .lf__gloss:not([hidden]) {
+      animation: lf-gloss-in var(--dur-slow) var(--ease-soft) both;
+    }
+  }
+  @keyframes lf-gloss-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 
   /* ---------- Управление ---------- */
@@ -777,6 +869,16 @@ const glyphs = ["ask", "code", "shield", "play", "branch", "browser"] as const;
       userPaused = false;
       render(0);
       maybeAutoAdvance();
+    });
+
+    // Интерактив: чип шага раскрывает короткую сноску «что это» (одна на панель).
+    fig.querySelectorAll<HTMLButtonElement>("[data-chip]").forEach((chip) => {
+      const gloss = chip.parentElement?.querySelector<HTMLElement>("[data-gloss]");
+      chip.addEventListener("click", () => {
+        const open = chip.getAttribute("aria-expanded") === "true";
+        chip.setAttribute("aria-expanded", open ? "false" : "true");
+        if (gloss) gloss.hidden = open;
+      });
     });
 
     // клавиатура по вкладкам: стрелки влево/вправо

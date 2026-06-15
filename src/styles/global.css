@@ -361,6 +361,47 @@ ol {
   transform-origin: center;
 }
 
+/* ---------- Frame warp (упругие рамки от курсора) ----------
+ * Тот же эффект, что в таймлайне, но переиспользуемый: контроллер в BaseLayout
+ * вешается на любой [data-warp]. Рамка рисуется в ОДНОМ SVG-overlay на «корень»
+ * (секцию), а не внутри карточки — иначе overflow:hidden карточки обрезал бы
+ * прогиб наружу. Overlay изолирован в свой композит-слой: переписывание путей
+ * на каждый кадр прогиба перерисовывает только его, не задевая контент под ним. */
+.warp-ink {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 4;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.warp-frame {
+  fill: none;
+  transition: stroke var(--dur-med) var(--ease-standard);
+}
+
+/* Рамку рисует SVG — родную CSS-границу гасим (иначе двойная: прямая + гнутая). */
+.is-warped {
+  border-color: transparent !important;
+}
+
+/* Нижняя декоративная линия .glass--bordered не нужна — её заменяет SVG-рамка. */
+.is-warped.glass--bordered::after {
+  display: none;
+}
+
+/* Подъём карточки на hover в режиме прогиба убран — иначе SVG-рамка (в overlay
+   секции) не следует за поднявшейся карточкой и отрывается. Обратную связь даёт
+   подсветка обводки рамки. */
+.is-warped.glass--hover:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 /* ---------- Shared buttons ---------- */
 .cta {
   display: inline-flex;

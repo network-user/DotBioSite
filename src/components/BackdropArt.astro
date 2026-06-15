@@ -1,71 +1,139 @@
 ---
 /**
- * BackdropArt.astro — фоновый «карандашный» арт вместо aurora-блобов.
+ * BackdropArt.astro — фоновый арт «орбиты ядра» (.ядро / атом).
  *
- * Тематика DotCore: «.ядро» (core/atom — орбиты вокруг центра), точки-узлы
- * (dot / constellation) и тонкие связи между ними (схема «кузницы проектов»).
- * Монохром, графитовая текстура (SVG-фильтр), очень слабая видимость — это фон,
- * он не должен спорить с контентом. Орбиты ядра медленно вращаются (один GPU
- * transform), всё остальное статично; при reduced-motion вращение выключено.
+ * Тематика DotCore: центр-«ядро» и несколько концентрических «от руки» орбит
+ * вокруг него; по орбитам едут точки-электроны. Монохром, очень тихо — это фон,
+ * он не спорит с контентом.
+ *
+ * Перф (учтён прошлый провал — см. memory dotcore-perf-budget):
+ *  • НИКАКОГО анимируемого SVG-фильтра. «От руки» зашито прямо в геометрию пути
+ *    (лёгкая нерегулярность эллипса), фильтр feTurbulence не используется вовсе.
+ *  • Кольца (.bd-rings) — статичный контент на собственном слое (will-change),
+ *    медленный rotate = чистый compositor-transform, без перерисовки каждый кадр.
+ *  • Электроны (.bd-orbiters) едут по тем же путям через CSS offset-path
+ *    (композитится) и со-вращаются тем же rotate; перерисовывается только этот
+ *    крошечный слой (4 точки).
+ *  • Графитовый «карандашный» тон даёт общий film-grain (.grain в global.css)
+ *    поверх + низкая opacity, без отдельного фильтра.
  */
+
+// Детерминированный PRNG (mulberry32) — «от руки» стабилен между сборками.
+function mulberry32(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const f = (n: number) => Math.round(n * 10) / 10;
+
+// Гладкий замкнутый путь через точки (Catmull-Rom → кубические безье).
+function smoothClosed(pts: [number, number][]): string {
+  const n = pts.length;
+  const at = (k: number) => pts[((k % n) + n) % n]!;
+  let d = `M ${f(at(0)[0])} ${f(at(0)[1])}`;
+  for (let i = 0; i < n; i++) {
+    const p0 = at(i - 1);
+    const p1 = at(i);
+    const p2 = at(i + 1);
+    const p3 = at(i + 2);
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C ${f(c1x)} ${f(c1y)} ${f(c2x)} ${f(c2y)} ${f(p2[0])} ${f(p2[1])}`;
+  }
+  return d + " Z";
+}
+
+// Слегка нерегулярный («от руки») эллипс вокруг (cx,cy).
+function ringPath(
+  cx: number,
+  cy: number,
+  rx: number,
+  ry: number,
+  rot: number,
+  seed: number,
+  wob = 0.045,
+): string {
+  const rnd = mulberry32(seed);
+  const N = 88;
+  const ph1 = rnd() * Math.PI * 2;
+  const ph2 = rnd() * Math.PI * 2;
+  const cos = Math.cos(rot);
+  const sin = Math.sin(rot);
+  const pts: [number, number][] = [];
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * Math.PI * 2;
+    // Пара низкочастотных гармоник + микрошум = живой контур без «глитча».
+    const m =
+      1 + wob * Math.sin(a * 3 + ph1) + wob * 0.55 * Math.sin(a * 5 + ph2) + (rnd() - 0.5) * 0.01;
+    const x = Math.cos(a) * rx * m;
+    const y = Math.sin(a) * ry * m;
+    pts.push([cx + x * cos - y * sin, cy + x * sin + y * cos]);
+  }
+  return smoothClosed(pts);
+}
+
+// Ядро смещено вправо-вверх: орбиты гуляют по верхней части, низ-центр спокойнее.
+const CX = 830;
+const CY = 300;
+
+const ringDefs = [
+  { rx: 120, ry: 96, rot: 0.3, seed: 11, w: 1.1 },
+  { rx: 210, ry: 168, rot: -0.2, seed: 27, w: 1.05 },
+  { rx: 320, ry: 256, rot: 0.4, seed: 43, w: 1 },
+  { rx: 450, ry: 360, rot: -0.15, seed: 61, w: 0.95 },
+  { rx: 600, ry: 470, rot: 0.25, seed: 83, w: 0.9 },
+];
+const rings = ringDefs.map((r) => ({ ...r, d: ringPath(CX, CY, r.rx, r.ry, r.rot, r.seed) }));
+
+// Точки-электроны на выбранных кольцах. dur/dir/start разнесены, чтобы движение
+// читалось как живая схема, а не метроном.
+const electrons = [
+  { ring: 0, dur: 42, dir: "normal", start: 0, r: 2.6 },
+  { ring: 1, dur: 66, dir: "reverse", start: -18, r: 3 },
+  { ring: 2, dur: 92, dir: "normal", start: -40, r: 2.8 },
+  { ring: 3, dur: 120, dir: "reverse", start: -70, r: 2.4 },
+];
+
+// Мелкие «нуклеус»-кольца у ядра.
+const coreRings = [ringPath(CX, CY, 24, 20, 0.6, 7, 0.09), ringPath(CX, CY, 42, 34, -0.5, 9, 0.07)];
 ---
 
-<svg class="backdrop-art" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-  <defs>
-    <filter id="bd-graphite" x="-8%" y="-8%" width="116%" height="116%" color-interpolation-filters="sRGB">
-      <feTurbulence type="fractalNoise" baseFrequency="0.016 0.02" numOctaves="2" seed="5" result="w"></feTurbulence>
-      <feDisplacementMap in="SourceGraphic" in2="w" scale="2.4" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap>
-      <feTurbulence type="fractalNoise" baseFrequency="0.8 0.8" numOctaves="2" seed="3" result="g"></feTurbulence>
-      <feColorMatrix in="g" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.2 1.06" result="gm"></feColorMatrix>
-      <feComposite in="d" in2="gm" operator="in"></feComposite>
-    </filter>
-  </defs>
-
-  <!-- Статичный слой схемы под графитовым фильтром. Анимации здесь НЕТ: фильтр
-       (feTurbulence + feDisplacementMap) растеризуется один раз и кэшируется. -->
-  <g filter="url(#bd-graphite)" fill="none" stroke="currentColor">
-    <!-- Созвездие: тонкие связи + узлы (dot motif / схема) -->
-    <g stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M140 160 L322 118 L300 300 L162 360 Z"></path>
-      <path d="M162 360 L96 520 L262 560 L300 300"></path>
-      <path d="M262 560 L432 470 L322 118"></path>
-      <path d="M432 470 L610 360 L484 250 L322 118"></path>
-      <path d="M262 560 L208 690"></path>
-    </g>
-    <g fill="currentColor" stroke="none">
-      <circle cx="140" cy="160" r="4.5"></circle>
-      <circle cx="300" cy="300" r="3.5"></circle>
-      <circle cx="162" cy="360" r="4"></circle>
-      <circle cx="96" cy="520" r="3"></circle>
-      <circle cx="432" cy="470" r="3.5"></circle>
-      <circle cx="484" cy="250" r="3"></circle>
-      <circle cx="610" cy="360" r="4"></circle>
-      <circle cx="208" cy="690" r="3"></circle>
-    </g>
-
-    <!-- Доп. узлы созвездия справа (ядро-орбиты живут в hero, тут только точки) -->
-    <g fill="currentColor" stroke="none">
-      <circle cx="820" cy="200" r="3.5"></circle>
-      <circle cx="1080" cy="180" r="3"></circle>
-      <circle cx="900" cy="470" r="3"></circle>
-    </g>
-    <g stroke-width="1.1" stroke-linecap="round">
-      <path d="M610 360 L820 200 L980 330 L1080 180"></path>
-      <path d="M820 200 L900 470 L980 330"></path>
-    </g>
+<svg
+  class="backdrop-art"
+  viewBox="0 0 1200 800"
+  preserveAspectRatio="xMidYMid slice"
+  aria-hidden="true"
+>
+  <!-- Орбиты: статичный слой, медленно вращается одним compositor-transform. -->
+  <g class="bd-rings" fill="none" stroke="currentColor" stroke-linecap="round">
+    {rings.map((r) => <path d={r.d} stroke-width={r.w} />)}
   </g>
 
-  <!-- Пульсирующие узлы вынесены ИЗ группы с фильтром. Раньше анимация их
-       opacity ВНУТРИ feTurbulence/feDisplacement заставляла браузер
-       пересчитывать весь дорогой SVG-фильтр на полный экран на каждом кадре
-       пульса (18s × 60fps непрерывно) — постоянная нагрузка на рендер, которая
-       конкурировала со скроллом. Без фильтра пульс — это чистая opacity
-       (композитится бесплатно), а на размере ~5px под общей opacity 0.22
-       отсутствие графитовой текстуры на этих точках неразличимо. -->
-  <g fill="currentColor" stroke="none">
-    <circle class="backdrop-art__pulse" cx="322" cy="118" r="5.5"></circle>
-    <circle class="backdrop-art__pulse" cx="262" cy="560" r="5" style="--pulse-i: 1;"></circle>
-    <circle class="backdrop-art__pulse" cx="980" cy="330" r="4.5" style="--pulse-i: 2;"></circle>
+  <!-- Ядро: статично, едва дышит прозрачностью (дёшево). -->
+  <g class="bd-core" fill="none" stroke="currentColor">
+    {coreRings.map((d) => <path d={d} stroke-width="1" opacity="0.7" />)}
+    <circle class="bd-core__dot" cx={CX} cy={CY} r="5.5" fill="currentColor" stroke="none"></circle>
+  </g>
+
+  <!-- Электроны: едут по своим орбитам (offset-path) и со-вращаются с кольцами. -->
+  <g class="bd-orbiters" fill="currentColor" stroke="none">
+    {
+      electrons.map((e) => (
+        <circle
+          class="bd-e"
+          r={e.r}
+          style={`offset-path: path('${rings[e.ring]!.d}'); animation-duration: ${e.dur}s; animation-direction: ${e.dir}; animation-delay: ${e.start}s;`}
+        />
+      ))
+    }
   </g>
 </svg>
 
@@ -78,69 +146,86 @@
     pointer-events: none;
     /* Карандаш по тёмной бумаге, очень тихо. */
     color: var(--ink-soft, rgba(243, 243, 241, 0.5));
-    opacity: 0.22;
+    opacity: 0.2;
     /* Притушить к краям, чтобы текст оставался читаемым. */
-    -webkit-mask-image: radial-gradient(150% 130% at 48% 38%, #000 50%, transparent 96%);
-    mask-image: radial-gradient(150% 130% at 48% 38%, #000 50%, transparent 96%);
-    /* Параллакс к курсору снят: чтение --ptr в transform фона форсило page-wide
-       style recalc на каждый mousemove. Фон стоит ровно; «жизнь» даёт только
-       медленный пульс пары узлов (opacity) и опциональный медленный оборот. */
+    -webkit-mask-image: radial-gradient(150% 130% at 62% 32%, #000 46%, transparent 94%);
+    mask-image: radial-gradient(150% 130% at 62% 32%, #000 46%, transparent 94%);
   }
 
-  .backdrop-art__spin {
-    transform-origin: 0 0;
-    /* Совсем медленный оборот (если слой будет применён) — почти статичный фон. */
-    animation: bd-spin 220s linear infinite;
+  /* Кольца и электроны вращаются вокруг ядра ОДНОЙ кривой/таймингом → жёстко
+     синхронны. transform-box: view-box → origin берётся в координатах viewBox. */
+  .bd-rings,
+  .bd-orbiters {
+    transform-box: view-box;
+    transform-origin: 830px 300px;
+    animation: bd-rot 240s linear infinite;
   }
 
-  @keyframes bd-spin {
+  /* Кольца — статичный контент: свой слой, вращение = чистый compositor-transform
+     без перерисовки каждый кадр (тут НЕТ движущихся детей). */
+  .bd-rings {
+    will-change: transform;
+  }
+
+  @keyframes bd-rot {
     to {
       transform: rotate(360deg);
     }
   }
 
-  /* Пара узлов едва пульсирует прозрачностью — намёк на «живую» схему. Период
-     большой, амплитуда узкая: пульс читается как тихое мерцание, не мигает. */
-  .backdrop-art__pulse {
-    opacity: 0.6;
-    animation: bd-pulse 18s ease-in-out infinite;
-    animation-delay: calc(var(--pulse-i, 0) * -6s);
+  /* Электроны едут по орбите. offset-path задан инлайном; видимы только там, где
+     движок это поддерживает (иначе скрыты, кольца остаются). */
+  .bd-e {
+    opacity: 0;
+    offset-rotate: 0deg;
   }
 
-  @keyframes bd-pulse {
+  @supports (offset-path: path("M 0 0")) {
+    .bd-e {
+      opacity: 0.85;
+      animation-name: bd-travel;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+    }
+  }
+
+  @keyframes bd-travel {
+    to {
+      offset-distance: 100%;
+    }
+  }
+
+  /* Ядро едва дышит — чистая opacity, без фильтра. */
+  .bd-core__dot {
+    animation: bd-core-pulse 9s ease-in-out infinite;
+  }
+
+  @keyframes bd-core-pulse {
     0%,
     100% {
-      opacity: 0.6;
+      opacity: 1;
     }
     50% {
-      opacity: 0.95;
+      opacity: 0.55;
     }
   }
 
   @media (max-width: 767px) {
     .backdrop-art {
-      opacity: 0.16;
+      opacity: 0.14;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .backdrop-art {
-      transform: none;
-    }
-
-    .backdrop-art__spin {
+    .bd-rings,
+    .bd-orbiters {
       animation: none;
     }
-
-    .backdrop-art__pulse {
+    .bd-e {
       animation: none;
     }
-  }
-
-  /* На тач-устройствах параллакс отключаем — указателя для него нет. */
-  @media (pointer: coarse) {
-    .backdrop-art {
-      transform: none;
+    .bd-core__dot {
+      animation: none;
     }
   }
 </style>

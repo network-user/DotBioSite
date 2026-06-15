@@ -59,6 +59,7 @@ const copy = {
     timeoutMsg: "нет ответа → deny (fail-closed)",
     loopbackTag: "loopback",
     sigTag: "HMAC + nonce",
+    interactHint: "Попробуй сам: нажми Allow / Deny или переключи режим демона.",
     steps: [
       {
         title: "Агент хочет выполнить опасное",
@@ -117,6 +118,7 @@ const copy = {
     timeoutMsg: "no reply → deny (fail-closed)",
     loopbackTag: "loopback",
     sigTag: "HMAC + nonce",
+    interactHint: "Try it yourself: tap Allow / Deny, or switch the daemon's mode.",
     steps: [
       {
         title: "The agent wants to do something risky",
@@ -196,9 +198,9 @@ const total = steps.length;
       </span>
       <span class="ab-node__sub">{copy.daemonApi}</span>
       <span class="ab-node__modes" data-modes>
-        <span class="ab-mode" data-mode="remote">remote</span>
-        <span class="ab-mode" data-mode="readonly">readonly</span>
-        <span class="ab-mode" data-mode="standby">standby</span>
+        <button type="button" class="ab-mode" data-mode="remote">remote</button>
+        <button type="button" class="ab-mode" data-mode="readonly">readonly</button>
+        <button type="button" class="ab-mode" data-mode="standby">standby</button>
       </span>
     </article>
 
@@ -218,11 +220,13 @@ const total = steps.length;
       <code class="ab-node__cmd ab-node__cmd--tg">{copy.cmd}</code>
       <span class="ab-status" data-status data-state="idle">{copy.waiting}</span>
       <div class="ab-buttons">
-        <span class="ab-btn ab-btn--approve" data-btn="approve">{copy.approve}</span>
-        <span class="ab-btn ab-btn--deny" data-btn="deny">{copy.deny}</span>
+        <button type="button" class="ab-btn ab-btn--approve" data-btn="approve">{copy.approve}</button>
+        <button type="button" class="ab-btn ab-btn--deny" data-btn="deny">{copy.deny}</button>
       </div>
     </article>
   </div>
+
+  <p class="ab__hint">{copy.interactHint}</p>
 
   <!-- ===== Объяснение текущего шага ===== -->
   <div class="ab__panel" data-panel aria-live="polite">
@@ -297,6 +301,14 @@ const total = steps.length;
     font-size: var(--fs-15);
     line-height: var(--lh-normal);
     color: var(--text-secondary);
+  }
+
+  /* Подсказка «потыкай» */
+  .ab__hint {
+    margin: 0;
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-13);
+    color: color-mix(in srgb, var(--accent) 65%, var(--text-muted));
   }
 
   /* ---------- Сцена ---------- */
@@ -400,16 +412,27 @@ const total = steps.length;
   }
 
   .ab-mode {
+    appearance: none;
     font-family: var(--font-stack-mono);
     font-size: var(--fs-13);
     padding: 3px var(--sp-2);
     border-radius: var(--r-pill);
     border: var(--bw-thin) solid var(--border);
+    background: transparent;
     color: var(--text-muted);
+    cursor: pointer;
     transition:
       color var(--dur-med) var(--ease-standard),
       border-color var(--dur-med) var(--ease-standard),
       background-color var(--dur-med) var(--ease-standard);
+  }
+  .ab-mode:hover {
+    color: var(--text-secondary);
+    border-color: var(--border-hover);
+  }
+  .ab-mode:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
   }
   .ab-mode[data-on="true"] {
     color: var(--text);
@@ -495,18 +518,26 @@ const total = steps.length;
   }
 
   .ab-btn {
+    appearance: none;
     font-family: var(--font-stack-mono);
     font-size: var(--fs-13);
     text-align: center;
     padding: var(--sp-2) var(--sp-2);
     border-radius: var(--r-sm);
     border: var(--bw-thin) solid var(--border);
+    background: transparent;
     color: var(--text-secondary);
+    cursor: pointer;
     transition:
       border-color var(--dur-med) var(--ease-standard),
       color var(--dur-med) var(--ease-standard),
       opacity var(--dur-med) var(--ease-standard),
       transform var(--dur-med) var(--ease-soft);
+  }
+  .ab-btn:hover { border-color: var(--border-hover); color: var(--text); }
+  .ab-btn:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
   }
   .ab-btn--approve { border-color: color-mix(in srgb, var(--accent) 30%, var(--border)); }
   .ab-btn[data-picked="true"] {
@@ -985,6 +1016,40 @@ const total = steps.length;
     replayBtn?.addEventListener("click", () => {
       current = -1;
       go(0);
+    });
+
+    // ── Интерактив: пользователь сам отвечает в Telegram и переключает режим
+    // демона. Меняем только состояние сцены; канонический кадр шага вернётся при
+    // следующей навигации через paintStage().
+    btnApprove?.addEventListener("click", () => {
+      setActiveNode("tg");
+      dim([]);
+      resetButtons();
+      sigTag?.setAttribute("data-on", "true");
+      setStatus("approved", status.approved);
+      btnApprove.setAttribute("data-picked", "true");
+      btnDeny?.setAttribute("data-dimmed", "true");
+    });
+    btnDeny?.addEventListener("click", () => {
+      setActiveNode("tg");
+      dim([]);
+      resetButtons();
+      sigTag?.setAttribute("data-on", "true");
+      setStatus("denied", status.denied);
+      btnDeny.setAttribute("data-picked", "true");
+      btnApprove?.setAttribute("data-dimmed", "true");
+    });
+    modeEls.forEach((m) => {
+      m.addEventListener("click", () => {
+        const mode = m.dataset.mode || "remote";
+        setActiveNode("daemon");
+        dim([]);
+        setModes(mode);
+        resetButtons();
+        if (mode === "remote") setStatus("waiting", status.waiting);
+        else if (mode === "readonly") setStatus("approved", status.autoAllow);
+        else setStatus("denied", status.autoDeny);
+      });
     });
 
     // Пауза автоплея при наведении/фокусе внутри секции
