@@ -39,10 +39,20 @@
   --accent-hover: #e8e8e6;
   --accent-active: #d0d0ce;
 
-  /* Per-project «подпись». В монохроме это тоже белый — проекты различаются
-   * формой (глиф, генеративный паттерн обложки, контент), а не цветом.
-   * Переменная сохранена, чтобы цвет можно было вернуть точечно. */
+  /* Per-project «подпись»: дефолт белый, каждая карточка/кейс переопределяет
+   * --project-accent своим приглушённым тоном (см. палитру проектов ниже). */
   --project-accent: var(--accent);
+
+  /* ---------- Палитра проектов (приглушённая, десатурированная) ----------
+   * Проекты различаются тоном, но в рамках монохрома: низкая насыщенность,
+   * светлота держит читаемость на near-black. Цвет живёт только в акцентах
+   * (обводка, glow обложки, акцент-линия, статус-точка) — фон и текст остаются
+   * монохромными. JSON проектов ссылается сюда через accent: var(--accent-*). */
+  --accent-sound: #c6ab7e; /* .звук — тёплая охра */
+  --accent-learn: #8db0a0; /* .учёба — шалфей */
+  --accent-agents: #9ba2c6; /* .агенты — припылённый индиго */
+  --accent-work: #c79683; /* .работа — глина / терракот */
+  --accent-math: #93aec1; /* .матем — холодная сталь */
 
   /* ---------- Статусные цвета (используются крайне скупо, почти grayscale) ----------
    * Десатурированы под монохром: статус читается формой/точкой, не яркостью. */
@@ -59,6 +69,11 @@
   --glass-tint-2: rgba(18, 19, 23, 0.66);
   --glass-tint-3: rgba(13, 14, 17, 0.82);
   --glass-tint-liquid: rgba(26, 28, 33, 0.38);
+  /* Default fill for blur-less .glass surfaces (PERF: backdrop-filter is now
+     header-only). Denser/near-opaque than tint-1 so a flat surface still reads
+     as frosted glass over the moving aurora without a GPU blur pass. Keeps the
+     same cool near-black hue so the look is visually near-identical. */
+  --glass-tint-frost: rgba(20, 22, 26, 0.74);
   --glass-edge: rgba(255, 255, 255, 0.1);
   --glass-edge-bright: rgba(255, 255, 255, 0.24);
   --glass-top-shine: linear-gradient(
@@ -67,8 +82,10 @@
     rgba(255, 255, 255, 0.04) 38%,
     rgba(255, 255, 255, 0) 74%
   );
-  --glass-blur: 22px;
-  --glass-blur-strong: 32px;
+  /* Радиус снижен (было 22/32): backdrop-filter дешевле при скролле, визуально
+     на near-black почти не отличается. */
+  --glass-blur: 14px;
+  --glass-blur-strong: 20px;
   --glass-saturate: 105%;
   --glass-brightness: 1.04;
 
@@ -153,12 +170,13 @@
   --fw-extrabold: 800;
 
   /* ---------- Motion: длительности (чуть мягче/тягучее под «проявление») ---------- */
-  --dur-instant: 90ms;
-  --dur-fast: 180ms;
-  --dur-med: 280ms;
-  --dur-slow: 420ms;
-  --dur-slower: 640ms;
-  --dur-glacial: 1000ms;
+  /* Снижены ради «лёгкости»: интерфейс откликается, а не «переезжает». */
+  --dur-instant: 80ms;
+  --dur-fast: 150ms;
+  --dur-med: 220ms;
+  --dur-slow: 340ms;
+  --dur-slower: 460ms;
+  --dur-glacial: 700ms;
 
   /* ---------- Motion: easing ---------- */
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
@@ -166,6 +184,15 @@
   --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
   --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-drift: cubic-bezier(0.37, 0, 0.63, 1);
+
+  /* ---------- Pointer parallax ----------
+   * BaseLayout публикует нормализованное смещение курсора от центра вьюпорта
+   * (-1..1) в эти переменные раз в кадр (один слушатель на всю страницу).
+   * Любой блок может использовать их в transform для «живой» реакции на курсор.
+   * При reduced-motion / coarse-pointer не обновляются и остаются 0. */
+  --ptr-cx: 0;
+  --ptr-cy: 0;
 
   /* ---------- Focus ring ---------- */
   --ring-focus: rgba(255, 255, 255, 0.6);

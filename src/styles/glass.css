@@ -11,26 +11,47 @@
 
 .glass {
   position: relative;
-  background-color: var(--glass-tint-1);
+  /* PERF: backdrop-filter was removed from the generic .glass surface — it was
+     the #1 GPU cost. Re-blurring the animated aurora behind dozens of stacked
+     surfaces on every scroll frame is what made the page stutter. On the
+     near-black palette a slightly denser *opaque-ish* tint + the top-shine
+     reads as frosted glass without any per-frame GPU blur pass.
+     Real backdrop-filter now lives ONLY on the sticky header (see `.header
+     .glass` below) — it sits over a small, fixed region, so one blur pass is
+     cheap and stays sharp while everything scrolls under it. */
+  background-color: var(--glass-tint-frost);
   border: var(--bw-thin) solid var(--glass-edge);
   border-radius: var(--r-lg);
   overflow: hidden;
   isolation: isolate;
-  /* Real frosted glass: blur + saturate the animated aurora behind the surface.
-     Prefixed for Safari/iOS. The translucent tint above guarantees a visible
-     fill even where backdrop-filter is unsupported. */
+}
+
+/* The sticky header pill is the one surface that keeps a real backdrop blur:
+   it's a single fixed element, so the blur pass is cheap and it must stay
+   readable as content scrolls beneath it. Scoped by the .header ancestor so we
+   don't have to touch Header.astro markup. Falls back to the denser tint where
+   backdrop-filter is unsupported. */
+.header .glass {
+  background-color: var(--glass-tint-liquid);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate))
     brightness(var(--glass-brightness));
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate))
     brightness(var(--glass-brightness));
 }
 
-/* Browsers without backdrop-filter (older Firefox): lean on a denser tint so
-   surfaces stay legible rather than washing out over the aurora. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass {
-    background-color: var(--glass-tint-2);
+  .header .glass {
+    background-color: var(--glass-tint-ultra);
   }
+}
+
+/* Once scrolled, the header pill sits over content with a dense tint that
+   already hides what's behind it — drop the live blur so it stops re-sampling
+   the scrolling page every frame (a real scroll-jank source). Blur stays only
+   at the very top, over the hero. */
+.header.is-scrolled .glass {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .glass::before {
@@ -48,7 +69,11 @@
   z-index: 1;
 }
 
-/* ---------- Варианты по плотности ---------- */
+/* ---------- Варианты по плотности ----------
+ * Density variants are now pure tint swaps — none of them carry backdrop-filter
+ * (see the perf note on .glass). On near-black the denser tint + top-shine keeps
+ * the frosted read without a GPU blur pass. .glass--solid uses the densest,
+ * near-opaque tint so it stays the most "material" surface. */
 .glass--liquid {
   background-color: var(--glass-tint-liquid);
 }
@@ -59,18 +84,15 @@
 
 .glass--solid {
   background-color: var(--glass-tint-3);
-  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate))
-    brightness(var(--glass-brightness));
-  backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate))
-    brightness(var(--glass-brightness));
 }
 
 /* ---------- Hover-edge: при наведении подсвечивается верхний блик и обводка ---------- */
 .glass--hover {
+  /* box-shadow убран из перехода — тень не композируется, её анимация
+     перерисовывала размытый регион карточки на каждом кадре hover. */
   transition:
     border-color var(--dur-med) var(--ease-standard),
-    transform var(--dur-med) var(--ease-soft),
-    box-shadow var(--dur-med) var(--ease-standard);
+    transform var(--dur-med) var(--ease-soft);
 }
 
 .glass--hover:hover {
@@ -118,16 +140,16 @@
   }
 }
 
-/* Mobile/perf: lighter blur radius keeps many stacked glass surfaces cheap on
-   the GPU; slightly denser tints keep them legible at the smaller radius. */
+/* Mobile/perf: only the header keeps a (lighter) real blur on small screens;
+   every other surface is a flat tint, which is dramatically cheaper to scroll
+   on mobile GPUs. Slightly denser default tint keeps flat surfaces legible. */
 @media (max-width: 767px) {
-  .glass,
-  .glass--solid {
+  .header .glass {
     -webkit-backdrop-filter: blur(12px) saturate(var(--glass-saturate));
     backdrop-filter: blur(12px) saturate(var(--glass-saturate));
   }
 
   .glass {
-    background-color: var(--glass-tint-2);
+    background-color: var(--glass-tint-frost);
   }
 }

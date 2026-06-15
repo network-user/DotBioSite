@@ -45,10 +45,10 @@
   ],
   "cover": "/projects/dotlearn/cover.svg",
   "ogImage": "/projects/dotlearn/og.svg",
-  "accent": "#ffffff",
+  "accent": "var(--accent-learn)",
   "highlights": [
     {
-      "value": "21",
+      "value": "22",
       "label": {
         "ru": "темы в каталоге",
         "en": "topics in the catalog"
@@ -83,17 +83,17 @@
   },
   "metrics": [
     {
-      "value": "21",
+      "value": "22",
       "label": {
         "ru": "темы: SQL, Python internals, архитектура",
         "en": "topics: SQL, Python internals, architecture"
       }
     },
     {
-      "value": "22k",
+      "value": "180k+",
       "label": {
-        "ru": "строк TypeScript в монорепо",
-        "en": "lines of TypeScript in the monorepo"
+        "ru": "строк в монорепо",
+        "en": "lines across the monorepo"
       }
     },
     {
@@ -277,8 +277,8 @@
         "en": "Contract, content, and community"
       },
       "description": {
-        "ru": "Скилл lesson-forge и Zod-контракт, 21 тема в каталоге, NestJS-бэкенд с заявками и защищённой админкой, Docker self-hosting.",
-        "en": "The lesson-forge skill and Zod contract, 21 topics in the catalog, a NestJS backend with submissions and a hardened admin, and Docker self-hosting."
+        "ru": "Скилл lesson-forge и Zod-контракт, 22 темы в каталоге, NestJS-бэкенд с заявками и защищённой админкой, Docker self-hosting.",
+        "en": "The lesson-forge skill and Zod contract, 22 topics in the catalog, a NestJS backend with submissions and a hardened admin, and Docker self-hosting."
       }
     }
   ]

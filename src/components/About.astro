@@ -26,16 +26,19 @@ const monogram = authorMonogram(locale);
     />
 
     <div class="about__grid">
-      <div class="about__portrait glass glass--bordered" data-reveal>
-        {
-          photo ? (
-            <img src={photo} alt={name} class="about__photo" loading="lazy" decoding="async" />
-          ) : (
-            <span class="about__monogram display" aria-label={name}>
-              {monogram}
-            </span>
-          )
-        }
+      <div class="about__portrait" data-reveal data-about-portrait>
+        <div class="about__frame glass glass--bordered">
+          {
+            photo ? (
+              <img src={photo} alt={name} class="about__photo" loading="lazy" decoding="async" />
+            ) : (
+              <span class="about__monogram display" aria-label={name}>
+                {monogram}
+              </span>
+            )
+          }
+          <span class="about__sheen" aria-hidden="true"></span>
+        </div>
       </div>
 
       <div class="about__content" data-reveal data-reveal-delay="120">
@@ -45,8 +48,8 @@ const monogram = authorMonogram(locale);
         {
           socials.length > 0 && (
             <ul class="about__socials" aria-label={t("contact.title")}>
-              {socials.map((s) => (
-                <li>
+              {socials.map((s, i) => (
+                <li class="about__social-item" style={`--pill-i: ${i};`}>
                   <a
                     href={s.url}
                     class="about__social"
@@ -56,6 +59,7 @@ const monogram = authorMonogram(locale);
                   >
                     <Icon name={s.id} size={20} />
                     <span class="about__social-label">{t(`contact.${s.id}`)}</span>
+                    <span class="about__social-shimmer" aria-hidden="true" />
                   </a>
                 </li>
               ))}
@@ -76,16 +80,23 @@ const monogram = authorMonogram(locale);
   }
 
   .about__portrait {
-    position: relative;
     width: 100%;
     max-width: 220px;
     margin-inline: auto;
+  }
+
+  .about__frame {
+    position: relative;
+    width: 100%;
     aspect-ratio: 1;
     display: grid;
     place-items: center;
     border-radius: var(--r-xl);
     overflow: hidden;
     box-shadow: var(--shadow-2);
+    /* Параллакс/наклон рамки за курсором снят: чтение --ptr в transform форсило
+       page-wide style recalc на каждый mousemove. Рамка стоит ровно; «жизнь»
+       даёт медленный sheen, который крутится только пока портрет во вьюпорте. */
   }
 
   .about__photo {
@@ -100,6 +111,48 @@ const monogram = authorMonogram(locale);
     color: var(--text-muted);
     letter-spacing: var(--ls-display);
     user-select: none;
+  }
+
+  /* Мягкий блик, медленно проходящий по рамке. Двигаем только transform/opacity
+     диагональной полосы — без анимации фильтров/теней и без mix-blend-mode.
+     Полоса слегка шире и мягче, чтобы свет «проявлялся», а не вспыхивал. */
+  .about__sheen {
+    position: absolute;
+    inset: -40%;
+    pointer-events: none;
+    background: linear-gradient(
+      115deg,
+      transparent 38%,
+      var(--glass-edge-bright) 50%,
+      transparent 62%
+    );
+    opacity: 0;
+    transform: translateX(-60%);
+  }
+
+  /* Анимация блика включается ТОЛЬКО пока портрет реально во вьюпорте: .is-inview
+     ставит/снимает отдельный IntersectionObserver ниже (глобальный data-reveal
+     одноразовый и не годится). За экраном цикл не крутится, will-change не висит.
+     Период удлинён (9s → 14s), пик яркости снижен (0.5 → 0.32). */
+  @media (prefers-reduced-motion: no-preference) {
+    .about__portrait.is-inview .about__sheen {
+      animation: about-sheen 14s var(--ease-drift) 600ms infinite;
+    }
+  }
+
+  @keyframes about-sheen {
+    0%,
+    100% {
+      opacity: 0;
+      transform: translateX(-60%);
+    }
+    46% {
+      opacity: 0.32;
+    }
+    72% {
+      opacity: 0;
+      transform: translateX(60%);
+    }
   }
 
   .about__content {
@@ -128,7 +181,35 @@ const monogram = authorMonogram(locale);
     margin-block-start: var(--sp-3);
   }
 
+  /* Пилюли — реальный контент (ссылки): видимы по умолчанию на первом кадре,
+     не ждут JS/IntersectionObserver. Вход «по очереди» — бонус: вся анимация
+     самодостаточна в keyframe about-pill-in (from opacity:0 → to opacity:1),
+     поэтому при выключенном JS пилюли просто остаются на месте видимыми. */
+  .about__social-item {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .about__content.is-visible .about__social-item {
+      animation: about-pill-in var(--dur-slow) var(--ease-soft);
+      animation-delay: calc(var(--pill-i, 0) * 70ms + 220ms);
+    }
+  }
+
+  @keyframes about-pill-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   .about__social {
+    position: relative;
+    overflow: hidden;
     display: inline-flex;
     align-items: center;
     gap: var(--sp-2);
@@ -142,7 +223,8 @@ const monogram = authorMonogram(locale);
     transition:
       border-color var(--dur-fast) var(--ease-standard),
       color var(--dur-fast) var(--ease-standard),
-      background-color var(--dur-fast) var(--ease-standard);
+      background-color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-standard);
   }
 
   .about__social:hover {
@@ -150,6 +232,45 @@ const monogram = authorMonogram(locale);
     border-color: var(--border-hover);
     background: var(--surface-2);
     opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: no-preference) and (hover: hover) {
+    .about__social:hover {
+      transform: translateY(-1px);
+    }
+  }
+
+  /* Блик-шиммер по пилюле при наведении: одна диагональная полоса проходит
+     слева направо. Только transform/opacity. */
+  .about__social-shimmer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background: linear-gradient(
+      115deg,
+      transparent 35%,
+      var(--glass-edge-bright) 50%,
+      transparent 65%
+    );
+    opacity: 0;
+    transform: translateX(-120%);
+  }
+
+  @media (prefers-reduced-motion: no-preference) and (hover: hover) {
+    .about__social:hover .about__social-shimmer {
+      opacity: 1;
+      animation: about-pill-shimmer var(--dur-slower) var(--ease-standard);
+    }
+  }
+
+  @keyframes about-pill-shimmer {
+    from {
+      transform: translateX(-120%);
+    }
+    to {
+      transform: translateX(120%);
+    }
   }
 
   @media (min-width: 768px) {
@@ -181,4 +302,57 @@ const monogram = authorMonogram(locale);
       font-size: 56px;
     }
   }
+
+  /* Никакого параллакса/блика/шиммера при reduced-motion и на coarse-указателе:
+     рамка стоит ровно, эффекты выключены. */
+  @media (prefers-reduced-motion: reduce), (pointer: coarse) {
+    .about__frame {
+      transform: none;
+      transition: none;
+      will-change: auto;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .about__sheen,
+    .about__portrait.is-inview .about__sheen {
+      animation: none;
+      opacity: 0;
+      will-change: auto;
+    }
+    .about__social-item {
+      opacity: 1;
+      transform: none;
+    }
+  }
 </style>
+
+<script>
+  // Гейтим бесконечный блик по реальной видимости портрета: .is-inview есть
+  // только пока он на экране. Глобальный data-reveal-обсервер одноразовый, поэтому
+  // здесь свой, переключающийся в обе стороны. Только смена класса — без JS-анимации.
+  (() => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced || !("IntersectionObserver" in window)) return;
+
+    const el = document.querySelector<HTMLElement>("[data-about-portrait]");
+    if (!el) return;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) el.classList.toggle("is-inview", e.isIntersecting);
+      },
+      { threshold: 0 },
+    );
+    io.observe(el);
+
+    window.addEventListener(
+      "pagehide",
+      () => {
+        el.classList.remove("is-inview");
+        io.disconnect();
+      },
+      { once: true },
+    );
+  })();
+</script>

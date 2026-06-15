@@ -41,7 +41,7 @@
   ],
   "cover": "/projects/dotworkbot/cover.svg",
   "ogImage": "/projects/dotworkbot/og.svg",
-  "accent": "#ffffff",
+  "accent": "var(--accent-work)",
   "highlights": [
     {
       "value": "3",
@@ -86,7 +86,7 @@
       }
     },
     {
-      "value": "10k",
+      "value": "12k",
       "label": {
         "ru": "строк кода",
         "en": "lines of code"
@@ -112,7 +112,7 @@
     "language": ["Python 3.12"],
     "framework": ["aiogram 3.27", "SQLAlchemy 2", "pydantic-settings", "structlog"],
     "data": ["PostgreSQL 16", "Redis", "MinIO / S3"],
-    "infra": ["Docker Compose", "Alembic", "taskiq", "pycryptodome AES backups"],
+    "infra": ["Docker Compose", "Alembic", "taskiq", "pyzipper AES backups"],
     "client": ["Telegram Bot API", "reply keyboards", "inline keyboards"]
   },
   "architectureNodes": [

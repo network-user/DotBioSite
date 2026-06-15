@@ -1,0 +1,182 @@
+---
+/**
+ * ZineEasterEgg.astro — скрытая пасхалка проекта «.звук».
+ *
+ * Набери на клавиатуре «sound» (или «звук») где угодно на сайте — на пару секунд
+ * всплывает зин/ксерокс-артефакт: постерная «отсканированная» типографика и
+ * каракули. То самое оформление, что понравилось, спрятанное как b-side.
+ *
+ * Esc или клик — закрыть. Игнорирует ввод в полях. Самодостаточный: свои
+ * фильтры, стили и скрипт; на основной дизайн не влияет (скрыт по умолчанию).
+ */
+---
+
+<div class="zine-egg" data-zine-egg hidden aria-hidden="true">
+  <svg class="zine-egg__defs" width="0" height="0" aria-hidden="true">
+    <defs>
+      <filter id="egg-xerox" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.045 0.06" numOctaves="3" seed="6" result="w"></feTurbulence>
+        <feDisplacementMap in="SourceGraphic" in2="w" scale="3" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap>
+        <feTurbulence type="fractalNoise" baseFrequency="0.9 0.9" numOctaves="2" seed="9" result="g"></feTurbulence>
+        <feColorMatrix in="g" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.4 1.15" result="gm"></feColorMatrix>
+        <feComposite in="d" in2="gm" operator="in"></feComposite>
+      </filter>
+    </defs>
+  </svg>
+
+  <div class="zine-egg__art">
+    <svg class="zine-egg__star" viewBox="0 0 60 60" aria-hidden="true">
+      <path d="M30 4 l7 18 19 1 -15 12 6 19 -17 -11 -17 11 6 -19 -15 -12 19 -1z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"></path>
+    </svg>
+
+    <p class="zine-egg__kicker">скрытая дорожка</p>
+    <h2 class="zine-egg__word">.звук</h2>
+    <svg class="zine-egg__rule" viewBox="0 0 320 18" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M3 9 L40 4 L80 12 L120 4 L160 11 L200 4 L240 12 L280 5 L317 10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>
+    <p class="zine-egg__note">b-side · DotSound</p>
+  </div>
+</div>
+
+<style>
+  .zine-egg {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-toast, 3000);
+    display: grid;
+    place-items: center;
+    background: rgba(7, 8, 10, 0.86);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 240ms var(--ease-soft, ease),
+      visibility 240ms var(--ease-soft, ease);
+  }
+
+  .zine-egg.is-on {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  .zine-egg__defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
+
+  .zine-egg__art {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-2, 8px);
+    transform: rotate(-3deg) scale(0.94);
+    transition: transform 300ms var(--ease-spring, ease);
+    color: var(--text, #f3f3f1);
+  }
+
+  .zine-egg.is-on .zine-egg__art {
+    transform: rotate(-3deg) scale(1);
+  }
+
+  .zine-egg__star {
+    width: clamp(34px, 6vw, 54px);
+    color: var(--accent-sound, #c6ab7e);
+    transform: rotate(10deg);
+    filter: url(#egg-xerox);
+  }
+
+  .zine-egg__kicker {
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-12, 12px);
+    font-weight: 700;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--text-muted, #878a92);
+    transform: rotate(1.5deg);
+  }
+
+  .zine-egg__word {
+    margin: 0;
+    font-family: var(--font-stack-display);
+    font-weight: 800;
+    font-size: clamp(80px, 22vw, 220px);
+    line-height: 0.8;
+    letter-spacing: -0.04em;
+    color: var(--text, #f3f3f1);
+    /* Отксеренная/графитовая фактура — буквы дрожат и зернятся. */
+    filter: url(#egg-xerox);
+  }
+
+  .zine-egg__rule {
+    width: min(70vw, 380px);
+    height: 0.12em;
+    color: var(--accent-sound, #c6ab7e);
+    filter: url(#egg-xerox);
+  }
+
+  .zine-egg__note {
+    font-family: var(--font-stack-mono, monospace);
+    font-size: var(--fs-13, 13px);
+    letter-spacing: 0.12em;
+    color: var(--text-secondary, #a6a7ab);
+    text-transform: lowercase;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .zine-egg,
+    .zine-egg__art {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  const egg = document.querySelector<HTMLElement>("[data-zine-egg]");
+  if (egg) {
+    const WORDS = ["sound", "звук"];
+    let buf = "";
+    let timer: number | undefined;
+
+    const hide = () => {
+      egg.classList.remove("is-on");
+      egg.setAttribute("aria-hidden", "true");
+      window.clearTimeout(timer);
+      // прячем из потока после анимации затухания
+      timer = window.setTimeout(() => {
+        if (!egg.classList.contains("is-on")) egg.hidden = true;
+      }, 280);
+    };
+
+    const show = () => {
+      egg.hidden = false;
+      // форсируем reflow, чтобы сработал transition с hidden→visible
+      void egg.offsetWidth;
+      egg.classList.add("is-on");
+      egg.setAttribute("aria-hidden", "false");
+      window.clearTimeout(timer);
+      timer = window.setTimeout(hide, 3600);
+    };
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        hide();
+        return;
+      }
+      const target = e.target as HTMLElement | null;
+      if (target && /^(input|textarea|select)$/i.test(target.tagName)) return;
+      if (target?.isContentEditable) return;
+      if (e.key.length !== 1) return;
+      buf = (buf + e.key.toLowerCase()).slice(-8);
+      if (WORDS.some((w) => buf.endsWith(w))) {
+        buf = "";
+        show();
+      }
+    });
+
+    egg.addEventListener("click", hide);
+  }
+</script>

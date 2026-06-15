@@ -23,7 +23,7 @@ export default defineConfig({
   },
   integrations: [],
   build: {
-    inlineStylesheets: "auto",
+    inlineStylesheets: "always",
     assets: "_assets",
   },
   compressHTML: true,

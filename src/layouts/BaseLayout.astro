@@ -6,6 +6,8 @@ import { config, authorName, socials } from "../lib/config";
 import { useTranslations, alternateUrl, type Locale } from "../lib/i18n";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
+import ZineEasterEgg from "../components/ZineEasterEgg.astro";
+import BackdropArt from "../components/BackdropArt.astro";
 
 type JsonLd = Record<string, unknown>;
 
@@ -127,15 +129,12 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
   </head>
   <body data-locale={locale}>
     <div class="bg-layer" aria-hidden="true">
-      <div class="ambient-bg" data-ambient-bg>
-        <span class="aurora aurora--cyan"></span>
-        <span class="aurora aurora--violet"></span>
-        <span class="aurora aurora--amber"></span>
-        <span class="aurora aurora--white"></span>
-        <span class="ambient-bg__glow ambient-bg__glow--cursor" data-ambient-cursor></span>
+      <div class="ambient-bg">
+        <BackdropArt />
       </div>
     </div>
     <div class="grain" aria-hidden="true"></div>
+    <div class="cursor-ring" data-cursor aria-hidden="true"></div>
 
     {!noChrome && <Header locale={locale} />}
 
@@ -148,6 +147,8 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
     <a href="#main" class="skip-link">
       {locale === "ru" ? "Перейти к содержимому" : "Skip to content"}
     </a>
+
+    <ZineEasterEgg />
 
     <script>
       // --- Scroll-reveal через IntersectionObserver ---
@@ -176,28 +177,30 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
         revealEls.forEach((el) => io.observe(el));
       }
 
-      // --- Ambient background: one transform-only cursor layer ---
-      const ambientCursor = document.querySelector<HTMLElement>("[data-ambient-cursor]");
-      if (
-        ambientCursor &&
-        !reduced &&
-        document.body.dataset.noInteractiveBg !== "1" &&
-        window.matchMedia("(pointer: fine)").matches
-      ) {
-        let ax = window.innerWidth * 0.68;
-        let ay = window.innerHeight * 0.26;
-        let tx = ax;
-        let ty = ay;
-        let ambientRaf: number | null = null;
+      // --- Курсор-кольцо: лёгкий фокус у указателя (замена «свечению за мышью») ---
+      const ring = document.querySelector<HTMLElement>("[data-cursor]");
+      if (ring && window.matchMedia("(pointer: fine)").matches) {
+        // Кэшируем размеры вьюпорта — чтение innerWidth/innerHeight в кадре может
+        // форсить layout. Обновляем только на resize, не на каждом кадре.
+        let x = window.innerWidth / 2;
+        let y = window.innerHeight / 2;
+        let tx = x;
+        let ty = y;
+        let ringRaf: number | null = null;
+        // Кольцо тесно догоняет курсор. Глобальный pointer-параллакс (запись
+        // --ptr-* в :root каждый кадр) УБРАН: он форсил перерисовку hero на
+        // каждое движение мыши и был причиной «дёрганого» курсора. Кольцо ставит
+        // только свой transform (композитится, layout не трогает).
+        const ease = reduced ? 1 : 0.5;
 
-        const applyAmbient = () => {
-          ax += (tx - ax) * 0.12;
-          ay += (ty - ay) * 0.12;
-          ambientCursor.style.transform = `translate3d(${ax}px, ${ay}px, 0) translate(-50%, -50%)`;
-          if (Math.abs(tx - ax) > 0.8 || Math.abs(ty - ay) > 0.8) {
-            ambientRaf = requestAnimationFrame(applyAmbient);
+        const loop = () => {
+          x += (tx - x) * ease;
+          y += (ty - y) * ease;
+          ring.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -50%)`;
+          if (Math.abs(tx - x) > 0.1 || Math.abs(ty - y) > 0.1) {
+            ringRaf = requestAnimationFrame(loop);
           } else {
-            ambientRaf = null;
+            ringRaf = null;
           }
         };
 
@@ -206,10 +209,26 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
           (event) => {
             tx = event.clientX;
             ty = event.clientY;
-            if (ambientRaf === null) ambientRaf = requestAnimationFrame(applyAmbient);
+            ring.classList.add("is-visible");
+            if (ringRaf === null) ringRaf = requestAnimationFrame(loop);
           },
           { passive: true },
         );
+
+        const INTERACTIVE = "a,button,[role='button'],summary,label,input,textarea,select";
+        document.addEventListener(
+          "pointerover",
+          (event) => {
+            const target = event.target as HTMLElement | null;
+            ring.classList.toggle("is-active", Boolean(target && target.closest(INTERACTIVE)));
+          },
+          { passive: true },
+        );
+        document.addEventListener("pointerdown", () => ring.classList.add("is-press"), { passive: true });
+        document.addEventListener("pointerup", () => ring.classList.remove("is-press"), { passive: true });
+        document.addEventListener("mouseleave", () => {
+          ring.classList.remove("is-visible");
+        });
       }
     </script>
   </body>
@@ -283,149 +302,66 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
     z-index: 2;
   }
 
-  /* ---------- Aurora blobs ----------
-     Soft radial gradients blended additively (screen) so overlaps glow like a
-     real aurora over black. Animated transform-only → GPU-composited, no JS. */
-  .aurora {
-    position: absolute;
+  /* ---------- Курсор-кольцо (фокус у указателя) ----------
+   * Лёгкая замена «свечению за мышью»: тонкое кольцо быстро следует за курсором,
+   * без инерции-лага и без blur/blend прежнего 600px-слоя. Системный курсор виден.
+   * Позицию ставит JS (transform); здесь — вид и реакция на hover. */
+  .cursor-ring {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 26px;
+    height: 26px;
+    border: 1.5px solid rgba(255, 255, 255, 0.5);
     border-radius: 50%;
     pointer-events: none;
-    mix-blend-mode: screen;
-    will-change: transform;
-    z-index: 0;
+    z-index: var(--z-cursor);
+    opacity: 0;
+    transform: translate3d(-100px, -100px, 0) translate(-50%, -50%);
+    transition:
+      opacity var(--dur-fast) var(--ease-standard),
+      width var(--dur-fast) var(--ease-soft),
+      height var(--dur-fast) var(--ease-soft),
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard);
   }
 
-  .aurora--cyan {
-    top: -18vh;
-    left: -8vw;
-    width: clamp(420px, 52vw, 820px);
-    height: clamp(420px, 52vw, 820px);
-    background: radial-gradient(circle at 50% 50%, var(--aurora-cyan), transparent 68%);
-    animation: aurora-drift-a 34s var(--ease-standard) infinite alternate;
+  .cursor-ring.is-visible {
+    opacity: 0.65;
   }
 
-  .aurora--violet {
-    top: 8vh;
-    right: -14vw;
-    width: clamp(440px, 56vw, 900px);
-    height: clamp(440px, 56vw, 900px);
-    background: radial-gradient(circle at 50% 50%, var(--aurora-violet), transparent 68%);
-    animation: aurora-drift-b 42s var(--ease-standard) infinite alternate;
+  /* Над интерактивным — кольцо раскрывается и наполняется. */
+  .cursor-ring.is-active {
+    width: 44px;
+    height: 44px;
+    border-color: rgba(255, 255, 255, 0.85);
+    background-color: rgba(255, 255, 255, 0.06);
+    opacity: 0.9;
   }
 
-  .aurora--amber {
-    bottom: -22vh;
-    left: 6vw;
-    width: clamp(420px, 50vw, 820px);
-    height: clamp(420px, 50vw, 820px);
-    background: radial-gradient(circle at 50% 50%, var(--aurora-amber), transparent 70%);
-    animation: aurora-drift-c 38s var(--ease-standard) infinite alternate;
-  }
-
-  .aurora--white {
-    top: 30vh;
-    left: 36vw;
-    width: clamp(360px, 40vw, 640px);
-    height: clamp(360px, 40vw, 640px);
-    background: radial-gradient(circle at 50% 50%, var(--aurora-white), transparent 72%);
-    animation: aurora-drift-d 30s var(--ease-standard) infinite alternate;
-  }
-
-  @keyframes aurora-drift-a {
-    from {
-      transform: translate3d(0, 0, 0) scale(1);
-    }
-    to {
-      transform: translate3d(12vw, 10vh, 0) scale(1.18);
-    }
-  }
-
-  @keyframes aurora-drift-b {
-    from {
-      transform: translate3d(0, 0, 0) scale(1.05);
-    }
-    to {
-      transform: translate3d(-14vw, 8vh, 0) scale(0.9);
-    }
-  }
-
-  @keyframes aurora-drift-c {
-    from {
-      transform: translate3d(0, 0, 0) scale(0.95);
-    }
-    to {
-      transform: translate3d(10vw, -12vh, 0) scale(1.2);
-    }
-  }
-
-  @keyframes aurora-drift-d {
-    from {
-      transform: translate3d(0, 0, 0) scale(1);
-    }
-    to {
-      transform: translate3d(-10vw, -8vh, 0) scale(1.25);
-    }
-  }
-
-  .ambient-bg__glow {
-    content: "";
-    position: absolute;
-    pointer-events: none;
-    border-radius: 999px;
-  }
-
-  .ambient-bg__glow--cursor {
-    left: 0;
-    top: 0;
-    width: clamp(300px, 36vw, 600px);
-    height: clamp(300px, 36vw, 600px);
-    /* Чисто белый «проявитель» — лампа, а не неон. Плотное ядро, мягкий спад. */
-    background: radial-gradient(
-      circle,
-      rgba(255, 255, 255, 0.26) 0%,
-      rgba(255, 253, 248, 0.12) 30%,
-      transparent 70%
-    );
-    mix-blend-mode: screen;
-    opacity: 0.6;
-    transform: translate3d(68vw, 26vh, 0) translate(-50%, -50%);
-    will-change: transform;
-    z-index: 0;
+  .cursor-ring.is-press {
+    width: 18px;
+    height: 18px;
   }
 
   @media (pointer: coarse) {
-    .ambient-bg__glow--cursor {
+    .cursor-ring {
       display: none;
     }
   }
 
   @media (max-width: 767px) {
     .bg-layer {
-      opacity: 0.78;
-    }
-
-    .ambient-bg {
-      opacity: var(--aurora-opacity-mobile);
+      opacity: 0.72;
     }
 
     .ambient-bg::before {
-      opacity: 0.4;
+      opacity: 0.3;
       background-size: 72px 72px;
     }
 
     .ambient-bg::after {
       background: radial-gradient(circle at 50% 42%, transparent 0 18%, rgba(0, 0, 0, 0.46) 100%);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .ambient-bg__glow--cursor {
-      display: none;
-    }
-
-    /* Hold the aurora still — the composition reads fine as a static gradient. */
-    .aurora {
-      animation: none;
     }
   }
 

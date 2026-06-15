@@ -18,6 +18,7 @@ import Capabilities from "./case/Capabilities.astro";
 import EngineeringCallouts from "./case/EngineeringCallouts.astro";
 import CaseTimeline from "./case/CaseTimeline.astro";
 import CaseFooterCrossLinks from "./case/CaseFooterCrossLinks.astro";
+import ProjectSignature from "./case/signature/ProjectSignature.astro";
 
 interface Props {
   project: Project;
@@ -46,6 +47,11 @@ const hasCapabilities = p.capabilities && p.capabilities.length > 0;
 const hasEngineering = p.engineeringChoices && p.engineeringChoices.length > 0;
 const hasTimeline = p.timeline && p.timeline.length > 0;
 const hasLinks = p.links && Object.keys(p.links).length > 0;
+
+// Сигнатурная визуализация «как это работает» — bespoke-анимация ключевых
+// механизмов проекта. Список slug-ов, для которых она есть (см. ProjectSignature).
+const SIGNATURE_SLUGS = new Set(["dotsound", "dotlearn", "dotagents", "dotworkbot", "dotmathbot"]);
+const hasSignature = SIGNATURE_SLUGS.has(p.slug);
 ---
 
 <article class="case" style={`--project-accent: ${accent};`}>
@@ -168,6 +174,23 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
       </header>
       {overviewParas.map((para) => <p class="case__lede body">{para}</p>)}
     </section>
+
+    <!-- 2b. Signature visualization — «как это работает» (bespoke per project) -->
+    {
+      hasSignature && (
+        <section class="case__section case__section--bleed" data-reveal>
+          <header class="case__h">
+            <h2 class="eyebrow">{locale === "ru" ? "Как это работает" : "How it works"}</h2>
+            <p class="case__h-lede subtitle">
+              {locale === "ru"
+                ? "Ключевые механизмы проекта — коротко и наглядно."
+                : "The project's key mechanics — short and visual."}
+            </p>
+          </header>
+          <ProjectSignature slug={p.slug} locale={locale} />
+        </section>
+      )
+    }
 
     <!-- 3. Metrics -->
     {

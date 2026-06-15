@@ -259,6 +259,9 @@ ol {
 .section {
   padding-block: var(--sp-11);
   position: relative;
+  /* content-visibility:auto УБРАН: после снятия backdrop-filter с карточек
+     оффскрин-секции и так дёшевы, а content-visibility давал всплески рендера
+     и пересчёт высот при прокрутке — это ощущалось как дёрганый скролл. */
 }
 
 @media (max-width: 767px) {
@@ -282,20 +285,23 @@ ol {
  * приглушённого состояния в резкое. Управляется IntersectionObserver в BaseLayout. */
 [data-reveal] {
   opacity: 0;
-  transform: translateY(22px);
-  filter: blur(8px);
+  transform: translateY(20px);
+  /* filter: blur() УБРАН из перехода — это был самый дорогой эффект страницы:
+     полноценный GPU-filter-pass на каждый из десятков reveal-элементов при
+     скролле (главная причина «тяжести»). Появление остаётся на opacity+transform,
+     они композируются бесплатно. */
   transition:
-    opacity var(--dur-slower) var(--ease-soft),
-    transform var(--dur-slower) var(--ease-soft),
-    filter var(--dur-slower) var(--ease-soft);
+    opacity var(--dur-slow) var(--ease-soft),
+    transform var(--dur-slow) var(--ease-soft);
   transition-delay: calc(var(--reveal-delay, 0) * 1ms);
-  will-change: opacity, transform, filter;
+  will-change: opacity, transform;
 }
 
 [data-reveal].is-visible {
   opacity: 1;
   transform: translateY(0);
-  filter: blur(0);
+  /* Анимация отыграла — снимаем слой, чтобы десятки узлов не висели «горячими». */
+  will-change: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -303,7 +309,6 @@ ol {
     transition: none;
     opacity: 1;
     transform: none;
-    filter: none;
   }
 }
 
@@ -317,7 +322,8 @@ ol {
   z-index: 1;
   pointer-events: none;
   opacity: var(--grain-opacity);
-  mix-blend-mode: overlay;
+  /* mix-blend-mode: overlay убран — это fullscreen-blend на каждый кадр скролла;
+     на near-black он почти неотличим от обычной полупрозрачности. */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 160px 160px;
 }
@@ -328,10 +334,11 @@ ol {
   }
 }
 
-/* ---------- Magnetic (применяется на CTA, обрабатывается JS-ом в BaseLayout) ---------- */
+/* ---------- Magnetic ----------
+ * will-change убран: JS-магнетизма в проекте нет, постоянный слой был мёртвым
+ * грузом на каждой CTA (лишняя видеопамять и работа композитора на скролле). */
 .magnetic {
   transform-origin: center;
-  will-change: transform;
 }
 
 /* ---------- Shared buttons ---------- */

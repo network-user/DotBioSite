@@ -104,9 +104,9 @@ const initialHash = Astro.url.hash.replace("#", "");
     border-radius: var(--r-pill);
     margin-inline: auto;
     max-width: calc(var(--container-wide) - var(--sp-4));
-    transition:
-      background-color var(--dur-med) var(--ease-standard),
-      box-shadow var(--dur-med) var(--ease-standard);
+    /* box-shadow убран из перехода — тень не композируется, её анимация
+       перерисовывала размытый регион хедера на каждом кадре скролла. */
+    transition: background-color var(--dur-med) var(--ease-standard);
   }
 
   /* When scrolled, swap to denser tint and stronger blur via shared class. */
@@ -452,10 +452,13 @@ const initialHash = Astro.url.hash.replace("#", "");
       });
     });
 
-    // Reposition the underline when fonts or viewport shift it.
+    // Reposition the underline when fonts or viewport shift it. rAF-обёртка
+    // батчит чтения getBoundingClientRect в фазу после layout (без forced reflow).
     const resizeObserver = new ResizeObserver(() => {
-      const current = nav.querySelector<HTMLAnchorElement>(".header__nav-link.is-active");
-      updateIndicator(nav, current);
+      requestAnimationFrame(() => {
+        const current = nav.querySelector<HTMLAnchorElement>(".header__nav-link.is-active");
+        updateIndicator(nav, current);
+      });
     });
     resizeObserver.observe(nav);
   }
@@ -463,8 +466,13 @@ const initialHash = Astro.url.hash.replace("#", "");
   function initHeaderScrolled() {
     const header = document.querySelector<HTMLElement>("[data-header]");
     if (!header) return;
+    // Guard: трогаем DOM только при смене состояния, а не на каждый scroll-тик.
+    let scrolled = false;
     const apply = () => {
-      header.classList.toggle("is-scrolled", window.scrollY > 24);
+      const next = window.scrollY > 24;
+      if (next === scrolled) return;
+      scrolled = next;
+      header.classList.toggle("is-scrolled", next);
     };
     apply();
     window.addEventListener("scroll", apply, { passive: true });

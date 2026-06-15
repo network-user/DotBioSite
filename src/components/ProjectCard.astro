@@ -196,11 +196,11 @@ const isFeatured = index === 0;
       inset 0 1px 0 rgba(255, 255, 255, 0.08),
       0 18px 48px rgba(0, 0, 0, 0.42);
     transform: perspective(1400px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
-    transform-style: preserve-3d;
-    transition:
-      transform var(--dur-med) var(--ease-soft),
-      border-color var(--dur-med) var(--ease-standard),
-      box-shadow var(--dur-med) var(--ease-standard);
+    /* transform УБРАН из transition: раньше CSS интерполировал каждое микро-
+       изменение тилта 280ms-кривой, и панель инерционно «догоняла» курсор — это и
+       есть «массив едет за мной». Теперь тилт применяется мгновенно (плавность
+       даёт JS-лерп). box-shadow тоже не анимируем (тень не композируется). */
+    transition: border-color var(--dur-fast) var(--ease-standard);
   }
 
   /* Brighter top-shine for the glass on these large surfaces. */

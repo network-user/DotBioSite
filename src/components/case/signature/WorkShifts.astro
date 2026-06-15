@@ -1,0 +1,932 @@
+---
+/**
+ * WorkShifts.astro — сигнатурная визуализация .работа (DotWorkBot).
+ *
+ * Цель этой версии — ЯСНОСТЬ, не скорость. Медленный пошаговый разбор,
+ * полностью под контролем читателя: точки-индикаторы, prev/next, повтор.
+ * Один шаг за раз, с подробным объяснением «что» и «зачем».
+ *
+ * Что показываем (сверено по репозиторию DotWorkBot):
+ *   Часть A — жизненный цикл заказа:
+ *     open → taken → reminder → confirm | release → close
+ *     (статусы OrderStatus.OPEN / IN_PROGRESS / CANCELLED, OrderAssignment.confirmed_at,
+ *      Order.confirmation_requested_at, start_time / end_time).
+ *   Часть B — движок: отдельный taskiq-воркер крутит таймерные циклы
+ *     (_operational_control_loop, интервал ≥15с), а Redis-лидер-лок
+ *     `SET nx ex` (ключ dotworkbot:operational_control:leader) выбирает
+ *     ровно одну реплику-лидера, чтобы напоминания/закрытия срабатывали
+ *     один раз даже при нескольких копиях.
+ *
+ * Перф-бюджет: анимируем ТОЛЬКО transform/opacity. Никаких циклов вне
+ * экрана (gate через IntersectionObserver + .is-inview). Курсорного параллакса
+ * нет (убран ради перфа). reduced-motion: показываем финальный читаемый кадр
+ * со всеми шагами, без движения.
+ */
+import type { Locale } from "../../../lib/i18n";
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+
+type Bi = { ru: string; en: string };
+const t = (b: Bi) => b[locale];
+
+const ui = {
+  intro: {
+    ru: "Биржа разовых смен: разберём по шагам, как заказ проходит свой путь и какой невидимый движок этим управляет. Листайте кнопками или точками — каждый шаг можно прочитать спокойно.",
+    en: "A gig-shift marketplace: a step-by-step look at how one order travels its lifecycle and what invisible engine drives it. Use the dots or arrows — each step stays up so you can read it.",
+  },
+  prev: { ru: "Назад", en: "Back" },
+  next: { ru: "Дальше", en: "Next" },
+  replay: { ru: "Сначала", en: "Replay" },
+  stepOf: { ru: "Шаг", en: "Step" },
+  of: { ru: "из", en: "of" },
+  play: { ru: "Авто", en: "Auto" },
+  pause: { ru: "Пауза", en: "Pause" },
+  partFlow: { ru: "Жизненный цикл заказа", en: "Order lifecycle" },
+  partEngine: { ru: "Движок под капотом", en: "The engine underneath" },
+};
+
+/**
+ * Шаги. Первые шесть — жизненный цикл заказа (рисуем рейл-состояния),
+ * последние два — движок (воркер + лидер-лок). `scene` управляет тем,
+ * какую сцену подсвечивает скрипт.
+ */
+type Step = {
+  key: string;
+  scene: "rail" | "engine";
+  /** индекс узла на рейле, который активен на этом шаге (для scene=rail) */
+  railIndex?: number;
+  tag: Bi; // крошечный декоративный eyebrow
+  title: Bi; // заголовок шага
+  body: Bi; // подробное объяснение
+};
+
+const steps: Step[] = [
+  {
+    key: "open",
+    scene: "rail",
+    railIndex: 0,
+    tag: { ru: "статус: open", en: "status: open" },
+    title: { ru: "Работодатель публикует смену", en: "Employer posts a shift" },
+    body: {
+      ru: "Заказ появляется со статусом «открыт»: город, время начала и конца, ставка и сколько человек нужно. Пока он открыт, его видят свободные работники и могут занять место.",
+      en: "An order appears with the status “open”: city, start and end time, the rate, and how many workers are needed. While it is open, available workers can see it and claim a slot.",
+    },
+  },
+  {
+    key: "taken",
+    scene: "rail",
+    railIndex: 1,
+    tag: { ru: "статус: in_progress", en: "status: in_progress" },
+    title: { ru: "Работник занимает слот", en: "A worker takes a slot" },
+    body: {
+      ru: "Работник берёт смену — создаётся «назначение» (одна запись на человека), и заказ переходит в работу. Слотов может быть несколько: заказ закрывается для остальных только когда набраны все нужные люди.",
+      en: "A worker claims the shift — an assignment row is created (one per worker) and the order moves to “in progress”. There can be several slots: the order closes to others only once every required worker is filled.",
+    },
+  },
+  {
+    key: "remind",
+    scene: "rail",
+    railIndex: 2,
+    tag: { ru: "за 3 часа до старта", en: "3 hours before start" },
+    title: { ru: "Напоминание: подтвердите выход", en: "Reminder: confirm arrival" },
+    body: {
+      ru: "Примерно за три часа до начала система один раз пишет тем, кто ещё не подтвердился: «вы выходите?». Отметка о напоминании ставится атомарно — это значит, что повторно одно и то же напоминание не уйдёт, даже если цикл сработает снова.",
+      en: "About three hours before the start, the system pings everyone who hasn’t confirmed yet — once: “are you coming?”. The reminder flag is set atomically (all-or-nothing), so the same reminder is never sent twice even if the loop runs again.",
+    },
+  },
+  {
+    key: "confirm",
+    scene: "rail",
+    railIndex: 3,
+    tag: { ru: "confirmed_at заполнен", en: "confirmed_at is set" },
+    title: { ru: "Работник подтвердил — заказ идёт дальше", en: "Confirmed — the order proceeds" },
+    body: {
+      ru: "Работник нажимает «подтверждаю» — в его назначении проставляется время подтверждения. Работодатель получает уведомление «исполнитель выйдет», и смена спокойно идёт к выполнению. Хороший путь.",
+      en: "The worker taps “confirm” — a confirmation timestamp is written on their assignment. The employer is notified that the worker is coming, and the shift proceeds calmly toward completion. The happy path.",
+    },
+  },
+  {
+    key: "release",
+    scene: "rail",
+    railIndex: 4,
+    tag: { ru: "no-show → слот свободен", en: "no-show → slot freed" },
+    title: { ru: "Молчание — слот возвращается людям", en: "Silence — the slot is released" },
+    body: {
+      ru: "Если время старта прошло, а подтверждения нет (человек пропал) — его место освобождается, ему уходит уведомление, а заказ снова становится открытым. Свободный слот тут же предлагается другим работникам в городе. Никто не остаётся «висеть» из-за чужого no-show.",
+      en: "If the start time passes with no confirmation (the person went silent), their slot is freed, they get notified, and the order becomes open again. The freed slot is immediately offered to other workers in the city. Nobody is left stuck because of someone else’s no-show.",
+    },
+  },
+  {
+    key: "close",
+    scene: "rail",
+    railIndex: 5,
+    tag: { ru: "end_time прошёл → cancelled", en: "end_time passed → cancelled" },
+    title: { ru: "Срок истёк — заказ закрывается сам", en: "Expired — the order auto-closes" },
+    body: {
+      ru: "Заказы, у которых прошло время окончания, закрываются автоматически: никто не подбирает «мёртвые» объявления вручную. Оставшиеся работники получают уведомление, что заказ завершён. Лента остаётся чистой и актуальной.",
+      en: "Orders whose end time has passed are closed automatically — no one has to clean up stale listings by hand. Any remaining workers are notified the order is finished. The feed stays clean and current.",
+    },
+  },
+  {
+    key: "worker",
+    scene: "engine",
+    tag: { ru: "taskiq-воркер", en: "taskiq worker" },
+    title: { ru: "Кто всё это делает: фоновый воркер", en: "Who does all this: a background worker" },
+    body: {
+      ru: "Напоминания, освобождение слотов и закрытие заказов крутит не бот, отвечающий на сообщения, а отдельный фоновый процесс (taskiq-воркер). Он просыпается по таймеру (раз в ~минуту), проверяет базу и делает нужные действия — тихо и сам по себе.",
+      en: "Reminders, slot releases and order closings are run not by the chat bot but by a separate background process (a taskiq worker). It wakes up on a timer (about once a minute), checks the database, and performs the due actions — quietly, on its own.",
+    },
+  },
+  {
+    key: "lock",
+    scene: "engine",
+    tag: { ru: "Redis · SET nx ex", en: "Redis · SET nx ex" },
+    title: { ru: "Лидер-лок: ровно один раз", en: "Leader-lock: exactly once" },
+    body: {
+      ru: "На проде может работать несколько копий воркера. Чтобы напоминание не ушло трижды, копии борются за один ключ в Redis командой «SET nx ex»: nx = «запиши, только если ключа ещё нет», ex = «сам исчезни через срок». Ключ достаётся одной копии — она и есть лидер, она и делает работу. Остальные видят занятый ключ и пропускают такт.",
+      en: "In production several copies of the worker may run. So a reminder isn’t sent three times, the copies race for one Redis key using “SET nx ex”: nx = “write only if the key doesn’t exist yet”, ex = “expire on your own after a TTL”. One copy wins the key — that copy is the leader and does the work. The others see the key taken and skip the tick.",
+    },
+  },
+];
+
+// Узлы рейла жизненного цикла (порядок совпадает с railIndex выше).
+const rail: { key: string; label: Bi; sub: Bi }[] = [
+  { key: "open", label: { ru: "Открыт", en: "Open" }, sub: { ru: "опубликован", en: "posted" } },
+  { key: "taken", label: { ru: "В работе", en: "In progress" }, sub: { ru: "слот занят", en: "slot taken" } },
+  { key: "remind", label: { ru: "Напоминание", en: "Reminder" }, sub: { ru: "подтвердите выход", en: "confirm arrival" } },
+  { key: "confirm", label: { ru: "Подтверждено", en: "Confirmed" }, sub: { ru: "выход в срок", en: "arrival in time" } },
+  { key: "release", label: { ru: "Слот освобождён", en: "Slot released" }, sub: { ru: "no-show → в ленту", en: "no-show → feed" } },
+  { key: "close", label: { ru: "Закрыт", en: "Closed" }, sub: { ru: "срок истёк", en: "expired" } },
+];
+
+// Реплики воркера для сцены «движок».
+const replicas = [
+  { id: "r1", lead: true },
+  { id: "r2", lead: false },
+  { id: "r3", lead: false },
+];
+
+const replicaName = { ru: "реплика воркера", en: "worker replica" };
+const leaderTag = { ru: "лидер · держит лок", en: "leader · holds lock" };
+const idleTag = { ru: "ждёт · пропускает", en: "idle · skips" };
+const onceTag = { ru: "ровно один раз", en: "exactly once" };
+---
+
+<section
+  class="ws"
+  data-ws
+  aria-label={t({ ru: "Как работает DotWorkBot", en: "How DotWorkBot works" })}
+>
+  <p class="ws__intro">{t(ui.intro)}</p>
+
+  <!-- ── Сцена жизненного цикла (рейл) ──────────────────────────────── -->
+  <div class="ws__stage" data-ws-stage="rail">
+    <span class="ws__stage-cap">{t(ui.partFlow)}</span>
+    <ol class="ws__rail">
+      {
+        rail.map((s, i) => (
+          <li class="ws__node" data-node={i}>
+            <span class="ws__node-mark" aria-hidden="true" />
+            <span class="ws__node-body">
+              <span class="ws__node-label">{t(s.label)}</span>
+              <span class="ws__node-sub">{t(s.sub)}</span>
+            </span>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+
+  <!-- ── Сцена движка (воркер + лидер-лок) ──────────────────────────── -->
+  <div class="ws__stage" data-ws-stage="engine" hidden>
+    <span class="ws__stage-cap">{t(ui.partEngine)}</span>
+    <div class="ws__engine">
+      <div class="ws__lock">
+        <span class="ws__lock-key">{t({ ru: "Redis · SET nx ex", en: "Redis · SET nx ex" })}</span>
+        <span class="ws__lock-once">{t(onceTag)}</span>
+      </div>
+      <div class="ws__replicas" role="list">
+        {
+          replicas.map((r) => (
+            <div class="ws__rep" role="listitem" data-rep={r.id} data-lead={r.lead ? "1" : "0"}>
+              <span class="ws__rep-dot" aria-hidden="true" />
+              <span class="ws__rep-name">{t(replicaName)}</span>
+              <span class="ws__rep-tag ws__rep-tag--lead">{t(leaderTag)}</span>
+              <span class="ws__rep-tag ws__rep-tag--idle">{t(idleTag)}</span>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Текстовое объяснение текущего шага ─────────────────────────── -->
+  <div class="ws__explain" data-ws-explain aria-live="polite">
+    {
+      steps.map((s, i) => (
+        <article class="ws__step" data-step={i} hidden={i !== 0}>
+          <span class="ws__step-tag">{t(s.tag)}</span>
+          <h3 class="ws__step-title">{t(s.title)}</h3>
+          <p class="ws__step-body">{t(s.body)}</p>
+        </article>
+      ))
+    }
+  </div>
+
+  <!-- ── Управление: prev / точки / next + авто/пауза ───────────────── -->
+  <div class="ws__controls">
+    <button class="ws__btn ws__btn--nav" type="button" data-ws-prev>
+      <span aria-hidden="true">←</span> {t(ui.prev)}
+    </button>
+
+    <div class="ws__dots" role="tablist" aria-label={t({ ru: "Шаги", en: "Steps" })}>
+      {
+        steps.map((_s, i) => (
+          <button
+            class="ws__dot"
+            type="button"
+            role="tab"
+            data-ws-dot={i}
+            aria-selected={i === 0 ? "true" : "false"}
+            aria-label={`${t(ui.stepOf)} ${i + 1} ${t(ui.of)} ${steps.length}`}
+          >
+            <span class="ws__dot-mark" aria-hidden="true" />
+          </button>
+        ))
+      }
+    </div>
+
+    <button class="ws__btn ws__btn--nav" type="button" data-ws-next>
+      {t(ui.next)} <span aria-hidden="true">→</span>
+    </button>
+  </div>
+
+  <div class="ws__meta">
+    <span class="ws__counter" data-ws-counter>
+      {t(ui.stepOf)} 1 {t(ui.of)} {steps.length}
+    </span>
+    <button class="ws__btn ws__btn--ghost" type="button" data-ws-toggle aria-pressed="false">
+      {t(ui.play)}
+    </button>
+    <button class="ws__btn ws__btn--ghost" type="button" data-ws-replay>
+      {t(ui.replay)}
+    </button>
+  </div>
+</section>
+
+<style>
+  .ws {
+    --accent: var(--project-accent);
+    --line: color-mix(in srgb, var(--accent) 40%, var(--border));
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-5);
+    color: var(--text);
+    container-type: inline-size;
+  }
+
+  /* ── Вступление ──────────────────────────────────────────────────── */
+  .ws__intro {
+    margin: 0;
+    max-width: 64ch;
+    font-size: var(--fs-16);
+    line-height: var(--lh-normal);
+    color: var(--text-secondary);
+  }
+
+  /* ── Общий контейнер сцены ───────────────────────────────────────── */
+  .ws__stage {
+    position: relative;
+    padding: var(--sp-5);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-lg);
+    background: var(--surface);
+  }
+  .ws__stage[hidden] {
+    display: none;
+  }
+
+  .ws__stage-cap {
+    display: block;
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-11);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: var(--sp-4);
+  }
+
+  /* ── Рейл жизненного цикла ───────────────────────────────────────── */
+  .ws__rail {
+    position: relative;
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0 var(--sp-5);
+    display: grid;
+    gap: var(--sp-4);
+  }
+
+  /* вертикальная линия рейла */
+  .ws__rail::before {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 12px;
+    bottom: 12px;
+    width: var(--bw-thin);
+    background: var(--border);
+  }
+
+  .ws__node {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    opacity: 0.34;
+    transition: opacity var(--dur-slow) var(--ease-standard);
+  }
+
+  .ws__node-mark {
+    position: absolute;
+    left: calc(var(--sp-5) * -1 + 4px);
+    width: 9px;
+    height: 9px;
+    margin-left: -4px;
+    border-radius: var(--r-pill);
+    background: var(--text-faint);
+    transform: scale(1);
+    transition:
+      transform var(--dur-slow) var(--ease-spring),
+      background-color var(--dur-slow) var(--ease-standard);
+  }
+
+  .ws__node-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .ws__node-label {
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-semibold);
+    font-size: var(--fs-17);
+    letter-spacing: var(--ls-tight);
+    line-height: var(--lh-snug);
+  }
+
+  .ws__node-sub {
+    font-size: var(--fs-13);
+    color: var(--text-muted);
+    line-height: var(--lh-snug);
+  }
+
+  /* пройденные шаги — тускло-белые */
+  .ws__node.is-done {
+    opacity: 0.62;
+  }
+  .ws__node.is-done .ws__node-mark {
+    background: var(--text-secondary);
+  }
+
+  /* активный шаг */
+  .ws__node.is-active {
+    opacity: 1;
+  }
+  .ws__node.is-active .ws__node-mark {
+    background: var(--accent);
+    transform: scale(1.7);
+  }
+  /* шаг release читается как ветка «иначе» — слегка отодвинут */
+  .ws__node[data-node="4"] .ws__node-body {
+    color: inherit;
+  }
+
+  /* ── Сцена движка ────────────────────────────────────────────────── */
+  .ws__engine {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+  }
+
+  .ws__lock {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    flex-wrap: wrap;
+  }
+
+  .ws__lock-key {
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-13);
+    letter-spacing: var(--ls-snug);
+    color: var(--text-secondary);
+  }
+
+  .ws__lock-once {
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-13);
+    letter-spacing: var(--ls-snug);
+    color: var(--accent);
+    opacity: 0.9;
+  }
+
+  .ws__replicas {
+    display: grid;
+    gap: var(--sp-3);
+  }
+
+  .ws__rep {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-3) var(--sp-4);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-md);
+    font-size: var(--fs-14);
+    opacity: 0.45;
+    transition:
+      opacity var(--dur-slow) var(--ease-standard),
+      border-color var(--dur-slow) var(--ease-standard);
+  }
+
+  /* лидер подсвечивается только когда сцена движка активна */
+  .ws[data-engine-on] .ws__rep[data-lead="1"] {
+    opacity: 1;
+    border-color: var(--line);
+  }
+
+  .ws__rep-dot {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: var(--r-pill);
+    background: var(--text-faint);
+    transition:
+      transform var(--dur-slow) var(--ease-spring),
+      background-color var(--dur-slow) var(--ease-standard);
+  }
+  .ws[data-engine-on] .ws__rep[data-lead="1"] .ws__rep-dot {
+    background: var(--accent);
+  }
+
+  .ws__rep-name {
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+    margin-right: auto;
+  }
+  .ws[data-engine-on] .ws__rep[data-lead="1"] .ws__rep-name {
+    color: var(--text);
+  }
+
+  .ws__rep-tag {
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-13);
+    letter-spacing: var(--ls-snug);
+  }
+  .ws__rep-tag--lead {
+    color: var(--accent);
+    display: none;
+  }
+  .ws__rep-tag--idle {
+    color: var(--text-muted);
+    display: inline;
+  }
+  .ws[data-engine-on] .ws__rep[data-lead="1"] .ws__rep-tag--lead {
+    display: inline;
+  }
+  .ws[data-engine-on] .ws__rep[data-lead="1"] .ws__rep-tag--idle {
+    display: none;
+  }
+
+  /* медленный, очень мягкий «пульс» точки лидера — только когда в зоне видимости
+     И сцена движка активна. Никаких циклов вне экрана. */
+  @media (prefers-reduced-motion: no-preference) {
+    .ws.is-inview[data-engine-on] .ws__rep[data-lead="1"] .ws__rep-dot {
+      animation: ws-breathe 3.6s var(--ease-drift) infinite;
+    }
+  }
+
+  @keyframes ws-breathe {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.35);
+    }
+  }
+
+  /* ── Объяснение текущего шага ────────────────────────────────────── */
+  .ws__explain {
+    min-height: 168px;
+  }
+
+  .ws__step[hidden] {
+    display: none;
+  }
+
+  .ws__step-tag {
+    display: inline-block;
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-11);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: var(--sp-2);
+  }
+
+  .ws__step-title {
+    margin: 0 0 var(--sp-2);
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-bold);
+    font-size: var(--fs-20);
+    letter-spacing: var(--ls-tight);
+    line-height: var(--lh-snug);
+    color: var(--text);
+  }
+
+  .ws__step-body {
+    margin: 0;
+    max-width: 64ch;
+    font-size: var(--fs-16);
+    line-height: var(--lh-normal);
+    color: var(--text-secondary);
+  }
+
+  /* мягкое проявление текста при смене шага (только когда в зоне видимости) */
+  @media (prefers-reduced-motion: no-preference) {
+    .ws.is-inview .ws__step:not([hidden]) {
+      animation: ws-step-in var(--dur-slow) var(--ease-soft) both;
+    }
+  }
+  @keyframes ws-step-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* ── Управление ──────────────────────────────────────────────────── */
+  .ws__controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    flex-wrap: wrap;
+  }
+
+  .ws__dots {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .ws__dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--tap-min);
+    height: var(--tap-min);
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .ws__dot-mark {
+    width: 9px;
+    height: 9px;
+    border-radius: var(--r-pill);
+    background: var(--text-faint);
+    transition:
+      transform var(--dur-med) var(--ease-spring),
+      background-color var(--dur-med) var(--ease-standard);
+  }
+  .ws__dot:hover .ws__dot-mark {
+    background: var(--text-muted);
+  }
+  .ws__dot.is-done .ws__dot-mark {
+    background: var(--text-secondary);
+  }
+  .ws__dot[aria-selected="true"] .ws__dot-mark {
+    background: var(--accent);
+    transform: scale(1.55);
+  }
+  .ws__dot:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+    border-radius: var(--r-pill);
+  }
+
+  .ws__btn {
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+    background: transparent;
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-pill);
+    padding: var(--sp-2) var(--sp-4);
+    min-height: var(--tap-min);
+    cursor: pointer;
+    transition:
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard);
+  }
+  .ws__btn:hover:not(:disabled) {
+    color: var(--text);
+    border-color: var(--border-hover);
+  }
+  .ws__btn:disabled {
+    opacity: 0.38;
+    cursor: default;
+  }
+  .ws__btn:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+
+  .ws__btn--ghost {
+    border-color: transparent;
+    padding: var(--sp-2) var(--sp-3);
+  }
+  .ws__btn--ghost[aria-pressed="true"] {
+    color: var(--text);
+    border-color: var(--line);
+  }
+
+  .ws__meta {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    flex-wrap: wrap;
+  }
+
+  .ws__counter {
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-13);
+    color: var(--text-muted);
+    margin-right: auto;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Узкие экраны ────────────────────────────────────────────────── */
+  @container (max-width: 520px) {
+    .ws__btn--nav {
+      padding: var(--sp-2) var(--sp-3);
+    }
+  }
+
+  /* ── coarse pointer: без параллакса ──────────────────────────────── */
+  @media (pointer: coarse) {
+    .ws {
+      transform: none;
+    }
+  }
+
+  /* ── reduced-motion: финальный читаемый кадр, без движения ───────── */
+  @media (prefers-reduced-motion: reduce) {
+    .ws {
+      transform: none;
+      transition: none;
+    }
+    .ws__step {
+      animation: none;
+    }
+    .ws__rep[data-lead="1"] .ws__rep-dot {
+      animation: none;
+    }
+    /* весь рейл читается как «пройденный путь» */
+    .ws__node {
+      opacity: 0.78;
+      transition: none;
+    }
+    .ws__node-mark {
+      background: var(--text-secondary);
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  // Пошаговый разбор под полным контролем читателя. Скрипт лишь переключает
+  // классы/атрибуты и hidden; всё, что движется, — это transform/opacity в CSS.
+  // Анимации запускаются только в зоне видимости (.is-inview) и гасятся за
+  // экраном и на pagehide. Авто-режим выключен по умолчанию, шаг ~5с, пауза
+  // на hover/focus.
+  type WS = HTMLElement & { __wsStop?: () => void };
+
+  function initWorkShifts(): void {
+    const roots = document.querySelectorAll<WS>("[data-ws]");
+    if (!roots.length) return;
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    roots.forEach((root) => {
+      if (root.__wsStop) return; // уже инициализирован
+
+      const steps = Array.from(root.querySelectorAll<HTMLElement>(".ws__step"));
+      const dots = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-ws-dot]"));
+      const railNodes = Array.from(root.querySelectorAll<HTMLElement>(".ws__node"));
+      const stageRail = root.querySelector<HTMLElement>('[data-ws-stage="rail"]');
+      const stageEngine = root.querySelector<HTMLElement>('[data-ws-stage="engine"]');
+      const counter = root.querySelector<HTMLElement>("[data-ws-counter]");
+      const prevBtn = root.querySelector<HTMLButtonElement>("[data-ws-prev]");
+      const nextBtn = root.querySelector<HTMLButtonElement>("[data-ws-next]");
+      const replayBtn = root.querySelector<HTMLButtonElement>("[data-ws-replay]");
+      const toggleBtn = root.querySelector<HTMLButtonElement>("[data-ws-toggle]");
+
+      const N = steps.length;
+      if (!N) return;
+
+      // scene/railIndex для каждого шага читаем из data-* в разметке? Нет —
+      // выведем из соответствия: первые 6 шагов = рейл (railIndex 0..5),
+      // последние = движок. Держим простую карту, чтобы не зависеть от DOM.
+      const SCENE: ("rail" | "engine")[] = steps.map((_, i) =>
+        i < railNodes.length ? "rail" : "engine",
+      );
+
+      const locale = document.documentElement.lang === "en" ? "en" : "ru";
+      const L = {
+        ru: { step: "Шаг", of: "из", play: "Авто", pause: "Пауза" },
+        en: { step: "Step", of: "of", play: "Auto", pause: "Pause" },
+      }[locale];
+
+      const AUTO_MS = 5000;
+      let idx = 0;
+      let auto = false;
+      let inview = false;
+      let timer = 0;
+      let hovered = false;
+
+      const clearTimer = () => {
+        if (timer) window.clearTimeout(timer);
+        timer = 0;
+      };
+
+      const scheduleAuto = () => {
+        clearTimer();
+        if (!auto || !inview || hovered || reduced.matches) return;
+        timer = window.setTimeout(() => {
+          render((idx + 1) % N);
+          scheduleAuto();
+        }, AUTO_MS);
+      };
+
+      const render = (next: number) => {
+        idx = ((next % N) + N) % N;
+        const scene = SCENE[idx];
+
+        // сцена: рейл или движок
+        if (stageRail) stageRail.hidden = scene !== "rail";
+        if (stageEngine) stageEngine.hidden = scene !== "engine";
+        root.toggleAttribute("data-engine-on", scene === "engine");
+
+        // подсветка рейла: активный = railIndex текущего шага, пройденные < него
+        if (scene === "rail") {
+          railNodes.forEach((n, i) => {
+            n.classList.toggle("is-active", i === idx);
+            n.classList.toggle("is-done", i < idx);
+          });
+        } else {
+          // на сцене движка весь путь уже пройден
+          railNodes.forEach((n) => {
+            n.classList.remove("is-active");
+            n.classList.add("is-done");
+          });
+        }
+
+        // текст шага
+        steps.forEach((s, i) => (s.hidden = i !== idx));
+
+        // точки-индикаторы
+        dots.forEach((d, i) => {
+          d.setAttribute("aria-selected", i === idx ? "true" : "false");
+          d.classList.toggle("is-done", i < idx);
+        });
+
+        // кнопки nav (нелинейный край: даём «зациклить», но крайние подсвечиваем)
+        if (prevBtn) prevBtn.disabled = idx === 0;
+        if (nextBtn) nextBtn.disabled = idx === N - 1;
+
+        if (counter) counter.textContent = `${L.step} ${idx + 1} ${L.of} ${N}`;
+      };
+
+      // ── Управление ──
+      prevBtn?.addEventListener("click", () => {
+        stopAuto();
+        render(idx - 1);
+      });
+      nextBtn?.addEventListener("click", () => {
+        stopAuto();
+        render(idx + 1);
+      });
+      dots.forEach((d, i) =>
+        d.addEventListener("click", () => {
+          stopAuto();
+          render(i);
+        }),
+      );
+      replayBtn?.addEventListener("click", () => {
+        render(0);
+        if (auto) scheduleAuto();
+      });
+
+      const setToggle = () => {
+        if (!toggleBtn) return;
+        toggleBtn.setAttribute("aria-pressed", auto ? "true" : "false");
+        toggleBtn.textContent = auto ? L.pause : L.play;
+      };
+      const stopAuto = () => {
+        auto = false;
+        clearTimer();
+        setToggle();
+      };
+      toggleBtn?.addEventListener("click", () => {
+        auto = !auto;
+        setToggle();
+        scheduleAuto();
+      });
+
+      // пауза авто-режима на hover/focus
+      root.addEventListener("pointerenter", () => {
+        hovered = true;
+        clearTimer();
+      });
+      root.addEventListener("pointerleave", () => {
+        hovered = false;
+        scheduleAuto();
+      });
+      root.addEventListener("focusin", () => {
+        hovered = true;
+        clearTimer();
+      });
+      root.addEventListener("focusout", () => {
+        hovered = false;
+        scheduleAuto();
+      });
+
+      // ── reduced-motion: финальный читаемый кадр, без авто/анимаций ──
+      if (reduced.matches) {
+        render(0);
+        // показываем последний (движок) как итог? Нет — оставляем первый шаг
+        // активным, но рейл уже читается как пройденный путь (CSS). Управление
+        // полностью рабочее, просто без движения.
+        root.__wsStop = () => {};
+        return;
+      }
+
+      // ── Видимость: анимации/авто только в зоне видимости ──
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            inview = e.isIntersecting;
+            root.classList.toggle("is-inview", inview);
+            if (inview) scheduleAuto();
+            else clearTimer();
+          }
+        },
+        { threshold: 0.2 },
+      );
+      io.observe(root);
+
+      render(0);
+
+      const onPageHide = () => {
+        clearTimer();
+        io.disconnect();
+      };
+      window.addEventListener("pagehide", onPageHide, { once: true });
+
+      const onReduce = () => {
+        if (reduced.matches) {
+          stopAuto();
+          root.classList.remove("is-inview");
+        }
+      };
+      reduced.addEventListener?.("change", onReduce);
+
+      root.__wsStop = () => {
+        clearTimer();
+        io.disconnect();
+        window.removeEventListener("pagehide", onPageHide);
+        reduced.removeEventListener?.("change", onReduce);
+      };
+    });
+  }
+
+  initWorkShifts();
+  document.addEventListener("astro:page-load", initWorkShifts);
+</script>

@@ -80,12 +80,15 @@ const briefOptions = hasEmail
             <button
               type="button"
               class="contact__channel contact__channel--email contact-email glass glass--hover"
+              data-channel
               data-e={emailB64}
               data-subject={t("contact.subjectGeneral")}
               data-body={t("contact.emailBody")}
               aria-label={t("contact.email")}
               data-reveal
             >
+              <span class="contact__channel-glow" aria-hidden="true" />
+              <span class="contact__channel-pulse" aria-hidden="true" />
               <Icon name="mail" size={22} />
               <span class="contact__channel-label" data-contact-label>
                 {t("contact.email")}
@@ -96,6 +99,7 @@ const briefOptions = hasEmail
             <button
               type="button"
               class="contact__channel contact__channel--copy contact-email glass glass--hover"
+              data-channel
               data-e={emailB64}
               data-mode="copy"
               data-copied-label={t("contact.copied")}
@@ -103,6 +107,7 @@ const briefOptions = hasEmail
               data-reveal
               data-reveal-delay="80"
             >
+              <span class="contact__channel-glow" aria-hidden="true" />
               <Icon name="copy" size={22} />
               <span class="contact__channel-label" data-contact-label>
                 {t("contact.copyEmail")}
@@ -125,10 +130,12 @@ const briefOptions = hasEmail
             target="_blank"
             rel="noopener noreferrer me"
             class="contact__channel glass glass--hover"
+            data-channel
             aria-label={t(`contact.${s.id}`)}
             data-reveal
             data-reveal-delay={(i + 1) * 80}
           >
+            <span class="contact__channel-glow" aria-hidden="true" />
             <Icon name={s.id} size={22} />
             <span class="contact__channel-label">{t(`contact.${s.id}`)}</span>
             <Icon name="external" size={16} />
@@ -138,6 +145,63 @@ const briefOptions = hasEmail
     </div>
   </div>
 </section>
+
+<script>
+  // Scoped pointer-follow glow for the contact channel buttons.
+  // Independent of the email decoder (which owns clicks + data-e/data-subject);
+  // this only writes --mx/--my CSS vars from pointer position, batched in rAF,
+  // and tears its listeners down on pagehide. Fine pointers + motion-on only.
+  const fine = window.matchMedia("(pointer: fine)");
+  const motionOk = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (fine.matches && motionOk) {
+    const channels = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-channel]"),
+    );
+    const cleanups: Array<() => void> = [];
+
+    channels.forEach((el) => {
+      let rafId: number | null = null;
+      let px = 0;
+      let py = 0;
+
+      const apply = () => {
+        rafId = null;
+        el.style.setProperty("--mx", `${px}px`);
+        el.style.setProperty("--my", `${py}px`);
+      };
+
+      const onMove = (e: PointerEvent) => {
+        const r = el.getBoundingClientRect();
+        px = e.clientX - r.left;
+        py = e.clientY - r.top;
+        if (rafId === null) rafId = requestAnimationFrame(apply);
+      };
+
+      const onLeave = () => {
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+      };
+
+      el.addEventListener("pointermove", onMove, { passive: true });
+      el.addEventListener("pointerleave", onLeave, { passive: true });
+
+      cleanups.push(() => {
+        if (rafId !== null) cancelAnimationFrame(rafId);
+        el.removeEventListener("pointermove", onMove);
+        el.removeEventListener("pointerleave", onLeave);
+      });
+    });
+
+    window.addEventListener(
+      "pagehide",
+      () => cleanups.forEach((fn) => fn()),
+      { once: true },
+    );
+  }
+</script>
 
 {hasEmail && <script is:inline set:html={emailDecoderScript} />}
 
@@ -226,11 +290,91 @@ const briefOptions = hasEmail
     min-width: 0;
   }
 
+  /* Pointer-follow glow shared by every channel button. Sits below the content
+     (z-index 0, above the glass tint) and is moved purely via transform; its
+     visibility is an opacity fade. --mx/--my are card-local px from a scoped,
+     rAF-batched listener. */
+  .contact__channel-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 260px;
+    height: 260px;
+    margin: -130px 0 0 -130px;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: 50%;
+    opacity: 0;
+    background: radial-gradient(
+      circle at center,
+      color-mix(in srgb, var(--project-accent) 26%, transparent) 0%,
+      transparent 66%
+    );
+    transform: translate3d(var(--mx, 130px), var(--my, 28px), 0);
+    /* Softer, slower fade so the glow eases in under the cursor instead of
+       popping. Dimmer peak (0.6 -> 0.45) keeps it ambient, not glaring. */
+    transition: opacity var(--dur-slow) var(--ease-soft);
+  }
+
+  @media (pointer: fine) {
+    .contact__channel:hover .contact__channel-glow {
+      opacity: 0.45;
+    }
+  }
+
   .contact__channel--email {
     /* The full-width email button breaks the symmetric 2-col grid below 720px,
        so it occupies a full row on its own. */
     grid-column: 1 / -1;
     overflow: hidden;
+  }
+
+  /* Breathing pulse on the primary CTA: a soft accent wash that fades in and
+     out on a long, lazy loop. Animates opacity + transform: scale only, so it
+     stays on the compositor and never touches the glass backdrop-filter. */
+  .contact__channel-pulse {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0;
+    background: radial-gradient(
+      120% 160% at 18% 50%,
+      color-mix(in srgb, var(--project-accent) 16%, transparent) 0%,
+      transparent 60%
+    );
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .contact__channel-pulse {
+      transform-origin: 18% 50%;
+      /* Long, lazy breath: 9s so the wash drifts in and out calmly.
+         transform/opacity only; stays on the compositor. will-change снят —
+         persistent-слой памяти не оправдан для столь медленной анимации. */
+      animation: contact-breathe 9s var(--ease-drift) infinite;
+    }
+  }
+
+  /* On hover the pointer glow takes over; calm the ambient pulse so the two
+     light sources don't fight. */
+  .contact__channel--email:hover .contact__channel-pulse {
+    animation-play-state: paused;
+    opacity: 0;
+  }
+
+  @keyframes contact-breathe {
+    0%,
+    100% {
+      opacity: 0.14;
+      transform: scale(0.98);
+    }
+    50% {
+      /* Gentler peak (0.42 -> 0.34) and smaller scale swing so the breath is
+         soft and slow rather than a visible throb. */
+      opacity: 0.34;
+      transform: scale(1.015);
+    }
   }
 
   .contact__channel--copy.is-copied {
@@ -273,7 +417,9 @@ const briefOptions = hasEmail
       transparent
     );
     transform: translateX(-100%);
-    transition: transform 1.2s var(--ease-soft);
+    /* Slower sweep (1.2s -> 1.8s) so the highlight glides across the edge and
+       the eye can follow it. */
+    transition: transform 1.8s var(--ease-soft);
     z-index: 2;
   }
 
@@ -293,8 +439,24 @@ const briefOptions = hasEmail
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .contact__channel-ring {
+    .contact__channel-ring,
+    .contact__channel-pulse {
       animation: none;
+      transition: none;
+    }
+
+    /* No ambient breath, no pointer glow when motion is reduced. */
+    .contact__channel-pulse,
+    .contact__channel-glow {
+      display: none;
+    }
+  }
+
+  /* Touch: the cursor-follow glow has no meaning; hide it. The breathing pulse
+     on the primary CTA stays (it's ambient, not pointer-driven). */
+  @media (pointer: coarse) {
+    .contact__channel-glow {
+      display: none;
     }
   }
 

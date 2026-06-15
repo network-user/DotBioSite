@@ -1,0 +1,38 @@
+---
+/**
+ * ProjectSignature.astro — диспетчер сигнатурных визуализаций.
+ *
+ * По slug проекта выбирает bespoke-компонент, показывающий ключевые
+ * механики именно этого проекта (анимированно, с краткими подписями).
+ * Если для slug нет компонента — рендерит null (CaseStudy скрывает секцию).
+ *
+ * Каждый компонент-сигнатура самодостаточен: свои scoped-стили, свой
+ * маленький скрипт, цвета через var(--project-accent). Глобальные
+ * pointer-переменные (--ptr-cx/--ptr-cy) публикует BaseLayout.
+ */
+import type { Locale } from "../../../lib/i18n";
+import SoundFlow from "./SoundFlow.astro";
+import LearnForge from "./LearnForge.astro";
+import AgentsBridge from "./AgentsBridge.astro";
+import WorkShifts from "./WorkShifts.astro";
+import MathDaily from "./MathDaily.astro";
+
+interface Props {
+  slug: string;
+  locale: Locale;
+}
+
+const { slug, locale } = Astro.props;
+
+const REGISTRY: Record<string, typeof SoundFlow> = {
+  dotsound: SoundFlow,
+  dotlearn: LearnForge,
+  dotagents: AgentsBridge,
+  dotworkbot: WorkShifts,
+  dotmathbot: MathDaily,
+};
+
+const Signature = REGISTRY[slug];
+---
+
+{Signature && <Signature locale={locale} />}

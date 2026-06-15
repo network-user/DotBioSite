@@ -19,13 +19,42 @@ const subtitle = t("hero.subtitle");
 <section class="hero" id="hero" aria-label={brand}>
   <div class="hero__bg" aria-hidden="true"></div>
   <div class="hero__field" aria-hidden="true">
-    <span class="hero__trace hero__trace--a"></span>
-    <span class="hero__trace hero__trace--b"></span>
-    <span class="hero__trace hero__trace--c"></span>
-    <span class="hero__node hero__node--a"></span>
-    <span class="hero__node hero__node--b"></span>
-    <span class="hero__node hero__node--c"></span>
-    <span class="hero__node hero__node--d"></span>
+    <svg class="hero__core" viewBox="0 0 380 380" fill="none">
+      <g class="hero__core-spin" stroke="currentColor">
+        <ellipse cx="190" cy="190" rx="172" ry="64"></ellipse>
+        <ellipse cx="190" cy="190" rx="172" ry="64" transform="rotate(60 190 190)"></ellipse>
+        <ellipse cx="190" cy="190" rx="172" ry="64" transform="rotate(120 190 190)"></ellipse>
+        <circle cx="362" cy="190" r="6" fill="currentColor" stroke="none"></circle>
+        <circle cx="118" cy="246" r="4.5" fill="currentColor" stroke="none"></circle>
+        <circle cx="252" cy="116" r="3.5" fill="currentColor" stroke="none"></circle>
+      </g>
+      <circle cx="190" cy="190" r="30" stroke="currentColor"></circle>
+      <circle cx="190" cy="190" r="11" fill="currentColor" stroke="none"></circle>
+    </svg>
+
+    <!-- Созвездие: узлы на разной глубине (parallax) + тонкие связи, дышащие
+         opacity. Каждый слой смещается к курсору со своим множителем -->
+    <svg class="hero__constellation" viewBox="0 0 380 380" fill="none" aria-hidden="true">
+      <g class="hero__links" stroke="currentColor" stroke-width="0.7" stroke-linecap="round">
+        <line class="hero__link" x1="48" y1="84" x2="150" y2="46"></line>
+        <line class="hero__link" x1="150" y1="46" x2="248" y2="120" style="--link-i: 1;"></line>
+        <line class="hero__link" x1="48" y1="84" x2="92" y2="214" style="--link-i: 2;"></line>
+        <line class="hero__link" x1="92" y1="214" x2="200" y2="290" style="--link-i: 3;"></line>
+        <line class="hero__link" x1="248" y1="120" x2="332" y2="232" style="--link-i: 4;"></line>
+        <line class="hero__link" x1="200" y1="290" x2="332" y2="232" style="--link-i: 5;"></line>
+      </g>
+    </svg>
+
+    <!-- Узлы — отдельные элементы, чтобы каждый дрейфовал и парралаксил
+         со своей глубиной (--depth) и фазой (--drift-i). -->
+    <div class="hero__nodes">
+      <span class="hero__node" style="--nx: 12.6%; --ny: 22.1%; --depth: 1.0; --drift-i: 0; --size: 5px;"></span>
+      <span class="hero__node" style="--nx: 39.5%; --ny: 12.1%; --depth: 1.7; --drift-i: 1; --size: 4px;"></span>
+      <span class="hero__node" style="--nx: 65.3%; --ny: 31.6%; --depth: 0.6; --drift-i: 2; --size: 6px;"></span>
+      <span class="hero__node" style="--nx: 24.2%; --ny: 56.3%; --depth: 2.2; --drift-i: 3; --size: 3.5px;"></span>
+      <span class="hero__node" style="--nx: 52.6%; --ny: 76.3%; --depth: 1.2; --drift-i: 4; --size: 4.5px;"></span>
+      <span class="hero__node" style="--nx: 87.4%; --ny: 61.1%; --depth: 0.9; --drift-i: 5; --size: 5px;"></span>
+    </div>
   </div>
 
   <div class="container hero__inner">
@@ -37,6 +66,7 @@ const subtitle = t("hero.subtitle");
       class="hero__brand display-xl"
       data-reveal
       data-reveal-delay="60"
+      data-brand={brand}
       style="view-transition-name: brand-root;"
     >
       {brand}
@@ -93,130 +123,174 @@ const subtitle = t("hero.subtitle");
 
   .hero__field {
     position: absolute;
-    top: 10%;
-    right: -28%;
+    top: 8%;
+    right: -20%;
     z-index: 1;
-    width: min(560px, 108vw);
-    aspect-ratio: 1.18;
+    width: min(520px, 96vw);
+    aspect-ratio: 1;
     pointer-events: none;
-    opacity: 0.34;
+    opacity: 0.5;
+    display: grid;
+    place-items: center;
   }
 
-  .hero__field::before,
-  .hero__field::after {
-    content: "";
+  /* «Ядро»: атом — орбиты вокруг центра, буквальный знак .ядро. Чистые тонкие
+     линии (не набросок), орбиты медленно вращаются одним GPU-transform. */
+  .hero__core {
+    width: 100%;
+    height: 100%;
+    color: var(--text-secondary);
+    overflow: visible;
+  }
+
+  .hero__core ellipse,
+  .hero__core circle {
+    stroke-width: 1.4;
+  }
+
+  .hero__core-spin {
+    transform-origin: 190px 190px;
+    /* Очень медленный, ровный оборот. Длинный период = взгляд не цепляется. */
+    animation: hero-orbit 150s linear infinite;
+  }
+
+  @keyframes hero-orbit {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Слой связей лежит поверх ядра, но под узлами; линии «дышат» прозрачностью. */
+  .hero__constellation {
     position: absolute;
     inset: 0;
-    border-radius: var(--r-2xl);
+    width: 100%;
+    height: 100%;
+    color: var(--accent);
+    overflow: visible;
   }
 
-  .hero__field::before {
-    background-image: radial-gradient(rgba(255, 255, 255, 0.34) 1px, transparent 1px);
-    background-size: 22px 22px;
-    mask-image: linear-gradient(90deg, transparent, #000 22%, #000 76%, transparent);
+  .hero__link {
+    opacity: 0.16;
+    /* Очень медленное «дыхание» прозрачности, мягкая синусоида. Период большой,
+       сдвиги фаз разнесены — линии не мигают синхронно и не дёргают взгляд. */
+    animation: hero-link-breathe 16s var(--ease-drift) infinite;
+    animation-delay: calc(var(--link-i, 0) * -2.6s);
   }
 
-  .hero__field::after {
-    border: var(--bw-thin) solid rgba(255, 255, 255, 0.08);
-    background:
-      linear-gradient(90deg, transparent 0 49%, rgba(255, 255, 255, 0.1) 49% 50%, transparent 50%),
-      linear-gradient(0deg, transparent 0 49%, rgba(255, 255, 255, 0.08) 49% 50%, transparent 50%);
-    transform: rotate(-8deg);
+  @keyframes hero-link-breathe {
+    0%,
+    100% {
+      opacity: 0.09;
+    }
+    50% {
+      opacity: 0.22;
+    }
   }
 
-  .hero__trace,
+  /* Узлы: каждый — точка, дрейфует по своей орбите (transform/opacity only)
+     и сдвигается к курсору пропорционально --depth (слоистый 3D-эффект). */
+  .hero__nodes {
+    position: absolute;
+    inset: 0;
+  }
+
   .hero__node {
     position: absolute;
-    z-index: 2;
-  }
-
-  .hero__trace {
-    height: 1px;
-    transform-origin: left center;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.44),
-      rgba(255, 255, 255, 0.08)
-    );
-  }
-
-  .hero__trace--a {
-    top: 31%;
-    left: 13%;
-    width: 64%;
-    transform: rotate(16deg);
-  }
-
-  .hero__trace--b {
-    top: 58%;
-    left: 23%;
-    width: 52%;
-    transform: rotate(-21deg);
-  }
-
-  .hero__trace--c {
-    top: 72%;
-    left: 38%;
-    width: 34%;
-    transform: rotate(28deg);
-  }
-
-  .hero__node {
-    width: 12px;
-    height: 12px;
+    left: var(--nx);
+    top: var(--ny);
+    width: var(--size, 4px);
+    height: var(--size, 4px);
     border-radius: 50%;
-    background: var(--text);
-    box-shadow:
-      0 0 0 8px rgba(255, 255, 255, 0.035),
-      0 0 40px rgba(255, 255, 255, 0.16);
-    animation: hero-float 8s var(--ease-standard) infinite alternate;
-    will-change: transform;
+    background: var(--text-secondary);
+    /* Параллакс к курсору с узлов снят: каждый узел, читавший --ptr в transform,
+       форсил page-wide style recalc на каждый mousemove. Узлы по-прежнему
+       медленно дрейфуют собственным keyframe (transform), параллакс глубины
+       остаётся на двух SVG-слоях (.hero__core / .hero__constellation). */
+    --px: 0px;
+    --py: 0px;
   }
 
-  .hero__node--a {
-    top: 24%;
-    left: 12%;
-    animation-duration: 9s;
+  /* Внутренний дрейф анимируется на ::before, чтобы не конфликтовать с
+     parallax-трансформом на самом узле (две независимые композиции). */
+  .hero__node::before {
+    content: "";
+    position: absolute;
+    inset: -180%;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--accent) 0%, transparent 68%);
+    opacity: 0.14;
   }
 
-  .hero__node--b {
-    top: 38%;
-    left: 72%;
-    width: 18px;
-    height: 18px;
-    animation-duration: 11s;
-    animation-delay: -3s;
-  }
-
-  .hero__node--c {
-    top: 63%;
-    left: 28%;
-    width: 9px;
-    height: 9px;
-    animation-duration: 7s;
-    animation-delay: -1.5s;
-  }
-
-  .hero__node--d {
-    top: 78%;
-    left: 76%;
-    animation-duration: 10s;
-    animation-delay: -4s;
-  }
-
-  @keyframes hero-float {
-    from {
-      transform: translate3d(0, 0, 0);
+  @media (prefers-reduced-motion: no-preference) {
+    .hero__node {
+      /* Очень долгий дрейф (28-37s) с разнесёнными фазами: узлы плывут едва
+         заметно, движение не «суетится» и не отвлекает от текста. */
+      animation: hero-node-drift calc(28s + var(--drift-i, 0) * 1.8s)
+        var(--ease-drift) infinite;
+      animation-delay: calc(var(--drift-i, 0) * -4.6s);
     }
-    to {
-      transform: translate3d(8px, -12px, 0);
+  }
+
+  /* Маленькая орбита вокруг базовой позиции; амплитуда растёт с глубиной, так
+     ближние узлы «плавают» чуть заметнее дальних. Амплитуду уменьшили — дрейф
+     стал тише и читается как лёгкое покачивание, а не как полёт. */
+  @keyframes hero-node-drift {
+    0% {
+      transform: translate3d(var(--px), var(--py), 0)
+        translate(0, 0);
+    }
+    25% {
+      transform: translate3d(var(--px), var(--py), 0)
+        translate(calc(var(--depth, 1) * 3px), calc(var(--depth, 1) * -2.5px));
+    }
+    50% {
+      transform: translate3d(var(--px), var(--py), 0)
+        translate(calc(var(--depth, 1) * -1.5px), calc(var(--depth, 1) * 3.5px));
+    }
+    75% {
+      transform: translate3d(var(--px), var(--py), 0)
+        translate(calc(var(--depth, 1) * -3px), calc(var(--depth, 1) * -2px));
+    }
+    100% {
+      transform: translate3d(var(--px), var(--py), 0)
+        translate(0, 0);
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .hero__node {
+    .hero__core-spin {
       animation: none;
+    }
+
+    .hero__core,
+    .hero__constellation {
+      transform: none;
+    }
+
+    .hero__link {
+      animation: none;
+      opacity: 0.16;
+    }
+  }
+
+  /* На тач-устройствах параллакс не имеет смысла — гасим, оставляем дрейф. */
+  @media (pointer: coarse) {
+    .hero__core,
+    .hero__constellation {
+      transform: none;
+    }
+
+    .hero__node {
+      --px: 0px;
+      --py: 0px;
+    }
+  }
+
+  @media (max-width: 639px) {
+    .hero__field {
+      opacity: 0.3;
+      right: -34%;
     }
   }
 
@@ -235,43 +309,81 @@ const subtitle = t("hero.subtitle");
   }
 
   .hero__brand {
+    position: relative;
     font-family: var(--font-stack-display);
     font-size: 56px;
     letter-spacing: var(--ls-display-xl);
     line-height: var(--lh-display-xl);
     margin: 0;
-    /* «Проявление»: мягкая белая полоса света медленно проходит по вордмарку. */
+    /* «Проявление»: статичный, хорошо читаемый градиент вместо бегущей полосы.
+       Анимировать background-position в цикле нельзя (перф) — поэтому свет здесь
+       зафиксирован, а лёгкий «доводящий» блик даёт отдельный transform-слой. */
     background: linear-gradient(
       100deg,
       var(--text-secondary) 0%,
-      var(--text) 30%,
-      var(--accent) 46%,
-      var(--text) 62%,
+      var(--text) 34%,
+      var(--accent) 50%,
+      var(--text) 66%,
       var(--text-secondary) 100%
     );
-    background-size: 240% 100%;
-    background-position: 100% 50%;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
-    animation: brand-sheen 9s var(--ease-standard) infinite;
   }
 
+  /* Блик «проявителя»: узкая светлая полоса, обрезанная по форме текста, очень
+     медленно проезжает поперёк вордмарка. Двигаем ТОЛЬКО transform (translateX),
+     прозрачность управляется тем же keyframe — никакого background-position. */
+  .hero__brand::after {
+    content: attr(data-brand);
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      100deg,
+      transparent 38%,
+      rgba(255, 255, 255, 0.9) 50%,
+      transparent 62%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    opacity: 0;
+    transform: translateX(-22%);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .hero__brand::after {
+      animation: brand-sheen 11s var(--ease-soft) infinite;
+    }
+  }
+
+  /* Один проезд блика за период, с долгой паузой в покое — не мигает. */
   @keyframes brand-sheen {
     0%,
+    72%,
     100% {
-      background-position: 100% 50%;
+      opacity: 0;
+      transform: translateX(-22%);
     }
-    50% {
-      background-position: 0% 50%;
+    78% {
+      opacity: 0.55;
+    }
+    92% {
+      opacity: 0.55;
+    }
+    98% {
+      opacity: 0;
+      transform: translateX(22%);
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .hero__brand {
+    .hero__brand::after {
       animation: none;
-      background-position: 50% 50%;
+      opacity: 0;
     }
   }
 

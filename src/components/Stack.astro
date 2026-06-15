@@ -70,13 +70,19 @@ const groups: ReadonlyArray<StackGroup> = [
       lede={t("stack.lede")}
     />
 
-    <div class="stack__grid">
+    <div class="stack__grid" data-stack-grid>
       {
         groups.map((g, i) => {
           const label = t(`stack.categories.${g.id}`);
           const delay = String(i * 80);
           return (
-            <article class="stack__group glass glass--hover" data-reveal data-reveal-delay={delay}>
+            <article
+              class="stack__group glass glass--hover"
+              data-stack-card
+              data-reveal
+              data-reveal-delay={delay}
+            >
+              <span class="stack__sheen" aria-hidden="true" />
               <span class="stack__bar" aria-hidden="true" />
               <header class="stack__group-header">
                 <Icon name={g.icon} size={20} class="stack__icon" />
@@ -95,11 +101,72 @@ const groups: ReadonlyArray<StackGroup> = [
   </div>
 </section>
 
+<script>
+  // Scoped pointer-follow sheen for the stack cards.
+  // - Only on fine pointers and when motion is allowed.
+  // - One rAF batches the per-card CSS-var write; never touches layout/filter.
+  // - Listeners are scoped per card (pointermove/pointerleave) and torn down on
+  //   pagehide so client-side navigations don't leak them.
+  const fine = window.matchMedia("(pointer: fine)");
+  const motionOk = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (fine.matches && motionOk) {
+    const cards = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-stack-card]"),
+    );
+    const cleanups: Array<() => void> = [];
+
+    cards.forEach((card) => {
+      let rafId: number | null = null;
+      let px = 0;
+      let py = 0;
+
+      const apply = () => {
+        rafId = null;
+        card.style.setProperty("--mx", `${px}px`);
+        card.style.setProperty("--my", `${py}px`);
+      };
+
+      const onMove = (e: PointerEvent) => {
+        const r = card.getBoundingClientRect();
+        px = e.clientX - r.left;
+        py = e.clientY - r.top;
+        if (rafId === null) rafId = requestAnimationFrame(apply);
+      };
+
+      const onLeave = () => {
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+      };
+
+      card.addEventListener("pointermove", onMove, { passive: true });
+      card.addEventListener("pointerleave", onLeave, { passive: true });
+
+      cleanups.push(() => {
+        if (rafId !== null) cancelAnimationFrame(rafId);
+        card.removeEventListener("pointermove", onMove);
+        card.removeEventListener("pointerleave", onLeave);
+      });
+    });
+
+    window.addEventListener(
+      "pagehide",
+      () => cleanups.forEach((fn) => fn()),
+      { once: true },
+    );
+  }
+</script>
+
 <style>
   .stack__grid {
     display: grid;
     gap: var(--sp-4);
     grid-template-columns: 1fr;
+    /* Drift к курсору снят: чтение --ptr в transform всей сетки + каждой карточки
+       форсило page-wide style recalc на каждый mousemove (главный источник лага
+       этой секции). Сетка стоит ровно; «жизнь» даёт hover-подъём и sweep-полоса. */
   }
 
   .stack__group {
@@ -109,6 +176,40 @@ const groups: ReadonlyArray<StackGroup> = [
     flex-direction: column;
     gap: var(--sp-4);
     overflow: hidden;
+    /* Counter-drift к курсору снят (см. .stack__grid). Hover-подъём целиком на
+       .glass--hover (translateY + тень) — он чисто hover-driven, без --ptr. */
+  }
+
+  /* Pointer-follow sheen: a soft radial light that tracks the cursor inside the
+     card. Positioned via transform (translate of an oversized layer) and faded
+     with opacity only — no filter/box-shadow churn. --mx/--my (px, card-local)
+     are written by a rAF-batched scoped listener; defaults keep it centered. */
+  .stack__sheen {
+    position: absolute;
+    /* Anchored at the card's top-left; its own center is pulled onto the pointer
+       via -50% self-offset, then moved by --mx/--my (card-local px). */
+    top: 0;
+    left: 0;
+    width: 280px;
+    height: 280px;
+    margin: -140px 0 0 -140px;
+    pointer-events: none;
+    z-index: 1;
+    border-radius: 50%;
+    opacity: 0;
+    background: radial-gradient(
+      circle at center,
+      color-mix(in srgb, var(--project-accent) 22%, transparent) 0%,
+      transparent 68%
+    );
+    transform: translate3d(var(--mx, 140px), var(--my, 80px), 0);
+    /* Softer, slower fade-in so the light "arrives" on the card rather than
+       snapping on. Dimmer peak (0.55 -> 0.4) keeps it ambient. */
+    transition: opacity var(--dur-slow) var(--ease-soft);
+  }
+
+  .stack__group:hover .stack__sheen {
+    opacity: 0.4;
   }
 
   .stack__bar {
@@ -124,7 +225,9 @@ const groups: ReadonlyArray<StackGroup> = [
       var(--glass-edge-bright) 70%,
       transparent
     );
-    transition: transform var(--dur-slow) var(--ease-soft);
+    /* Slow the sweep so the eye can track the light crossing the card edge
+       instead of catching only a flash. */
+    transition: transform var(--dur-glacial) var(--ease-soft);
     pointer-events: none;
     z-index: 2;
   }
@@ -161,17 +264,51 @@ const groups: ReadonlyArray<StackGroup> = [
     letter-spacing: var(--ls-snug);
     transition:
       color var(--dur-fast) var(--ease-standard),
-      border-color var(--dur-fast) var(--ease-standard);
+      border-color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-soft);
   }
 
   .stack__chip:hover {
     color: var(--text);
     border-color: var(--border-hover);
+    transform: translateY(-2px);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .stack__bar {
+    /* Kill all ambient/pointer motion: no sweep, no drift, no sheen, no chip lift. */
+    .stack__bar,
+    .stack__sheen {
       transition: none;
+    }
+
+    .stack__grid,
+    .stack__group,
+    .stack__group.glass--hover:hover {
+      transform: none;
+      transition: none;
+      will-change: auto;
+    }
+
+    .stack__sheen {
+      display: none;
+    }
+
+    .stack__chip:hover {
+      transform: none;
+    }
+  }
+
+  /* Touch / no precise pointer: the parallax drift and the cursor-follow sheen
+     have no meaning. Drop them; keep the static layout and the sweep bar. */
+  @media (pointer: coarse) {
+    .stack__grid,
+    .stack__group {
+      transform: none;
+      will-change: auto;
+    }
+
+    .stack__sheen {
+      display: none;
     }
   }
 

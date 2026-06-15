@@ -10,12 +10,12 @@
     "en": ".math"
   },
   "tagline": {
-    "ru": "Устный счёт как ежедневная привычка, с честным рейтингом.",
-    "en": "Mental math as a daily habit, with a fair leaderboard."
+    "ru": "Устный счёт как ежедневная привычка, с рейтингом по четырём срезам.",
+    "en": "Mental math as a daily habit, with a four-way leaderboard."
   },
   "description": {
-    "ru": "Двуязычный Telegram-тренажёр устного счёта, построенный вокруг одной идеи - сделать тренировку честной и затягивающей. Семь типов операций на трёх уровнях, серии дней и рейтинг. Ключевое решение: ежедневный челлендж детерминирован, всем выпадает один и тот же набор задач, поэтому лидерборд нельзя обыграть удачей.",
-    "en": "A bilingual Telegram mental-arithmetic trainer built around one idea: make practice fair and addictive. Seven operation types across three levels, day-streaks, and a leaderboard. The key decision: the daily challenge is deterministic - everyone gets the same set of problems, so the leaderboard can't be gamed by luck."
+    "ru": "Двуязычный Telegram-тренажёр устного счёта, построенный вокруг удержания. Семь типов операций на трёх уровнях, серии дней и рейтинг, который смотрит на результат с четырёх сторон: стрик, всего решено, точность и взвешенные очки, где сложные задачи стоят дороже. Серия дней держится, пока ты не пропустишь день, а сложность ощутимо меняет наполнение задач.",
+    "en": "A bilingual Telegram mental-arithmetic trainer built around retention. Seven operation types across three levels, day-streaks, and a leaderboard that reads the same results four ways: streak, total solved, accuracy, and a weighted score where harder problems count more. The streak holds until you skip a day, and difficulty meaningfully changes what the problems look like."
   },
   "stack": [
     "Python 3.12",
@@ -39,7 +39,7 @@
   ],
   "cover": "/projects/dotmathbot/cover.svg",
   "ogImage": "/projects/dotmathbot/og.svg",
-  "accent": "#ffffff",
+  "accent": "var(--accent-math)",
   "highlights": [
     {
       "value": "7",
@@ -49,10 +49,10 @@
       }
     },
     {
-      "value": "1",
+      "value": "4",
       "label": {
-        "ru": "дейли на всех",
-        "en": "daily for everyone"
+        "ru": "среза рейтинга",
+        "en": "leaderboard cuts"
       }
     },
     {
@@ -65,14 +65,14 @@
   ],
   "overview": {
     "ru": [
-      "DotMathBot решает проблему любого тренажёра-однодневки: им перестают пользоваться через неделю. Здесь за удержание отвечают серии дней, рейтинг и ежедневный челлендж, к которому хочется возвращаться. Семь типов операций - от сложения до степеней и корней - на трёх уровнях сложности, плюс быстрый старт с любимым режимом.",
-      "Самое интересное решение скрыто в дейли. Зерно генератора задач выводится из даты, поэтому всем пользователям в один день выпадает идентичный набор. Это превращает лидерборд в честное соревнование: нельзя перезапросить задачи попроще. Тот же приём делает логику воспроизводимой в тестах - RNG инжектируется, и поведение генератора детерминировано.",
-      "Технически это один аккуратный процесс без лишних движущихся частей. aiogram 3, данные в PostgreSQL через async-SQLAlchemy и asyncpg, FSM-состояние в Redis с мягким фолбэком в память. Напоминания и резервные pg_dump-бэкапы крутятся в том же event loop на APScheduler, без отдельного брокера и воркера. Интерфейс полностью двуязычный и переключается на лету, а ошибки честно повторяются, не подсказывая ответ."
+      "DotMathBot решает проблему любого тренажёра-однодневки: им перестают пользоваться через неделю. Здесь за удержание отвечают серии дней, напоминания и рейтинг, в котором хочется подниматься. Семь типов операций - от сложения до степеней и корней - на трёх уровнях сложности, плюс отдельный режим, где ответ вводишь сам, а не выбираешь из вариантов.",
+      "Самое интересное в рейтинге: одни и те же результаты он показывает с четырёх сторон. Можно соревноваться по серии дней, по общему числу решённых задач, по точности или по взвешенным очкам, где правильный ответ на сложном уровне стоит втрое дороже, чем на лёгком (1/2/3). Серия дней растёт на +1 за день хотя бы с одним верным ответом и обнуляется, как только ты пропускаешь день.",
+      "Технически это один аккуратный процесс без лишних движущихся частей. aiogram 3, данные в PostgreSQL через async-SQLAlchemy и asyncpg, FSM-состояние в Redis с мягким фолбэком в память. Напоминания и резервные pg_dump-бэкапы крутятся в том же event loop на APScheduler, без отдельного брокера и воркера. Интерфейс полностью двуязычный и переключается на лету, а покрытие на testcontainers поднимает временный Postgres под каждый прогон."
     ],
     "en": [
-      "DotMathBot solves the problem of every throwaway trainer: people stop using it within a week. Here retention is carried by day-streaks, a leaderboard, and a daily challenge worth coming back to. Seven operation types - from addition to powers and roots - across three difficulty levels, plus a quick start with a favorite mode.",
-      "The most interesting decision hides in the daily. The problem generator's seed is derived from the date, so every user gets an identical set on a given day. That turns the leaderboard into a fair contest: you can't re-roll for easier problems. The same trick makes the logic reproducible in tests - the RNG is injectable and the generator is deterministic.",
-      "Technically it's a single tidy process with no spare moving parts. aiogram 3, data in PostgreSQL through async SQLAlchemy and asyncpg, FSM state in Redis with a graceful in-memory fallback. Reminders and pg_dump backups run in the same event loop on APScheduler, with no separate broker or worker. The interface is fully bilingual and switches on the fly, and mistakes are replayed honestly without revealing the answer."
+      "DotMathBot solves the problem of every throwaway trainer: people stop using it within a week. Here retention is carried by day-streaks, reminders, and a leaderboard worth climbing. Seven operation types - from addition to powers and roots - across three difficulty levels, plus a separate mode where you type the answer instead of picking from options.",
+      "The most interesting part is the leaderboard: it reads the same results four ways. You can compete on day-streak, on total problems solved, on accuracy, or on a weighted score where a correct answer on hard counts three times as much as on easy (1/2/3). The day-streak grows by +1 for each day with at least one correct answer and resets the moment you skip a day.",
+      "Technically it's a single tidy process with no spare moving parts. aiogram 3, data in PostgreSQL through async SQLAlchemy and asyncpg, FSM state in Redis with a graceful in-memory fallback. Reminders and pg_dump backups run in the same event loop on APScheduler, with no separate broker or worker. The interface is fully bilingual and switches on the fly, and the testcontainers suite spins up a throwaway Postgres for each run."
     ]
   },
   "metrics": [
@@ -84,7 +84,7 @@
       }
     },
     {
-      "value": "5.6k",
+      "value": "6k",
       "label": {
         "ru": "строк кода",
         "en": "lines of code"
@@ -168,12 +168,12 @@
     {
       "icon": "rocket",
       "title": {
-        "ru": "Честный дейли",
-        "en": "Fair daily"
+        "ru": "Привычка",
+        "en": "Habit"
       },
       "description": {
-        "ru": "Детерминированный ежедневный челлендж: один и тот же набор задач для всех, плюс настраиваемые напоминания в том же процессе.",
-        "en": "A deterministic daily challenge: the same problem set for everyone, plus configurable reminders in the same process."
+        "ru": "Настраиваемые напоминания (утро, обед, вечер или своё время) в том же процессе и серии дней, которые держат темп тренировок.",
+        "en": "Configurable reminders (morning, lunch, evening, or a custom time) in the same process, plus day-streaks that keep the pace going."
       }
     },
     {
@@ -183,8 +183,8 @@
         "en": "RU + EN on the fly"
       },
       "description": {
-        "ru": "Полная локализация, переключение языка без рестарта диалога, и честный повтор ошибок без подсказки ответа.",
-        "en": "Full localization, language switch without restarting the dialog, and a fair mistakes-retry that never reveals the answer."
+        "ru": "Полная локализация и переключение языка без рестарта диалога; в режиме «напиши ответ сам» примеры решаешь вводом, а не выбором.",
+        "en": "Full localization and a language switch without restarting the dialog; in the type-the-answer mode you solve by entering the result, not picking it."
       }
     }
   ],
@@ -211,12 +211,12 @@
     },
     {
       "question": {
-        "ru": "Зачем детерминированный ежедневный челлендж?",
-        "en": "Why a deterministic daily challenge?"
+        "ru": "Почему рейтинг с четырьмя срезами, а не один топ?",
+        "en": "Why a four-cut leaderboard instead of one ranking?"
       },
       "answer": {
-        "ru": "Зерно генератора выводится из даты, поэтому всем выпадает один и тот же набор задач - это делает рейтинг честным. RNG инжектируется, так что логика воспроизводима в тестах.",
-        "en": "The generator's seed is derived from the date, so everyone gets the same problem set - which keeps the leaderboard fair. The RNG is injectable, so the logic is reproducible in tests."
+        "ru": "Один топ всегда несправедлив к части игроков: марафонцу по сериям, перфекционисту по точности и любителю сложного нужны разные шкалы. Поэтому одни и те же данные сортируются четырьмя способами - стрик, решено, точность, взвешенные очки (лёгкий/средний/сложный = 1/2/3) - и каждый находит, где он первый.",
+        "en": "A single ranking is always unfair to someone: the streak marathoner, the accuracy perfectionist, and the hard-mode grinder all need different scales. So the same data is sorted four ways - streak, solved, accuracy, weighted points (easy/medium/hard = 1/2/3) - and everyone finds a board where they lead."
       }
     }
   ],

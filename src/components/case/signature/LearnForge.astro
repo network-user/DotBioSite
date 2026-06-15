@@ -1,0 +1,848 @@
+---
+/**
+ * LearnForge.astro — сигнатурная визуализация .учёба (DotLearn).
+ *
+ * Цель этой версии: ЯСНОСТЬ. Медленный, пошаговый разбор codegen-петли
+ * lesson-forge — по одному шагу за раз, с подробным объяснением на каждом.
+ * Пользователь управляет: нумерованные вкладки, prev/next, повтор. Авто-показ
+ * мягкий (~4.6s на шаг), пауза при наведении. Никаких быстрых циклов.
+ *
+ * Шесть шагов петли (точно по репозиторию DotLearn):
+ *   1. запрос агенту       — ты просишь у ИИ-агента тему
+ *   2. тема как код        — он пишет модуль (theory в MDX + exercises в YAML),
+ *                            а не строку в базе данных
+ *   3. Zod-контракт        — общая схема, которую проверяют и веб-апп, и бэкенд
+ *   4. прогон в sandbox    — gold-решение реально исполняется в браузере
+ *                            (sql.js для SQL, Pyodide для Python, в Web Worker)
+ *   5. открыт PR           — если прошло, открывается pull request
+ *   6. local-first         — приложение работает без сервера, код в браузере
+ *
+ * Бюджет анимации (строго): анимируются ТОЛЬКО transform и opacity.
+ * Всё движение под классом .is-inview (IntersectionObserver). Авто-таймер —
+ * setTimeout, гасится за экраном и на pagehide. reduced-motion → финальный
+ * читаемый кадр без движения. Курсорного параллакса нет (убран ради перфа —
+ * менял стиль на каждое движение мыши).
+ */
+import type { Locale } from "../../../lib/i18n";
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+
+const copy = {
+  ru: {
+    eyebrow: "Цикл lesson-forge",
+    intro:
+      "Как из одной просьбы рождается готовая тема: ты говоришь ИИ-агенту, что добавить — а на выходе получается проверенный учебный модуль, который запускается прямо в браузере, без сервера.",
+    stepWord: "Шаг",
+    prev: "Назад",
+    next: "Далее",
+    replay: "Сначала",
+    pausedHint: "пауза — наведён курсор",
+    autoHint: "сам листает; наведи, чтобы остановить",
+    steps: [
+      {
+        tag: "запрос",
+        title: "Ты просишь у агента тему",
+        body: "Всё начинается с обычной фразы человеку-агенту: «добавь тему по SQL JOIN». Агент (Cursor или Claude Code) подхватывает навык lesson-forge — заранее описанный сценарий, который превращает свободную просьбу в строгий план темы. Никакой ручной разметки от тебя не требуется.",
+        chip: "«добавь тему по SQL JOIN»",
+      },
+      {
+        tag: "тема как код",
+        title: "Тема пишется как код, а не как запись в базе",
+        body: "Агент создаёт целую папку темы: теория в файлах MDX (текст с интерактивными вставками) и задачи в YAML. Это обычный модуль в репозитории, а не строка в базе данных. Поэтому тему можно читать в git, ревьюить в pull request и форкать — она версионируется как код.",
+        chip: "topics/sql-joins/ · theory.mdx · exercises.yaml",
+      },
+      {
+        tag: "Zod-контракт",
+        title: "Форма проверяется по общей схеме (Zod)",
+        body: "Каждый файл сверяется с Zod-контрактом. Zod — это схема данных: одно описание того, как обязана выглядеть тема. Важно, что эта схема одна на всех — её используют и веб-приложение, и бэкенд. Так тема физически не может прийти кривой: лишнее поле или неверный тип отклоняются сразу.",
+        chip: "packages/contracts · одна схема на web и api",
+      },
+      {
+        tag: "sandbox",
+        title: "Эталонное решение реально запускается в браузере",
+        body: "Мало проверить форму — надо убедиться, что задача решаема. Поэтому gold-решение (эталонный ответ) по-настоящему исполняется: SQL — через sql.js (SQLite, собранный в WebAssembly), Python — через Pyodide. Оба крутятся в Web Worker — отдельном фоновом потоке, чтобы тяжёлый прогон не подвешивал интерфейс. Результат должен совпасть с ожидаемым.",
+        chip: "sql.js · Pyodide · Web Worker",
+      },
+      {
+        tag: "PR",
+        title: "Прошло — открывается pull request",
+        body: "Если контракт пройден и решение совпало с ожидаемым, тема готова к слиянию: открывается pull request с новой папкой. Дальше — обычное ревью мейнтейнера. Петля замыкается: каждый следующий PR проходит ровно тот же контракт и тот же прогон.",
+        chip: "git checkout -b topic/sql-joins · открыт PR",
+      },
+      {
+        tag: "local-first",
+        title: "Local-first: всё работает без сервера",
+        body: "Готовую тему учащийся открывает локально. Приложение читает папки тем напрямую и исполняет код прямо в браузере — бэкенд не обязателен. Ключи к ИИ (если нужна генерация) хранятся у пользователя, не на сервере. Сервер — необязательное усиление, а не зависимость.",
+        chip: "в браузере · без бэкенда · ключи у пользователя",
+      },
+    ],
+  },
+  en: {
+    eyebrow: "The lesson-forge loop",
+    intro:
+      "How one request becomes a finished topic: you tell the AI agent what to add, and out comes a validated learning module that runs right in the browser, with no server.",
+    stepWord: "Step",
+    prev: "Back",
+    next: "Next",
+    replay: "Restart",
+    pausedHint: "paused — pointer over",
+    autoHint: "auto-advances; hover to stop",
+    steps: [
+      {
+        tag: "ask",
+        title: "You ask the agent for a topic",
+        body: "It all starts with a plain sentence to a human-style agent: \"add a topic on SQL JOINs\". The agent (Cursor or Claude Code) picks up the lesson-forge skill — a predefined playbook that turns a free-text request into a strict topic plan. You write no markup yourself.",
+        chip: "\"add a topic on SQL JOINs\"",
+      },
+      {
+        tag: "topic as code",
+        title: "The topic is written as code, not a DB row",
+        body: "The agent creates a whole topic folder: theory in MDX files (prose with interactive widgets) and exercises in YAML. It is an ordinary module in the repository, not a row in a database. That is why a topic can be read in git, reviewed in a pull request and forked — it is versioned like code.",
+        chip: "topics/sql-joins/ · theory.mdx · exercises.yaml",
+      },
+      {
+        tag: "Zod contract",
+        title: "Its shape is checked against a shared schema (Zod)",
+        body: "Every file is validated against a Zod contract. Zod is a data schema: one definition of how a topic must look. The key point is that this schema is shared — both the web app and the backend use the very same one. So a topic literally cannot arrive malformed: an extra field or a wrong type is rejected immediately.",
+        chip: "packages/contracts · one schema for web and api",
+      },
+      {
+        tag: "sandbox",
+        title: "The gold solution actually runs in the browser",
+        body: "Checking the shape isn't enough — the task must be solvable. So the gold solution (the reference answer) is genuinely executed: SQL via sql.js (SQLite compiled to WebAssembly), Python via Pyodide. Both run inside a Web Worker — a separate background thread, so a heavy run never freezes the UI. The output must match what's expected.",
+        chip: "sql.js · Pyodide · Web Worker",
+      },
+      {
+        tag: "PR",
+        title: "If it passes, a pull request is opened",
+        body: "Once the contract is satisfied and the solution matches the expected output, the topic is ready to merge: a pull request with the new folder is opened. From there it's a normal maintainer review. The loop closes: every next PR passes exactly the same contract and the same run.",
+        chip: "git checkout -b topic/sql-joins · PR opened",
+      },
+      {
+        tag: "local-first",
+        title: "Local-first: it all works with no server",
+        body: "A learner opens the finished topic locally. The app reads the topic folders directly and executes code right in the browser — no backend required. AI keys (if generation is needed) stay with the user, never on a server. The server is an optional enhancement, never a dependency.",
+        chip: "in the browser · no backend · keys stay with you",
+      },
+    ],
+  },
+}[locale];
+
+const steps = copy.steps;
+const total = steps.length;
+
+// Глифы под каждый шаг (line-icons, currentColor).
+const glyphs = ["ask", "code", "shield", "play", "branch", "browser"] as const;
+---
+
+<figure
+  class="lf"
+  data-sig="dotlearn"
+  data-lf
+  aria-label={copy.eyebrow}
+>
+  <div class="lf__inner glass glass--bordered">
+    <!-- Шапка: что это вообще -->
+    <header class="lf__head">
+      <p class="lf__eyebrow mono">{copy.eyebrow}</p>
+      <p class="lf__intro">{copy.intro}</p>
+    </header>
+
+    <!-- Нумерованные вкладки шагов: основной способ управления -->
+    <ol class="lf__tabs" role="tablist" aria-label={copy.eyebrow}>
+      {
+        steps.map((s, i) => (
+          <li class="lf__tab-item" role="presentation">
+            <button
+              type="button"
+              class="lf__tab"
+              role="tab"
+              data-go={i}
+              aria-selected={i === 0 ? "true" : "false"}
+              tabindex={i === 0 ? 0 : -1}
+            >
+              <span class="lf__tab-num mono">{i + 1}</span>
+              <span class="lf__tab-tag">{s.tag}</span>
+            </button>
+          </li>
+        ))
+      }
+    </ol>
+
+    <!-- Тонкий прогресс-рельс под вкладками -->
+    <div class="lf__rail" aria-hidden="true">
+      <span class="lf__rail-fill" data-rail></span>
+    </div>
+
+    <!-- Сцена: один активный шаг за раз -->
+    <div class="lf__stage" data-stage>
+      {
+        steps.map((s, i) => (
+          <article
+            class="lf__panel"
+            role="tabpanel"
+            data-panel={i}
+            data-active={i === 0 ? "true" : "false"}
+            aria-hidden={i === 0 ? "false" : "true"}
+          >
+            <div class="lf__glyphwrap" aria-hidden="true">
+              <span class="lf__step-no mono">
+                {copy.stepWord} {i + 1} / {total}
+              </span>
+              <span class="lf__glyph-badge">
+                <svg
+                  class="lf__glyph"
+                  viewBox="0 0 24 24"
+                  width="26"
+                  height="26"
+                  aria-hidden="true"
+                >
+                  {glyphs[i] === "ask" && (
+                    <g
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M4 6h16v9H9l-4 4V6Z" />
+                      <path d="M8 10.5h8M8 13h5" />
+                    </g>
+                  )}
+                  {glyphs[i] === "code" && (
+                    <g
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M9 8l-4 4 4 4M15 8l4 4-4 4" />
+                    </g>
+                  )}
+                  {glyphs[i] === "shield" && (
+                    <g
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M12 3l7 3v5c0 4.4-3 7.4-7 9-4-1.6-7-4.6-7-9V6l7-3Z" />
+                      <path d="M9 12l2 2 4-4" />
+                    </g>
+                  )}
+                  {glyphs[i] === "play" && (
+                    <g
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <rect x="3.5" y="5" width="17" height="14" rx="2" />
+                      <path d="M10 9.5l4 2.5-4 2.5v-5Z" />
+                    </g>
+                  )}
+                  {glyphs[i] === "branch" && (
+                    <g
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <circle cx="7" cy="6" r="2.2" />
+                      <circle cx="7" cy="18" r="2.2" />
+                      <circle cx="17" cy="9" r="2.2" />
+                      <path d="M7 8.2v7.6M9.2 6h3.6a2 2 0 0 1 2 2v0" />
+                    </g>
+                  )}
+                  {glyphs[i] === "browser" && (
+                    <g
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <rect x="3.5" y="5" width="17" height="14" rx="2" />
+                      <path d="M3.5 9h17M6.5 7h.01M9 7h.01" />
+                    </g>
+                  )}
+                </svg>
+              </span>
+            </div>
+
+            <div class="lf__body">
+              <h3 class="lf__title">{s.title}</h3>
+              <p class="lf__text">{s.body}</p>
+              <code class="lf__chip mono">{s.chip}</code>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+
+    <!-- Управление: prev / hint / next + повтор -->
+    <div class="lf__controls">
+      <button type="button" class="lf__nav" data-prev>
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <path
+            d="M15 5l-7 7 7 7"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </svg>
+        <span>{copy.prev}</span>
+      </button>
+
+      <span
+        class="lf__hint mono"
+        data-hint
+        data-auto={copy.autoHint}
+        data-paused={copy.pausedHint}>{copy.autoHint}</span>
+
+      <button type="button" class="lf__nav" data-next>
+        <span>{copy.next}</span>
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <path
+            d="M9 5l7 7-7 7"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </svg>
+      </button>
+
+      <button type="button" class="lf__replay" data-replay>
+        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+          <path
+            d="M4 12a8 8 0 1 0 2.3-5.6M4 4v3.4h3.4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </svg>
+        <span>{copy.replay}</span>
+      </button>
+    </div>
+  </div>
+</figure>
+
+<style>
+  .lf {
+    margin: 0;
+    --lf-on: var(--project-accent);
+  }
+
+  .lf__inner {
+    padding: var(--sp-6);
+    border-radius: var(--r-lg);
+    display: grid;
+    gap: var(--sp-5);
+  }
+
+  /* ---------- Шапка ---------- */
+  .lf__head {
+    display: grid;
+    gap: var(--sp-2);
+  }
+
+  .lf__eyebrow {
+    margin: 0;
+    font-size: var(--fs-13);
+    letter-spacing: var(--ls-eyebrow);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .lf__intro {
+    margin: 0;
+    font-size: var(--fs-16);
+    line-height: var(--lh-normal);
+    color: var(--text-secondary);
+    max-width: 60ch;
+  }
+
+  /* ---------- Вкладки шагов ---------- */
+  .lf__tabs {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+
+  .lf__tab-item {
+    display: flex;
+  }
+
+  .lf__tab {
+    appearance: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
+    border: 1px solid var(--border);
+    border-radius: var(--r-pill);
+    background: var(--surface);
+    color: var(--text-muted);
+    transition:
+      color var(--dur-med) var(--ease-standard),
+      border-color var(--dur-med) var(--ease-standard),
+      transform var(--dur-med) var(--ease-soft);
+  }
+
+  .lf__tab:hover {
+    border-color: var(--border-hover);
+    color: var(--text-secondary);
+  }
+
+  .lf__tab-num {
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: var(--r-pill);
+    border: 1px solid var(--border);
+    font-size: var(--fs-13);
+    line-height: 1;
+    flex: none;
+  }
+
+  .lf__tab-tag {
+    font-size: var(--fs-13);
+    letter-spacing: var(--ls-snug);
+    white-space: nowrap;
+  }
+
+  .lf__tab[aria-selected="true"] {
+    color: var(--text);
+    border-color: color-mix(in srgb, var(--lf-on) 55%, var(--border));
+  }
+
+  .lf__tab[aria-selected="true"] .lf__tab-num {
+    color: var(--lf-on);
+    border-color: color-mix(in srgb, var(--lf-on) 55%, var(--border));
+  }
+
+  .lf__tab:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+
+  /* ---------- Прогресс-рельс ---------- */
+  .lf__rail {
+    position: relative;
+    height: 2px;
+    background: var(--border);
+    border-radius: var(--r-pill);
+    overflow: hidden;
+  }
+
+  .lf__rail-fill {
+    position: absolute;
+    inset: 0;
+    transform-origin: left center;
+    transform: scaleX(var(--fill, 0.16));
+    background: linear-gradient(
+      to right,
+      color-mix(in srgb, var(--lf-on) 55%, transparent),
+      var(--lf-on)
+    );
+    transition: transform var(--dur-slower) var(--ease-standard);
+  }
+
+  /* ---------- Сцена: один шаг за раз ---------- */
+  .lf__stage {
+    position: relative;
+    display: grid;
+  }
+
+  .lf__panel {
+    grid-area: 1 / 1;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--sp-4) var(--sp-5);
+    align-items: start;
+    /* Скрытые шаги не перехватывают события и не двигаются */
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition:
+      opacity var(--dur-slow) var(--ease-standard),
+      transform var(--dur-slow) var(--ease-soft);
+  }
+
+  .lf__panel[data-active="true"] {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  /* Анимируем шаги только когда блок в зоне видимости */
+  .lf:not(.is-inview) .lf__panel {
+    transition: none;
+  }
+
+  .lf__glyphwrap {
+    display: grid;
+    gap: var(--sp-2);
+    justify-items: start;
+  }
+
+  .lf__step-no {
+    font-size: var(--fs-13);
+    color: var(--text-muted);
+    letter-spacing: var(--ls-snug);
+    white-space: nowrap;
+  }
+
+  .lf__glyph-badge {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: var(--r-md);
+    border: 1px solid color-mix(in srgb, var(--lf-on) 40%, var(--border));
+    background: var(--surface);
+    color: var(--lf-on);
+  }
+
+  .lf__body {
+    display: grid;
+    gap: var(--sp-3);
+    min-width: 0;
+  }
+
+  .lf__title {
+    margin: 0;
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-bold);
+    font-size: var(--fs-20);
+    line-height: var(--lh-snug);
+    letter-spacing: var(--ls-tight);
+    color: var(--text);
+  }
+
+  .lf__text {
+    margin: 0;
+    font-size: var(--fs-16);
+    line-height: var(--lh-normal);
+    color: var(--text-secondary);
+    max-width: 62ch;
+  }
+
+  .lf__chip {
+    justify-self: start;
+    font-size: var(--fs-13);
+    color: var(--text-muted);
+    padding: var(--sp-2) var(--sp-3);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--bg-elevated);
+    letter-spacing: var(--ls-snug);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ---------- Управление ---------- */
+  .lf__controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-3);
+  }
+
+  .lf__nav,
+  .lf__replay {
+    appearance: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-4);
+    border: 1px solid var(--border);
+    border-radius: var(--r-pill);
+    background: var(--surface);
+    color: var(--text-secondary);
+    font-size: var(--fs-14);
+    transition:
+      color var(--dur-med) var(--ease-standard),
+      border-color var(--dur-med) var(--ease-standard),
+      opacity var(--dur-med) var(--ease-standard);
+  }
+
+  .lf__nav:hover,
+  .lf__replay:hover {
+    color: var(--text);
+    border-color: var(--border-hover);
+  }
+
+  .lf__nav:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .lf__nav:focus-visible,
+  .lf__replay:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+
+  .lf__replay {
+    margin-left: auto;
+    color: var(--text-muted);
+  }
+
+  .lf__hint {
+    flex: 1 1 auto;
+    text-align: center;
+    font-size: var(--fs-13);
+    color: var(--text-muted);
+    letter-spacing: var(--ls-snug);
+    min-width: 14ch;
+  }
+
+  /* ---------- Узкие экраны ---------- */
+  @media (max-width: 560px) {
+    .lf__panel {
+      grid-template-columns: 1fr;
+      gap: var(--sp-3);
+    }
+    .lf__glyphwrap {
+      grid-auto-flow: column;
+      align-items: center;
+    }
+    .lf__hint {
+      order: 3;
+      flex-basis: 100%;
+    }
+    .lf__replay {
+      margin-left: 0;
+    }
+  }
+
+  /* ---------- Reduced motion: всё видно, без движения ----------
+   * Показываем ВСЕ шаги одним читаемым столбцом, без переходов. */
+  @media (prefers-reduced-motion: reduce) {
+    .lf__inner {
+      transform: none;
+      transition: none;
+    }
+    .lf__stage {
+      display: grid;
+      gap: var(--sp-6);
+    }
+    .lf__panel {
+      grid-area: auto;
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
+      transition: none;
+      padding-bottom: var(--sp-5);
+      border-bottom: 1px solid var(--border);
+    }
+    .lf__panel:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+    .lf__rail-fill {
+      transform: scaleX(1);
+      transition: none;
+    }
+    /* вкладки/хинт не нужны как «навигация», но остаются читаемыми */
+    .lf__hint {
+      display: none;
+    }
+  }
+
+  @media (pointer: coarse) {
+    .lf__inner {
+      transform: none;
+    }
+  }
+</style>
+
+<script>
+  // Драйвер пошагового разбора. Дискретные шаги, всё через классы/атрибуты —
+  // анимируются только opacity/transform (см. .lf__panel). Авто-показ мягкий
+  // (~4.6s), пауза при наведении/фокусе, полный контроль вкладками и prev/next.
+  // Анимация включается только когда блок в зоне видимости и гасится за экраном.
+  (() => {
+    const fig = document.querySelector<HTMLElement>('.lf[data-lf]');
+    if (!fig) return;
+
+    const reduce =
+      typeof matchMedia === "function" &&
+      matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const panels = Array.from(
+      fig.querySelectorAll<HTMLElement>(".lf__panel"),
+    );
+    const tabs = Array.from(fig.querySelectorAll<HTMLButtonElement>(".lf__tab"));
+    const rail = fig.querySelector<HTMLElement>("[data-rail]");
+    const prevBtn = fig.querySelector<HTMLButtonElement>("[data-prev]");
+    const nextBtn = fig.querySelector<HTMLButtonElement>("[data-next]");
+    const replayBtn = fig.querySelector<HTMLButtonElement>("[data-replay]");
+    const hint = fig.querySelector<HTMLElement>("[data-hint]");
+    const N = panels.length;
+    if (N === 0) return;
+
+    const AUTO_MS = 4600; // ~4.6s на шаг — успеть прочитать
+    // Строки подсказки приходят из Astro в нужной локали (data-атрибуты).
+    const autoText = hint?.dataset.auto ?? hint?.textContent ?? "";
+    const pausedText = hint?.dataset.paused ?? autoText;
+
+    let index = 0;
+    let timer = 0;
+    let inView = false;
+    let hovered = false;
+    let userPaused = false; // достиг конца — больше не автолистаем
+
+    function clearTimer() {
+      if (timer) {
+        clearTimeout(timer);
+        timer = 0;
+      }
+    }
+
+    function render(next: number) {
+      index = Math.max(0, Math.min(N - 1, next));
+      panels.forEach((p, i) => {
+        const on = i === index;
+        p.setAttribute("data-active", on ? "true" : "false");
+        p.setAttribute("aria-hidden", on ? "false" : "true");
+      });
+      tabs.forEach((tb, i) => {
+        const on = i === index;
+        tb.setAttribute("aria-selected", on ? "true" : "false");
+        tb.tabIndex = on ? 0 : -1;
+      });
+      if (rail) {
+        // заполнение: от первого шага (1/N) до полного на последнем
+        const fill = (index + 1) / N;
+        rail.style.setProperty("--fill", String(fill));
+      }
+      if (prevBtn) prevBtn.disabled = index === 0;
+      if (nextBtn) nextBtn.disabled = index === N - 1;
+    }
+
+    function maybeAutoAdvance() {
+      clearTimer();
+      // авто-показ только: виден, без наведения, не дошли до конца, не reduce
+      if (reduce || !inView || hovered || userPaused) return;
+      if (index >= N - 1) {
+        userPaused = true;
+        if (hint) hint.textContent = "";
+        return;
+      }
+      if (hint) hint.textContent = autoText;
+      timer = window.setTimeout(() => {
+        render(index + 1);
+        maybeAutoAdvance();
+      }, AUTO_MS);
+    }
+
+    function goManual(next: number) {
+      // ручной выбор останавливает авто-показ до повтора
+      userPaused = true;
+      clearTimer();
+      render(next);
+      if (hint) hint.textContent = "";
+    }
+
+    // --- управление ---
+    tabs.forEach((tb) => {
+      tb.addEventListener("click", () => {
+        const n = Number(tb.dataset.go ?? 0);
+        goManual(n);
+      });
+    });
+    prevBtn?.addEventListener("click", () => goManual(index - 1));
+    nextBtn?.addEventListener("click", () => goManual(index + 1));
+    replayBtn?.addEventListener("click", () => {
+      userPaused = false;
+      render(0);
+      maybeAutoAdvance();
+    });
+
+    // клавиатура по вкладкам: стрелки влево/вправо
+    fig.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight") {
+        goManual(index + 1);
+        tabs[index]?.focus();
+      } else if (e.key === "ArrowLeft") {
+        goManual(index - 1);
+        tabs[index]?.focus();
+      }
+    });
+
+    // пауза при наведении/фокусе
+    function onEnter() {
+      hovered = true;
+      clearTimer();
+      if (hint && !userPaused) hint.textContent = pausedText;
+    }
+    function onLeave() {
+      hovered = false;
+      if (!userPaused) {
+        if (hint) hint.textContent = autoText;
+        maybeAutoAdvance();
+      }
+    }
+    fig.addEventListener("pointerenter", onEnter);
+    fig.addEventListener("pointerleave", onLeave);
+    fig.addEventListener("focusin", onEnter);
+    fig.addEventListener("focusout", (e) => {
+      if (!fig.contains(e.relatedTarget as Node)) onLeave();
+    });
+
+    // включаем движение только когда виден; гасим за экраном
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          inView = e.isIntersecting;
+          fig.classList.toggle("is-inview", inView);
+          if (inView) {
+            maybeAutoAdvance();
+          } else {
+            clearTimer();
+          }
+        }
+      },
+      { threshold: 0.25 },
+    );
+    io.observe(fig);
+
+    // стартовый кадр
+    render(0);
+    if (reduce) {
+      // финальный читаемый кадр: рельс полный, хинт скрыт CSS-ом
+      if (rail) rail.style.setProperty("--fill", "1");
+      if (prevBtn) prevBtn.disabled = false;
+      if (nextBtn) nextBtn.disabled = false;
+    }
+
+    window.addEventListener(
+      "pagehide",
+      () => {
+        clearTimer();
+        io.disconnect();
+      },
+      { once: true },
+    );
+  })();
+</script>

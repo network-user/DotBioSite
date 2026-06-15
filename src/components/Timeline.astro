@@ -34,10 +34,15 @@ const milestones = projects
       lede={t("timeline.lede")}
     />
 
-    <ol class="timeline" data-timeline>
+    <ol class="timeline" data-timeline data-reveal data-timeline-loop>
       {
         milestones.map((m, i) => (
-          <li class="timeline__item" data-reveal data-reveal-delay={i * 100}>
+          <li
+            class="timeline__item"
+            data-reveal
+            data-reveal-delay={i * 100}
+            style={`--item-i: ${i};`}
+          >
             <span class="timeline__bullet" aria-hidden="true" />
             <div class="timeline__year display tabular">{m.date}</div>
             <div class="timeline__body glass glass--hover">
@@ -61,6 +66,9 @@ const milestones = projects
     padding-inline-start: var(--sp-6);
   }
 
+  /* Коннектор «прочерчивается» сверху вниз, когда таймлайн входит во вьюпорт.
+     Раньше это была анимация background-position на большом элементе — запрещено
+     перф-бюджетом. Теперь рисуем через transform: scaleY (только композитинг). */
   .timeline::before {
     content: "";
     position: absolute;
@@ -72,13 +80,21 @@ const milestones = projects
       to bottom,
       transparent,
       var(--border-hover) 8%,
+      var(--project-accent, var(--border-hover)) 50%,
       var(--border-hover) 92%,
       transparent
     );
-    background-size: 100% 220%;
-    background-position: 0 100%;
-    animation: timeline-draw var(--dur-glacial) var(--ease-soft) 200ms both;
+    transform-origin: top center;
+    transform: scaleY(0);
+    /* Прочерчивание сверху вниз — заметно медленнее (700ms → 1100ms), чтобы глаз
+       успевал проследить за линией. Только transform: scaleY. will-change снят:
+       это одноразовый draw-in, persistent-слой ему не нужен. */
+    transition: transform 1100ms var(--ease-soft) 200ms;
     pointer-events: none;
+  }
+
+  .timeline.is-visible::before {
+    transform: scaleY(1);
   }
 
   .timeline__item {
@@ -102,14 +118,46 @@ const milestones = projects
     transform: scale(0.6);
     opacity: 0;
     transform-origin: center;
+    /* «Прорастание» точки замедлено (--dur-slow ≈ 340ms → 600ms) и сдвинуто по
+       индексу, так что точки зажигаются одна за другой вслед за линией. */
     transition:
-      transform var(--dur-slow) var(--ease-spring),
-      opacity var(--dur-slow) var(--ease-soft);
+      transform 600ms var(--ease-spring),
+      opacity 600ms var(--ease-soft);
+    transition-delay: calc(var(--item-i, 0) * 140ms + 260ms);
   }
 
   .timeline__item.is-visible .timeline__bullet {
     transform: scale(1);
     opacity: 1;
+  }
+
+  /* После «прорастания» точка едва заметно пульсирует — только scale/opacity,
+     очень медленно и со сдвигом фазы по индексу, чтобы линия казалась живой.
+     Цикл крутится ТОЛЬКО пока таймлайн во вьюпорте (.is-inview ставит и снимает
+     отдельный IntersectionObserver ниже), чтобы за экраном ничего не считалось.
+     Период удлинён (3.6s → 6s), амплитуда снижена (1.16 → 1.08) — это «дыхание»,
+     а не мигание. */
+  @media (prefers-reduced-motion: no-preference) {
+    .timeline.is-inview .timeline__item.is-visible .timeline__bullet {
+      animation: timeline-pulse 6s var(--ease-drift) infinite;
+      /* Старт пульса позже завершения «прорастания» точки (≈260ms + i*140ms +
+         600ms транзишена), чтобы анимация не перебивала grow-in рывком.
+         will-change снят: медленный scale/opacity-пульс мелкой точки не требует
+         persistent-слоя; цикл и так гейтится .is-inview (за экраном не считается). */
+      animation-delay: calc(var(--item-i, 0) * 140ms + 1100ms);
+    }
+  }
+
+  @keyframes timeline-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.08);
+      opacity: 0.85;
+    }
   }
 
   .timeline__year {
@@ -126,6 +174,9 @@ const milestones = projects
     display: flex;
     flex-direction: column;
     gap: var(--sp-2);
+    /* Дрейф карточки к курсору снят: чтение --ptr в transform каждой карточки
+       форсило page-wide style recalc на каждый mousemove. Карточка стоит ровно;
+       hover-подъём задаёт .glass--hover (чисто hover-driven, без --ptr). */
   }
 
   .timeline__title {
@@ -135,24 +186,31 @@ const milestones = projects
     font-size: var(--fs-22);
   }
 
-  @keyframes timeline-draw {
-    0% {
-      background-position: 0 100%;
-    }
-    100% {
-      background-position: 0 0;
-    }
-  }
-
+  /* reduced-motion: коннектор сразу прочерчен, точки на месте без пульса,
+     дрейф к курсору отключён (vars при reduced-motion и так держатся в 0,
+     но снимаем transform явно). */
   @media (prefers-reduced-motion: reduce) {
     .timeline::before {
-      animation: none;
-      background-position: 0 0;
+      transition: none;
+      transform: scaleY(1);
+      will-change: auto;
     }
     .timeline__bullet {
       transition: none;
+      animation: none;
       transform: scale(1);
       opacity: 1;
+      will-change: auto;
+    }
+    .timeline__body {
+      transform: none;
+    }
+  }
+
+  /* На coarse-указателе дрейфа к курсору нет — карточка стоит ровно. */
+  @media (pointer: coarse) {
+    .timeline__body {
+      transform: none;
     }
   }
 
@@ -182,3 +240,36 @@ const milestones = projects
     }
   }
 </style>
+
+<script>
+  // Гейтим бесконечный пульс точек по реальной видимости: пока таймлайн на
+  // экране — на нём висит .is-inview и CSS-цикл крутится; как только уезжает —
+  // класс снимается и анимация останавливается (ничего не считается за кадром).
+  // Глобальный data-reveal-обсервер одноразовый (unobserve), поэтому здесь свой,
+  // переключающийся в обе стороны. Только переключение класса — без анимации в JS.
+  (() => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced || !("IntersectionObserver" in window)) return;
+
+    const el = document.querySelector<HTMLElement>("[data-timeline-loop]");
+    if (!el) return;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) el.classList.toggle("is-inview", e.isIntersecting);
+      },
+      { threshold: 0 },
+    );
+    io.observe(el);
+
+    // Снимаем класс и обсервер при уходе со страницы — чистим всё за собой.
+    window.addEventListener(
+      "pagehide",
+      () => {
+        el.classList.remove("is-inview");
+        io.disconnect();
+      },
+      { once: true },
+    );
+  })();
+</script>

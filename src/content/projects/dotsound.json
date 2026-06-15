@@ -68,7 +68,7 @@
   ],
   "cover": "/projects/dotsound/cover.svg",
   "ogImage": "/projects/dotsound/og.svg",
-  "accent": "#ffffff",
+  "accent": "var(--accent-sound)",
   "highlights": [
     {
       "value": "4",
@@ -113,10 +113,10 @@
       }
     },
     {
-      "value": "60k",
+      "value": "390k+",
       "label": {
-        "ru": "строк кода в экосистеме",
-        "en": "lines of code across the ecosystem"
+        "ru": "строк в кодовой базе экосистемы",
+        "en": "lines across the ecosystem codebase"
       }
     },
     {
