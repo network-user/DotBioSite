@@ -22,7 +22,7 @@ const { items, locale, class: className = "" } = Astro.props;
 <div class:list={["engineering-callouts", className]}>
   {
     items.map((item, i) => (
-      <article class="engineering-callouts__card glass" data-reveal data-reveal-delay={i * 80}>
+      <article class="engineering-callouts__card glass" data-warp data-accent="var(--project-accent)" data-reveal data-reveal-delay={i * 80}>
         <p class="engineering-callouts__q eyebrow">Q</p>
         <p class="engineering-callouts__question">{item.question[locale]}</p>
         <p class="engineering-callouts__a eyebrow">A</p>

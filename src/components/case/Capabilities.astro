@@ -23,7 +23,7 @@ const { items, locale, class: className = "" } = Astro.props;
 <div class:list={["capabilities", className]}>
   {
     items.map((item, i) => (
-      <article class="capabilities__card glass glass--hover" data-reveal data-reveal-delay={i * 60}>
+      <article class="capabilities__card glass glass--hover" data-warp data-accent="var(--project-accent)" data-reveal data-reveal-delay={i * 60}>
         <Icon name={item.icon} size={24} class="capabilities__icon" />
         <h3 class="capabilities__title">{item.title[locale]}</h3>
         <p class="capabilities__desc body-sm">{item.description[locale]}</p>

@@ -475,10 +475,13 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
             ensure();
           });
 
-          // Подсветка обводки рамки под курсором (замена hover-подъёма).
+          // Подсветка обводки рамки под курсором (замена hover-подъёма). Если на
+          // карточке есть data-accent (цвет проекта) — подсвечиваем им, иначе
+          // нейтральным ярким краем.
           entries.forEach((e) => {
+            const hot = e.card.dataset.accent || "var(--glass-edge-bright)";
             e.card.addEventListener("pointerenter", () => {
-              e.frame.style.stroke = "var(--glass-edge-bright)";
+              e.frame.style.stroke = hot;
             });
             e.card.addEventListener("pointerleave", () => {
               e.frame.style.stroke = e.rest;

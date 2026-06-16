@@ -35,6 +35,8 @@ const others = projects.filter((p) => p.slug !== current && !p.comingSoon);
           <a
             href={`${prefix}/projects/${p.slug}`}
             class="case-cross__card glass glass--hover glass--bordered"
+            data-warp
+            data-accent="var(--project-accent)"
             data-reveal
             data-reveal-delay={i * 80}
             style={`--project-accent: ${p.accent ?? "var(--accent)"};`}
