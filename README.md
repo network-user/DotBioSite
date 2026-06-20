@@ -1,89 +1,108 @@
 # .core / .ядро
 
-> кузница проектов.
+<p>
+  <img src="https://img.shields.io/badge/Node.js-20%2B-339933?style=flat" alt="Node.js" />
+  <img src="https://img.shields.io/badge/Platform-Web-555?style=flat" alt="Platform" />
+  <img src="https://img.shields.io/badge/Category-Portfolio-orange?style=flat" alt="Category" />
+  <!-- loc:start --><img src="https://img.shields.io/badge/lines_of_code-18275-lightgrey?style=flat" alt="18275 lines of code" /><!-- loc:end -->
+</p>
 
-Персональный портфолио‑сайт под зонтиком бренда **DotCore** — витрина продуктов, которые я довожу
-от идеи до продакшена: [DotSound](https://github.com/network-user/DotSoundBackend),
-DotLearn, DotAgents, [DotMathBot](https://github.com/network-user/DotMathBot), DotWorkBot.
+<img src="docs/cover.svg" width="720" alt=".ядро" />
 
-В UI бренд **никогда** не пишется как «DotCore»: только `.core` (EN) или `.ядро` (RU).
-`DotCore` живёт только в коде, репозитории и метаданных.
+Персональный портфолио-сайт под брендом **DotCore**: витрина продуктов, которые автор доводит от идеи до продакшена (DotSound, DotLearn, DotAgents, DotWorkBot, DotMathBot). Сайт статический (Astro SSG, ноль рантайм-фреймворков): интерактив - точечный vanilla-JS, всё уважает `prefers-reduced-motion`. Личные данные не лежат в репозитории - они приходят из `.env` с Zod-валидацией на build-time, а на CI материализуются из GitHub Actions secrets.
 
-## Стек
+В UI бренд **никогда** не пишется как «DotCore»: только `.core` (EN) или `.ядро` (RU). `DotCore` живёт лишь в коде, репозитории и метаданных.
 
-- **Фреймворк:** [Astro 4](https://astro.build) + React 18 islands (статика для скорости/SEO,
-  React только для интерактивных компонентов)
-- **Язык:** TypeScript strict
-- **Стили:** чистый CSS + custom properties в `src/styles/tokens.css` (без Tailwind, как в DotSound),
-  мягкие frosted‑стекла поверх монохромного светового поля
-- **Анимации:** только CSS + точечный vanilla‑JS (scroll‑reveal, tilt, курсорный свет); полное уважение `prefers-reduced-motion`
-- **i18n:** встроенный Astro i18n, авто‑детект `navigator.language` → `localStorage` → toggle
-- **Шрифты:** Bricolage Grotesque Variable (display) + Inter Variable (body), selfhosted через `@fontsource`
-- **Конфиг:** `.env` + Zod‑валидация на build‑time, обфускация email на клиенте
-- **Деплой:** Cloudflare Pages, CI/CD через GitHub Actions
+## Что внутри
 
-## Айдентика
-
-Палитра строго монохромная: мягкий near‑black, лента серых и off‑white. Цвета нет как приёма;
-единственный «акцент» — белый свет, который проявляет структуру.
-
-| Токен              | Значение  | Назначение         |
-| ------------------ | --------- | ------------------ |
-| `--bg`             | `#0C0D0F` | мягкий near‑black  |
-| `--surface`        | `#181A1E` | поверхности        |
-| `--text`           | `#F3F3F1` | off‑white текст    |
-| `--text-secondary` | `#A6A7AB` | вторичный текст    |
-| `--accent`         | `#FFFFFF` | белый свет/акцент  |
-
-Подробности — [`src/styles/tokens.css`](src/styles/tokens.css).
+- **5 проектов на витрине**: dotsound, dotlearn, dotagents, dotworkbot, dotmathbot. Каждый - JSON в `src/content/projects/`, порядок задаёт `FEATURED_ORDER` в `src/lib/projects.ts`.
+- **Case-страницы**: у каждого проекта детальная страница (`/projects/<slug>`) с интерактивной signature-визуализацией, диаграммой архитектуры, таймлайном и разбором инженерных решений.
+- **Две локали**: русский (дефолт, без префикса) и английский (`/en`), зеркальные маршруты, авто-детект `navigator.language` → `localStorage` → toggle.
+- **Монохромная система**: токены в `src/styles/tokens.css`, near-black + лента серых + off-white, единственный «акцент» - белый свет.
+- **Конфиг как контракт**: Zod-схема в `src/lib/config.ts` валидирует env на билде; отсутствие обязательной переменной валит сборку, опциональные деградируют в UI (нет фото - монограмма, пустая соцсеть - ссылка не рендерится).
 
 ## Запуск
 
 ```bash
-nvm use            # Node 20 LTS
+nvm use            # Node 20 LTS (.nvmrc)
 npm install
-cp .env.example .env   # отредактируй своими данными
+cp .env.example .env   # заполни своими данными
 npm run dev        # http://localhost:4321
 ```
 
-### Команды
+Сайт работает и без `.env`: Zod-схема подставит дефолты, UI плавно деградирует. Заполни переменные, чтобы появились имя, фото, соцсети и ссылки на репозитории проектов.
 
-| Скрипт               | Что делает                         |
-| -------------------- | ---------------------------------- |
-| `npm run dev`        | dev‑сервер с HMR                   |
-| `npm run build`      | production‑билд в `dist/`          |
-| `npm run preview`    | локальный preview production‑билда |
-| `npm run type-check` | `astro check` + `tsc --noEmit`     |
-| `npm run lint`       | ESLint, fail on warnings           |
-| `npm run lint:fix`   | ESLint с авто‑фиксом               |
-| `npm run format`     | Prettier write                     |
+## Команды
 
-## Конфигурация и секреты
+| Команда | Назначение |
+|---------|------------|
+| `npm run dev` | dev-сервер Astro с HMR (`:4321`) |
+| `npm run build` | production-билд в `dist/` |
+| `npm run preview` | локальный preview собранного `dist/` |
+| `npm run type-check` | `astro check` + `tsc --noEmit` |
+| `npm run lint` | ESLint, падает на любом warning |
+| `npm run lint:fix` | ESLint с авто-фиксом |
+| `npm run format` | Prettier write по `ts/tsx/astro/css/json/md` |
+| `npm run format:check` | Prettier check без записи |
 
-Все личные данные (имя, email, соцсети, фото, домен) живут в `.env`, который **никогда не
-коммитится**. См. `.env.example` для шаблона.
+## Стек
 
-- `PUBLIC_*` — попадают в HTML/JS и видны любому посетителю продакшен‑сайта (по дизайну).
-- Без префикса — только server / build‑time, никогда не появляются в bundle.
-- `AUTHOR_EMAIL` — обфусцируется на клиенте (base64), отсутствует в plain HTML.
-- Приватные ассеты (фото) — папка `public/people/` в `.gitignore`.
+<p>
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Astro-BC52EE?style=for-the-badge&logo=astro&logoColor=white" alt="Astro" />
+  <img src="https://img.shields.io/badge/Zod-3E67B1?style=for-the-badge" alt="Zod" />
+  <img src="https://img.shields.io/badge/ESLint-4B32C3?style=for-the-badge&logo=eslint&logoColor=white" alt="ESLint" />
+  <img src="https://img.shields.io/badge/Prettier-F7B93E?style=for-the-badge&logo=prettier&logoColor=black" alt="Prettier" />
+  <img src="https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" alt="GitHub Actions" />
+  <img src="https://img.shields.io/badge/Cloudflare_Pages-F38020?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Cloudflare Pages" />
+</p>
 
-На CI значения из `.env` материализуются из **GitHub Actions secrets** перед билдом.
+Без UI-фреймворка в рантайме (`integrations: []`): только `.astro` + точечный vanilla-JS. Шрифты selfhosted через `@fontsource-variable` (Bricolage Grotesque + Inter).
 
-## Структура
+## Конфигурация
+
+Все личные данные живут в `.env` (gitignored). Имена переменных - в Zod-схеме `src/lib/config.ts`.
+
+- `PUBLIC_*` (`PUBLIC_DOMAIN`, `PUBLIC_GITHUB_USER`, `PUBLIC_AUTHOR_NAME_RU/EN`, `PUBLIC_SOCIAL_*` и др.) попадают в bundle и видны посетителю - по дизайну.
+- `AUTHOR_EMAIL` - без префикса, в клиентский bundle не попадает; на билде кодируется в base64, в plain HTML отсутствует.
+- Приватное фото кладётся в `public/people/` (gitignored); на CI подтягивается из секрета по URL.
+
+Не коммить `.env`. Шаблон переменных - в `.env.example`.
+
+## Деплой
+
+Cloudflare Pages через GitHub Actions (`.github/workflows/deploy.yml`). На `push`/`pull_request` в `main`: материализация `.env` из секретов → `npm ci` → `lint` → `type-check` → `build` → публикация `dist/`. PR деплоятся в окружение `preview`, `main` - в `production`.
+
+## Архитектура
+
+Статический сайт на Astro: контент-driven, без рантайм-фреймворков. Страницы и компоненты - `.astro`; данные проектов и переводы - типизированный JSON, загружаемый через Vite `import.meta.glob`. Конфигурация валидируется Zod один раз при импорте модуля, поэтому невалидная среда роняет билд, а не прод.
 
 ```
-src/
-├─ pages/              # Astro-страницы (роутинг)
-├─ layouts/            # базовый layout
-├─ components/         # .astro + React-острова
-├─ content/
-│   ├─ projects/       # JSON-описания проектов
-│   └─ i18n/           # ru.json / en.json
-├─ styles/             # tokens.css, global.css, glass.css
-└─ lib/                # config (Zod), i18n, motion, contacts
+DotBioSite/
+├── src/
+│   ├── pages/              # роутинг: index + /en + /projects/[slug] + robots/sitemap
+│   ├── layouts/            # BaseLayout
+│   ├── components/         # .astro: hero, projects, case/*, diagram/*, illustration/*
+│   ├── content/
+│   │   ├── projects/       # 5 JSON-описаний проектов
+│   │   └── i18n/           # ru.json / en.json
+│   ├── styles/             # tokens.css, global.css, glass.css
+│   └── lib/                # config (Zod), i18n, projects, contacts
+├── public/                 # favicon, OG, manifest, _headers, обложки проектов
+├── scripts/                # parse-lh.cjs (разбор Lighthouse-отчёта)
+├── .github/workflows/      # deploy.yml → Cloudflare Pages
+└── astro.config.mjs
 ```
+
+- **Бренд в UI** - только `.core` / `.ядро`, никогда «DotCore».
+- **Static-first**: `integrations: []`, ноль рантайм-фреймворков; интерактив - vanilla-JS, всё под `prefers-reduced-motion`.
+- **Конфиг через Zod**: обязательная env отсутствует → билд падает; опциональная → graceful fallback в UI.
+- **Контент - данные**: проекты и переводы в `src/content/*`, типы и порядок витрины в `src/lib/projects.ts`.
+- **i18n**: `ru` (дефолт, без префикса) + `en` (`/en`), зеркальные страницы.
+- **Секреты**: только в `.env` / GitHub Actions secrets; приватные ассеты в gitignored `public/people/`.
 
 ## Лицензия
 
-MIT — см. [LICENSE](LICENSE).
+© 2026 DotCore. Все права защищены.
+
+Проприетарный код. Использование, копирование, изменение и распространение запрещены без письменного разрешения автора. Исходный код открыт только для ознакомления. См. [LICENSE](LICENSE).
