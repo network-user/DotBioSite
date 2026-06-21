@@ -117,6 +117,14 @@
     "capabilitiesLede": "the product's key capabilities right now.",
     "engineering": "engineering decisions",
     "engineeringLede": "why it's built this way and not another.",
+    "engineeringRejected": "Rejected alternative",
+    "code": "code",
+    "codeLede": "One real fragment of a key mechanism - how it looks in the repo.",
+    "narrative": {
+      "problem": "problem",
+      "solution": "solution",
+      "outcome": "outcome"
+    },
     "timeline": "timeline",
     "timelineLede": "how the product grew from its first version.",
     "crossLinks": "other projects",

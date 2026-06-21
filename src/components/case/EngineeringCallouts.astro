@@ -13,7 +13,7 @@
  */
 
 import type { ProjectEngineeringChoice } from "../../lib/projects";
-import type { Locale } from "../../lib/i18n";
+import { useTranslations, type Locale } from "../../lib/i18n";
 
 interface Props {
   items: ReadonlyArray<ProjectEngineeringChoice>;
@@ -22,6 +22,7 @@ interface Props {
 }
 
 const { items, locale, class: className = "" } = Astro.props;
+const t = useTranslations(locale);
 ---
 
 <div class:list={["engineering-callouts", className]} data-eng-accordion>
@@ -57,7 +58,17 @@ const { items, locale, class: className = "" } = Astro.props;
             <span class="engineering-callouts__a eyebrow" aria-hidden="true">
               A
             </span>
-            <p class="engineering-callouts__answer body">{item.answer[locale]}</p>
+            <div class="engineering-callouts__a-body">
+              <p class="engineering-callouts__answer body">{item.answer[locale]}</p>
+              {item.rejected && (
+                <p class="engineering-callouts__rejected">
+                  <span class="engineering-callouts__rejected-label">
+                    {t("case.engineeringRejected")}
+                  </span>
+                  <span class="engineering-callouts__rejected-text">{item.rejected[locale]}</span>
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </article>
@@ -169,6 +180,38 @@ const { items, locale, class: className = "" } = Astro.props;
     color: var(--text-secondary);
     font-size: var(--fs-16);
     line-height: var(--lh-normal);
+  }
+
+  .engineering-callouts__a-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    min-width: 0;
+  }
+
+  /* Отклонённый вариант: приглушённая врезка с тонкой «красной» гранью слева. */
+  .engineering-callouts__rejected {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--sp-3);
+    border-radius: var(--r-sm);
+    border: var(--bw-thin) solid var(--border);
+    border-inline-start: 2px solid color-mix(in srgb, var(--state-error) 50%, var(--border));
+    background: var(--glass-tint-1);
+  }
+
+  .engineering-callouts__rejected-label {
+    font-size: var(--fs-11);
+    text-transform: uppercase;
+    letter-spacing: var(--ls-wide);
+    color: var(--text-muted);
+  }
+
+  .engineering-callouts__rejected-text {
+    font-size: var(--fs-14);
+    line-height: var(--lh-normal);
+    color: var(--text-secondary);
   }
 
   /* Enhanced: схлопываем панель; открыта только карточка .is-open. */

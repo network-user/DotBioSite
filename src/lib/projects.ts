@@ -103,6 +103,27 @@ export interface ProjectCapability {
 export interface ProjectEngineeringChoice {
   question: { ru: string; en: string };
   answer: { ru: string; en: string };
+  /** Опциональный отвергнутый вариант — «наивное» решение и чем оно плохо. */
+  rejected?: { ru: string; en: string };
+}
+
+/** Нарратив «проблема → решение → итог» — компактная врезка над overview. */
+export interface ProjectNarrative {
+  problem: { ru: string; en: string };
+  solution: { ru: string; en: string };
+  outcome: { ru: string; en: string };
+}
+
+/** Реальный сниппет кода ключевого механизма проекта. */
+export interface ProjectCodeSnippet {
+  /** Путь файла-источника — показывается подписью под кодом. */
+  file: string;
+  /** Язык для подписи (например, "python"). */
+  lang: string;
+  /** Сам код, как есть (многострочный). */
+  code: string;
+  /** Короткое пояснение «что это и почему важно». */
+  caption: { ru: string; en: string };
 }
 
 export interface ProjectTimelineEntry {
@@ -138,6 +159,7 @@ export interface Project {
 
   // ---------- Расширения для case-study страницы (все опциональны) ----------
   overview?: { ru: ReadonlyArray<string>; en: ReadonlyArray<string> };
+  narrative?: ProjectNarrative;
   metrics?: ReadonlyArray<ProjectMetric>;
   stackGroups?: ProjectStackGroups;
   architectureNodes?: ReadonlyArray<ProjectArchitectureNode>;
@@ -145,6 +167,7 @@ export interface Project {
   clusters?: ReadonlyArray<ProjectCluster>;
   capabilities?: ReadonlyArray<ProjectCapability>;
   engineeringChoices?: ReadonlyArray<ProjectEngineeringChoice>;
+  codeSnippet?: ProjectCodeSnippet;
   timeline?: ReadonlyArray<ProjectTimelineEntry>;
 }
 
