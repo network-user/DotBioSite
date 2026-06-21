@@ -181,6 +181,10 @@
       "description": {
         "ru": "Трек заливается прямо в чат с ботом. Ни отдельной формы, ни регистрации, ни приложения для установки.",
         "en": "A track uploads right in the bot chat. No separate form, no sign-up, no app to install."
+      },
+      "detail": {
+        "ru": "Сервер берёт SHA-256 от содержимого: повторная заливка того же трека не создаёт копию, а добавляет ссылку (ref_count++). Один файл - на всех.",
+        "en": "The server hashes the content with SHA-256: re-uploading the same track adds a reference (ref_count++) instead of a copy. One file for everyone."
       }
     },
     {
@@ -192,6 +196,10 @@
       "description": {
         "ru": "Demucs снимает вокал, faster-whisper расшифровывает и синхронизирует текст построчно с тайм-кодами. Слова появляются сами.",
         "en": "Demucs lifts the vocals, faster-whisper transcribes and syncs the text line by line with timecodes. The words appear on their own."
+      },
+      "detail": {
+        "ru": "Пайплайн на воркере: Demucs (--two-stems=vocals) снимает вокал, faster-whisper расшифровывает, выравнивание ставит тайм-код каждой строке - текст всплывает синхронно с музыкой.",
+        "en": "Worker pipeline: Demucs (--two-stems=vocals) lifts the vocals, faster-whisper transcribes, alignment timestamps each line - lyrics surface in sync with the music."
       }
     },
     {
@@ -203,6 +211,10 @@
       "description": {
         "ru": "Адаптивный HLS поверх content-addressed storage: один и тот же трек хранится один раз для всех, сегменты кешируются как immutable.",
         "en": "Adaptive HLS over content-addressed storage: the same track is stored once for everyone, segments cached as immutable."
+      },
+      "detail": {
+        "ru": "Адрес сегмента - сам хеш содержимого: blobs/a1/a1f9….ts. Одинаковый трек не транскодируется дважды, а сегменты кешируются как immutable на год.",
+        "en": "A segment's address is the content hash itself: blobs/a1/a1f9….ts. An identical track is never transcoded twice, and segments cache immutable for a year."
       }
     },
     {
@@ -214,6 +226,10 @@
       "description": {
         "ru": "Полнотекстовый Elasticsearch-индекс по метаданным и распознанной лирике с ранжированием по популярности.",
         "en": "A full-text Elasticsearch index over metadata and recognized lyrics, ranked by popularity."
+      },
+      "detail": {
+        "ru": "Индексируются и метаданные, и распознанная лирика, поэтому трек находится по строчке из песни. Ранжирование - по популярности.",
+        "en": "Both metadata and recognized lyrics are indexed, so a track is found by a line from the song. Ranked by popularity."
       }
     },
     {
@@ -225,6 +241,10 @@
       "description": {
         "ru": "Воркер сам забирает задачи по HMAC и считает лирику и рекомендации на GPU. Никаких открытых портов наружу.",
         "en": "The worker pulls jobs over HMAC and runs lyrics and recommendations on GPU. No exposed ports anywhere."
+      },
+      "detail": {
+        "ru": "Цикл воркера: heartbeat → claim с арендой и дедлайном → забор аудио по одноразовой ссылке OTT (5 минут, под один IP) → результат. Наружу - ни одного порта.",
+        "en": "Worker loop: heartbeat → claim with a lease and deadline → fetch audio over a one-time link (OTT, 5 min, IP-pinned) → result. Not a single exposed port."
       }
     },
     {
@@ -236,6 +256,10 @@
       "description": {
         "ru": "Загрузка из SoundCloud, YouTube и Bandcamp через yt-dlp: каталог наполняется без ручной заливки.",
         "en": "Import from SoundCloud, YouTube, and Bandcamp via yt-dlp: the catalog fills without manual uploads."
+      },
+      "detail": {
+        "ru": "Задача soundcloud_rpc тянет треки из SoundCloud, YouTube и Bandcamp через yt-dlp и синхронизирует их - каталог растёт без ручной заливки.",
+        "en": "A soundcloud_rpc job pulls tracks from SoundCloud, YouTube and Bandcamp via yt-dlp and syncs them - the catalog grows without manual uploads."
       }
     }
   ],

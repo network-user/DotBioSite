@@ -28,12 +28,16 @@ interface Props {
   to: Point;
   kind?: EdgeKind;
   label?: string;
+  /** id узлов-концов — пробрасываются в DOM (`data-from`/`data-to`) для
+   *  интерактивной подсветки связей при наведении на узел. */
+  fromId?: string;
+  toId?: string;
   /** Сохранён для обратной совместимости API; при гладком роутинге не нужен. */
   bend?: number;
   class?: string;
 }
 
-const { from, to, kind = "sync", label, class: className = "" } = Astro.props;
+const { from, to, kind = "sync", label, fromId, toId, class: className = "" } = Astro.props;
 
 const dx = to.x - from.x;
 const dy = to.y - from.y;
@@ -67,7 +71,11 @@ const midX = 0.125 * from.x + 0.375 * c1.x + 0.375 * c2.x + 0.125 * to.x;
 const midY = 0.125 * from.y + 0.375 * c1.y + 0.375 * c2.y + 0.125 * to.y;
 ---
 
-<g class:list={["arch-edge", `arch-edge--${kind}`, className]}>
+<g
+  class:list={["arch-edge", `arch-edge--${kind}`, className]}
+  data-from={fromId}
+  data-to={toId}
+>
   <path d={path} class="arch-edge__halo"></path>
   <path d={path} class="arch-edge__path"></path>
   <polygon points={`${to.x},${to.y} ${ax},${ay} ${bx},${by}`} class="arch-edge__head"></polygon>

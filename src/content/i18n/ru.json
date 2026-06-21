@@ -37,7 +37,8 @@
       "frontend": "Frontend",
       "devops": "DevOps",
       "ml": "AI / ML",
-      "mobile": "Mobile / Bots"
+      "mobile": "Mobile / Bots",
+      "web3": "Web3 / Blockchain"
     }
   },
   "projects": {
@@ -104,6 +105,7 @@
     "back": "← ко всем проектам",
     "overview": "суть",
     "architecture": "архитектура",
+    "architectureLede": "Наведи или коснись узла - подсветятся его связи.",
     "stack": "стек",
     "stackComposition": "состав стека по слоям",
     "repos": "репозитории",

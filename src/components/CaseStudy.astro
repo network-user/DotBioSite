@@ -50,7 +50,7 @@ const hasLinks = p.links && Object.keys(p.links).length > 0;
 
 // Сигнатурная визуализация «как это работает» — bespoke-анимация ключевых
 // механизмов проекта. Список slug-ов, для которых она есть (см. ProjectSignature).
-const SIGNATURE_SLUGS = new Set(["dotsound", "dotlearn", "dotagents", "dotworkbot", "dotmathbot"]);
+const SIGNATURE_SLUGS = new Set(["dotsound", "dotlearn", "dotagents", "dotworkbot", "dotschet"]);
 const hasSignature = SIGNATURE_SLUGS.has(p.slug);
 ---
 
@@ -208,7 +208,7 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
               return (
                 <div class="case__metric" data-reveal data-reveal-delay={i * 60}>
                   <span class:list={["metric", numClass]}>
-                    <span>{m.value}</span>
+                    <span class="case__metric-val" data-countup>{m.value}</span>
                     {m.unit && <span class="metric__unit">{m.unit}</span>}
                   </span>
                   <span class="metric__label">{m.label[locale]}</span>
@@ -226,6 +226,7 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
         <section class="case__section case__section--bleed" data-reveal>
           <header class="case__h">
             <h2 class="eyebrow">{t("case.architecture")}</h2>
+            <p class="case__h-lede subtitle">{t("case.architectureLede")}</p>
           </header>
           <div class="case__arch">
             <Architecture
@@ -851,3 +852,81 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
     }
   }
 </style>
+
+<script>
+  /**
+   * Count-up метрик: числовая часть значения набегает 0 → target при первом
+   * появлении секции в вьюпорте. Один проход requestAnimationFrame (не бесконечный),
+   * затем IntersectionObserver отключается. Префикс/суффикс ("k+", "+", "$") и
+   * нечисловые значения ("HLS", "ASR") сохраняются как есть.
+   *
+   * prefers-reduced-motion → значение остаётся финальным, анимация не стартует.
+   * Без JS значение и так в DOM (SSR), поэтому деградация полная.
+   */
+  (() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const nodes = Array.from(document.querySelectorAll<HTMLElement>("[data-countup]"));
+    if (reduce || nodes.length === 0) return;
+
+    type Target = { node: HTMLElement; prefix: string; suffix: string; to: number };
+    const targets: Target[] = [];
+
+    for (const node of nodes) {
+      const raw = (node.textContent ?? "").trim();
+      // префикс (нецифры) + целое с разделителями тысяч (пробел/запятая) + суффикс.
+      // Точка НЕ входит в число, поэтому "127.0.0.1" и "4.5k" не матчатся и
+      // остаются как есть; чисто буквенные ("BYOK", "VPS") тоже пропускаются.
+      const m = raw.match(/^(\D*?)(\d[\d\s,]*)(\D*)$/);
+      if (!m) continue;
+      const prefix = m[1] ?? "";
+      const digits = (m[2] ?? "").replace(/[\s,]/g, "");
+      const suffix = m[3] ?? "";
+      const to = Number(digits);
+      if (digits.length === 0 || !Number.isFinite(to)) continue;
+      targets.push({ node, prefix, suffix, to });
+      node.textContent = prefix + "0" + suffix;
+    }
+    if (targets.length === 0) return;
+
+    const DURATION = 1000;
+    const easeOut = (t: number): number => 1 - Math.pow(1 - t, 3);
+
+    let started = false;
+    const run = (): void => {
+      if (started) return;
+      started = true;
+      let start: number | undefined;
+      const tick = (now: number): void => {
+        if (start === undefined) start = now;
+        const p = Math.min(1, (now - start) / DURATION);
+        const e = easeOut(p);
+        for (const it of targets) {
+          it.node.textContent = it.prefix + Math.round(it.to * e) + it.suffix;
+        }
+        if (p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    };
+
+    const first = targets[0];
+    if (!first) return;
+    const anchor = first.node.closest(".case__metrics") ?? first.node;
+    if (!("IntersectionObserver" in window)) {
+      run();
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const en of entries) {
+          if (en.isIntersecting) {
+            run();
+            io.disconnect();
+            break;
+          }
+        }
+      },
+      { threshold: 0.4 },
+    );
+    io.observe(anchor);
+  })();
+</script>

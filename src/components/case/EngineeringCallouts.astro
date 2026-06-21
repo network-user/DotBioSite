@@ -1,10 +1,15 @@
 ---
 /**
- * EngineeringCallouts.astro — Q&A карточки про инженерные решения проекта.
+ * EngineeringCallouts.astro — Q&A про инженерные решения в виде аккордеона.
  *
- * Формат «вопрос → ответ» помогает быстро объяснить нетривиальные выборы
- * (зачем такой стек, почему такой архитектурный вариант). Каждая карточка
- * — отдельный glass-блок со скромным eyebrow «question».
+ * Формат «вопрос → ответ» объясняет нетривиальные выборы. Вопрос — всегда
+ * видимая кнопка-триггер, ответ сворачивается/раскрывается (disclosure).
+ *
+ * Прогрессивное улучшение: без JS все панели открыты (aria-expanded="true",
+ * grid-rows:1fr) — контент в DOM и доступен поисковику. Скрипт навешивает
+ * is-enhanced, сворачивает всё кроме первого и включает переключение.
+ * Анимация раскрытия — grid-template-rows 0fr↔1fr (только по клику, не в
+ * горячем пути); под reduced-motion переход выключен.
  */
 
 import type { ProjectEngineeringChoice } from "../../lib/projects";
@@ -19,14 +24,42 @@ interface Props {
 const { items, locale, class: className = "" } = Astro.props;
 ---
 
-<div class:list={["engineering-callouts", className]}>
+<div class:list={["engineering-callouts", className]} data-eng-accordion>
   {
     items.map((item, i) => (
-      <article class="engineering-callouts__card glass" data-warp data-accent="var(--project-accent)" data-reveal data-reveal-delay={i * 80}>
-        <p class="engineering-callouts__q eyebrow">Q</p>
-        <p class="engineering-callouts__question">{item.question[locale]}</p>
-        <p class="engineering-callouts__a eyebrow">A</p>
-        <p class="engineering-callouts__answer body">{item.answer[locale]}</p>
+      <article
+        class="engineering-callouts__card glass"
+        data-warp
+        data-accent="var(--project-accent)"
+        data-reveal
+        data-reveal-delay={i * 80}
+      >
+        <button
+          class="engineering-callouts__trigger"
+          type="button"
+          id={`eng-q-${i}`}
+          aria-controls={`eng-a-${i}`}
+          aria-expanded="true"
+        >
+          <span class="engineering-callouts__q eyebrow" aria-hidden="true">
+            Q
+          </span>
+          <span class="engineering-callouts__question">{item.question[locale]}</span>
+          <span class="engineering-callouts__chevron" aria-hidden="true" />
+        </button>
+        <div
+          class="engineering-callouts__panel"
+          id={`eng-a-${i}`}
+          role="region"
+          aria-labelledby={`eng-q-${i}`}
+        >
+          <div class="engineering-callouts__panel-inner">
+            <span class="engineering-callouts__a eyebrow" aria-hidden="true">
+              A
+            </span>
+            <p class="engineering-callouts__answer body">{item.answer[locale]}</p>
+          </div>
+        </div>
       </article>
     ))
   }
@@ -37,15 +70,27 @@ const { items, locale, class: className = "" } = Astro.props;
     display: grid;
     gap: var(--sp-4);
     grid-template-columns: 1fr;
+    align-items: start;
   }
 
   .engineering-callouts__card {
-    padding: var(--sp-5);
-    display: grid;
-    grid-template-columns: auto 1fr;
-    column-gap: var(--sp-3);
-    row-gap: var(--sp-2);
     border-radius: var(--r-lg);
+    overflow: hidden;
+  }
+
+  /* Триггер — крупная зона клика на всю ширину карточки. */
+  .engineering-callouts__trigger {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: start;
+    column-gap: var(--sp-3);
+    width: 100%;
+    padding: var(--sp-5);
+    background: transparent;
+    border: 0;
+    text-align: left;
+    cursor: pointer;
+    color: inherit;
   }
 
   .engineering-callouts__q,
@@ -63,10 +108,82 @@ const { items, locale, class: className = "" } = Astro.props;
     color: var(--text);
   }
 
+  .engineering-callouts__trigger:hover .engineering-callouts__question {
+    color: var(--text);
+  }
+
+  /* Плюс (закрыто) → минус (открыто): вертикальная черта гаснет. */
+  .engineering-callouts__chevron {
+    position: relative;
+    width: 12px;
+    height: 12px;
+    margin-top: 0.5em;
+  }
+
+  .engineering-callouts__chevron::before,
+  .engineering-callouts__chevron::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 12px;
+    height: 1.5px;
+    border-radius: 1px;
+    background: var(--text-muted);
+  }
+
+  .engineering-callouts__chevron::before {
+    transform: translateY(-50%);
+  }
+
+  .engineering-callouts__chevron::after {
+    transform: translateY(-50%) rotate(90deg);
+  }
+
+  .engineering-callouts__trigger[aria-expanded="true"] .engineering-callouts__chevron::after {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .engineering-callouts__chevron::after {
+      transition: opacity var(--dur-fast) var(--ease-standard);
+    }
+  }
+
+  /* Панель ответа: по умолчанию (без JS) открыта. */
+  .engineering-callouts__panel {
+    display: grid;
+    grid-template-rows: 1fr;
+  }
+
+  .engineering-callouts__panel-inner {
+    min-height: 0;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: var(--sp-3);
+    padding: 0 var(--sp-5) var(--sp-5);
+  }
+
   .engineering-callouts__answer {
     color: var(--text-secondary);
     font-size: var(--fs-16);
     line-height: var(--lh-normal);
+  }
+
+  /* Enhanced: схлопываем панель; открыта только карточка .is-open. */
+  .engineering-callouts.is-enhanced .engineering-callouts__panel {
+    grid-template-rows: 0fr;
+  }
+
+  .engineering-callouts.is-enhanced .engineering-callouts__card.is-open .engineering-callouts__panel {
+    grid-template-rows: 1fr;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .engineering-callouts.is-enhanced .engineering-callouts__panel {
+      transition: grid-template-rows var(--dur-med) var(--ease-standard);
+    }
   }
 
   @media (min-width: 900px) {
@@ -74,8 +191,13 @@ const { items, locale, class: className = "" } = Astro.props;
       grid-template-columns: repeat(2, 1fr);
     }
 
-    .engineering-callouts__card {
+    .engineering-callouts__trigger {
       padding: var(--sp-6) var(--sp-7);
+      column-gap: var(--sp-4);
+    }
+
+    .engineering-callouts__panel-inner {
+      padding: 0 var(--sp-7) var(--sp-6);
       column-gap: var(--sp-4);
     }
 
@@ -84,3 +206,26 @@ const { items, locale, class: className = "" } = Astro.props;
     }
   }
 </style>
+
+<script>
+  // Аккордеон инженерных решений. Прогрессивное улучшение: размечено открытым,
+  // скрипт сворачивает всё кроме первого пункта и включает переключение.
+  document.querySelectorAll<HTMLElement>("[data-eng-accordion]").forEach((group) => {
+    const cards = Array.from(group.querySelectorAll<HTMLElement>(".engineering-callouts__card"));
+    if (cards.length === 0) return;
+    group.classList.add("is-enhanced");
+
+    cards.forEach((card, i) => {
+      const trigger = card.querySelector<HTMLButtonElement>(".engineering-callouts__trigger");
+      if (!trigger) return;
+      const open = i === 0;
+      card.classList.toggle("is-open", open);
+      trigger.setAttribute("aria-expanded", String(open));
+
+      trigger.addEventListener("click", () => {
+        const isOpen = card.classList.toggle("is-open");
+        trigger.setAttribute("aria-expanded", String(isOpen));
+      });
+    });
+  });
+</script>

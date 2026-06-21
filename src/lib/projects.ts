@@ -95,6 +95,9 @@ export interface ProjectCapability {
   icon: ProjectArchitectureNodeIcon;
   title: { ru: string; en: string };
   description: { ru: string; en: string };
+  /** Опциональная конкретика, раскрываемая по клику (число, механизм, пример).
+   *  Нет — карточка статична; есть — появляется кнопка раскрытия. */
+  detail?: { ru: string; en: string };
 }
 
 export interface ProjectEngineeringChoice {
@@ -157,10 +160,10 @@ const modules = import.meta.glob<{ default: Project }>("../content/projects/*.js
  */
 const FEATURED_ORDER: ReadonlyArray<string> = [
   "dotsound", // .звук — флагман, featured-карточка
-  "dotlearn", // .учёба — новый, full-stack TS платформа
+  "dotlearn", // .учёба — new, full-stack TS платформа
+  "dotschet", // .счёт — тренажёр устного счёта
   "dotagents", // .агенты
   "dotworkbot", // .работа
-  "dotmathbot", // .матем
 ];
 
 const orderIndex = (slug: string): number => {

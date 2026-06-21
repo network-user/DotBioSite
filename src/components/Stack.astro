@@ -9,7 +9,7 @@ interface Props {
 const { locale } = Astro.props;
 const t = useTranslations(locale);
 
-type StackIcon = "stack" | "code" | "rocket" | "spark" | "telegram";
+type StackIcon = "stack" | "code" | "rocket" | "spark" | "telegram" | "link";
 
 interface StackGroup {
   id: string;
@@ -29,11 +29,15 @@ const groups: ReadonlyArray<StackGroup> = [
     items: [
       "Python 3.12",
       "FastAPI",
+      "Django / DRF",
+      "Litestar",
       "NestJS 10",
       "SQLAlchemy 2",
+      "Pydantic",
+      "Celery",
+      "asyncio",
       "PostgreSQL 16",
       "Redis",
-      "Taskiq",
       "Elasticsearch",
       "MinIO / S3",
     ],
@@ -41,22 +45,57 @@ const groups: ReadonlyArray<StackGroup> = [
   {
     id: "frontend",
     icon: "code",
-    items: ["TypeScript", "React 18", "Astro 4", "Vite 5", "Tailwind", "TanStack Router"],
+    items: [
+      "TypeScript",
+      "JavaScript",
+      "React 18",
+      "Astro 4",
+      "Bootstrap",
+      "Vite 5",
+      "Tailwind",
+      "TanStack Router",
+      "Jinja2",
+    ],
   },
   {
     id: "devops",
     icon: "rocket",
-    items: ["Docker", "Turborepo", "pnpm", "GitHub Actions", "Cloudflare Pages", "Nginx", "VPS"],
+    items: [
+      "Docker",
+      "GitLab CI/CD",
+      "GitHub Actions",
+      "ArgoCD",
+      "Nginx",
+      "Cloudflare Pages",
+      "Pytest",
+      "pnpm",
+      "VPS",
+    ],
   },
   {
     id: "ml",
     icon: "spark",
-    items: ["faster-whisper", "Demucs", "PyTorch", "Pyodide", "BYOK LLMs", "ts-fsrs"],
+    items: [
+      "PyTorch",
+      "YOLO",
+      "ComfyUI",
+      "faster-whisper",
+      "Demucs",
+      "n8n",
+      "Pandas",
+      "BYOK LLMs",
+      "Pyodide",
+    ],
   },
   {
     id: "mobile",
     icon: "telegram",
-    items: ["aiogram 3", "Telegram Mini Apps", "PWA"],
+    items: ["aiogram 3", "Telegram Bot API", "Telegram Mini Apps", "PWA"],
+  },
+  {
+    id: "web3",
+    icon: "link",
+    items: ["Web3.py", "Solidity", "Truffle / Hardhat", "Ethereum"],
   },
 ];
 ---

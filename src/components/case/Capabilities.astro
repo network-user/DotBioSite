@@ -1,10 +1,14 @@
 ---
 /**
- * Capabilities.astro — сетка карточек с иконкой, заголовком и описанием.
+ * Capabilities.astro — сетка карточек возможностей проекта.
  *
- * Каждая карточка — одна capability проекта. Иконка берётся из общего набора
- * Icon.astro (24×24 stroke). На мобильных — одна колонка, дальше две, потом
- * три при ширине ≥1100.
+ * Каждая карточка: иконка + заголовок + описание. Если у возможности задан
+ * `detail`, под описанием появляется кнопка раскрытия с дополнительной
+ * конкретикой (число, механизм, пример). Карточки без `detail` статичны.
+ *
+ * Прогрессивное улучшение: без JS detail открыт и доступен поисковику; скрипт
+ * вешает is-enhanced, сворачивает все detail и включает переключение. Раскрытие
+ * — grid-rows 0fr↔1fr, только по клику; под reduced-motion переход выключен.
  */
 
 import type { ProjectCapability } from "../../lib/projects";
@@ -18,15 +22,45 @@ interface Props {
 }
 
 const { items, locale, class: className = "" } = Astro.props;
+
+const moreLabel = locale === "ru" ? "подробнее" : "more";
 ---
 
-<div class:list={["capabilities", className]}>
+<div class:list={["capabilities", className]} data-cap-accordion>
   {
     items.map((item, i) => (
-      <article class="capabilities__card glass glass--hover" data-warp data-accent="var(--project-accent)" data-reveal data-reveal-delay={i * 60}>
+      <article
+        class:list={["capabilities__card", "glass", "glass--hover", { "has-detail": item.detail }]}
+        data-warp
+        data-accent="var(--project-accent)"
+        data-reveal
+        data-reveal-delay={i * 60}
+      >
         <Icon name={item.icon} size={24} class="capabilities__icon" />
         <h3 class="capabilities__title">{item.title[locale]}</h3>
         <p class="capabilities__desc body-sm">{item.description[locale]}</p>
+        {item.detail && (
+          <>
+            <button
+              class="capabilities__more"
+              type="button"
+              id={`cap-q-${i}`}
+              aria-controls={`cap-d-${i}`}
+              aria-expanded="true"
+            >
+              <span class="capabilities__more-label">{moreLabel}</span>
+              <span class="capabilities__chevron" aria-hidden="true" />
+            </button>
+            <div
+              class="capabilities__detail"
+              id={`cap-d-${i}`}
+              role="region"
+              aria-labelledby={`cap-q-${i}`}
+            >
+              <p class="capabilities__detail-inner body-sm">{item.detail[locale]}</p>
+            </div>
+          </>
+        )}
       </article>
     ))
   }
@@ -37,6 +71,7 @@ const { items, locale, class: className = "" } = Astro.props;
     display: grid;
     gap: var(--sp-4);
     grid-template-columns: 1fr;
+    align-items: start;
   }
 
   .capabilities__card {
@@ -63,6 +98,90 @@ const { items, locale, class: className = "" } = Astro.props;
     color: var(--text-secondary);
   }
 
+  /* Кнопка раскрытия детали: плюс (закрыто) → минус (открыто). */
+  .capabilities__more {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    align-self: flex-start;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-12);
+    font-weight: var(--fw-medium);
+    text-transform: uppercase;
+    letter-spacing: var(--ls-wide);
+  }
+
+  .capabilities__more:hover {
+    color: var(--text);
+  }
+
+  .capabilities__chevron {
+    position: relative;
+    width: 10px;
+    height: 10px;
+  }
+
+  .capabilities__chevron::before,
+  .capabilities__chevron::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 10px;
+    height: 1.5px;
+    border-radius: 1px;
+    background: currentColor;
+  }
+
+  .capabilities__chevron::before {
+    transform: translateY(-50%);
+  }
+
+  .capabilities__chevron::after {
+    transform: translateY(-50%) rotate(90deg);
+  }
+
+  .capabilities__more[aria-expanded="true"] .capabilities__chevron::after {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .capabilities__chevron::after {
+      transition: opacity var(--dur-fast) var(--ease-standard);
+    }
+  }
+
+  /* Панель детали: по умолчанию (без JS) открыта. */
+  .capabilities__detail {
+    display: grid;
+    grid-template-rows: 1fr;
+  }
+
+  .capabilities__detail-inner {
+    min-height: 0;
+    overflow: hidden;
+    color: var(--text-muted);
+  }
+
+  .capabilities.is-enhanced .capabilities__detail {
+    grid-template-rows: 0fr;
+  }
+
+  .capabilities.is-enhanced .capabilities__card.is-open .capabilities__detail {
+    grid-template-rows: 1fr;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .capabilities.is-enhanced .capabilities__detail {
+      transition: grid-template-rows var(--dur-med) var(--ease-standard);
+    }
+  }
+
   @media (min-width: 720px) {
     .capabilities {
       grid-template-columns: repeat(2, 1fr);
@@ -83,3 +202,27 @@ const { items, locale, class: className = "" } = Astro.props;
     }
   }
 </style>
+
+<script>
+  // Раскрытие детали возможностей. Прогрессивное улучшение: detail размечен
+  // открытым, скрипт сворачивает все панели и включает переключение по клику.
+  document.querySelectorAll<HTMLElement>("[data-cap-accordion]").forEach((group) => {
+    const cards = Array.from(
+      group.querySelectorAll<HTMLElement>(".capabilities__card.has-detail"),
+    );
+    if (cards.length === 0) return;
+    group.classList.add("is-enhanced");
+
+    cards.forEach((card) => {
+      const trigger = card.querySelector<HTMLButtonElement>(".capabilities__more");
+      if (!trigger) return;
+      card.classList.remove("is-open");
+      trigger.setAttribute("aria-expanded", "false");
+
+      trigger.addEventListener("click", () => {
+        const isOpen = card.classList.toggle("is-open");
+        trigger.setAttribute("aria-expanded", String(isOpen));
+      });
+    });
+  });
+</script>

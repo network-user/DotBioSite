@@ -1,13 +1,13 @@
 {
-  "id": "dotmathbot",
-  "slug": "dotmathbot",
+  "id": "dotschet",
+  "slug": "dotschet",
   "name": {
-    "ru": "DotMathBot",
-    "en": "DotMathBot"
+    "ru": "DotSchet",
+    "en": "DotSchet"
   },
   "brand": {
-    "ru": ".матем",
-    "en": ".math"
+    "ru": ".счёт",
+    "en": ".schet"
   },
   "tagline": {
     "ru": "Устный счёт как ежедневная привычка, с рейтингом по четырём срезам.",
@@ -33,13 +33,13 @@
   "year": 2026,
   "repos": [
     {
-      "name": "DotMathBot",
+      "name": "DotSchet",
       "role": "telegram-bot"
     }
   ],
-  "cover": "/projects/dotmathbot/cover.svg",
-  "ogImage": "/projects/dotmathbot/og.svg",
-  "accent": "var(--accent-math)",
+  "cover": "/projects/dotschet/cover.svg",
+  "ogImage": "/projects/dotschet/og.svg",
+  "accent": "var(--accent-schet)",
   "highlights": [
     {
       "value": "7",
@@ -65,12 +65,12 @@
   ],
   "overview": {
     "ru": [
-      "DotMathBot решает проблему любого тренажёра-однодневки: им перестают пользоваться через неделю. Здесь за удержание отвечают серии дней, напоминания и рейтинг, в котором хочется подниматься. Семь типов операций - от сложения до степеней и корней - на трёх уровнях сложности, плюс отдельный режим, где ответ вводишь сам, а не выбираешь из вариантов.",
+      "DotSchet решает проблему любого тренажёра-однодневки: им перестают пользоваться через неделю. Здесь за удержание отвечают серии дней, напоминания и рейтинг, в котором хочется подниматься. Семь типов операций - от сложения до степеней и корней - на трёх уровнях сложности, плюс отдельный режим, где ответ вводишь сам, а не выбираешь из вариантов.",
       "Самое интересное в рейтинге: одни и те же результаты он показывает с четырёх сторон. Можно соревноваться по серии дней, по общему числу решённых задач, по точности или по взвешенным очкам, где правильный ответ на сложном уровне стоит втрое дороже, чем на лёгком (1/2/3). Серия дней растёт на +1 за день хотя бы с одним верным ответом и обнуляется, как только ты пропускаешь день.",
       "Технически это один аккуратный процесс без лишних движущихся частей. aiogram 3, данные в PostgreSQL через async-SQLAlchemy и asyncpg, FSM-состояние в Redis с мягким фолбэком в память. Напоминания и резервные pg_dump-бэкапы крутятся в том же event loop на APScheduler, без отдельного брокера и воркера. Интерфейс полностью двуязычный и переключается на лету, а покрытие на testcontainers поднимает временный Postgres под каждый прогон."
     ],
     "en": [
-      "DotMathBot solves the problem of every throwaway trainer: people stop using it within a week. Here retention is carried by day-streaks, reminders, and a leaderboard worth climbing. Seven operation types - from addition to powers and roots - across three difficulty levels, plus a separate mode where you type the answer instead of picking from options.",
+      "DotSchet solves the problem of every throwaway trainer: people stop using it within a week. Here retention is carried by day-streaks, reminders, and a leaderboard worth climbing. Seven operation types - from addition to powers and roots - across three difficulty levels, plus a separate mode where you type the answer instead of picking from options.",
       "The most interesting part is the leaderboard: it reads the same results four ways. You can compete on day-streak, on total problems solved, on accuracy, or on a weighted score where a correct answer on hard counts three times as much as on easy (1/2/3). The day-streak grows by +1 for each day with at least one correct answer and resets the moment you skip a day.",
       "Technically it's a single tidy process with no spare moving parts. aiogram 3, data in PostgreSQL through async SQLAlchemy and asyncpg, FSM state in Redis with a graceful in-memory fallback. Reminders and pg_dump backups run in the same event loop on APScheduler, with no separate broker or worker. The interface is fully bilingual and switches on the fly, and the testcontainers suite spins up a throwaway Postgres for each run."
     ]
@@ -119,7 +119,7 @@
       "id": "bot",
       "x": 470,
       "y": 250,
-      "label": "DotMathBot",
+      "label": "DotSchet",
       "icon": "stack",
       "emphasis": "strong",
       "width": 190
@@ -224,8 +224,8 @@
     {
       "date": "Dec 2025",
       "title": {
-        "ru": "Старт DotMathBot",
-        "en": "DotMathBot kickoff"
+        "ru": "Старт DotSchet",
+        "en": "DotSchet kickoff"
       },
       "description": {
         "ru": "MVP: семь типов операций, три уровня, профиль и базовая локализация ru/en.",

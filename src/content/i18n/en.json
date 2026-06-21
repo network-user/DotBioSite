@@ -37,7 +37,8 @@
       "frontend": "Frontend",
       "devops": "DevOps",
       "ml": "AI / ML",
-      "mobile": "Mobile / Bots"
+      "mobile": "Mobile / Bots",
+      "web3": "Web3 / Blockchain"
     }
   },
   "projects": {
@@ -104,6 +105,7 @@
     "back": "← back to all projects",
     "overview": "the essence",
     "architecture": "architecture",
+    "architectureLede": "Hover or tap a node to highlight its links.",
     "stack": "stack",
     "stackComposition": "stack by layer",
     "repos": "repositories",

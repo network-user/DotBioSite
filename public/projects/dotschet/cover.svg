@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="t d">
-  <title id="t">DotMathBot — .матем</title>
+  <title id="t">DotSchet — .счёт</title>
   <desc id="d">Mental-arithmetic trainer with a fair, deterministic daily.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
@@ -43,8 +43,8 @@
       <circle cx="35" cy="40.5" r="1.4" fill="#f3f3f1" stroke="none"/>
     </g>
   </svg>
-  <text x="138" y="408" font-family="Inter, Arial, sans-serif" font-size="132" font-weight="800" fill="#f3f3f1" letter-spacing="-3">.матем</text>
-  <text x="146" y="470" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700" fill="#f3f3f1">DotMathBot</text>
+  <text x="138" y="408" font-family="Inter, Arial, sans-serif" font-size="132" font-weight="800" fill="#f3f3f1" letter-spacing="-3">.счёт</text>
+  <text x="146" y="470" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700" fill="#f3f3f1">DotSchet</text>
   <text x="146" y="516" font-family="Inter, Arial, sans-serif" font-size="26" fill="#a6a7ab">Mental-math trainer with a fair daily</text>
   <text x="140" y="822" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="600" fill="#5a5c63">.ядро · DotCore</text>
 </svg>

@@ -15,7 +15,7 @@ import SoundFlow from "./SoundFlow.astro";
 import LearnForge from "./LearnForge.astro";
 import AgentsBridge from "./AgentsBridge.astro";
 import WorkShifts from "./WorkShifts.astro";
-import MathDaily from "./MathDaily.astro";
+import SchetDaily from "./SchetDaily.astro";
 
 interface Props {
   slug: string;
@@ -29,7 +29,7 @@ const REGISTRY: Record<string, typeof SoundFlow> = {
   dotlearn: LearnForge,
   dotagents: AgentsBridge,
   dotworkbot: WorkShifts,
-  dotmathbot: MathDaily,
+  dotschet: SchetDaily,
 };
 
 const Signature = REGISTRY[slug];
