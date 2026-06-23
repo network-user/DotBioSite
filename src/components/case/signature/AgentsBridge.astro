@@ -2,34 +2,39 @@
 /**
  * AgentsBridge.astro — сигнатурная визуализация .агенты (DotAgents).
  *
- * РЕЖИМ: hands-on remote-control demo. Не пошаговый рассказ, а живой пульт,
- * которым РУЛИТ посетитель. Слева — IDE-агент и локальный демон; справа — мок
- * телефона (Telegram). Один и тот же рискованный вызов проходит через демона,
- * а исход зависит от того, что делает посетитель:
- *   1. IDE-агент (Cursor / Claude Code / Antigravity) собирается выполнить
- *      опасный shell/MCP-вызов (rm -rf /tmp/scratch, risk: high); установленный
- *      хук перехватывает его ДО запуска.
- *   2. Хук шлёт POST на локальный демон 127.0.0.1 (loopback) с заголовком
- *      X-DotAgents-Secret. Пакет летит ТОЛЬКО по петле — наружу ничего не уходит.
- *   3. Живой переключатель MODE: remote (спросить) · readonly (авто-allow +
- *      уведомить) · standby (авто-deny). Флип мгновенно меняет исход того же
- *      запроса.
- *   4. В remote — мок Telegram с кнопками Allow / Deny, которые реально тапаются
- *      и резолвят ждущего агента; виден обратный отсчёт до HOOK_TIMEOUT_SECONDS
- *      (по умолчанию 90с — демо-таймер короче), а если истёк → fail-closed (deny).
- *   5. Tamper-proof seal: каждый callback подписан HMAC-SHA256 (truncated 16) +
- *      одноразовый nonce + expires_at. «Replay» падает — nonce уже сгорел;
- *      «tamper» падает — подпись не сходится.
- *   Инвариант: код, approvals и transcript не покидают машину — облачного релея
- *   нет. Факты: 3 агента, 3 режима, argon2id passcode-auth, audit-log, API на
- *   127.0.0.1.
+ * КОНЦЕПЦИЯ: «диспетчерская» из двух панелей, которой РУЛИТ посетитель — не
+ * схема и не пошаговый рассказ. Слева — IDE-пане с живым транскриптом агента и
+ * перехваченным рискованным вызовом, который ВИДИМО ждёт. Справа — мок телефона
+ * (Telegram). По центру — loopback-провод, по которому единственный пакет летит
+ * между панелями (127.0.0.1, X-DotAgents-Secret) и несёт подписанный callback.
  *
- * Перфоманс: анимируем ТОЛЬКО transform/opacity. Никаких вечных rAF — обратный
- * отсчёт ведёт ОДНА CSS-анимация прогресс-бара (transform: scaleX), а fail-closed
- * срабатывает по её `animationend`. Всё под .is-inview (IntersectionObserver):
- * за экраном / на скрытой вкладке / на pagehide таймеры очищаются. Никаких
- * layout/box-shadow/filter/backdrop-filter в анимациях. prefers-reduced-motion →
- * финальное читаемое состояние без движения; все тапы/переключатели работают.
+ * Что посетитель ТРОГАЕТ:
+ *   1. IDE-агент (Cursor / Claude Code / Antigravity) собрался выполнить
+ *      `rm -rf /tmp/scratch` (shell · risk: high); установленный хук перехватил
+ *      вызов ДО запуска — агент стоит на паузе и ждёт решения.
+ *   2. Сегментный MODE-свитч: remote (спросить) · readonly (авто-allow +
+ *      уведомить) · standby (авто-deny). Флип мгновенно меняет исход того же
+ *      запроса; пакет летит по петле заново.
+ *   3. В remote — в Telegram приходит карточка approve/deny с кольцом обратного
+ *      отсчёта (подписано HOOK_TIMEOUT_SECONDS = 90с по умолчанию; демо-таймер
+ *      короче). Тап Allow → агент выполняет команду; Deny → команда не запущена;
+ *      тишина → кольцо истекает → fail-closed (deny). Резолв будит ждущий хук
+ *      (long-poll, asyncio.Event по short_id).
+ *   4. Печать ответа: callback = action:short_id:expires_at:nonce:hmac16
+ *      (HMAC-SHA256, обрезан до 16) + одноразовый nonce. «Replay» падает — nonce
+ *      уже сгорел; «Tamper» падает — подпись не сходится.
+ *   5. Audit-log: каждое действие посетителя пишется строкой в журнал.
+ *   Инвариант: код, approvals и transcript не покидают машину — облачного релея
+ *   нет. Факты: 3 агента, 3 режима, argon2id passcode-auth, audit-log, FastAPI
+ *   на 127.0.0.1.
+ *
+ * ПЕРФОМАНС: анимируем ТОЛЬКО transform/opacity. Никаких вечных rAF — обратный
+ * отсчёт ведёт ОДНА CSS-анимация кольца (stroke через transform нельзя, поэтому
+ * кольцо — transform: rotate маски + scaleX резерв) … фактически кольцо рисуем
+ * через два полукруга с transform: rotate; прогресс ведёт ОДНА keyframes-анимация
+ * на маркере, fail-closed — по её `animationend`. Всё под .is-inview
+ * (IntersectionObserver): за экраном / на скрытой вкладке / на pagehide таймеры
+ * очищаются. prefers-reduced-motion → финальное читаемое состояние, тапы живут.
  */
 import type { Locale } from "../../../lib/i18n";
 
@@ -42,55 +47,67 @@ type Bi = { ru: string; en: string };
 const t = (b: Bi): string => b[locale];
 
 const intro: Bi = {
-  ru: "Это не схема — это пульт. Тот же рискованный вызов агента, но исход решаешь ты: переключи режим демона, ответь в Telegram, проверь печать на подделку. Всё на loopback, наружу ничего не уходит.",
-  en: "This isn't a diagram — it's a remote. The same risky agent call, but you decide the outcome: flip the daemon's mode, answer in Telegram, test the seal against forgery. All on loopback, nothing leaves the box.",
+  ru: "Это не схема — это диспетчерская. Агент в IDE уже занёс руку над рискованной командой, хук её перехватил. Дальше решаешь ты: выбери режим демона, ответь в Telegram, проверь печать на подделку. Всё по loopback — наружу не уходит ни байта.",
+  en: "This isn't a diagram — it's a control room. The agent in the IDE is about to run a risky command; the hook caught it mid-air. From here you decide: pick the daemon's mode, answer in Telegram, test the seal against forgery. All over loopback — not a byte leaves the box.",
 };
 
 const cmd = "rm -rf /tmp/scratch";
 
+// IDE-транскрипт: то, что «печатал» агент перед перехватом (декор, aria-hidden).
+const transcript: { who: "user" | "agent" | "tool"; text: Bi }[] = [
+  { who: "user", text: { ru: "почисти временные артефакты сборки", en: "clean up the temp build artifacts" } },
+  { who: "agent", text: { ru: "Нашёл /tmp/scratch. Удаляю рекурсивно.", en: "Found /tmp/scratch. Removing recursively." } },
+  { who: "tool", text: { ru: "вызов shell · ожидает approval", en: "shell call · awaiting approval" } },
+];
+
 const copy = {
-  agent: { ru: "IDE-агент", en: "IDE agent" },
-  agentSub: { ru: "Cursor · Claude Code · Antigravity", en: "Cursor · Claude Code · Antigravity" },
+  // IDE pane
+  ideTitle: { ru: "IDE-агент", en: "IDE agent" },
+  ideSub: { ru: "Cursor · Claude Code · Antigravity", en: "Cursor · Claude Code · Antigravity" },
+  ideTab: { ru: "agent · session #a3f1", en: "agent · session #a3f1" },
   cmdKind: { ru: "shell · risk: high", en: "shell · risk: high" },
-  intercepted: { ru: "перехвачено хуком — ждёт решения", en: "intercepted by hook — awaiting decision" },
+  intercepted: { ru: "хук перехватил вызов — агент ждёт", en: "hook intercepted the call — agent waiting" },
+  hookLine: { ru: "↳ pre-tool hook: POST 127.0.0.1 · X-DotAgents-Secret", en: "↳ pre-tool hook: POST 127.0.0.1 · X-DotAgents-Secret" },
+  // Daemon / wire
   daemon: { ru: "локальный демон", en: "local daemon" },
   daemonApi: { ru: "FastAPI · 127.0.0.1 · argon2id", en: "FastAPI · 127.0.0.1 · argon2id" },
-  loopback: { ru: "loopback", en: "loopback" },
-  hookPost: { ru: "POST /api/v1 · X-DotAgents-Secret", en: "POST /api/v1 · X-DotAgents-Secret" },
+  loopback: { ru: "loopback only", en: "loopback only" },
+  longPoll: { ru: "long-poll · asyncio.Event по short_id", en: "long-poll · asyncio.Event by short_id" },
+  // Phone
   phone: { ru: "твой телефон", en: "your phone" },
   tgBot: { ru: "DotAgents bot", en: "DotAgents bot" },
-  waiting: { ru: "ждёт твоего ответа…", en: "waiting for your reply…" },
+  tgFrom: { ru: "approval · short_id a3f1", en: "approval · short_id a3f1" },
   allow: { ru: "Allow", en: "Allow" },
   deny: { ru: "Deny", en: "Deny" },
-  // Statuses
-  stIdle: { ru: "хук на паузе — выбери режим", en: "hook paused — pick a mode" },
+  ringLeft: { ru: "осталось", en: "left" },
+  // Statuses (phone)
+  stIdle: { ru: "хук на паузе — выбери режим демона", en: "hook paused — pick the daemon mode" },
   stWaiting: { ru: "remote: жду — Allow или Deny", en: "remote: waiting — Allow or Deny" },
   stAllowed: { ru: "allow · команда выполняется", en: "allowed · command runs" },
   stDenied: { ru: "deny · команда не запущена", en: "denied · command never runs" },
   stTimeout: { ru: "тишина → deny (fail-closed)", en: "silence → deny (fail-closed)" },
   stAutoAllow: { ru: "readonly: авто-allow, только уведомление", en: "readonly: auto-allow, notify only" },
   stAutoDeny: { ru: "standby: авто-deny, не спрашивает", en: "standby: auto-deny, never asks" },
+  // Agent outcome line
+  agRuns: { ru: "выполняется — вызов разрешён", en: "running — call allowed" },
+  agBlocked: { ru: "заблокировано — вызов не запущен", en: "blocked — call never ran" },
   // Modes
-  modeRemote: { ru: "remote", en: "remote" },
-  modeReadonly: { ru: "readonly", en: "readonly" },
-  modeStandby: { ru: "standby", en: "standby" },
-  modeRemoteHint: { ru: "спросить тебя в Telegram", en: "ask you in Telegram" },
+  modeLabel: { ru: "Режим сессии — флипни на лету", en: "Session mode — flip it live" },
+  modeRemoteHint: { ru: "спросить в Telegram", en: "ask in Telegram" },
   modeReadonlyHint: { ru: "авто-allow + уведомить", en: "auto-allow + notify" },
-  modeStandbyHint: { ru: "авто-deny всего опасного", en: "auto-deny anything risky" },
-  modeLabel: { ru: "Режим сессии — флипни на лету", en: "Session mode — flip it on the fly" },
-  // Countdown
-  countLabel: { ru: "HOOK_TIMEOUT_SECONDS", en: "HOOK_TIMEOUT_SECONDS" },
-  countDefault: { ru: "по умолчанию 90с", en: "90s by default" },
-  failClosed: { ru: "истёк → fail-closed (deny)", en: "elapsed → fail-closed (deny)" },
+  modeStandbyHint: { ru: "авто-deny опасного", en: "auto-deny risky" },
   // Seal
-  sealLabel: { ru: "Печать ответа — проверь на прочность", en: "Answer seal — try to break it" },
-  sealNote: { ru: "callback подписан и одноразовый", en: "callback is signed and one-shot" },
+  sealLabel: { ru: "Печать ответа — попробуй сломать", en: "Answer seal — try to break it" },
+  sealNote: { ru: "ответь в Telegram — печать сформируется", en: "answer in Telegram — the seal forms" },
   sealOk: { ru: "подпись сходится · nonce свежий", en: "signature matches · nonce fresh" },
   sealReplay: { ru: "nonce уже сгорел — повтор отклонён", en: "nonce already spent — replay rejected" },
   sealTamper: { ru: "подпись не сходится — подделка отклонена", en: "signature mismatch — tamper rejected" },
-  replayBtn: { ru: "Повторить ту же кнопку", en: "Replay same button" },
-  tamperBtn: { ru: "Подменить данные", en: "Tamper with data" },
-  resetBtn: { ru: "Сбросить", en: "Reset" },
+  replayBtn: { ru: "Повторить ту же подпись", en: "Replay same signature" },
+  tamperBtn: { ru: "Подменить данные", en: "Tamper with the data" },
+  resetBtn: { ru: "Сбросить запрос", en: "Reset request" },
+  // Audit
+  auditLabel: { ru: "audit-log", en: "audit log" },
+  auditEmpty: { ru: "журнал пуст — сделай ход", en: "log empty — make a move" },
   // Invariant
   invariant: {
     ru: "Код, approvals и transcript не покидают машину — облачного релея нет.",
@@ -98,11 +115,11 @@ const copy = {
   },
 };
 
-// Поля строки подписи callback — точный формат:
-// action:resource_id:expires_at:nonce:hmac16 (DotAgents core/security).
+// Поля строки подписи callback — точный формат DotAgents (core/security):
+// action:short_id:expires_at:nonce:hmac16.
 const sealFields: { tok: string; note: Bi }[] = [
   { tok: "action", note: { ru: "ap.allow / ap.deny", en: "ap.allow / ap.deny" } },
-  { tok: "resource_id", note: { ru: "какой approval", en: "which approval" } },
+  { tok: "short_id", note: { ru: "какой approval", en: "which approval" } },
   { tok: "expires_at", note: { ru: "срок годности", en: "expiry deadline" } },
   { tok: "nonce", note: { ru: "одноразовый код", en: "one-shot code" } },
   { tok: "hmac16", note: { ru: "HMAC-SHA256, обрезан до 16", en: "HMAC-SHA256, truncated 16" } },
@@ -115,92 +132,84 @@ const modes: { id: string; hint: Bi }[] = [
 ];
 ---
 
-<section class="ab" data-ab aria-label={t({ ru: "Пульт одобрения .агенты", en: "DotAgents approval remote" })}>
+<section class="ab" data-ab aria-label={t({ ru: "Диспетчерская одобрений .агенты", en: "DotAgents approval control room" })}>
   <p class="ab__intro">{t(intro)}</p>
 
-  <!-- ============ Пульт: машина слева, телефон справа ============ -->
-  <div class="ab__stage" data-stage>
-    <!-- ---- Колонка «машина»: агент + демон ---- -->
-    <div class="ab__machine">
-      <article class="ab-node ab-node--agent" data-node="agent">
-        <span class="ab-node__head">
-          <span class="ab-node__dot" aria-hidden="true"></span>
-          <span class="ab-node__title">{t(copy.agent)}</span>
-        </span>
-        <span class="ab-node__sub mono">{t(copy.agentSub)}</span>
-        <code class="ab-node__cmd mono">{cmd}</code>
-        <span class="ab-node__kind mono">{t(copy.cmdKind)}</span>
-        <span class="ab-node__state mono" data-agent-state>{t(copy.intercepted)}</span>
-      </article>
+  <!-- ===================== Диспетчерская: IDE | провод | телефон ===================== -->
+  <div class="ab__room" data-room>
+    <!-- ---------- ЛЕВО: IDE-пане ---------- -->
+    <section class="ab-ide" aria-label={t({ ru: "Панель IDE", en: "IDE pane" })}>
+      <header class="ab-ide__chrome">
+        <span class="ab-ide__lights" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="ab-ide__tab mono">{t(copy.ideTab)}</span>
+        <span class="ab-ide__badge mono">{t(copy.ideSub)}</span>
+      </header>
 
-      <!-- провод agent → daemon: пакет летит только по loopback -->
-      <div class="ab-wire" aria-hidden="true">
-        <span class="ab-wire__line"></span>
-        <span class="ab-wire__pkt" data-pkt></span>
-        <span class="ab-wire__tag mono">
-          <b>127.0.0.1</b> · {t(copy.loopback)}
-        </span>
-        <span class="ab-wire__post mono">{t(copy.hookPost)}</span>
-      </div>
-
-      <article class="ab-node ab-node--daemon" data-node="daemon">
-        <span class="ab-node__head">
-          <span class="ab-node__lock" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7">
-              <rect x="5" y="11" width="14" height="9" rx="2"></rect>
-              <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
-            </svg>
-          </span>
-          <span class="ab-node__title">{t(copy.daemon)}</span>
-        </span>
-        <span class="ab-node__sub mono">{t(copy.daemonApi)}</span>
-
-        <!-- ЖИВОЙ переключатель режима -->
-        <span class="ab-modes__label caption">{t(copy.modeLabel)}</span>
-        <div class="ab-modes" role="radiogroup" aria-label={t(copy.modeLabel)}>
+      <div class="ab-ide__body">
+        <ol class="ab-ide__log" aria-hidden="true">
           {
-            modes.map((m, i) => (
-              <button
-                type="button"
-                class="ab-mode"
-                role="radio"
-                data-mode={m.id}
-                aria-checked={i === 0 ? "true" : "false"}
-                style={`--i:${i}`}
-              >
-                <span class="ab-mode__id mono">{m.id}</span>
-                <span class="ab-mode__hint">{t(m.hint)}</span>
-              </button>
+            transcript.map((l, i) => (
+              <li class={`ab-ide__line ab-ide__line--${l.who}`} style={`--i:${i}`}>
+                <span class="ab-ide__gutter mono">
+                  {l.who === "user" ? "you" : l.who === "agent" ? "ai" : "→"}
+                </span>
+                <span class="ab-ide__txt">{t(l.text)}</span>
+              </li>
             ))
           }
+        </ol>
+
+        <!-- Перехваченный вызов: видимо ждёт -->
+        <div class="ab-call" data-call data-resolved="" aria-live="polite">
+          <span class="ab-call__top">
+            <span class="ab-call__pulse" aria-hidden="true"></span>
+            <span class="ab-call__kind mono">{t(copy.cmdKind)}</span>
+            <span class="ab-call__wait mono" data-agent-state>{t(copy.intercepted)}</span>
+          </span>
+          <code class="ab-call__cmd mono">
+            <span class="ab-call__prompt" aria-hidden="true">$</span> {cmd}<span class="ab-call__caret" aria-hidden="true"></span>
+          </code>
+          <span class="ab-call__hook mono">{t(copy.hookLine)}</span>
         </div>
-      </article>
+      </div>
+    </section>
+
+    <!-- ---------- ЦЕНТР: loopback-провод с пакетом ---------- -->
+    <div class="ab-link" data-link aria-hidden="true">
+      <span class="ab-link__rail"></span>
+      <span class="ab-link__pkt" data-pkt><span class="ab-link__pkt-tag mono">callback</span></span>
+      <span class="ab-link__cap ab-link__cap--top mono">127.0.0.1<br />{t(copy.loopback)}</span>
+      <span class="ab-link__cap ab-link__cap--bot mono">{t(copy.longPoll)}</span>
     </div>
 
-    <!-- ---- Колонка «телефон»: мок Telegram ---- -->
-    <div class="ab__phone-wrap">
+    <!-- ---------- ПРАВО: телефон (мок Telegram) ---------- -->
+    <section class="ab-phone-wrap" aria-label={t({ ru: "Панель телефона", en: "Phone pane" })}>
       <div class="ab-phone" data-phone>
         <span class="ab-phone__notch" aria-hidden="true"></span>
         <div class="ab-phone__screen">
           <div class="ab-phone__bar">
-            <span class="ab-phone__dot" aria-hidden="true"></span>
+            <span class="ab-phone__avatar" aria-hidden="true">@</span>
             <span class="ab-phone__app mono">{t(copy.tgBot)}</span>
             <span class="ab-phone__net mono">{t(copy.phone)}</span>
           </div>
 
           <div class="ab-msg" data-msg>
-            <span class="ab-msg__from mono">{t(copy.daemon)}</span>
+            <span class="ab-msg__from mono">{t(copy.tgFrom)}</span>
             <code class="ab-msg__cmd mono">{cmd}</code>
             <span class="ab-msg__kind mono">{t(copy.cmdKind)}</span>
 
-            <!-- обратный отсчёт до HOOK_TIMEOUT_SECONDS -->
-            <div class="ab-count" data-count hidden>
-              <span class="ab-count__row">
-                <span class="ab-count__label mono">{t(copy.countLabel)}</span>
-                <span class="ab-count__val mono" data-count-val>90s</span>
+            <!-- Кольцо обратного отсчёта (HOOK_TIMEOUT_SECONDS) -->
+            <div class="ab-ring" data-ring hidden>
+              <span class="ab-ring__dial" aria-hidden="true">
+                <span class="ab-ring__base"></span>
+                <span class="ab-ring__half ab-ring__half--l"><i data-ring-fill-l></i></span>
+                <span class="ab-ring__half ab-ring__half--r"><i data-ring-fill-r></i></span>
+                <span class="ab-ring__num mono" data-ring-val>90</span>
               </span>
-              <span class="ab-count__track" aria-hidden="true"><i class="ab-count__fill" data-count-fill></i></span>
-              <span class="ab-count__note mono">{t(copy.countDefault)} · {t(copy.failClosed)}</span>
+              <span class="ab-ring__meta">
+                <span class="ab-ring__label mono">HOOK_TIMEOUT_SECONDS</span>
+                <span class="ab-ring__note mono">{t(copy.ringLeft)} · fail-closed → deny</span>
+              </span>
             </div>
 
             <div class="ab-msg__btns">
@@ -212,23 +221,46 @@ const modes: { id: string; hint: Bi }[] = [
               </button>
             </div>
 
-            <span class="ab-msg__status mono" data-status data-state="idle" aria-live="polite">
-              {t(copy.stIdle)}
-            </span>
+            <span class="ab-msg__status mono" data-status data-state="idle" aria-live="polite">{t(copy.stIdle)}</span>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 
-  <!-- ============ Tamper-proof seal ============ -->
-  <div class="ab__seal" data-seal-block>
-    <span class="ab-seal__label caption">{t(copy.sealLabel)}</span>
-    <div class="ab-seal__row" data-seal data-state="empty">
-      <div class="ab-seal__fields">
+  <!-- ===================== Пульт демона: режим + печать + журнал ===================== -->
+  <div class="ab__deck">
+    <!-- Сегментный переключатель режима -->
+    <div class="ab-mode-block">
+      <span class="ab-mode-block__label caption">{t(copy.modeLabel)}</span>
+      <div class="ab-seg" role="radiogroup" aria-label={t(copy.modeLabel)}>
+        <span class="ab-seg__glide" data-glide aria-hidden="true"></span>
+        {
+          modes.map((m, i) => (
+            <button
+              type="button"
+              class="ab-seg__btn"
+              role="radio"
+              data-mode={m.id}
+              aria-checked={i === 0 ? "true" : "false"}
+              style={`--i:${i}`}
+            >
+              <span class="ab-seg__id mono">{m.id}</span>
+              <span class="ab-seg__hint">{t(m.hint)}</span>
+            </button>
+          ))
+        }
+      </div>
+      <span class="ab-mode-block__daemon mono">{t(copy.daemon)} · {t(copy.daemonApi)}</span>
+    </div>
+
+    <!-- Печать ответа -->
+    <div class="ab-seal" data-seal data-state="empty">
+      <span class="ab-seal__label caption">{t(copy.sealLabel)}</span>
+      <div class="ab-seal__line mono">
         {
           sealFields.map((f, i) => (
-            <span class="ab-seal__chip mono" style={`--i:${i}`}>
+            <span class="ab-seal__chip" style={`--i:${i}`}>
               {i > 0 && <span class="ab-seal__sep" aria-hidden="true">:</span>}
               <span class="ab-seal__tok" title={t(f.note)}>{f.tok}</span>
             </span>
@@ -236,12 +268,20 @@ const modes: { id: string; hint: Bi }[] = [
         }
       </div>
       <span class="ab-seal__verdict mono" data-seal-verdict>{t(copy.sealNote)}</span>
+      <div class="ab-seal__btns">
+        <button type="button" class="ab-seal__btn" data-seal-act="replay" disabled>{t(copy.replayBtn)}</button>
+        <button type="button" class="ab-seal__btn" data-seal-act="tamper" disabled>{t(copy.tamperBtn)}</button>
+        <button type="button" class="ab-seal__btn ab-seal__btn--reset" data-seal-act="reset">{t(copy.resetBtn)}</button>
+      </div>
     </div>
-    <div class="ab-seal__btns">
-      <button type="button" class="ab-seal__btn" data-seal-act="replay" disabled>{t(copy.replayBtn)}</button>
-      <button type="button" class="ab-seal__btn" data-seal-act="tamper" disabled>{t(copy.tamperBtn)}</button>
-      <button type="button" class="ab-seal__btn ab-seal__btn--reset" data-seal-act="reset">{t(copy.resetBtn)}</button>
-    </div>
+  </div>
+
+  <!-- Журнал действий (audit-log) -->
+  <div class="ab-audit" aria-label={t({ ru: "Журнал аудита", en: "Audit log" })}>
+    <span class="ab-audit__head mono">{t(copy.auditLabel)}</span>
+    <ol class="ab-audit__list mono" data-audit>
+      <li class="ab-audit__row ab-audit__row--empty" data-audit-empty>{t(copy.auditEmpty)}</li>
+    </ol>
   </div>
 
   <p class="ab__invariant">
@@ -253,9 +293,11 @@ const modes: { id: string; hint: Bi }[] = [
 <style>
   .ab {
     --accent: var(--project-accent);
-    --ab-line: color-mix(in srgb, var(--accent) 38%, transparent);
-    --ab-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+    --ab-line: color-mix(in srgb, var(--accent) 40%, transparent);
+    --ab-soft: color-mix(in srgb, var(--accent) 13%, transparent);
+    --ab-faint: color-mix(in srgb, var(--accent) 7%, transparent);
     --ab-glow: color-mix(in srgb, var(--accent) 16%, transparent);
+    --ab-err: color-mix(in srgb, var(--state-error) 46%, transparent);
     position: relative;
     display: flex;
     flex-direction: column;
@@ -274,249 +316,291 @@ const modes: { id: string; hint: Bi }[] = [
 
   .ab__intro {
     margin: 0;
-    max-width: 64ch;
+    max-width: 66ch;
     font-size: var(--fs-16);
     line-height: var(--lh-normal);
     color: var(--text-secondary);
   }
 
-  /* ========================= Пульт ========================= */
-  .ab__stage {
+  /* ============================ Диспетчерская ============================ */
+  .ab__room {
+    position: relative;
     display: grid;
     grid-template-columns: 1fr;
-    gap: var(--sp-5);
-    padding: var(--sp-6);
+    gap: var(--sp-4);
+    padding: var(--sp-5);
     border: var(--bw-thin) solid var(--glass-edge);
     border-radius: var(--r-lg);
     background:
-      radial-gradient(120% 130% at 8% 0%, var(--ab-glow), transparent 50%),
+      radial-gradient(120% 130% at 6% 0%, var(--ab-glow), transparent 52%),
       var(--glass-tint-1);
   }
-
-  /* тонкая дотовая подложка (бренд-мотив) */
-  .ab__stage::before {
+  /* дотовая подложка — бренд-мотив */
+  .ab__room::before {
     content: "";
     position: absolute;
     inset: 0;
     border-radius: inherit;
     background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
     background-size: 26px 26px;
-    mask-image: radial-gradient(120% 100% at 50% 0%, #000 30%, transparent 92%);
-    -webkit-mask-image: radial-gradient(120% 100% at 50% 0%, #000 30%, transparent 92%);
+    mask-image: radial-gradient(120% 100% at 50% 0%, #000 28%, transparent 92%);
+    -webkit-mask-image: radial-gradient(120% 100% at 50% 0%, #000 28%, transparent 92%);
     pointer-events: none;
   }
-  .ab__stage > * {
+  .ab__room > * {
     position: relative;
     z-index: 1;
-  }
-
-  .ab__machine {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-2);
     min-width: 0;
   }
 
-  /* ---- Узлы ---- */
-  .ab-node {
-    position: relative;
+  /* ---------------------------- IDE-пане ---------------------------- */
+  .ab-ide {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-2);
-    padding: var(--sp-4);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-md);
-    background: var(--surface);
+    background: var(--bg-deep);
+    overflow: hidden;
     min-width: 0;
-    transition:
-      border-color var(--dur-med) var(--ease-standard),
-      opacity var(--dur-med) var(--ease-standard);
   }
-  .ab-node--daemon {
-    border-color: color-mix(in srgb, var(--accent) 26%, var(--border));
-  }
-  .ab-node[data-active="true"] {
-    border-color: color-mix(in srgb, var(--accent) 58%, var(--glass-edge));
-    background: var(--surface-2);
-  }
-  .ab-node[data-active="true"] .ab-node__dot {
-    background: var(--accent);
-  }
-  .ab-node[data-dim="true"] {
-    opacity: 0.5;
-  }
-
-  .ab-node__head {
+  .ab-ide__chrome {
     display: flex;
     align-items: center;
     gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
+    border-bottom: var(--bw-thin) solid var(--border);
+    background: var(--surface);
   }
-  .ab-node__title {
-    font-family: var(--font-stack-display);
-    font-weight: var(--fw-bold);
-    font-size: var(--fs-17);
-    letter-spacing: var(--ls-tight);
-    line-height: var(--lh-tight);
+  .ab-ide__lights {
+    display: inline-flex;
+    gap: 5px;
+    flex: none;
   }
-  .ab-node__sub {
-    font-size: var(--fs-13);
-    color: var(--text-muted);
-    line-height: var(--lh-snug);
+  .ab-ide__lights i {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--r-pill);
+    background: var(--surface-3);
   }
-  .ab-node__cmd {
-    align-self: flex-start;
-    font-size: var(--fs-14);
-    color: var(--text);
-    padding: var(--sp-1) var(--sp-3);
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-sm);
-    background: var(--bg-elevated);
-    word-break: break-all;
-  }
-  .ab-node__kind {
+  .ab-ide__tab {
     font-size: var(--fs-12);
-    color: var(--text-muted);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .ab-node__state {
-    font-size: var(--fs-12);
-    color: color-mix(in srgb, var(--accent) 60%, var(--text-muted));
-    min-height: 1.3em;
-    transition: color var(--dur-med) var(--ease-standard);
+  .ab-ide__badge {
+    margin-left: auto;
+    font-size: var(--fs-11);
+    color: var(--text-faint);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .ab-node--agent[data-resolved="allow"] .ab-node__state { color: var(--text); }
-  .ab-node--agent[data-resolved="deny"] .ab-node__state { color: var(--text-secondary); }
 
-  .ab-node__dot {
+  .ab-ide__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    padding: var(--sp-4);
+  }
+  .ab-ide__log {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+  .ab-ide__line {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--sp-3);
+    align-items: baseline;
+  }
+  .ab.is-inview .ab-ide__line {
+    animation: ab-type-in var(--dur-slow) var(--ease-soft) both;
+    animation-delay: calc(var(--i) * 140ms);
+  }
+  @keyframes ab-type-in {
+    from { opacity: 0; transform: translate3d(-6px, 0, 0); }
+    to { opacity: 1; transform: none; }
+  }
+  .ab-ide__gutter {
+    font-size: var(--fs-11);
+    color: var(--text-faint);
+    text-align: right;
+    min-width: 2.4em;
+  }
+  .ab-ide__txt {
+    font-size: var(--fs-13);
+    line-height: var(--lh-snug);
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+  }
+  .ab-ide__line--user .ab-ide__txt { color: var(--text); }
+  .ab-ide__line--agent .ab-ide__gutter { color: color-mix(in srgb, var(--accent) 70%, var(--text-muted)); }
+  .ab-ide__line--tool .ab-ide__txt { color: var(--text-muted); }
+
+  /* перехваченный вызов */
+  .ab-call {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--ab-line);
+    border-left: var(--bw-thick) solid var(--accent);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    transition: border-color var(--dur-med) var(--ease-standard), background-color var(--dur-med) var(--ease-standard);
+  }
+  .ab-call[data-resolved="allow"] { border-left-color: var(--accent); background: var(--ab-faint); }
+  .ab-call[data-resolved="deny"] { border-left-color: var(--text-muted); }
+  .ab-call__top {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+  .ab-call__pulse {
     width: 8px;
     height: 8px;
     flex: none;
     border-radius: var(--r-pill);
-    background: var(--text-faint);
-    transition: background-color var(--dur-med) var(--ease-standard);
+    background: var(--accent);
+    transform-origin: center;
   }
-  .ab-node__lock {
-    display: inline-flex;
-    color: var(--accent);
+  .ab.is-inview .ab-call[data-resolved=""] .ab-call__pulse {
+    animation: ab-pulse 1700ms var(--ease-drift) infinite;
+  }
+  @keyframes ab-pulse {
+    0%, 100% { opacity: 0.45; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.15); }
+  }
+  .ab-call[data-resolved="deny"] .ab-call__pulse { background: var(--text-muted); }
+  .ab-call__kind {
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+  }
+  .ab-call__wait {
+    margin-left: auto;
+    font-size: var(--fs-11);
+    color: color-mix(in srgb, var(--accent) 62%, var(--text-muted));
+    text-align: right;
+    transition: color var(--dur-med) var(--ease-standard);
+  }
+  .ab-call[data-resolved="allow"] .ab-call__wait { color: var(--text); }
+  .ab-call[data-resolved="deny"] .ab-call__wait { color: var(--text-secondary); }
+  .ab-call__cmd {
+    font-size: var(--fs-14);
+    color: var(--text);
+    overflow-wrap: anywhere;
+  }
+  .ab-call__prompt { color: var(--accent); }
+  .ab-call__caret {
+    display: inline-block;
+    width: 7px;
+    height: 1.05em;
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    background: var(--accent);
+    transform: translateY(2px);
+  }
+  .ab.is-inview .ab-call[data-resolved=""] .ab-call__caret {
+    animation: ab-blink 1080ms steps(2, jump-none) infinite;
+  }
+  @keyframes ab-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+  .ab-call[data-resolved="allow"] .ab-call__caret { opacity: 1; }
+  .ab-call[data-resolved="deny"] .ab-call__caret { opacity: 0.25; }
+  .ab-call__hook {
+    font-size: var(--fs-11);
+    color: var(--text-faint);
+    overflow-wrap: anywhere;
   }
 
-  /* ---- Провод + loopback-пакет ---- */
-  .ab-wire {
+  /* ---------------------------- Loopback-провод ---------------------------- */
+  .ab-link {
     position: relative;
-    height: 44px;
+    height: 46px;
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
   }
-  .ab-wire__line {
+  .ab-link__rail {
     position: absolute;
-    left: 50%;
-    top: 6px;
-    bottom: 6px;
-    width: 1px;
-    background: linear-gradient(to bottom, transparent, var(--ab-line), transparent);
+    left: 8%;
+    right: 8%;
+    top: 50%;
+    height: 1px;
+    transform: translateY(-50%);
+    background: linear-gradient(to right, transparent, var(--ab-line), transparent);
   }
-  .ab-wire__pkt {
+  .ab-link__pkt {
     position: absolute;
-    left: 50%;
-    top: 6px;
-    width: 8px;
-    height: 8px;
-    margin-left: -4px;
+    left: 8%;
+    top: 50%;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: var(--r-pill);
+    background: var(--ab-soft);
+    border: var(--bw-thin) solid var(--ab-line);
+    opacity: 0;
+    transform: translate(0, -50%);
+    --pkt-dist: 80%;
+  }
+  .ab-link__pkt-tag {
+    font-size: var(--fs-10);
+    color: var(--accent);
+    letter-spacing: var(--ls-wide);
+  }
+  .ab-link__pkt::before {
+    content: "";
+    width: 6px;
+    height: 6px;
     border-radius: var(--r-pill);
     background: var(--accent);
-    opacity: 0;
-    --pkt-dist: 32px;
   }
-  .ab-wire__tag {
+  /* пакет летит вправо (IDE → телефон) только при .is-inview + data-run */
+  .ab.is-inview .ab-link__pkt[data-run="right"] { animation: ab-pkt-r var(--dur-glacial) var(--ease-soft) forwards; }
+  .ab.is-inview .ab-link__pkt[data-run="left"] { animation: ab-pkt-l var(--dur-glacial) var(--ease-soft) forwards; }
+  @keyframes ab-pkt-r {
+    0% { opacity: 0; transform: translate(0, -50%) scale(0.7); }
+    15% { opacity: 1; transform: translate(8px, -50%) scale(1); }
+    85% { opacity: 1; transform: translate(var(--pkt-dist), -50%) scale(1); }
+    100% { opacity: 0; transform: translate(var(--pkt-dist), -50%) scale(0.7); }
+  }
+  @keyframes ab-pkt-l {
+    0% { opacity: 0; transform: translate(var(--pkt-dist), -50%) scale(0.7); }
+    15% { opacity: 1; transform: translate(calc(var(--pkt-dist) - 8px), -50%) scale(1); }
+    85% { opacity: 1; transform: translate(0, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(0, -50%) scale(0.7); }
+  }
+  .ab-link__cap {
     position: absolute;
-    left: calc(50% + 12px);
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: var(--fs-12);
-    color: var(--text-muted);
-    white-space: nowrap;
-  }
-  .ab-wire__tag b {
-    color: color-mix(in srgb, var(--accent) 75%, var(--text-secondary));
-    font-weight: var(--fw-semibold);
-  }
-  .ab-wire__post {
-    position: absolute;
-    right: calc(50% + 12px);
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: var(--fs-11);
+    font-size: var(--fs-10);
     color: var(--text-faint);
+    line-height: 1.25;
+    text-align: center;
     white-space: nowrap;
   }
+  .ab-link__cap--top { top: 0; left: 50%; transform: translateX(-50%); }
+  .ab-link__cap--bot { bottom: 0; left: 50%; transform: translateX(-50%); }
 
-  /* ---- Живой переключатель режима ---- */
-  .ab-modes__label {
-    margin-top: var(--sp-1);
-  }
-  .ab-modes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-2);
-  }
-  .ab-mode {
-    appearance: none;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1px;
-    min-height: var(--tap-min);
-    padding: var(--sp-2) var(--sp-3);
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-sm);
-    background: var(--surface);
-    color: var(--text-muted);
-    text-align: left;
-    cursor: pointer;
-    transition:
-      color var(--dur-fast) var(--ease-standard),
-      border-color var(--dur-fast) var(--ease-standard),
-      background-color var(--dur-fast) var(--ease-standard),
-      transform var(--dur-fast) var(--ease-soft);
-  }
-  .ab-mode:hover {
-    color: var(--text-secondary);
-    border-color: var(--border-hover);
-  }
-  .ab-mode:active {
-    transform: scale(0.97);
-  }
-  .ab-mode:focus-visible {
-    outline: var(--ring-width) solid var(--ring-focus);
-    outline-offset: 2px;
-  }
-  .ab-mode[aria-checked="true"] {
-    color: var(--text);
-    border-color: var(--ab-line);
-    background: var(--ab-soft);
-  }
-  .ab-mode__id {
-    font-size: var(--fs-14);
-    font-weight: var(--fw-semibold);
-  }
-  .ab-mode[aria-checked="true"] .ab-mode__id {
-    color: var(--accent);
-  }
-  .ab-mode__hint {
-    font-size: var(--fs-12);
-    color: var(--text-muted);
-  }
-
-  /* ========================= Телефон (мок Telegram) ========================= */
-  .ab__phone-wrap {
+  /* ---------------------------- Телефон ---------------------------- */
+  .ab-phone-wrap {
     display: flex;
     justify-content: center;
-    align-items: flex-start;
   }
   .ab-phone {
     position: relative;
     width: 100%;
-    max-width: 320px;
+    max-width: 330px;
     padding: var(--sp-2);
     border: var(--bw-thin) solid var(--glass-edge);
     border-radius: var(--r-xl);
@@ -527,7 +611,7 @@ const modes: { id: string; hint: Bi }[] = [
     top: 7px;
     left: 50%;
     transform: translateX(-50%);
-    width: 64px;
+    width: 60px;
     height: 4px;
     border-radius: var(--r-pill);
     background: var(--border-hover);
@@ -549,12 +633,18 @@ const modes: { id: string; hint: Bi }[] = [
     padding-bottom: var(--sp-2);
     border-bottom: var(--bw-thin) solid var(--border);
   }
-  .ab-phone__dot {
-    width: 7px;
-    height: 7px;
+  .ab-phone__avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
     flex: none;
     border-radius: var(--r-pill);
-    background: var(--accent);
+    background: var(--ab-soft);
+    color: var(--accent);
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-12);
   }
   .ab-phone__app {
     font-size: var(--fs-13);
@@ -567,7 +657,6 @@ const modes: { id: string; hint: Bi }[] = [
     color: var(--text-faint);
   }
 
-  /* ---- Сообщение-карточка ---- */
   .ab-msg {
     display: flex;
     flex-direction: column;
@@ -578,8 +667,10 @@ const modes: { id: string; hint: Bi }[] = [
     background: var(--surface);
     transition: border-color var(--dur-med) var(--ease-standard);
   }
-  .ab-msg[data-lit="true"] {
-    border-color: var(--ab-line);
+  .ab-msg[data-lit="true"] { border-color: var(--ab-line); }
+  .ab.is-inview .ab-msg[data-lit="true"] { animation: ab-pop var(--dur-med) var(--ease-spring); }
+  @keyframes ab-pop {
+    50% { transform: scale(1.012); }
   }
   .ab-msg__from {
     font-size: var(--fs-11);
@@ -587,65 +678,99 @@ const modes: { id: string; hint: Bi }[] = [
   }
   .ab-msg__cmd {
     align-self: flex-start;
+    max-width: 100%;
     font-size: var(--fs-14);
     color: var(--text);
     padding: var(--sp-1) var(--sp-2);
     border-radius: var(--r-xs);
     background: var(--bg-elevated);
-    word-break: break-all;
+    overflow-wrap: anywhere;
   }
   .ab-msg__kind {
     font-size: var(--fs-11);
     color: var(--text-muted);
   }
 
-  /* ---- Обратный отсчёт ---- */
-  .ab-count {
+  /* ---- Кольцо обратного отсчёта ---- */
+  .ab-ring {
     display: flex;
-    flex-direction: column;
-    gap: var(--sp-1);
+    align-items: center;
+    gap: var(--sp-3);
   }
-  .ab-count[hidden] {
-    display: none;
+  .ab-ring[hidden] { display: none; }
+  .ab-ring__dial {
+    position: relative;
+    width: 46px;
+    height: 46px;
+    flex: none;
   }
-  .ab-count__row {
+  .ab-ring__base,
+  .ab-ring__half {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--r-pill);
+  }
+  .ab-ring__base {
+    border: 3px solid var(--border);
+  }
+  /* кольцо собрано из двух полукруговых масок; прогресс — transform: rotate
+     внутреннего сектора. Анимируем только transform. */
+  .ab-ring__half {
+    overflow: hidden;
+  }
+  .ab-ring__half--l { clip-path: inset(0 50% 0 0); }
+  .ab-ring__half--r { clip-path: inset(0 0 0 50%); }
+  .ab-ring__half i {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--r-pill);
+    border: 3px solid var(--accent);
+    transform-origin: center;
+  }
+  /* стартовые позиции: оба сектора скрыты «за спиной», поворотом проявляют дугу */
+  .ab-ring__half--r i { clip-path: inset(0 0 0 50%); transform: rotate(180deg); }
+  .ab-ring__half--l i { clip-path: inset(0 50% 0 0); transform: rotate(0deg); }
+  /* при отсчёте обе дуги уезжают, открывая «съеденное» время */
+  .ab.is-inview .ab-ring[data-run="true"] .ab-ring__half--r i {
+    animation: ab-ring-r var(--ring-ms, 8000ms) linear forwards;
+  }
+  .ab.is-inview .ab-ring[data-run="true"] .ab-ring__half--l i {
+    animation: ab-ring-l var(--ring-ms, 8000ms) linear forwards;
+  }
+  /* первая половина времени съедает правый сектор, вторая — левый */
+  @keyframes ab-ring-r {
+    0% { transform: rotate(180deg); }
+    50%, 100% { transform: rotate(360deg); }
+  }
+  @keyframes ab-ring-l {
+    0%, 50% { transform: rotate(0deg); }
+    100% { transform: rotate(180deg); }
+  }
+  .ab-ring__num {
+    position: absolute;
+    inset: 0;
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--sp-2);
-  }
-  .ab-count__label {
-    font-size: var(--fs-11);
-    color: var(--text-muted);
-    letter-spacing: var(--ls-snug);
-  }
-  .ab-count__val {
+    align-items: center;
+    justify-content: center;
     font-size: var(--fs-13);
     color: var(--accent);
     font-variant-numeric: tabular-nums;
   }
-  .ab-count__track {
-    position: relative;
-    height: 4px;
-    border-radius: var(--r-pill);
-    background: var(--border);
-    overflow: hidden;
+  .ab-ring__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
   }
-  .ab-count__fill {
-    position: absolute;
-    inset: 0;
-    transform-origin: left center;
-    transform: scaleX(1);
-    border-radius: inherit;
-    background: var(--accent);
+  .ab-ring__label {
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+    letter-spacing: var(--ls-snug);
+    overflow-wrap: anywhere;
   }
-  /* Отсчёт ведёт ОДНА css-анимация (scaleX) только когда блок виден и активен;
-     её animationend → fail-closed. Длительность задаёт JS через --count-ms. */
-  .ab.is-inview .ab-count[data-run="true"] .ab-count__fill {
-    animation: ab-count-down var(--count-ms, 8000ms) linear forwards;
-  }
-  @keyframes ab-count-down {
-    to { transform: scaleX(0); }
+  .ab-ring__note {
+    font-size: var(--fs-11);
+    color: var(--text-faint);
   }
 
   /* ---- Кнопки Telegram ---- */
@@ -675,33 +800,18 @@ const modes: { id: string; hint: Bi }[] = [
       opacity var(--dur-fast) var(--ease-standard),
       transform var(--dur-fast) var(--ease-soft);
   }
-  .ab-tg:hover:not(:disabled) {
-    color: var(--text);
-    border-color: var(--border-hover);
-  }
-  .ab-tg:active:not(:disabled) {
-    transform: scale(0.96);
-  }
-  .ab-tg:focus-visible {
-    outline: var(--ring-width) solid var(--ring-focus);
-    outline-offset: 2px;
-  }
-  .ab-tg:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
-  .ab-tg--allow:not(:disabled) {
-    border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
-  }
+  .ab-tg:hover:not(:disabled) { color: var(--text); border-color: var(--border-hover); }
+  .ab-tg:active:not(:disabled) { transform: scale(0.96); }
+  .ab-tg:focus-visible { outline: var(--ring-width) solid var(--ring-focus); outline-offset: 2px; }
+  .ab-tg:disabled { opacity: 0.42; cursor: default; }
+  .ab-tg--allow:not(:disabled) { border-color: color-mix(in srgb, var(--accent) 32%, var(--border)); }
   .ab-tg[data-picked="true"] {
     color: var(--text);
     border-color: var(--accent);
     background: var(--ab-soft);
     transform: scale(1.03);
   }
-  .ab-tg[data-faded="true"] {
-    opacity: 0.28;
-  }
+  .ab-tg[data-faded="true"] { opacity: 0.26; }
 
   .ab-msg__status {
     font-size: var(--fs-12);
@@ -718,44 +828,101 @@ const modes: { id: string; hint: Bi }[] = [
   .ab-msg__status[data-state="denied"]::before,
   .ab-msg__status[data-state="timeout"]::before { content: "✕ "; color: var(--text-secondary); }
 
-  /* ========================= Tamper-proof seal ========================= */
-  .ab__seal {
+  /* ============================ Пульт демона ============================ */
+  .ab__deck {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--sp-4);
+  }
+
+  .ab-mode-block,
+  .ab-seal {
     display: flex;
     flex-direction: column;
     gap: var(--sp-3);
-    padding: var(--sp-5);
+    padding: var(--sp-4);
     border: var(--bw-thin) solid var(--glass-edge);
     border-radius: var(--r-lg);
     background: var(--glass-tint-1);
   }
-  .ab-seal__row {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-3);
-    padding: var(--sp-3) var(--sp-4);
+  .ab-mode-block__daemon {
+    font-size: var(--fs-11);
+    color: var(--text-faint);
+    overflow-wrap: anywhere;
+  }
+
+  /* ---- Сегментный свитч ---- */
+  .ab-seg {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--sp-1);
+    padding: var(--sp-1);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-md);
     background: var(--surface);
-    transition: border-color var(--dur-med) var(--ease-standard);
   }
-  .ab-seal__row[data-state="ok"] {
-    border-color: var(--ab-line);
+  /* «бегунок» — позиционируется transform: translateX по индексу выбранного */
+  .ab-seg__glide {
+    position: absolute;
+    top: var(--sp-1);
+    bottom: var(--sp-1);
+    left: var(--sp-1);
+    width: calc((100% - var(--sp-2)) / 3);
+    border-radius: var(--r-sm);
+    background: var(--ab-soft);
+    border: var(--bw-thin) solid var(--ab-line);
+    transform: translateX(calc(var(--seg, 0) * 100%));
+    transition: transform var(--dur-med) var(--ease-spring);
+    pointer-events: none;
   }
-  .ab-seal__row[data-state="replay"],
-  .ab-seal__row[data-state="tamper"] {
-    border-color: color-mix(in srgb, var(--state-error) 42%, transparent);
+  .ab-seg__btn {
+    appearance: none;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    min-height: var(--tap-min);
+    padding: var(--sp-2) var(--sp-3);
+    border: none;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--text-muted);
+    text-align: left;
+    cursor: pointer;
+    transition: color var(--dur-fast) var(--ease-standard), transform var(--dur-fast) var(--ease-soft);
   }
-  .ab-seal__row[data-state="replay"],
-  .ab-seal__row[data-state="tamper"] {
+  .ab-seg__btn:hover { color: var(--text-secondary); }
+  .ab-seg__btn:active { transform: scale(0.97); }
+  .ab-seg__btn:focus-visible { outline: var(--ring-width) solid var(--ring-focus); outline-offset: 2px; }
+  .ab-seg__btn[aria-checked="true"] { color: var(--text); }
+  .ab-seg__id {
+    font-size: var(--fs-14);
+    font-weight: var(--fw-semibold);
+  }
+  .ab-seg__btn[aria-checked="true"] .ab-seg__id { color: var(--accent); }
+  .ab-seg__hint {
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+  }
+
+  /* ---- Печать ---- */
+  .ab-seal[data-state="ok"] { border-color: var(--ab-line); }
+  .ab-seal[data-state="replay"],
+  .ab-seal[data-state="tamper"] { border-color: var(--ab-err); }
+  .ab.is-inview .ab-seal[data-state="replay"],
+  .ab.is-inview .ab-seal[data-state="tamper"] {
     animation: ab-shake var(--dur-slow) var(--ease-standard);
   }
   @keyframes ab-shake {
     0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-4px); }
-    75% { transform: translateX(4px); }
+    20% { transform: translateX(-5px); }
+    60% { transform: translateX(4px); }
+    80% { transform: translateX(-2px); }
   }
-
-  .ab-seal__fields {
+  .ab-seal__line {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -765,10 +932,7 @@ const modes: { id: string; hint: Bi }[] = [
     display: inline-flex;
     align-items: center;
   }
-  .ab-seal__sep {
-    color: var(--text-faint);
-    padding-inline: 2px;
-  }
+  .ab-seal__sep { color: var(--text-faint); padding-inline: 2px; }
   .ab-seal__tok {
     font-size: var(--fs-13);
     color: var(--text-secondary);
@@ -779,30 +943,24 @@ const modes: { id: string; hint: Bi }[] = [
     cursor: help;
     transition: color var(--dur-med) var(--ease-standard), border-color var(--dur-med) var(--ease-standard);
   }
-  .ab-seal__row[data-state="ok"] .ab-seal__tok {
-    color: var(--text);
-    border-color: var(--ab-line);
-  }
-  /* tamper: пятое поле (подпись) рвётся */
-  .ab-seal__row[data-state="tamper"] .ab-seal__chip:last-child .ab-seal__tok {
+  .ab-seal[data-state="ok"] .ab-seal__tok { color: var(--text); border-color: var(--ab-line); }
+  /* tamper рвёт hmac16 (последний), replay сжигает nonce (четвёртый) */
+  .ab-seal[data-state="tamper"] .ab-seal__chip:last-child .ab-seal__tok {
     color: var(--state-error);
-    border-color: color-mix(in srgb, var(--state-error) 50%, transparent);
+    border-color: var(--ab-err);
   }
-  /* replay: nonce уже сгорел */
-  .ab-seal__row[data-state="replay"] .ab-seal__chip:nth-child(4) .ab-seal__tok {
+  .ab-seal[data-state="replay"] .ab-seal__chip:nth-child(4) .ab-seal__tok {
     color: var(--state-error);
-    border-color: color-mix(in srgb, var(--state-error) 50%, transparent);
+    border-color: var(--ab-err);
   }
-
   .ab-seal__verdict {
     font-size: var(--fs-13);
     color: var(--text-muted);
     transition: color var(--dur-med) var(--ease-standard);
   }
-  .ab-seal__row[data-state="ok"] .ab-seal__verdict { color: var(--text); }
-  .ab-seal__row[data-state="replay"] .ab-seal__verdict,
-  .ab-seal__row[data-state="tamper"] .ab-seal__verdict { color: var(--state-error); }
-
+  .ab-seal[data-state="ok"] .ab-seal__verdict { color: var(--text); }
+  .ab-seal[data-state="replay"] .ab-seal__verdict,
+  .ab-seal[data-state="tamper"] .ab-seal__verdict { color: var(--state-error); }
   .ab-seal__btns {
     display: flex;
     flex-wrap: wrap;
@@ -819,27 +977,61 @@ const modes: { id: string; hint: Bi }[] = [
     font-family: var(--font-stack-display);
     font-size: var(--fs-13);
     cursor: pointer;
-    transition:
-      color var(--dur-fast) var(--ease-standard),
-      border-color var(--dur-fast) var(--ease-standard);
+    transition: color var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard);
   }
-  .ab-seal__btn:hover:not(:disabled) {
-    color: var(--text);
-    border-color: var(--border-hover);
-  }
-  .ab-seal__btn:focus-visible {
-    outline: var(--ring-width) solid var(--ring-focus);
-    outline-offset: 2px;
-  }
-  .ab-seal__btn:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
-  .ab-seal__btn--reset {
-    margin-left: auto;
-  }
+  .ab-seal__btn:hover:not(:disabled) { color: var(--text); border-color: var(--border-hover); }
+  .ab-seal__btn:focus-visible { outline: var(--ring-width) solid var(--ring-focus); outline-offset: 2px; }
+  .ab-seal__btn:disabled { opacity: 0.4; cursor: default; }
+  .ab-seal__btn--reset { margin-left: auto; }
 
-  /* ========================= Инвариант ========================= */
+  /* ============================ Audit-log ============================ */
+  .ab-audit {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    padding: var(--sp-3) var(--sp-4);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--bg-elevated);
+  }
+  .ab-audit__head {
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+  }
+  .ab-audit__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+    max-height: 7.5em;
+    overflow-y: auto;
+  }
+  .ab-audit__row {
+    display: flex;
+    gap: var(--sp-2);
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
+    line-height: var(--lh-snug);
+    overflow-wrap: anywhere;
+  }
+  .ab.is-inview .ab-audit__row:not(.ab-audit__row--empty) {
+    animation: ab-log-in var(--dur-med) var(--ease-soft) both;
+  }
+  @keyframes ab-log-in {
+    from { opacity: 0; transform: translate3d(-6px, 0, 0); }
+    to { opacity: 1; transform: none; }
+  }
+  .ab-audit__row--empty { color: var(--text-faint); }
+  .ab-audit__ts { color: var(--text-faint); flex: none; }
+  .ab-audit__row--allow .ab-audit__verb { color: var(--accent); }
+  .ab-audit__row--deny .ab-audit__verb,
+  .ab-audit__row--reject .ab-audit__verb { color: var(--text); }
+
+  /* ============================ Инвариант ============================ */
   .ab__invariant {
     margin: 0;
     display: flex;
@@ -857,78 +1049,120 @@ const modes: { id: string; hint: Bi }[] = [
     background: var(--accent);
   }
 
-  /* ========================= Появление под .is-inview ========================= */
+  /* ============================ Появление под .is-inview ============================ */
   @keyframes ab-rise {
-    from { opacity: 0; transform: translate3d(0, 10px, 0); }
+    from { opacity: 0; transform: translate3d(0, 12px, 0); }
     to { opacity: 1; transform: none; }
   }
-  .ab.is-inview .ab-node,
+  .ab.is-inview .ab-ide,
   .ab.is-inview .ab-phone,
-  .ab.is-inview .ab__seal {
+  .ab.is-inview .ab-mode-block,
+  .ab.is-inview .ab-seal,
+  .ab.is-inview .ab-audit {
     animation: ab-rise var(--dur-slower) var(--ease-soft) both;
   }
-  .ab.is-inview .ab-node--daemon { animation-delay: 70ms; }
-  .ab.is-inview .ab-phone { animation-delay: 140ms; }
-  .ab.is-inview .ab__seal { animation-delay: 200ms; }
+  .ab.is-inview .ab-phone { animation-delay: 90ms; }
+  .ab.is-inview .ab-mode-block { animation-delay: 150ms; }
+  .ab.is-inview .ab-seal { animation-delay: 210ms; }
+  .ab.is-inview .ab-audit { animation-delay: 270ms; }
 
-  /* loopback-пакет: летит ВНИЗ по проводу, только при .is-inview и data-run */
-  .ab.is-inview .ab-wire__pkt[data-run="true"] {
-    animation: ab-pkt var(--dur-glacial) var(--ease-standard) forwards;
-  }
-  @keyframes ab-pkt {
-    0% { transform: translate3d(0, 0, 0) scale(0.6); opacity: 0; }
-    18% { opacity: 1; transform: translate3d(0, 4px, 0) scale(1); }
-    82% { opacity: 1; transform: translate3d(0, var(--pkt-dist), 0) scale(1); }
-    100% { transform: translate3d(0, var(--pkt-dist), 0) scale(0.6); opacity: 0; }
-  }
-
-  /* ========================= Широкая раскладка ========================= */
-  @container (min-width: 720px) {
-    .ab__stage {
-      grid-template-columns: 1.15fr 0.85fr;
+  /* ============================ Широкая раскладка ============================ */
+  @container (min-width: 680px) {
+    .ab__room {
+      grid-template-columns: 1fr auto minmax(260px, 0.92fr);
+      align-items: stretch;
+      gap: var(--sp-5);
+      padding: var(--sp-6);
+    }
+    .ab-link {
+      height: auto;
+      width: 60px;
+      flex-direction: column;
+      align-self: center;
+    }
+    .ab-link__rail {
+      left: 50%;
+      right: auto;
+      top: 8%;
+      bottom: 8%;
+      width: 1px;
+      height: auto;
+      transform: translateX(-50%);
+      background: linear-gradient(to bottom, transparent, var(--ab-line), transparent);
+    }
+    .ab-link__pkt {
+      left: 50%;
+      top: 8%;
+      transform: translate(-50%, 0);
+    }
+    .ab-link__cap--top,
+    .ab-link__cap--bot {
+      writing-mode: vertical-rl;
+      white-space: nowrap;
+      left: auto;
+      transform: none;
+    }
+    .ab-link__cap--top { top: 50%; right: 0; transform: translateY(-50%); }
+    .ab-link__cap--bot { bottom: auto; top: 50%; left: 0; transform: translateY(-50%); }
+    /* вертикальный пакет: вниз = IDE→телефон */
+    .ab.is-inview .ab-link__pkt[data-run="right"] { animation: ab-pkt-d var(--dur-glacial) var(--ease-soft) forwards; }
+    .ab.is-inview .ab-link__pkt[data-run="left"] { animation: ab-pkt-u var(--dur-glacial) var(--ease-soft) forwards; }
+    .ab__deck {
+      grid-template-columns: 1fr 1fr;
       align-items: start;
-      gap: var(--sp-6);
     }
-    .ab__phone-wrap {
-      justify-content: flex-end;
-      position: sticky;
-      top: var(--sp-5);
-    }
+    .ab-phone { align-self: start; }
+  }
+  @keyframes ab-pkt-d {
+    0% { opacity: 0; transform: translate(-50%, 0) scale(0.7); }
+    15% { opacity: 1; transform: translate(-50%, 8px) scale(1); }
+    85% { opacity: 1; transform: translate(-50%, var(--pkt-dist)) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, var(--pkt-dist)) scale(0.7); }
+  }
+  @keyframes ab-pkt-u {
+    0% { opacity: 0; transform: translate(-50%, var(--pkt-dist)) scale(0.7); }
+    15% { opacity: 1; transform: translate(-50%, calc(var(--pkt-dist) - 8px)) scale(1); }
+    85% { opacity: 1; transform: translate(-50%, 8px) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, 8px) scale(0.7); }
   }
 
-  /* ========================= Reduced motion: статика, тапы живут ========================= */
+  /* ============================ Reduced motion ============================ */
   @media (prefers-reduced-motion: reduce) {
-    .ab.is-inview .ab-node,
+    .ab.is-inview .ab-ide,
     .ab.is-inview .ab-phone,
-    .ab.is-inview .ab__seal,
-    .ab.is-inview .ab-wire__pkt[data-run="true"],
-    .ab-seal__row[data-state="replay"],
-    .ab-seal__row[data-state="tamper"] {
+    .ab.is-inview .ab-mode-block,
+    .ab.is-inview .ab-seal,
+    .ab.is-inview .ab-audit,
+    .ab.is-inview .ab-ide__line,
+    .ab.is-inview .ab-audit__row,
+    .ab.is-inview .ab-call__pulse,
+    .ab.is-inview .ab-call__caret,
+    .ab.is-inview .ab-msg[data-lit="true"],
+    .ab.is-inview .ab-seal[data-state="replay"],
+    .ab.is-inview .ab-seal[data-state="tamper"],
+    .ab.is-inview .ab-link__pkt[data-run] {
       animation: none;
     }
-    .ab-count[data-run="true"] .ab-count__fill {
-      animation: none;
-      transform: scaleX(1);
-    }
-    .ab-node,
-    .ab-msg,
+    .ab-ring[data-run="true"] .ab-ring__half i { animation: none; }
+    .ab-call__caret { opacity: 1; }
+    .ab-seg__glide,
+    .ab-seal__tok,
     .ab-tg,
-    .ab-mode,
-    .ab-seal__tok {
+    .ab-seg__btn,
+    .ab-msg,
+    .ab-call {
       transition: none;
     }
   }
 </style>
 
 <script>
-  // Hands-on remote-control demo для .агенты.
-  //
-  // Никакого постоянного rAF. Единственная авто-анимация — обратный отсчёт
-  // (CSS scaleX прогресс-бара); его `animationend` срабатывает как fail-closed.
-  // Всё движение под .is-inview (IntersectionObserver). За экраном / на скрытой
-  // вкладке / на pagehide любой таймер отсчёта снимается, .is-inview убирается.
-  // Под prefers-reduced-motion движения нет — финальные читаемые состояния,
-  // но все тапы (режим, Allow/Deny, replay/tamper) работают.
+  // Диспетчерская одобрений .агенты — hands-on, никакого rAF.
+  // Единственная авто-анимация — кольцо отсчёта (CSS rotate секторов);
+  // его `animationend` = fail-closed. Всё движение под .is-inview
+  // (IntersectionObserver); за экраном / на скрытой вкладке / на pagehide
+  // таймеры снимаются. prefers-reduced-motion → статичные финальные состояния,
+  // все тапы (режим, Allow/Deny, replay/tamper, reset) живут.
   (() => {
     const root = document.querySelector<HTMLElement>("[data-ab]");
     if (!root) return;
@@ -937,76 +1171,114 @@ const modes: { id: string; hint: Bi }[] = [
     const isEn = document.documentElement.lang === "en";
 
     const txt = {
-      stIdle: isEn ? "hook paused — pick a mode" : "хук на паузе — выбери режим",
+      stIdle: isEn ? "hook paused — pick the daemon mode" : "хук на паузе — выбери режим демона",
       stWaiting: isEn ? "remote: waiting — Allow or Deny" : "remote: жду — Allow или Deny",
       stAllowed: isEn ? "allowed · command runs" : "allow · команда выполняется",
       stDenied: isEn ? "denied · command never runs" : "deny · команда не запущена",
       stTimeout: isEn ? "silence → deny (fail-closed)" : "тишина → deny (fail-closed)",
       stAutoAllow: isEn ? "readonly: auto-allow, notify only" : "readonly: авто-allow, только уведомление",
       stAutoDeny: isEn ? "standby: auto-deny, never asks" : "standby: авто-deny, не спрашивает",
-      agentIntercepted: isEn ? "intercepted by hook — awaiting decision" : "перехвачено хуком — ждёт решения",
-      agentRuns: isEn ? "running — call allowed" : "выполняется — вызов разрешён",
-      agentBlocked: isEn ? "blocked — call never ran" : "заблокировано — вызов не запущен",
-      sealNote: isEn ? "callback is signed and one-shot" : "callback подписан и одноразовый",
+      agWaiting: isEn ? "hook intercepted the call — agent waiting" : "хук перехватил вызов — агент ждёт",
+      agRuns: isEn ? "running — call allowed" : "выполняется — вызов разрешён",
+      agBlocked: isEn ? "blocked — call never ran" : "заблокировано — вызов не запущен",
+      sealNote: isEn ? "answer in Telegram — the seal forms" : "ответь в Telegram — печать сформируется",
       sealOk: isEn ? "signature matches · nonce fresh" : "подпись сходится · nonce свежий",
       sealReplay: isEn ? "nonce already spent — replay rejected" : "nonce уже сгорел — повтор отклонён",
       sealTamper: isEn ? "signature mismatch — tamper rejected" : "подпись не сходится — подделка отклонена",
+      auditEmpty: isEn ? "log empty — make a move" : "журнал пуст — сделай ход",
     };
 
-    // --- Узлы сцены ---
-    const nodeAgent = root.querySelector<HTMLElement>('[data-node="agent"]');
-    const nodeDaemon = root.querySelector<HTMLElement>('[data-node="daemon"]');
+    // audit-log: глаголы и описания
+    const A = {
+      mode: (m: string): string => (isEn ? `mode → ${m}` : `режим → ${m}`),
+      allow: isEn ? "ap.allow · command runs" : "ap.allow · команда выполнена",
+      deny: isEn ? "ap.deny · command blocked" : "ap.deny · команда заблокирована",
+      autoAllow: isEn ? "auto-allow (readonly)" : "авто-allow (readonly)",
+      autoDeny: isEn ? "auto-deny (standby)" : "авто-deny (standby)",
+      timeout: isEn ? "timeout → fail-closed deny" : "таймаут → fail-closed deny",
+      replay: isEn ? "replay rejected — nonce spent" : "повтор отклонён — nonce сгорел",
+      tamper: isEn ? "tamper rejected — bad signature" : "подделка отклонена — подпись неверна",
+      reset: isEn ? "request reset" : "запрос сброшен",
+    };
+
+    // --- DOM ---
+    const callBox = root.querySelector<HTMLElement>("[data-call]");
     const agentState = root.querySelector<HTMLElement>("[data-agent-state]");
     const pkt = root.querySelector<HTMLElement>("[data-pkt]");
-    const wire = root.querySelector<HTMLElement>(".ab-wire");
-    const modeEls = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-mode]"));
 
     const msg = root.querySelector<HTMLElement>("[data-msg]");
     const statusEl = root.querySelector<HTMLElement>("[data-status]");
     const allowBtn = root.querySelector<HTMLButtonElement>('[data-act="allow"]');
     const denyBtn = root.querySelector<HTMLButtonElement>('[data-act="deny"]');
-    const countBox = root.querySelector<HTMLElement>("[data-count]");
-    const countVal = root.querySelector<HTMLElement>("[data-count-val]");
-    const countFill = root.querySelector<HTMLElement>("[data-count-fill]");
 
-    const sealRow = root.querySelector<HTMLElement>("[data-seal]");
+    const ringBox = root.querySelector<HTMLElement>("[data-ring]");
+    const ringVal = root.querySelector<HTMLElement>("[data-ring-val]");
+    const ringFillL = root.querySelector<HTMLElement>("[data-ring-fill-l]");
+
+    const segWrap = root.querySelector<HTMLElement>(".ab-seg");
+    const glide = root.querySelector<HTMLElement>("[data-glide]");
+    const modeEls = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-mode]"));
+
+    const sealBox = root.querySelector<HTMLElement>("[data-seal]");
     const sealVerdict = root.querySelector<HTMLElement>("[data-seal-verdict]");
     const replayBtn = root.querySelector<HTMLButtonElement>('[data-seal-act="replay"]');
     const tamperBtn = root.querySelector<HTMLButtonElement>('[data-seal-act="tamper"]');
     const resetBtn = root.querySelector<HTMLButtonElement>('[data-seal-act="reset"]');
 
-    if (!statusEl || !allowBtn || !denyBtn || !sealRow) return;
+    const auditList = root.querySelector<HTMLElement>("[data-audit]");
+    const auditEmpty = root.querySelector<HTMLElement>("[data-audit-empty]");
+
+    if (!statusEl || !allowBtn || !denyBtn || !sealBox || !msg) return;
 
     let inview = false;
-    let countTimer = 0; // безопасная страховка к animationend
+    let onScreen = false;
+    let ringTimer = 0;
+    let ringTick = 0;
 
-    // Пакет летит по реальной высоте провода (а не фикс-смещению).
-    const syncPktDist = (): void => {
-      if (!pkt || !wire) return;
-      const h = wire.clientHeight;
-      if (h > 0) pkt.style.setProperty("--pkt-dist", `${Math.max(12, h - 12)}px`);
+    // --- демо-таймер: КОРОТКИЙ (8с), подписан как 90с по умолчанию ---
+    const RING_MS = 8000;
+    const RING_LABEL_S = 90;
+
+    // --- audit-log ---
+    const stamp = (): string => {
+      const d = new Date();
+      const p = (n: number): string => String(n).padStart(2, "0");
+      return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    };
+    const audit = (kind: string, text: string): void => {
+      if (!auditList) return;
+      auditEmpty?.remove();
+      const li = document.createElement("li");
+      li.className = `ab-audit__row ab-audit__row--${kind}`;
+      const ts = document.createElement("span");
+      ts.className = "ab-audit__ts mono";
+      ts.textContent = stamp();
+      const verb = document.createElement("span");
+      verb.className = "ab-audit__verb";
+      verb.textContent = text;
+      li.append(ts, verb);
+      auditList.prepend(li);
+      while (auditList.children.length > 12) auditList.lastElementChild?.remove();
     };
 
-    const firePacket = (): void => {
+    // --- loopback-пакет ---
+    const firePacket = (dir: "right" | "left"): void => {
       if (!pkt || reduce || !inview) return;
-      syncPktDist();
       pkt.removeAttribute("data-run");
-      void pkt.offsetWidth; // reflow → рестарт keyframes
-      pkt.setAttribute("data-run", "true");
+      void pkt.offsetWidth;
+      pkt.setAttribute("data-run", dir);
     };
 
+    // --- статусы / агент ---
     const setStatus = (state: string, text: string): void => {
       statusEl.setAttribute("data-state", state);
       statusEl.textContent = text;
     };
-
     const setAgent = (resolved: "" | "allow" | "deny", text: string): void => {
-      if (resolved) nodeAgent?.setAttribute("data-resolved", resolved);
-      else nodeAgent?.removeAttribute("data-resolved");
+      callBox?.setAttribute("data-resolved", resolved);
       if (agentState) agentState.textContent = text;
     };
-
-    const setButtonsEnabled = (on: boolean): void => {
+    const setTgEnabled = (on: boolean): void => {
       [allowBtn, denyBtn].forEach((b) => {
         b.disabled = !on;
         b.removeAttribute("data-picked");
@@ -1014,187 +1286,198 @@ const modes: { id: string; hint: Bi }[] = [
       });
     };
 
-    const stopCountdown = (): void => {
-      if (countTimer) {
-        window.clearTimeout(countTimer);
-        countTimer = 0;
-      }
-      if (countBox) {
-        countBox.removeAttribute("data-run");
-        countBox.hidden = true;
-      }
+    // --- кольцо отсчёта ---
+    const stopRing = (): void => {
+      if (ringTimer) { window.clearTimeout(ringTimer); ringTimer = 0; }
+      if (ringTick) { window.clearInterval(ringTick); ringTick = 0; }
+      ringBox?.removeAttribute("data-run");
+      if (ringBox) ringBox.hidden = true;
     };
-
-    // Демо-таймер: КОРОТКИЙ (8с), но подписан как 90с по умолчанию.
-    const COUNT_MS = 8000;
-    const COUNT_LABEL_S = 90;
-
-    const startCountdown = (): void => {
-      if (!countBox || !countFill) return;
-      stopCountdown();
-      if (countVal) countVal.textContent = `${COUNT_LABEL_S}s`;
-      countBox.hidden = false;
-      countBox.style.setProperty("--count-ms", `${COUNT_MS}ms`);
-      // под reduced-motion бар стоит полным, fail-closed по короткому таймауту
+    const startRing = (): void => {
+      if (!ringBox) return;
+      stopRing();
+      if (ringVal) ringVal.textContent = `${RING_LABEL_S}`;
+      ringBox.hidden = false;
+      ringBox.style.setProperty("--ring-ms", `${RING_MS}ms`);
       if (reduce || !inview) {
-        countTimer = window.setTimeout(failClosed, COUNT_MS);
+        ringTimer = window.setTimeout(failClosed, RING_MS);
         return;
       }
-      // рестарт CSS-анимации scaleX
-      void countFill.offsetWidth;
-      countBox.setAttribute("data-run", "true");
-      // страховочный таймаут чуть позже animationend
-      countTimer = window.setTimeout(failClosed, COUNT_MS + 300);
+      if (ringFillL) void ringFillL.offsetWidth;
+      ringBox.setAttribute("data-run", "true");
+      // числовой счётчик (label) тикает к 0; это не layout — только textContent
+      const startedAt = Date.now();
+      ringTick = window.setInterval(() => {
+        const frac = Math.max(0, 1 - (Date.now() - startedAt) / RING_MS);
+        if (ringVal) ringVal.textContent = `${Math.ceil(frac * RING_LABEL_S)}`;
+      }, 200);
+      ringTimer = window.setTimeout(failClosed, RING_MS + 300);
     };
-
     function failClosed(): void {
-      stopCountdown();
-      // нет ответа → deny, fail-closed
+      stopRing();
       denyBtn!.setAttribute("data-picked", "true");
       allowBtn!.setAttribute("data-faded", "true");
       allowBtn!.disabled = true;
       denyBtn!.disabled = true;
       setStatus("timeout", txt.stTimeout);
-      setAgent("deny", txt.agentBlocked);
+      setAgent("deny", txt.agBlocked);
+      firePacket("left");
       armSeal();
+      audit("deny", A.timeout);
     }
-
-    // animationend отсчёта = fail-closed (основной путь под движением).
-    countFill?.addEventListener("animationend", () => {
-      if (countBox?.getAttribute("data-run") === "true") failClosed();
+    ringFillL?.addEventListener("animationend", () => {
+      if (ringBox?.getAttribute("data-run") === "true") failClosed();
     });
 
-    // --- Печать (seal) ---
+    // --- печать ---
     const armSeal = (): void => {
-      sealRow.setAttribute("data-state", "ok");
+      sealBox.setAttribute("data-state", "ok");
       if (sealVerdict) sealVerdict.textContent = txt.sealOk;
       if (replayBtn) replayBtn.disabled = false;
       if (tamperBtn) tamperBtn.disabled = false;
-      if (msg) msg.setAttribute("data-lit", "true");
+      msg.setAttribute("data-lit", "true");
     };
     const resetSeal = (): void => {
-      sealRow.setAttribute("data-state", "empty");
+      sealBox.setAttribute("data-state", "empty");
       if (sealVerdict) sealVerdict.textContent = txt.sealNote;
       if (replayBtn) replayBtn.disabled = true;
       if (tamperBtn) tamperBtn.disabled = true;
     };
 
-    // --- Резолв запроса (вручную или авто по режиму) ---
+    // --- резолв (вручную / авто) ---
     const resolveAllow = (auto: boolean): void => {
-      stopCountdown();
+      stopRing();
       allowBtn.setAttribute("data-picked", "true");
       denyBtn.setAttribute("data-faded", "true");
       allowBtn.disabled = true;
       denyBtn.disabled = true;
       setStatus("allowed", auto ? txt.stAutoAllow : txt.stAllowed);
-      setAgent("allow", txt.agentRuns);
+      setAgent("allow", txt.agRuns);
+      firePacket("left");
       armSeal();
+      audit("allow", auto ? A.autoAllow : A.allow);
     };
     const resolveDeny = (auto: boolean): void => {
-      stopCountdown();
+      stopRing();
       denyBtn.setAttribute("data-picked", "true");
       allowBtn.setAttribute("data-faded", "true");
       allowBtn.disabled = true;
       denyBtn.disabled = true;
       setStatus("denied", auto ? txt.stAutoDeny : txt.stDenied);
-      setAgent("deny", txt.agentBlocked);
+      setAgent("deny", txt.agBlocked);
+      firePacket("left");
       armSeal();
+      audit("deny", auto ? A.autoDeny : A.deny);
     };
 
-    // Применить режим к ТОМУ ЖЕ запросу — мгновенно меняет исход.
-    const applyMode = (next: string): void => {
+    // --- применить режим к ТОМУ ЖЕ запросу ---
+    const applyMode = (next: string, log: boolean): void => {
+      const idx = modeEls.findIndex((m) => m.dataset.mode === next);
       modeEls.forEach((m) => m.setAttribute("aria-checked", m.dataset.mode === next ? "true" : "false"));
-      nodeDaemon?.setAttribute("data-active", "true");
+      if (glide && idx >= 0) glide.style.setProperty("--seg", `${idx}`);
       resetSeal();
-      if (msg) msg.removeAttribute("data-lit");
+      msg.removeAttribute("data-lit");
+      if (log) audit("mode", A.mode(next));
 
+      firePacket("right");
       if (next === "remote") {
-        // ждёт твоего тапа + обратный отсчёт
-        setButtonsEnabled(true);
+        setTgEnabled(true);
         setStatus("waiting", txt.stWaiting);
-        setAgent("", txt.agentIntercepted);
-        firePacket();
-        startCountdown();
+        setAgent("", txt.agWaiting);
+        startRing();
       } else if (next === "readonly") {
-        setButtonsEnabled(false);
-        firePacket();
+        setTgEnabled(false);
         resolveAllow(true);
       } else {
-        setButtonsEnabled(false);
-        firePacket();
+        setTgEnabled(false);
         resolveDeny(true);
       }
     };
 
-    // --- Слушатели ---
+    // --- слушатели ---
     modeEls.forEach((m) => {
-      m.addEventListener("click", () => applyMode(m.dataset.mode || "remote"));
+      m.addEventListener("click", () => applyMode(m.dataset.mode || "remote", true));
     });
+    // стрелки между сегментами (radiogroup)
+    segWrap?.addEventListener("keydown", (e) => {
+      const ke = e as KeyboardEvent;
+      if (ke.key !== "ArrowRight" && ke.key !== "ArrowLeft") return;
+      const cur = modeEls.findIndex((m) => m.getAttribute("aria-checked") === "true");
+      if (cur < 0) return;
+      e.preventDefault();
+      const dir = ke.key === "ArrowRight" ? 1 : -1;
+      const nx = (cur + dir + modeEls.length) % modeEls.length;
+      const next = modeEls[nx];
+      if (!next) return;
+      next.focus();
+      applyMode(next.dataset.mode || "remote", true);
+    });
+
     allowBtn.addEventListener("click", () => resolveAllow(false));
     denyBtn.addEventListener("click", () => resolveDeny(false));
 
     replayBtn?.addEventListener("click", () => {
-      if (sealRow.getAttribute("data-state") !== "ok") return;
-      sealRow.setAttribute("data-state", "empty");
-      void sealRow.offsetWidth;
-      sealRow.setAttribute("data-state", "replay");
+      if (sealBox.getAttribute("data-state") !== "ok") return;
+      sealBox.setAttribute("data-state", "empty");
+      void sealBox.offsetWidth;
+      sealBox.setAttribute("data-state", "replay");
       if (sealVerdict) sealVerdict.textContent = txt.sealReplay;
+      if (replayBtn) replayBtn.disabled = true;
+      if (tamperBtn) tamperBtn.disabled = true;
+      audit("reject", A.replay);
     });
     tamperBtn?.addEventListener("click", () => {
-      if (sealRow.getAttribute("data-state") !== "ok") return;
-      sealRow.setAttribute("data-state", "empty");
-      void sealRow.offsetWidth;
-      sealRow.setAttribute("data-state", "tamper");
+      if (sealBox.getAttribute("data-state") !== "ok") return;
+      sealBox.setAttribute("data-state", "empty");
+      void sealBox.offsetWidth;
+      sealBox.setAttribute("data-state", "tamper");
       if (sealVerdict) sealVerdict.textContent = txt.sealTamper;
+      if (replayBtn) replayBtn.disabled = true;
+      if (tamperBtn) tamperBtn.disabled = true;
+      audit("reject", A.tamper);
     });
     resetBtn?.addEventListener("click", () => {
-      stopCountdown();
+      stopRing();
       resetSeal();
-      setButtonsEnabled(false);
+      setTgEnabled(false);
       setStatus("idle", txt.stIdle);
-      setAgent("", txt.agentIntercepted);
-      nodeDaemon?.setAttribute("data-active", "false");
-      modeEls.forEach((m) => m.setAttribute("aria-checked", m.dataset.mode === "remote" ? "true" : "false"));
-      if (msg) msg.removeAttribute("data-lit");
+      setAgent("", txt.agWaiting);
+      msg.removeAttribute("data-lit");
+      modeEls.forEach((m) => m.setAttribute("aria-checked", "false"));
+      audit("reset", A.reset);
     });
 
-    // --- Видимость: гейт всего движения ---
+    // --- видимость: гейт движения ---
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
+          onScreen = e.isIntersecting;
           if (e.isIntersecting && !inview) {
             inview = true;
             root.classList.add("is-inview");
-            syncPktDist();
           } else if (!e.isIntersecting && inview) {
             inview = false;
             root.classList.remove("is-inview");
-            stopCountdown();
+            stopRing();
           }
         }
       },
-      { threshold: 0.25 },
+      { threshold: 0.2 },
     );
 
-    if ("ResizeObserver" in window && wire) {
-      new ResizeObserver(syncPktDist).observe(wire);
-    }
-
-    // Старт: ничего не разрешено, хук ждёт выбора режима.
-    setButtonsEnabled(false);
+    // старт: ничего не разрешено, хук ждёт выбора режима
+    setTgEnabled(false);
     setStatus("idle", txt.stIdle);
-    nodeDaemon?.setAttribute("data-active", "false");
 
     if (reduce || !("IntersectionObserver" in window)) {
-      // Финальное читаемое состояние без движения. Демонстрируем remote-исход
-      // как «застывший» кадр; тапы/переключатели по-прежнему живут.
+      // финальное читаемое состояние: remote-исход «застывшим» кадром
       root.classList.add("is-inview");
-      inview = false; // под reduced пакет/отсчёт не запускаем
+      inview = false;
       modeEls.forEach((m) => m.setAttribute("aria-checked", m.dataset.mode === "remote" ? "true" : "false"));
-      nodeDaemon?.setAttribute("data-active", "true");
-      setButtonsEnabled(true);
+      if (glide) glide.style.setProperty("--seg", "0");
+      setTgEnabled(true);
       setStatus("waiting", txt.stWaiting);
-      setAgent("", txt.agentIntercepted);
+      setAgent("", txt.agWaiting);
       return;
     }
 
@@ -1204,14 +1487,17 @@ const modes: { id: string; hint: Bi }[] = [
       if (document.hidden) {
         inview = false;
         root.classList.remove("is-inview");
-        stopCountdown();
+        stopRing();
+      } else if (onScreen && !inview) {
+        inview = true;
+        root.classList.add("is-inview");
       }
     });
 
     window.addEventListener(
       "pagehide",
       () => {
-        stopCountdown();
+        stopRing();
         io.disconnect();
       },
       { once: true },

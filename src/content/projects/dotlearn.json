@@ -71,29 +71,25 @@
   ],
   "overview": {
     "ru": [
-      "DotLearn вырос из наблюдения за рынком обучающих платформ. Они делятся на два лагеря: генераторы контента льют уроки в фиксированные шаблоны (новый вид интерактивности - только через разработчика), а интерактивные песочницы дают богатый рантайм, но возят статичную, вручную собранную программу. DotLearn занимает третью нишу - codegen-расширяемую: AI-агент вводит и новый контент, и новые типы интерактивности, потому что каждая тема это код-модуль, а не запись в базе.",
-      "Ключевой инвариант - local-first. Фронтенд обязан работать без бэкенда: SPA читает темы напрямую через import.meta.glob, гоняет sandbox в Web Workers и ходит в AI-провайдеры прямо из браузера по схеме BYOK, где ключи никогда не уходят на сервер. Открываешь localhost, и плеер работает офлайн, без аккаунтов и интернета. Код исполняется по-настоящему: SQL в sql.js, Python в Pyodide, с Monaco-редактором и шестью типами упражнений. Бэкенд на NestJS - опциональное усиление для заявок и модерации, а не обязательная зависимость.",
-      "Самое сильное решение - скилл lesson-forge, который владеет контрактом темы. Просишь агента «добавь тему по SQL JOIN», он разворачивает структуру, генерирует теорию и задачи, валидирует их против Zod-схем, прогоняет каждое gold-решение в браузерном sandbox и открывает PR. Фронт и бэк встречаются ровно в одном месте - packages/contracts: web валидирует манифесты теми же схемами, что NestJS использует для DTO, а типы выводятся через z.infer. Один источник правды, чистые мёрджи форков, единый UX для любой темы."
+      "Платформа обучения коду, где каждая тема - не строка в базе, а типобезопасный код-модуль. Поэтому AI-агент сам добавляет и новый контент, и новые виды интерактива, а код учащегося исполняется прямо в браузере: SQL через sql.js, Python через Pyodide, без сервера."
     ],
     "en": [
-      "DotLearn grew out of watching the learning-platform market. It splits into two camps: content generators pour lessons into fixed templates (a new kind of interactivity only ships through a developer), while interactive sandboxes offer a rich runtime but carry a static, hand-built curriculum. DotLearn takes the third niche - codegen-extensible: an AI agent introduces both new content and new types of interactivity, because every topic is a code module, not a database record.",
-      "The key invariant is local-first. The frontend must run without a backend: the SPA reads topics directly via import.meta.glob, runs sandboxes in Web Workers, and calls AI providers straight from the browser under a BYOK model where keys never reach a server. Open localhost and the player works offline, with no accounts and no internet. Code executes for real: SQL in sql.js, Python in Pyodide, with a Monaco editor and six exercise types. The NestJS backend is an optional enhancement for submissions and moderation, never a required dependency.",
-      "The strongest decision is the lesson-forge skill, which owns the topic contract. You ask the agent to 'add a topic on SQL JOINs', it scaffolds the structure, generates the theory and exercises, validates them against the Zod schemas, runs every gold solution in a browser sandbox, and opens a PR. Frontend and backend meet in exactly one place - packages/contracts: web validates manifests with the same schemas NestJS uses for DTOs, and types flow from z.infer. One source of truth, clean fork merges, a single UX for any topic."
+      "A platform for learning to code where every topic is not a database row but a type-safe code module. That lets an AI agent add both new content and new kinds of interactivity, while learner code runs right in the browser - SQL via sql.js, Python via Pyodide, with no server."
     ]
   },
   "metrics": [
     {
-      "value": "22",
+      "value": "330k+",
       "label": {
-        "ru": "темы: SQL, Python internals, архитектура",
-        "en": "topics: SQL, Python internals, architecture"
+        "ru": "строк в монорепо: код + контент тем",
+        "en": "lines in the monorepo: code + topic content"
       }
     },
     {
-      "value": "180k+",
+      "value": "22",
       "label": {
-        "ru": "строк в монорепо",
-        "en": "lines across the monorepo"
+        "ru": "темы в каталоге",
+        "en": "topics in the catalog"
       }
     },
     {
@@ -213,48 +209,6 @@
       "description": {
         "ru": "Заявки на темы через PR или форму, модерация в защищённой админке (TOTP, argon2, JWT) и self-hosting в Docker.",
         "en": "Topic submissions via PR or a form, moderation in a hardened admin (TOTP, argon2, JWT), and self-hosting in Docker."
-      }
-    }
-  ],
-  "engineeringChoices": [
-    {
-      "question": {
-        "ru": "Почему тема - это код, а не контент в базе?",
-        "en": "Why is a topic code, not content in a database?"
-      },
-      "answer": {
-        "ru": "Тогда AI может вводить и новый контент, и новый вид интерактивности. Манифест ссылается на кастомный sandbox только когда без него действительно нельзя, всё остальное - данные. Так темы стандартизованы, а форки сливаются без конфликтов.",
-        "en": "Because then AI can introduce both new content and a new kind of interactivity. A manifest references a custom sandbox only when truly necessary; everything else is data. That keeps topics standardized and lets forks merge without conflicts."
-      }
-    },
-    {
-      "question": {
-        "ru": "Зачем local-first, если есть бэкенд?",
-        "en": "Why local-first if there's a backend?"
-      },
-      "answer": {
-        "ru": "apps/web обязан работать без apps/api. SPA читает темы напрямую, гоняет sandbox в Web Workers и ходит в AI из браузера. Бэкенд - опциональное усиление (заявки, модерация), а не обязательная зависимость.",
-        "en": "apps/web must run without apps/api. The SPA reads topics directly, runs sandboxes in Web Workers, and calls AI from the browser. The backend is an optional enhancement (submissions, moderation), not a required dependency."
-      }
-    },
-    {
-      "question": {
-        "ru": "Где встречаются фронт и бэк?",
-        "en": "Where do frontend and backend meet?"
-      },
-      "answer": {
-        "ru": "Ровно в packages/contracts. Web валидирует манифесты теми же Zod-схемами, что NestJS использует для DTO входящих заявок, а типы выводятся через z.infer. Один источник правды на оба мира.",
-        "en": "In exactly one place: packages/contracts. Web validates manifests with the same Zod schemas NestJS uses for incoming submission DTOs, and the types flow from z.infer. One source of truth for both worlds."
-      }
-    },
-    {
-      "question": {
-        "ru": "Почему модульный монолит в монорепо?",
-        "en": "Why a modular monolith in a monorepo?"
-      },
-      "answer": {
-        "ru": "Скиллу нужно видеть всё в одном месте, а PR с темами не должны прыгать по репозиториям. Монорепо синхронизирует типы бесплатно и сохраняет local-first философию: фронт деплоится статикой отдельно от бэка.",
-        "en": "The skill needs to see everything in one place, and topic PRs shouldn't hop across repositories. A monorepo syncs types for free and preserves the local-first philosophy: the frontend deploys as static, separate from the backend."
       }
     }
   ],

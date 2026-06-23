@@ -68,29 +68,25 @@
   ],
   "overview": {
     "ru": [
-      "DotAgents вырос из реальной боли: AI-агент работает в IDE, а ты отошёл от компьютера - и сессия либо висит на approval, либо делает что-то рискованное без присмотра. Демон живёт рядом с рабочими инструментами, принимает хуки от Cursor, Claude Code и Antigravity, держит loopback-only FastAPI и шлёт в Telegram сжатый live-статус по каждой сессии - одно редактируемое сообщение с последним инструментом, изменёнными файлами и ответом агента.",
-      "Безопасность здесь - не фича, а фундамент. Рискованные shell- и MCP-вызовы блокируются до решения владельца: хук уходит в long-poll, агент реально ждёт ответа, и если его нет - таймаут срабатывает fail-closed, то есть в deny. Три режима меняют политику на лету: remote (спрашивать), readonly (авто-allow) и standby (авто-deny). Callbacks подписаны HMAC с одноразовым nonce, доступ закрыт passcode и argon2id с back-off, каждое событие пишется в audit-log, а API слушает только 127.0.0.1 за секретным заголовком. Облачного релея нет вообще: код, approvals и transcript физически не покидают машину разработчика.",
-      "Архитектура слоистая и тестируемая: модели/репозитории/сервисы поверх SQLAlchemy 2 async и Alembic, aiogram 3 с middleware-стеком (owner-only, auth-session, throttling), CLI на Typer с идемпотентным инсталлером хуков, который сохраняет чужие записи и делает .bak. Покрыто тестами на критичных путях: HMAC и nonce-replay, fail-closed хуков, long-poll approvals, TTL аутентификации, FIFO follow-up и debounce live-сообщения. Дальше по роадмапу - универсальный MCP-сервер и голосовые команды через локальный Whisper, затем ACP-канал к cursor-agent."
+      "Локальный security-first демон, который превращает Telegram в пульт управления AI-агентами в IDE (Cursor, Claude Code, Antigravity): live-статус, approve/deny рискованных вызовов и follow-up - с телефона. Канал управления уходит в Telegram, а код, approvals и transcript физически не покидают машину."
     ],
     "en": [
-      "DotAgents grew out of a real pain: an AI agent is working in the IDE, you step away from the computer, and the session either hangs on an approval or does something risky unattended. The daemon lives next to the dev tools, receives hooks from Cursor, Claude Code, and Antigravity, runs a loopback-only FastAPI, and sends a compact live status for every session to Telegram - one edited message with the latest tool, changed files, and the agent's response.",
-      "Security here isn't a feature, it's the foundation. Risky shell and MCP calls block until the owner decides: the hook goes into a long poll, the agent genuinely waits for the reply, and if there's none, the timeout fails closed - to deny. Three modes switch the policy on the fly: remote (ask), readonly (auto-allow), and standby (auto-deny). Callbacks are signed with HMAC plus a one-shot nonce, access is gated by a passcode and argon2id with back-off, every event is written to an audit log, and the API listens only on 127.0.0.1 behind a secret header. There is no cloud relay at all: code, approvals, and transcript physically never leave the developer's machine.",
-      "The architecture is layered and testable: models/repositories/services over SQLAlchemy 2 async and Alembic, aiogram 3 with a middleware stack (owner-only, auth session, throttling), and a Typer CLI with an idempotent hook installer that preserves foreign entries and writes a .bak. Tests cover the load-bearing paths: HMAC and nonce replay, hook fail-closed, the approval long poll, auth TTLs, FIFO follow-ups, and live-message debounce. Next on the roadmap: a universal MCP server and voice commands via local Whisper, then an ACP channel to cursor-agent."
+      "A local, security-first daemon that turns Telegram into a remote control for AI coding agents in your IDE (Cursor, Claude Code, Antigravity): live status, approve/deny for risky calls, and follow-ups - from your phone. The control channel goes to Telegram, while code, approvals, and transcript never leave the machine."
     ]
   },
   "metrics": [
     {
-      "value": "127.0.0.1",
-      "label": {
-        "ru": "loopback-only: код не уходит с машины",
-        "en": "loopback-only: code never leaves the machine"
-      }
-    },
-    {
-      "value": "13k",
+      "value": "19k",
       "label": {
         "ru": "строк кода",
         "en": "lines of code"
+      }
+    },
+    {
+      "value": "127.0.0.1",
+      "label": {
+        "ru": "loopback: код не уходит с машины",
+        "en": "loopback: code never leaves the machine"
       }
     },
     {
@@ -255,38 +251,6 @@
       "description": {
         "ru": "Passcode-auth, whitelist владельца, argon2id, HMAC+nonce callbacks, audit-log и API только на 127.0.0.1.",
         "en": "Passcode auth, owner whitelist, argon2id, HMAC+nonce callbacks, an audit log, and an API bound to 127.0.0.1 only."
-      }
-    }
-  ],
-  "engineeringChoices": [
-    {
-      "question": {
-        "ru": "Почему локальный демон, а не облачный релей?",
-        "en": "Why a local daemon instead of a cloud relay?"
-      },
-      "answer": {
-        "ru": "Код, shell-approvals и transcript остаются на машине разработчика. Telegram получает только управляемый канал событий, а API слушает 127.0.0.1. Нет сервера - нет утечки.",
-        "en": "Code, shell approvals, and transcript stay on the developer's machine. Telegram only receives a controlled event channel, while the API listens on 127.0.0.1. No server, no leak."
-      }
-    },
-    {
-      "question": {
-        "ru": "Что происходит, если на approval никто не ответил?",
-        "en": "What happens if no one answers an approval?"
-      },
-      "answer": {
-        "ru": "Срабатывает fail-closed: по таймауту запрос отклоняется. Безопасное поведение по умолчанию важнее удобства - агент не сделает рискованный вызов, пока его явно не разрешили.",
-        "en": "It fails closed: on timeout the request is denied. A safe default matters more than convenience - the agent won't run a risky call until it's explicitly allowed."
-      }
-    },
-    {
-      "question": {
-        "ru": "Как хук синхронно ждёт ответа из Telegram?",
-        "en": "How does the hook synchronously wait for a Telegram reply?"
-      },
-      "answer": {
-        "ru": "Хук уходит в HTTP long-poll к демону, а строка approval лежит в SQLite. Внутри одного процесса каждый ожидающий запрос держит asyncio.Event; нажатие кнопки в Telegram резолвит его по short_id, таймаут - в deny. Демон один процесс на API и бота, поэтому общий реестр в памяти безопасен.",
-        "en": "The hook makes an HTTP long-poll to the daemon while the approval row lives in SQLite. Within the single process each waiter holds an asyncio.Event; a Telegram button resolves it by short_id, a timeout resolves it to deny. The daemon is one process for both the API and the bot, so the in-memory registry is safe."
       }
     }
   ],

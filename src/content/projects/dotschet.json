@@ -65,17 +65,20 @@
   ],
   "overview": {
     "ru": [
-      "DotSchet решает проблему любого тренажёра-однодневки: им перестают пользоваться через неделю. Здесь за удержание отвечают серии дней, напоминания и рейтинг, в котором хочется подниматься. Семь типов операций - от сложения до степеней и корней - на трёх уровнях сложности, плюс отдельный режим, где ответ вводишь сам, а не выбираешь из вариантов.",
-      "Самое интересное в рейтинге: одни и те же результаты он показывает с четырёх сторон. Можно соревноваться по серии дней, по общему числу решённых задач, по точности или по взвешенным очкам, где правильный ответ на сложном уровне стоит втрое дороже, чем на лёгком (1/2/3). Серия дней растёт на +1 за день хотя бы с одним верным ответом и обнуляется, как только ты пропускаешь день.",
-      "Технически это один аккуратный процесс без лишних движущихся частей. aiogram 3, данные в PostgreSQL через async-SQLAlchemy и asyncpg, FSM-состояние в Redis с мягким фолбэком в память. Напоминания и резервные pg_dump-бэкапы крутятся в том же event loop на APScheduler, без отдельного брокера и воркера. Интерфейс полностью двуязычный и переключается на лету, а покрытие на testcontainers поднимает временный Postgres под каждый прогон."
+      "Двуязычный Telegram-тренажёр устного счёта, построенный вокруг удержания: серии дней, напоминания и рейтинг, который читает один и тот же результат с четырёх сторон - стрик, решено, точность и взвешенные очки, где сложное стоит дороже."
     ],
     "en": [
-      "DotSchet solves the problem of every throwaway trainer: people stop using it within a week. Here retention is carried by day-streaks, reminders, and a leaderboard worth climbing. Seven operation types - from addition to powers and roots - across three difficulty levels, plus a separate mode where you type the answer instead of picking from options.",
-      "The most interesting part is the leaderboard: it reads the same results four ways. You can compete on day-streak, on total problems solved, on accuracy, or on a weighted score where a correct answer on hard counts three times as much as on easy (1/2/3). The day-streak grows by +1 for each day with at least one correct answer and resets the moment you skip a day.",
-      "Technically it's a single tidy process with no spare moving parts. aiogram 3, data in PostgreSQL through async SQLAlchemy and asyncpg, FSM state in Redis with a graceful in-memory fallback. Reminders and pg_dump backups run in the same event loop on APScheduler, with no separate broker or worker. The interface is fully bilingual and switches on the fly, and the testcontainers suite spins up a throwaway Postgres for each run."
+      "A bilingual Telegram mental-math trainer built around retention: day-streaks, reminders, and a leaderboard that reads the same result four ways - streak, solved, accuracy, and a weighted score where harder problems count more."
     ]
   },
   "metrics": [
+    {
+      "value": "9k",
+      "label": {
+        "ru": "строк кода",
+        "en": "lines of code"
+      }
+    },
     {
       "value": "7",
       "label": {
@@ -84,25 +87,17 @@
       }
     },
     {
-      "value": "6k",
+      "value": "4",
       "label": {
-        "ru": "строк кода",
-        "en": "lines of code"
+        "ru": "среза одного рейтинга",
+        "en": "cuts of one leaderboard"
       }
     },
     {
-      "value": "6",
-      "unit": "мес",
+      "value": "RU/EN",
       "label": {
-        "ru": "от MVP до прод-обвязки",
-        "en": "months from MVP to production"
-      }
-    },
-    {
-      "value": "2",
-      "label": {
-        "ru": "языка с переключением на лету",
-        "en": "languages, live switch"
+        "ru": "переключение языка на лету",
+        "en": "language switch on the fly"
       }
     }
   ],
@@ -185,38 +180,6 @@
       "description": {
         "ru": "Полная локализация и переключение языка без рестарта диалога; в режиме «напиши ответ сам» примеры решаешь вводом, а не выбором.",
         "en": "Full localization and a language switch without restarting the dialog; in the type-the-answer mode you solve by entering the result, not picking it."
-      }
-    }
-  ],
-  "engineeringChoices": [
-    {
-      "question": {
-        "ru": "Почему PostgreSQL, а не SQLite?",
-        "en": "Why PostgreSQL instead of SQLite?"
-      },
-      "answer": {
-        "ru": "Проект мигрировал с SQLite на PostgreSQL ради конкурентного доступа и целостности при нескольких пользователях. Отдельный скрипт перенёс легаси-данные, сохранив внешние ключи, а pg_dump даёт надёжные бэкапы.",
-        "en": "The project migrated off SQLite to PostgreSQL for concurrent access and integrity under multiple users. A dedicated script moved legacy data while preserving foreign keys, and pg_dump provides reliable backups."
-      }
-    },
-    {
-      "question": {
-        "ru": "Почему APScheduler в процессе, а не Celery?",
-        "en": "Why in-process APScheduler instead of Celery?"
-      },
-      "answer": {
-        "ru": "Напоминания и бэкапы - простые cron-задачи. AsyncIOScheduler живёт в том же event loop бота, а расписание восстанавливается из базы при старте. Ни брокера, ни отдельного воркера.",
-        "en": "Reminders and backups are simple cron jobs. AsyncIOScheduler lives in the bot's own event loop and the schedule is rebuilt from the database on startup. No broker, no separate worker."
-      }
-    },
-    {
-      "question": {
-        "ru": "Почему рейтинг с четырьмя срезами, а не один топ?",
-        "en": "Why a four-cut leaderboard instead of one ranking?"
-      },
-      "answer": {
-        "ru": "Один топ всегда несправедлив к части игроков: марафонцу по сериям, перфекционисту по точности и любителю сложного нужны разные шкалы. Поэтому одни и те же данные сортируются четырьмя способами - стрик, решено, точность, взвешенные очки (лёгкий/средний/сложный = 1/2/3) - и каждый находит, где он первый.",
-        "en": "A single ranking is always unfair to someone: the streak marathoner, the accuracy perfectionist, and the hard-mode grinder all need different scales. So the same data is sorted four ways - streak, solved, accuracy, weighted points (easy/medium/hard = 1/2/3) - and everyone finds a board where they lead."
       }
     }
   ],

@@ -67,17 +67,20 @@
   ],
   "overview": {
     "ru": [
-      "DotWorkBot закрывает понятную задачу: свести того, кому на завтра нужны руки, с тем, кто готов выйти на разовую смену. Всё происходит в Telegram, без установки приложения. Работник проходит пошаговую регистрацию с телефоном, городом и геолокацией, работодатель публикует заказ, а админ управляет доступом и качеством. Под три роли - три набора меню и фильтров доступа.",
-      "Главное решение - вынести операционную логику из бота в отдельный taskiq-воркер. Биржа разовых смен жива ровно до тех пор, пока кто-то следит за дисциплиной: напоминает о выходе, вовремя освобождает слот неподтвердившегося работника и закрывает просроченные заказы. Эти фоновые циклы должны срабатывать ровно один раз даже при нескольких репликах, поэтому единственного лидера гарантирует Redis-лок `SET nx ex`, а сам воркер изолирован от polling-процесса.",
-      "Данные разложены по своим местам осознанно: реляционное ядро (пользователи, заказы, мульти-слотовые назначения, рейтинги) в PostgreSQL с ограничениями и индексами, эфемерные FSM, троттлинг и блокировки в Redis, фотографии заказов в S3-совместимом хранилище. Проект собран как боевой прод с первого дня: Docker Compose, миграции при старте, AES-зашифрованные бэкапы базы и бакета, и авто-деплой на VPS с откатом по health-check."
+      "Биржа разовых смен целиком в Telegram: работодатель публикует смену, работник её берёт, а отдельный taskiq-воркер сам держит «физику» биржи - напоминает о выходе, освобождает неподтвердившихся и закрывает просроченные заказы, оставаясь единственным лидером через Redis-лок."
     ],
     "en": [
-      "DotWorkBot covers a clear job: connect whoever needs hands tomorrow with whoever is ready to take a one-off shift. It all happens in Telegram, with no app install. A worker goes through step-by-step sign-up with phone, city, and geolocation, an employer posts an order, and an admin manages access and quality. Three roles get three sets of menus and access filters.",
-      "The key decision is to lift the operational logic out of the bot into a dedicated taskiq worker. A one-off shift marketplace stays alive only while someone enforces discipline: nudging about arrivals, releasing an unconfirmed worker's slot in time, and closing expired orders. These background loops must fire exactly once even with several replicas, so a Redis `SET nx ex` lock guarantees a single leader, and the worker itself is isolated from the polling process.",
-      "Data is placed deliberately: the relational core (users, orders, multi-slot assignments, ratings) in PostgreSQL with constraints and indexes, ephemeral FSM, throttling, and locks in Redis, and order photos in S3-compatible storage. The project is production-grade from day one: Docker Compose, startup migrations, AES-encrypted backups of the database and the bucket, and VPS auto-deploy with health-check rollback."
+      "A one-off shift marketplace that lives entirely in Telegram: an employer posts a shift, a worker takes it, and a dedicated taskiq worker keeps the marketplace's 'physics' running on its own - nudging arrivals, releasing no-shows, and closing expired orders as the single leader via a Redis lock."
     ]
   },
   "metrics": [
+    {
+      "value": "11k",
+      "label": {
+        "ru": "строк кода",
+        "en": "lines of code"
+      }
+    },
     {
       "value": "3",
       "label": {
@@ -86,18 +89,10 @@
       }
     },
     {
-      "value": "12k",
+      "value": "12",
       "label": {
-        "ru": "строк кода",
-        "en": "lines of code"
-      }
-    },
-    {
-      "value": "7",
-      "unit": "мес",
-      "label": {
-        "ru": "от ролей до боевого прода",
-        "en": "months from roles to production"
+        "ru": "миграций базы данных",
+        "en": "database migrations"
       }
     },
     {
@@ -274,48 +269,6 @@
       "description": {
         "ru": "Оценки работников в отдельной модели и фотографии заказов в S3-совместимом хранилище - большие бинарники вне реляционной базы.",
         "en": "Worker ratings in a dedicated model and order photos in S3-compatible storage - large binaries kept out of the relational DB."
-      }
-    }
-  ],
-  "engineeringChoices": [
-    {
-      "question": {
-        "ru": "Почему Telegram-бот, а не отдельный веб-сервис?",
-        "en": "Why a Telegram bot instead of a standalone web app?"
-      },
-      "answer": {
-        "ru": "Для разовых смен важны быстрые уведомления, низкий онбординг и привычный мобильный интерфейс. Telegram закрывает вход, меню и push-канал без отдельного приложения и установки.",
-        "en": "For one-off shifts, fast notifications, low onboarding, and a familiar mobile UI matter. Telegram covers entry, menus, and the push channel without a separate app or install."
-      }
-    },
-    {
-      "question": {
-        "ru": "Зачем PostgreSQL + Redis + MinIO для бота?",
-        "en": "Why PostgreSQL + Redis + MinIO for a bot?"
-      },
-      "answer": {
-        "ru": "Пользователи, заказы и статусы требуют нормальной реляционной модели с ограничениями и индексами; эфемерные FSM, троттлинг и блокировки лучше держать в Redis, а фотографии заказов - в S3-совместимом хранилище отдельно от базы.",
-        "en": "Users, orders, and statuses need a proper relational model with constraints and indexes; ephemeral FSM, throttling, and locks belong in Redis, while order photos fit an S3-compatible store kept out of the DB."
-      }
-    },
-    {
-      "question": {
-        "ru": "Зачем отдельный taskiq-воркер с лидер-локом?",
-        "en": "Why a separate taskiq worker with a leader-lock?"
-      },
-      "answer": {
-        "ru": "Фоновые циклы (подтверждения, закрытие заказов, бэкапы) должны выполняться ровно один раз даже при нескольких репликах. Redis-лок `SET nx ex` гарантирует единственного лидера, а воркер изолирован от polling-процесса бота.",
-        "en": "Background loops (confirmations, order closing, backups) must run exactly once even with multiple replicas. A Redis `SET nx ex` lock guarantees a single leader, and the worker is isolated from the bot's polling process."
-      }
-    },
-    {
-      "question": {
-        "ru": "Почему S3-совместимая абстракция, а не жёсткий MinIO?",
-        "en": "Why an S3-compatible abstraction instead of hard-wired MinIO?"
-      },
-      "answer": {
-        "ru": "Конфиг предпочитает `S3_*` над `MINIO_*`, поэтому один и тот же код целится в self-hosted MinIO локально или во внешний S3 в проде, и позволяет хранить офсайт-бэкапы в другом регионе.",
-        "en": "Config prefers `S3_*` over `MINIO_*`, so the same code targets self-hosted MinIO locally or external S3 in production, and lets off-site backups land in another region."
       }
     }
   ],

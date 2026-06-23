@@ -65,28 +65,12 @@
       }
     }
   ],
-  "narrative": {
-    "problem": {
-      "ru": "По логам сервера видно тысячи попыток входа по SSH/RDP, но непонятно, из каких стран и сетей идёт перебор - а проверять адреса по одному руками нереально.",
-      "en": "Server logs show thousands of SSH/RDP login attempts, but it's unclear which countries and networks the brute force comes from - and checking addresses one by one by hand is hopeless."
-    },
-    "solution": {
-      "ru": "CLI, который массово прогоняет список IP через шесть источников параллельно: геолокация, ASN и BGP-префикс, обратный DNS и репутация (AbuseIPDB, Spamhaus) - асинхронно, с семафором и ротацией прокси.",
-      "en": "A CLI that runs a list of IPs through six sources in parallel: geolocation, ASN and BGP prefix, reverse DNS, and reputation (AbuseIPDB, Spamhaus) - asynchronously, with a semaphore and proxy rotation."
-    },
-    "outcome": {
-      "ru": "Сотни адресов разбираются за один проход в TXT/JSON/CSV/HTML; движок переписан на asyncio (v2), а CLI-интерфейс при этом не изменился.",
-      "en": "Hundreds of addresses are resolved in a single pass into TXT/JSON/CSV/HTML; the engine was rewritten on asyncio (v2) while the CLI interface stayed the same."
-    }
-  },
   "overview": {
     "ru": [
-      "DotTraceIP вырос из практической задачи: по логам сервера видно тысячи попыток входа по SSH/RDP, но непонятно, из каких стран и автономных систем идёт перебор, а проверять адреса по одному руками нереально. Инструмент принимает список IP и прогоняет каждый через шесть источников: геолокацию и ASN через ip-api, BGP-префикс и имя автономной системы через Team Cymru (DNS) с HTTP-фолбэком на bgpview.io, сеть владельца через RDAP, обратный DNS и репутацию через AbuseIPDB и Spamhaus DNSBL.",
-      "Движок построен на asyncio: семафор ограничивает конкурентность, по каждому IP источники опрашиваются параллельно через asyncio.gather, а сбой одного источника не роняет остальные - его поля просто остаются дефолтными. HTTP идёт через aiohttp, блокирующие DNS/RDAP - в thread pool. Пул прокси (HTTP, SOCKS4, SOCKS5) со случайной ротацией размазывает запросы против rate-limit, креды маскируются в выводе, а если прокси запрошен, но не распарсился, HTTP-источники не уходят в прямое соединение - реальный IP не утекает. Результат пишется построчно в TXT и дополнительно в JSON, CSV или самодостаточный HTML с сортировкой по столбцам. 59 тестов на pytest-asyncio с моками aiohttp и mypy гоняются в CI на каждый push."
+      "Асинхронный CLI для массового разбора IP: по каждому адресу шесть источников - геолокация, ASN и BGP-префикс, обратный DNS и репутация (AbuseIPDB, Spamhaus) - опрашиваются параллельно через asyncio.gather. Сбой одного источника не роняет остальные, а отчёт пишется в TXT, JSON, CSV или самодостаточный HTML."
     ],
     "en": [
-      "DotTraceIP grew out of a practical task: server logs show thousands of SSH/RDP login attempts, but it's unclear which countries and autonomous systems the brute force comes from, and checking addresses one by one by hand is hopeless. The tool takes a list of IPs and runs each through six sources: geolocation and ASN via ip-api, BGP prefix and AS name via Team Cymru (DNS) with an HTTP fallback to bgpview.io, the owner network via RDAP, reverse DNS, and reputation via AbuseIPDB and the Spamhaus DNSBL.",
-      "The engine is built on asyncio: a semaphore bounds concurrency, the sources for each IP are queried in parallel via asyncio.gather, and a failure in one source doesn't take down the rest - its fields simply stay at their defaults. HTTP goes through aiohttp; blocking DNS/RDAP run in a thread pool. A proxy pool (HTTP, SOCKS4, SOCKS5) with random rotation spreads requests against rate limits, credentials are masked in the output, and if a proxy is requested but fails to parse, HTTP sources do not fall back to a direct connection - the real IP never leaks. Results are written line by line to TXT and, optionally, to JSON, CSV, or a self-contained HTML report with column sorting. 59 pytest-asyncio tests with mocked aiohttp plus mypy run in CI on every push."
+      "An async CLI for bulk IP analysis: for each address six sources - geolocation, ASN and BGP prefix, reverse DNS, and reputation (AbuseIPDB, Spamhaus) - are queried in parallel via asyncio.gather. A single failing source never breaks the rest, and the report is written to TXT, JSON, CSV, or a self-contained HTML."
     ]
   },
   "metrics": [
@@ -98,9 +82,9 @@
       }
     },
     {
-      "value": "59",
+      "value": "64",
       "label": {
-        "ru": "тестов pytest-asyncio + CI",
+        "ru": "теста pytest-asyncio + CI",
         "en": "pytest-asyncio tests + CI"
       }
     },
@@ -265,54 +249,5 @@
         "en": "HTTP/SOCKS4/SOCKS5, random pool rotation against rate limits, credential masking. On an unparseable proxy, HTTP sources don't fall back to a direct connection - the real IP never leaks."
       }
     }
-  ],
-  "engineeringChoices": [
-    {
-      "question": {
-        "ru": "Почему asyncio.gather с return_exceptions, а не отдельные try на каждый источник?",
-        "en": "Why asyncio.gather with return_exceptions instead of a try around each source?"
-      },
-      "answer": {
-        "ru": "По каждому IP источники запускаются вместе; сбойный возвращает исключение, которое ловит return_exceptions=True, а остальные поля остаются дефолтными из empty_info. Один результат собирается из всего, что ответило.",
-        "en": "Per IP the sources run together; a failing one returns an exception captured by return_exceptions=True, while the rest stay at the defaults from empty_info. One result is assembled from everything that answered."
-      },
-      "rejected": {
-        "ru": "Падать на первом сбойном источнике - тогда один таймаут DNS обнулял бы и геоданные, и репутацию по адресу.",
-        "en": "Failing on the first broken source - then a single DNS timeout would wipe out the geo data and reputation for that address too."
-      }
-    },
-    {
-      "question": {
-        "ru": "Как массовость не упирается в rate-limit источников?",
-        "en": "How does bulk scanning avoid hitting source rate limits?"
-      },
-      "answer": {
-        "ru": "Семафор ограничивает число одновременно обрабатываемых IP, пул прокси со случайной ротацией размазывает HTTP-запросы, а основной BGP-источник - Team Cymru по DNS, который почти не лимитируется; bgpview.io подключается только как фолбэк.",
-        "en": "A semaphore caps how many IPs are processed at once, a randomly rotated proxy pool spreads HTTP requests, and the primary BGP source is Team Cymru over DNS, which is barely rate-limited; bgpview.io kicks in only as a fallback."
-      }
-    },
-    {
-      "question": {
-        "ru": "Что с приватностью, когда задан прокси?",
-        "en": "What about privacy when a proxy is set?"
-      },
-      "answer": {
-        "ru": "Если прокси запрошен, но коннектор не построился, HTTP-источники не выходят в прямое соединение - реальный IP не утечёт мимо прокси; DNS/RDAP остаются best-effort. Логины и пароли прокси маскируются в выводе.",
-        "en": "If a proxy is requested but the connector fails to build, HTTP sources don't go out over a direct connection - the real IP won't leak past the proxy; DNS/RDAP stay best-effort. Proxy usernames and passwords are masked in the output."
-      },
-      "rejected": {
-        "ru": "Фолбэк в прямой коннект «чтобы хоть как-то работало» слил бы реальный IP - недопустимо для инструмента анализа адресов.",
-        "en": "Falling back to a direct connection 'just to make it work' would leak the real IP - unacceptable for an address-analysis tool."
-      }
-    }
-  ],
-  "codeSnippet": {
-    "file": "app/network.py",
-    "lang": "python",
-    "code": "async def collect(session):\n    parts = [\n        _part_reverse_dns(loop, ip),   # PTR\n        _part_rdap(loop, ip),          # owner CIDR\n    ]\n    if config.get(\"enable_spamhaus\", True):\n        parts.append(_part_spamhaus(loop, ip))\n    if config.get(\"enable_bgp\", True):\n        parts.append(_part_bgp(loop, ip, session))   # Cymru → bgpview\n    if session is not None:\n        parts.append(_part_geo(session, ip))         # ip-api\n        if config.get(\"abuseipdb_api_key\"):\n            parts.append(_part_abuseipdb(session, ip, config[\"abuseipdb_api_key\"]))\n    # один сбойный источник не роняет остальные\n    return await asyncio.gather(*parts, return_exceptions=True)",
-    "caption": {
-      "ru": "Сбор данных по одному IP: источники собираются в список и запускаются вместе через asyncio.gather. return_exceptions=True превращает сбой любого источника в значение, а не в исключение, поэтому остальные поля по адресу всё равно заполняются.",
-      "en": "Collecting data for one IP: sources are assembled into a list and run together via asyncio.gather. return_exceptions=True turns any source failure into a value rather than an exception, so the remaining fields for the address are still filled in."
-    }
-  }
+  ]
 }

@@ -2,34 +2,36 @@
 /**
  * SchetDaily.astro — сигнатурная визуализация .счёт (DotSchet).
  *
- * Язык: «табло, которое само себя переранжирует». Один и тот же результат
- * читается четырьмя срезами, и при переключении строки ФИЗИЧЕСКИ съезжают на
- * новые места (FLIP на transform). Всё проверено по репо DotSchet:
- *   - ProblemGenerator — генерит задачи под выбранный тип/уровень;
- *   - DIFFICULTY_CONFIG — уровень меняет диапазон чисел и размер набора
- *     (лёгкий 5 / средний 7 / сложный 10);
- *   - StatsService.get_top_users_by_streak / _by_solved / _by_accuracy /
- *     _by_weighted_score — четыре среза одних данных; взвешенные очки считают
- *     сложное дороже: easy/medium/hard = 1/2/3.
+ * Метафора: ТРЕНАЖЁР, в который посетитель реально играет ~20 секунд, а потом
+ * видит себя на ЖИВОМ табло. Это не степпер: нет вкладок шагов и нет «Шаг N из M».
+ * Один связный пульт: слева играешь (выбор операции и уровня → набор реальных
+ * примеров с тапаемыми вариантами ответа), справа смотришь, как твой результат
+ * падает в табло и переранжируется четырьмя срезами; снизу — серия дней.
  *
- * Шаги «проигрывателя»:
- *   1) Выбор: 7 операций × 3 уровня; уровень меняет диапазон и размер набора.
- *   2) Решение мини-сета: примеры вспыхивают верно/неверно, эти отметки
- *      кормят табло (твои «решено/попыток»).
- *   3) Табло с 4 срезами — центр всей сцены, строки переезжают на новые места.
- *   4) Серия дней: клик по дню добавляет/снимает «верный ответ»; пропуск в
- *      середине обнуляет серию; несколько подходов за день её не двигают.
+ * Что можно потыкать:
+ *   1) Выбрать 1 из 7 операций (+, −, ×, ÷, ÷ с остатком, степени, корни) и 1 из 3
+ *      уровней. Уровень меняет диапазон чисел и размер набора (лёгкий 5 / средний 7 /
+ *      сложный 10) — ровно как DIFFICULTY_CONFIG.
+ *   2) Прорешать набор: примеры считаются НАСТОЯЩИМ арифметическим значением в JS
+ *      (14 × 7 = 98), даются 3–4 варианта, тап отмечает верно/неверно на месте.
+ *   3) Табло с 4 срезами (StatsService.get_top_users_by_streak / _by_solved /
+ *      _by_accuracy / _by_weighted_score). Переключение среза ФИЗИЧЕСКИ переставляет
+ *      строки (FLIP на transform), меняет значения и подписи 1/2/3 мест; в каждом
+ *      срезе свой лидер. Взвешенные очки: easy/medium/hard = 1/2/3.
+ *   4) Серия дней: 7 ячеек. День хотя бы с одним верным ответом даёт +1; тап
+ *      выключает день (пропуск) и обнуляет серию от разрыва; несколько подходов
+ *      за день её не двигают.
  *
- * Перф-бюджет: анимируем ТОЛЬКО transform/opacity (FLIP, scaleX полос, fade
- * шагов). Ни width/height, ни box-shadow, ни filter/backdrop-filter в движении.
- * Постоянного rAF нет: автоплей ведёт одна CSS-анимация прогресс-полосы, шаг
- * двигает setTimeout, который чистится за экраном / на скрытой вкладке /
- * pagehide. Всё движение под IntersectionObserver (класс .is-inview). При
- * prefers-reduced-motion — финальное читаемое состояние без движения, а все
- * тапы/переключения/сортировка продолжают работать.
+ * Перф-бюджет: анимируем ТОЛЬКО transform/opacity (FLIP строк, scaleX полос, fade
+ * отметок). Ни width/height, ни box-shadow/filter/backdrop-filter в движении.
+ * Постоянного rAF нет: автопрогон набора ведёт цепочка setTimeout, которая чистится
+ * за экраном / на скрытой вкладке / на pagehide. Всё движение под IntersectionObserver
+ * (класс .is-inview). При prefers-reduced-motion — финальное читаемое состояние без
+ * движения, а все тапы/переключения/сортировка продолжают работать.
  *
- * Факты (как в репо, без выдумок): RU/EN на лету, aiogram 3, PostgreSQL +
- * asyncpg, Redis FSM, APScheduler в одном процессе, тесты на testcontainers.
+ * Факты (как в репо, без выдумок): ProblemGenerator, DIFFICULTY_CONFIG,
+ * StatsService.get_top_users_by_*; aiogram 3, PostgreSQL + asyncpg, Redis FSM,
+ * APScheduler в одном процессе; ~9k строк; RU/EN.
  */
 import type { Locale } from "../../../lib/i18n";
 
@@ -42,103 +44,69 @@ type Bi = { ru: string; en: string };
 const t = (b: Bi): string => b[locale];
 
 const ui = {
-  eyebrow: {
-    ru: "Тренажёр устного счёта · как он устроен",
-    en: "Mental-math trainer · how it works",
-  },
+  eyebrow: { ru: "Тренажёр устного счёта · поиграй", en: "Mental-math trainer · play it" },
   intro: {
-    ru: "Четыре шага: выбрать тип задач и уровень, прорешать набор, попасть в рейтинг и удержать серию дней. Листай по шагам — каждый объясняю отдельно, и в каждом можно потыкать.",
-    en: "Four steps: pick a problem type and level, solve a set, land on the leaderboard, and keep a day streak going. Step through them — each one is explained on its own, and each one is yours to poke.",
+    ru: "Выбери, что тренировать, прорешай набор — примеры настоящие, считаются на лету. Твой результат тут же падает в живое табло, которое можно прочитать четырьмя срезами, и в серию дней. Всё кликается.",
+    en: "Pick what to train, solve a set — the problems are real and computed live. Your result drops straight into a live leaderboard you can read four ways, and into a day streak. Everything is clickable.",
   },
-  replay: { ru: "Повторить с начала", en: "Replay from start" },
-  prev: { ru: "Назад", en: "Back" },
-  next: { ru: "Дальше", en: "Next" },
-  stepWord: { ru: "Шаг", en: "Step" },
-  ofWord: { ru: "из", en: "of" },
   facts: {
-    ru: "aiogram 3 · PostgreSQL + asyncpg · Redis FSM · APScheduler в процессе · testcontainers",
-    en: "aiogram 3 · PostgreSQL + asyncpg · Redis FSM · in-process APScheduler · testcontainers",
+    ru: "ProblemGenerator · DIFFICULTY_CONFIG · aiogram 3 · PostgreSQL + asyncpg · Redis FSM · APScheduler в процессе · ~9k строк · RU/EN",
+    en: "ProblemGenerator · DIFFICULTY_CONFIG · aiogram 3 · PostgreSQL + asyncpg · Redis FSM · in-process APScheduler · ~9k lines · RU/EN",
   },
 
-  // Шаг 1
-  s1Title: { ru: "Выбор: 7 операций и 3 уровня", en: "Pick: 7 operations, 3 levels" },
-  s1Body: {
-    ru: "Сначала выбираешь, что тренировать, и насколько сложно. Семь типов операций и три уровня — от лёгкого к сложному. Уровень меняет диапазон чисел и размер набора (лёгкий 5 / средний 7 / сложный 10), поэтому одна и та же тема растёт вместе с тобой. Тапни операцию и уровень — подпись внизу пересоберётся.",
-    en: "First you choose what to practise and how hard it should be. Seven operation types and three levels, from easy to hard. The level changes the number range and the set size (easy 5 / medium 7 / hard 10), so a single topic keeps growing with you. Tap an operation and a level — the line below rebuilds itself.",
+  // --- Тренажёр ---
+  trainerTitle: { ru: "Тренажёр", en: "Trainer" },
+  opsLabel: { ru: "Операция", en: "Operation" },
+  levelLabel: { ru: "Уровень", en: "Level" },
+  rangeWord: { ru: "диапазон", en: "range" },
+  setOf: { ru: "из", en: "of" },
+  autoplay: { ru: "Прогон", en: "Auto" },
+  reset: { ru: "Заново", en: "Reset" },
+  pickAnswer: { ru: "выбери ответ", en: "pick an answer" },
+  yourScore: { ru: "верно", en: "correct" },
+  attempts: { ru: "попыток", en: "attempts" },
+  done: { ru: "набор пройден", en: "set complete" },
+  problemOf: { ru: "пример", en: "problem" },
+  landed: {
+    ru: "результат ушёл в табло и засчитал день",
+    en: "result sent to the board, the day is counted",
   },
-  s1Ops: { ru: "Операции", en: "Operations" },
-  s1Levels: { ru: "Уровень", en: "Level" },
-  s1Range: { ru: "диапазон", en: "range" },
-  s1PickPrefix: { ru: "выбрано", en: "picked" },
 
-  // Шаг 2
-  s2Title: { ru: "Решаешь набор задач", en: "Solve a set of problems" },
-  s2Body: {
-    ru: "Под выбранный уровень собирается набор: на лёгком 5 примеров, на среднем 7, на сложном 10. Жми «прорешать» — ответы вспыхивают верными или нет, ровно одна ошибка. Именно эти отметки потом и кормят рейтинг: верных из попыток.",
-    en: "For the chosen level a set is built: 5 problems on easy, 7 on medium, 10 on hard. Hit “solve” — answers flash right or wrong, exactly one miss. Those marks are what feeds the leaderboard later: correct out of attempts.",
-  },
-  s2Set: { ru: "Набор", en: "Set" },
-  s2Solve: { ru: "Прорешать набор", en: "Solve the set" },
-  s2Reset: { ru: "Сбросить", en: "Reset" },
-  s2Idle: { ru: "набор готов — нажми «прорешать»", en: "set ready — hit “solve”" },
-  s2Feeds: { ru: "идёт в табло", en: "feeds the board" },
-
-  // Шаг 3
-  s3Title: { ru: "Один результат — четыре рейтинга", en: "One result — four leaderboards" },
-  s3Body: {
-    ru: "Если ранжировать только по числу решённых задач, побеждает тот, у кого больше времени, а не тот, кто точнее или берёт сложное. Поэтому одни и те же результаты читаются четырьмя срезами — и в каждом свой лидер. Переключай срез: строки сами переезжают на новые места.",
-    en: "Rank by solved count alone and the winner is whoever had the most time, not whoever is the most accurate or takes on the hard ones. So the same results are read through four cuts — and each cut has its own leader. Switch the cut: rows slide to their new ranks themselves.",
-  },
-  s3Hint: {
-    ru: "переключай срезы — значения и порядок мест меняются",
-    en: "switch the cuts — values and the order of places change",
-  },
+  // --- Табло ---
+  boardTitle: { ru: "Живое табло", en: "Live leaderboard" },
+  you: { ru: "ты", en: "you" },
   mStreak: { ru: "стрик", en: "streak" },
-  mStreakFull: { ru: "серия дней", en: "day streak" },
   mStreakWhy: {
     ru: "кто занимается без пропусков дольше всех",
-    en: "who has practised the longest without skipping",
+    en: "who practised the longest without skipping",
   },
   mSolved: { ru: "решено", en: "solved" },
-  mSolvedFull: { ru: "всего верных", en: "total correct" },
-  mSolvedWhy: {
-    ru: "общий объём — награда за усидчивость",
-    en: "raw volume — a reward for sticking with it",
-  },
+  mSolvedWhy: { ru: "общий объём верных ответов", en: "raw volume of correct answers" },
   mAccuracy: { ru: "точность", en: "accuracy" },
-  mAccuracyFull: { ru: "доля верных", en: "share correct" },
-  mAccuracyWhy: {
-    ru: "верных из всех попыток, в процентах",
-    en: "correct out of all attempts, as a percentage",
-  },
+  mAccuracyWhy: { ru: "верных из всех попыток, в %", en: "correct out of all attempts, %" },
   mWeighted: { ru: "очки", en: "points" },
-  mWeightedFull: { ru: "взвешенные очки", en: "weighted points" },
   mWeightedWhy: {
-    ru: "сложное весит больше: лёгкое 1 · среднее 2 · сложное 3",
+    ru: "сложное дороже: лёгкое 1 · среднее 2 · сложное 3",
     en: "harder counts more: easy 1 · medium 2 · hard 3",
   },
-  leaderWord: { ru: "лидер", en: "leader" },
 
-  // Шаг 4
-  s4Title: { ru: "Серия дней держит ритм", en: "The day streak keeps the rhythm" },
-  s4Body: {
-    ru: "Серия (стрик) — это сколько дней подряд ты занимался. Любой день хотя бы с одним верным ответом добавляет +1. Несколько подходов за один день серию не двигают, а пропуск целого дня обнуляет её. Тапай по дням: включай и выключай — текущая серия пересчитывается на глазах.",
-    en: "A streak is how many days in a row you have practised. Any day with at least one correct answer adds +1. Several sessions in one day do not move it, and skipping a whole day resets it. Tap the days on and off — the current streak recomputes live.",
+  // --- Серия дней ---
+  streakTitle: { ru: "Серия дней", en: "Day streak" },
+  last7: { ru: "Последние 7 дней", en: "Last 7 days" },
+  today: { ru: "сегодня", en: "today" },
+  legOn: { ru: "день с верным ответом", en: "day with a correct answer" },
+  legGap: { ru: "пропуск обнуляет серию", en: "a skip resets the streak" },
+  legSess: {
+    ru: "второй подход за день не двигает серию",
+    en: "a 2nd session that day does nothing",
   },
-  s4Label: { ru: "Последние 7 дней", en: "Last 7 days" },
-  s4On: { ru: "день с верным ответом", en: "day with a correct answer" },
-  s4Gap: { ru: "пропуск — серия обнуляется", en: "a skipped day resets the streak" },
-  s4Sessions: {
-    ru: "+ второй подход (день уже засчитан)",
-    en: "+ second session (day already counts)",
-  },
-  s4NowPrefix: { ru: "текущая серия", en: "current streak" },
-  s4DayUnit: { ru: "дн.", en: "d." },
-  s4Today: { ru: "сегодня", en: "today" },
+  nowStreak: { ru: "текущая серия", en: "current streak" },
+  dayUnit: { ru: "дн.", en: "d." },
 };
 
-// 7 операций — ровно как TrainingMode / ProblemGenerator.
-type Op = { id: string; glyph: string; name: Bi };
+// --- 7 операций (TrainingMode / ProblemGenerator) ---
+type OpId = "add" | "sub" | "mul" | "div" | "rem" | "pow" | "root";
+type Op = { id: OpId; glyph: string; name: Bi };
 const operations: Op[] = [
   { id: "add", glyph: "+", name: { ru: "сложение", en: "addition" } },
   { id: "sub", glyph: "−", name: { ru: "вычитание", en: "subtraction" } },
@@ -149,88 +117,25 @@ const operations: Op[] = [
   { id: "root", glyph: "√", name: { ru: "корни", en: "roots" } },
 ];
 
-// DIFFICULTY_CONFIG: уровень → диапазон чисел и размер набора.
-type Level = { id: string; name: Bi; range: string; count: number };
+// --- DIFFICULTY_CONFIG: уровень → диапазон чисел, размер набора, вес очков ---
+type LvId = "easy" | "medium" | "hard";
+type Level = { id: LvId; name: Bi; range: string; count: number; weight: number };
 const levels: Level[] = [
-  { id: "easy", name: { ru: "лёгкий", en: "easy" }, range: "2–20", count: 5 },
-  { id: "medium", name: { ru: "средний", en: "medium" }, range: "10–99", count: 7 },
-  { id: "hard", name: { ru: "сложный", en: "hard" }, range: "12–400", count: 10 },
+  { id: "easy", name: { ru: "лёгкий", en: "easy" }, range: "2–20", count: 5, weight: 1 },
+  { id: "medium", name: { ru: "средний", en: "medium" }, range: "10–99", count: 7, weight: 2 },
+  { id: "hard", name: { ru: "сложный", en: "hard" }, range: "12–400", count: 10, weight: 3 },
 ];
-// Keyed-доступ без числовых индексов (strict: noUncheckedIndexedAccess).
-const opName = (id: string): Bi => operations.find((o) => o.id === id)?.name ?? { ru: "", en: "" };
-const levelById = (id: string): Level =>
-  levels.find((l) => l.id === id) ?? { id, name: { ru: "", en: "" }, range: "", count: 0 };
 
-// Демо-наборы под уровень (×, средний — стартовый): по DIFFICULTY_CONFIG.count.
-// Ровно один пример помечается неверным — он и тянет «точность» вниз.
-type Problem = { expr: string };
-const setsByLevel: Record<string, Problem[]> = {
-  easy: [
-    { expr: "8 × 4" },
-    { expr: "6 × 7" },
-    { expr: "9 × 3" },
-    { expr: "5 × 8" },
-    { expr: "7 × 6" },
-  ],
-  medium: [
-    { expr: "14 × 6" },
-    { expr: "13 × 7" },
-    { expr: "24 × 5" },
-    { expr: "18 × 9" },
-    { expr: "12 × 12" },
-    { expr: "16 × 8" },
-    { expr: "23 × 17" },
-  ],
-  hard: [
-    { expr: "27 × 14" },
-    { expr: "34 × 19" },
-    { expr: "48 × 23" },
-    { expr: "56 × 17" },
-    { expr: "73 × 12" },
-    { expr: "29 × 31" },
-    { expr: "84 × 16" },
-    { expr: "37 × 28" },
-    { expr: "62 × 24" },
-    { expr: "91 × 13" },
-  ],
-};
-
-// Четыре среза. Лидер в каждом — РАЗНЫЙ: streak→A, solved→B, accuracy→C, weighted→A.
-type Mode = { key: string; label: Bi; full: Bi; why: Bi; unit: Bi };
+// --- Срезы табло (StatsService.get_top_users_by_*) ---
+type Mode = { key: string; label: Bi; why: Bi; unit: Bi };
 const boardModes: Mode[] = [
-  {
-    key: "streak",
-    label: ui.mStreak,
-    full: ui.mStreakFull,
-    why: ui.mStreakWhy,
-    unit: { ru: " дн.", en: " d." },
-  },
-  {
-    key: "solved",
-    label: ui.mSolved,
-    full: ui.mSolvedFull,
-    why: ui.mSolvedWhy,
-    unit: { ru: "", en: "" },
-  },
-  {
-    key: "accuracy",
-    label: ui.mAccuracy,
-    full: ui.mAccuracyFull,
-    why: ui.mAccuracyWhy,
-    unit: { ru: "%", en: "%" },
-  },
-  {
-    key: "weighted",
-    label: ui.mWeighted,
-    full: ui.mWeightedFull,
-    why: ui.mWeightedWhy,
-    unit: { ru: "", en: "" },
-  },
+  { key: "streak", label: ui.mStreak, why: ui.mStreakWhy, unit: { ru: " дн.", en: " d." } },
+  { key: "solved", label: ui.mSolved, why: ui.mSolvedWhy, unit: { ru: "", en: "" } },
+  { key: "accuracy", label: ui.mAccuracy, why: ui.mAccuracyWhy, unit: { ru: "%", en: "%" } },
+  { key: "weighted", label: ui.mWeighted, why: ui.mWeightedWhy, unit: { ru: "", en: "" } },
 ];
-const unitFor = (key: string): Bi =>
-  boardModes.find((m) => m.key === key)?.unit ?? { ru: "", en: "" };
 
-// Игроки с разными профилями + позиция в каждом срезе (для FLIP-перестановки).
+// --- Игроки. Лидер в каждом срезе РАЗНЫЙ: streak→A, solved→B, accuracy→C, weighted→A. ---
 type Player = {
   id: string;
   name: Bi;
@@ -239,413 +144,279 @@ type Player = {
   solved: number;
   accuracy: number;
   weighted: number;
-  rank: Record<string, number>;
 };
 const players: Player[] = [
-  {
-    id: "A",
-    name: { ru: "Аня", en: "Anya" },
-    streak: 41,
-    solved: 980,
-    accuracy: 92,
-    weighted: 2410,
-    rank: { streak: 1, solved: 4, accuracy: 4, weighted: 1 },
-  },
-  {
-    id: "B",
-    name: { ru: "Борис", en: "Boris" },
-    streak: 33,
-    solved: 1510,
-    accuracy: 90,
-    weighted: 2180,
-    rank: { streak: 2, solved: 1, accuracy: 3, weighted: 2 },
-  },
-  {
-    id: "C",
-    name: { ru: "Вера", en: "Vera" },
-    streak: 28,
-    solved: 870,
-    accuracy: 97,
-    weighted: 1640,
-    rank: { streak: 3, solved: 3, accuracy: 1, weighted: 3 },
-  },
-  {
-    id: "you",
-    name: { ru: "ты", en: "you" },
-    you: true,
-    streak: 4,
-    solved: 1190,
-    accuracy: 94,
-    weighted: 1980,
-    rank: { streak: 4, solved: 2, accuracy: 2, weighted: 4 },
-  },
+  { id: "A", name: { ru: "Аня", en: "Anya" }, streak: 41, solved: 980, accuracy: 92, weighted: 2410 },
+  { id: "B", name: { ru: "Борис", en: "Boris" }, streak: 33, solved: 1510, accuracy: 90, weighted: 2180 },
+  { id: "C", name: { ru: "Вера", en: "Vera" }, streak: 28, solved: 870, accuracy: 97, weighted: 1640 },
+  { id: "you", name: ui.you, you: true, streak: 4, solved: 1190, accuracy: 94, weighted: 1980 },
 ];
 
-// Серия дней: 7 ячеек. Стартовый сценарий ✓✓×(пропуск)✓✓✓✓ → текущая серия 4.
+// Серия дней: ✓✓×(пропуск)✓✓✓✓ → стартовая текущая серия 4.
 const initialDays = [true, true, false, true, true, true, true];
 
-const steps = [0, 1, 2, 3];
+// --- Стартовый выбор: умножение · средний ---
+const startOp: OpId = "mul";
+const startLevel: LvId = "medium";
 
-// Единый источник правды для скрипта (сериализуем в data-*, чтобы не дублировать
-// строки и не терять локализацию).
-const stepCopy = [
-  { title: t(ui.s1Title), body: t(ui.s1Body) },
-  { title: t(ui.s2Title), body: t(ui.s2Body) },
-  { title: t(ui.s3Title), body: t(ui.s3Body) },
-  { title: t(ui.s4Title), body: t(ui.s4Body) },
-];
-const i18nBundle = {
-  why: {
-    streak: t(ui.mStreakWhy),
-    solved: t(ui.mSolvedWhy),
-    accuracy: t(ui.mAccuracyWhy),
-    weighted: t(ui.mWeightedWhy),
-  },
-  units: {
-    streak: t(unitFor("streak")),
-    solved: t(unitFor("solved")),
-    accuracy: t(unitFor("accuracy")),
-    weighted: t(unitFor("weighted")),
-  },
-  level: Object.fromEntries(
-    levels.map((l) => [l.id, { name: t(l.name), range: l.range, count: l.count }]),
+// Бандл для скрипта (единый источник правды, без дублей строк в JS).
+const bundle = {
+  ops: Object.fromEntries(operations.map((o) => [o.id, { glyph: o.glyph, name: t(o.name) }])),
+  levels: Object.fromEntries(
+    levels.map((l) => [l.id, { name: t(l.name), range: l.range, count: l.count, weight: l.weight }]),
   ),
-  ops: Object.fromEntries(operations.map((o) => [o.id, t(o.name)])),
-  pickPrefix: t(ui.s1PickPrefix),
-  feeds: t(ui.s2Feeds),
-  leader: t(ui.leaderWord),
-  rangeWord: t(ui.s1Range),
-  idle: t(ui.s2Idle),
-  setWord: t(ui.s2Set),
-  solvedWord: t(ui.mSolved),
-  nowPrefix: t(ui.s4NowPrefix),
-  dayUnit: t(ui.s4DayUnit),
-  today: t(ui.s4Today),
+  modes: Object.fromEntries(boardModes.map((m) => [m.key, { why: t(m.why), unit: t(m.unit) }])),
+  players: players.map((p) => ({
+    id: p.id,
+    name: t(p.name),
+    you: Boolean(p.you),
+    streak: p.streak,
+    solved: p.solved,
+    accuracy: p.accuracy,
+    weighted: p.weighted,
+  })),
+  txt: {
+    rangeWord: t(ui.rangeWord),
+    setOf: t(ui.setOf),
+    pickAnswer: t(ui.pickAnswer),
+    yourScore: t(ui.yourScore),
+    attempts: t(ui.attempts),
+    done: t(ui.done),
+    problemOf: t(ui.problemOf),
+    landed: t(ui.landed),
+    you: t(ui.you),
+    nowStreak: t(ui.nowStreak),
+    dayUnit: t(ui.dayUnit),
+  },
+  start: { op: startOp, level: startLevel },
 };
-const setsJSON = Object.fromEntries(
-  Object.entries(setsByLevel).map(([k, v]) => [k, v.map((p) => p.expr)]),
-);
-
-// Стартовый выбор: умножение · средний.
-const startOp = "mul";
-const startLevel = "medium";
-const startSet = setsByLevel[startLevel] ?? [];
-const startLevelInfo = levelById(startLevel);
-const startOpName = opName(startOp);
-const startUnit = unitFor("streak");
 ---
 
-<figure
-  class="md"
-  aria-label={t(ui.eyebrow)}
-  data-md
-  data-copy={JSON.stringify(stepCopy)}
-  data-i18n={JSON.stringify(i18nBundle)}
-  data-sets={JSON.stringify(setsJSON)}
->
-  <div class="md__field" aria-hidden="true"></div>
-
-  <header class="md__intro">
-    <p class="md__eyebrow">{t(ui.eyebrow)}</p>
-    <p class="md__lead">{t(ui.intro)}</p>
+<section class="sd" data-sd data-bundle={JSON.stringify(bundle)} aria-label={t(ui.eyebrow)}>
+  <header class="sd__head">
+    <p class="sd__eyebrow">{t(ui.eyebrow)}</p>
+    <p class="sd__intro">{t(ui.intro)}</p>
   </header>
 
-  <!-- Навигация по шагам: точки-вкладки + счётчик -->
-  <div class="md__nav" role="tablist" aria-label={t(ui.eyebrow)}>
-    {
-      steps.map((n, i) => (
-        <button
-          type="button"
-          class:list={["md__tab", { "is-active": i === 0 }]}
-          role="tab"
-          aria-selected={i === 0 ? "true" : "false"}
-          aria-label={`${t(ui.stepWord)} ${n + 1}`}
-          data-go={i}
-        >
-          <span class="md__tab-num" aria-hidden="true">
-            {n + 1}
-          </span>
-          <span class="md__tab-dot" aria-hidden="true" />
-        </button>
-      ))
-    }
-    <span class="md__count" data-count aria-live="polite">
-      {t(ui.stepWord)}
-      <b data-cur>1</b>
-      {t(ui.ofWord)}
-      {steps.length}
-    </span>
-  </div>
+  <div class="sd__grid">
+    <!-- ============================ ТРЕНАЖЁР ============================ -->
+    <div class="sd__console" data-trainer>
+      <div class="sd__console-head">
+        <span class="sd__chip" aria-hidden="true">.счёт</span>
+        <h3 class="sd__panel-title">{t(ui.trainerTitle)}</h3>
+      </div>
 
-  <!-- Сцена: все шаги в DOM, активный показан (для reduced-motion видны все) -->
-  <div class="md__stage">
-    <!-- ШАГ 1 · Выбор операции и уровня -->
-    <section class="md__step" data-step="0" data-active="true" aria-label={t(ui.s1Title)}>
-      <div class="md__panel">
-        <span class="md__panel-label">{t(ui.s1Ops)}</span>
-        <div class="md__ops" role="group" aria-label={t(ui.s1Ops)} data-ops>
+      <span class="sd__label">{t(ui.opsLabel)}</span>
+      <div class="sd__ops" role="group" aria-label={t(ui.opsLabel)} data-ops>
+        {
+          operations.map((op) => (
+            <button
+              type="button"
+              class:list={["sd__op", { "is-on": op.id === startOp }]}
+              data-op={op.id}
+              aria-pressed={op.id === startOp ? "true" : "false"}
+            >
+              <span class="sd__glyph" aria-hidden="true">
+                {op.glyph}
+              </span>
+              <span class="sd__op-name">{t(op.name)}</span>
+            </button>
+          ))
+        }
+      </div>
+
+      <span class="sd__label">{t(ui.levelLabel)}</span>
+      <div class="sd__levels" role="group" aria-label={t(ui.levelLabel)} data-levels>
+        {
+          levels.map((lv) => (
+            <button
+              type="button"
+              class:list={["sd__level", { "is-on": lv.id === startLevel }]}
+              data-level={lv.id}
+              aria-pressed={lv.id === startLevel ? "true" : "false"}
+            >
+              <span class="sd__level-name">{t(lv.name)}</span>
+              <span class="sd__level-meta" aria-hidden="true">
+                {t(ui.rangeWord)} {lv.range} · {lv.count}
+              </span>
+            </button>
+          ))
+        }
+      </div>
+
+      <!-- Игровое поле: один пример + варианты ответа -->
+      <div class="sd__play" data-play>
+        <div class="sd__play-top">
+          <span class="sd__counter" data-counter aria-live="polite">
+            {t(ui.problemOf)} 1 {t(ui.setOf)} {levels[1]?.count ?? 7}
+          </span>
+          <span class="sd__track" aria-hidden="true">
+            <span class="sd__track-fill" data-track style="--p:0;"></span>
+          </span>
+        </div>
+
+        <div class="sd__question" data-question>
+          <span class="sd__expr" data-expr>—</span>
+          <span class="sd__eq" aria-hidden="true">=</span>
+          <span class="sd__ph" data-ph aria-hidden="true">?</span>
+        </div>
+
+        <div class="sd__choices" role="group" aria-label={t(ui.pickAnswer)} data-choices>
           {
-            operations.map((op) => (
-              <button
-                type="button"
-                class:list={["md__op", { "is-picked": op.id === startOp }]}
-                data-op={op.id}
-                aria-pressed={op.id === startOp ? "true" : "false"}
-              >
-                <span class="md__glyph" aria-hidden="true">
-                  {op.glyph}
+            [0, 1, 2, 3].map((k) => (
+              <button type="button" class="sd__choice" data-choice={k} hidden={k === 3}>
+                <span class="sd__choice-val" data-val>
+                  —
                 </span>
-                <span class="md__op-label">{t(op.name)}</span>
+                <span class="sd__choice-mark" aria-hidden="true" data-mark />
               </button>
             ))
           }
         </div>
 
-        <div class="md__levels">
-          <span class="md__panel-label">{t(ui.s1Levels)}</span>
-          <div class="md__level-row" role="group" aria-label={t(ui.s1Levels)} data-levels>
-            {
-              levels.map((lv) => (
-                <button
-                  type="button"
-                  class:list={["md__level", { "is-picked": lv.id === startLevel }]}
-                  data-level={lv.id}
-                  aria-pressed={lv.id === startLevel ? "true" : "false"}
-                >
-                  <span class="md__level-name">{t(lv.name)}</span>
-                  <span class="md__level-meta" aria-hidden="true">
-                    {t(ui.s1Range)} {lv.range} · {lv.count}
-                  </span>
-                </button>
-              ))
-            }
-          </div>
-        </div>
+        <p class="sd__hint" data-hint aria-live="polite">{t(ui.pickAnswer)}</p>
+      </div>
 
-        <p class="md__pick" data-pick aria-live="polite">
-          {t(ui.s1PickPrefix)}: {t(startOpName)} · {t(startLevelInfo.name)} · {t(ui.s1Range)}
-          {startLevelInfo.range} · {startLevelInfo.count}
+      <div class="sd__console-foot">
+        <div class="sd__score" aria-live="polite">
+          <b data-correct>0</b>
+          <span class="sd__score-sep">/</span>
+          <span data-tried>0</span>
+          <span class="sd__score-lbl">{t(ui.yourScore)} · {t(ui.attempts)}</span>
+        </div>
+        <div class="sd__ctl">
+          <button type="button" class="sd__btn sd__btn--accent" data-autoplay>{t(ui.autoplay)}</button>
+          <button type="button" class="sd__btn sd__btn--ghost" data-reset>{t(ui.reset)}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================ ТАБЛО ============================ -->
+    <div class="sd__console" data-board-wrap>
+      <div class="sd__console-head">
+        <span class="sd__chip" aria-hidden="true">top</span>
+        <h3 class="sd__panel-title">{t(ui.boardTitle)}</h3>
+      </div>
+
+      <div class="sd__modes" role="tablist" aria-label={t(ui.boardTitle)} data-modes>
+        {
+          boardModes.map((m, i) => (
+            <button
+              type="button"
+              class:list={["sd__mode", { "is-on": i === 0 }]}
+              role="tab"
+              aria-selected={i === 0 ? "true" : "false"}
+              data-mode={m.key}
+            >
+              {t(m.label)}
+            </button>
+          ))
+        }
+      </div>
+
+      <p class="sd__why" data-why aria-live="polite">{t(ui.mStreakWhy)}</p>
+
+      <ol class="sd__board" data-board>
+        {
+          players.map((p) => (
+            <li
+              class:list={["sd__row", { "is-you": p.you }]}
+              data-row={p.id}
+              style="--flip:0;"
+            >
+              <span class="sd__place" data-place aria-hidden="true">
+                1
+              </span>
+              <span class="sd__medal" aria-hidden="true" data-medal />
+              <span class="sd__pname">{t(p.name)}</span>
+              <span class="sd__bar" aria-hidden="true">
+                <span class="sd__bar-fill" data-fill style="--w:1;" />
+              </span>
+              <span class="sd__pval">
+                <b data-pval>0</b>
+                <span class="sd__pval-unit" data-unit />
+              </span>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+
+    <!-- ============================ СЕРИЯ ДНЕЙ ============================ -->
+    <div class="sd__console sd__console--wide" data-streak-wrap>
+      <div class="sd__console-head">
+        <span class="sd__chip" aria-hidden="true">streak</span>
+        <h3 class="sd__panel-title">{t(ui.streakTitle)}</h3>
+        <span class="sd__last7">{t(ui.last7)}</span>
+      </div>
+
+      <div class="sd__days" role="group" aria-label={t(ui.last7)} data-days>
+        {
+          initialDays.map((on, i) => (
+            <button
+              type="button"
+              class:list={["sd__day", { "is-on": on }]}
+              style={`--i:${i};`}
+              data-day={i}
+              aria-pressed={on ? "true" : "false"}
+              aria-label={`${t(ui.last7)} · ${i + 1}`}
+            >
+              <span class="sd__day-num" aria-hidden="true">
+                {i + 1}
+              </span>
+              <span class="sd__day-mark" aria-hidden="true" />
+              {i === initialDays.length - 1 ? (
+                <span class="sd__day-today" aria-hidden="true">
+                  {t(ui.today)}
+                </span>
+              ) : null}
+            </button>
+          ))
+        }
+      </div>
+
+      <div class="sd__streak-foot">
+        <ul class="sd__legend" role="list">
+          <li class="sd__leg sd__leg--on">
+            <span class="sd__leg-sw" aria-hidden="true" />
+            {t(ui.legOn)}
+          </li>
+          <li class="sd__leg sd__leg--gap">
+            <span class="sd__leg-sw" aria-hidden="true" />
+            {t(ui.legGap)}
+          </li>
+          <li class="sd__leg sd__leg--sess">{t(ui.legSess)}</li>
+        </ul>
+        <p class="sd__now" data-now aria-live="polite">
+          {t(ui.nowStreak)}: <b>4</b> {t(ui.dayUnit)}
         </p>
       </div>
-    </section>
-
-    <!-- ШАГ 2 · Решённый набор -->
-    <section class="md__step" data-step="1" aria-label={t(ui.s2Title)}>
-      <div class="md__panel">
-        <div class="md__set-head">
-          <span class="md__panel-label" data-set-label
-            >{t(ui.s2Set)} · {t(startLevelInfo.name)}</span
-          >
-          <span class="md__set-count" data-set-count>{startSet.length}</span>
-        </div>
-        <ul class="md__set" role="list" data-set>
-          {
-            startSet.map((p, i) => (
-              <li class="md__row" style={`--i:${i};`} data-row>
-                <span class="md__expr" data-expr>
-                  {p.expr}
-                </span>
-                <span class="md__mark" aria-hidden="true" data-mark />
-              </li>
-            ))
-          }
-        </ul>
-        <div class="md__set-foot">
-          <p class="md__set-stat" data-set-stat aria-live="polite">{t(ui.s2Idle)}</p>
-          <div class="md__set-ctl">
-            <button type="button" class="md__mini" data-solve>{t(ui.s2Solve)}</button>
-            <button type="button" class="md__mini md__mini--ghost" data-set-reset
-              >{t(ui.s2Reset)}</button
-            >
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ШАГ 3 · Табло: четыре среза (центр сцены) -->
-    <section class="md__step" data-step="2" aria-label={t(ui.s3Title)}>
-      <div class="md__panel">
-        <div class="md__modes" role="tablist" aria-label={t(ui.s3Title)} data-modes>
-          {
-            boardModes.map((m, i) => (
-              <button
-                type="button"
-                class:list={["md__mode", { "is-active": i === 0 }]}
-                role="tab"
-                aria-selected={i === 0 ? "true" : "false"}
-                data-mode={m.key}
-              >
-                {t(m.label)}
-              </button>
-            ))
-          }
-        </div>
-
-        <p class="md__mode-why" data-why aria-live="polite">{t(ui.mStreakWhy)}</p>
-
-        <ol class="md__board" data-board>
-          {
-            players.map((u, i) => (
-              <li
-                class:list={["md__brow", { "is-you": u.you }]}
-                data-brow={u.id}
-                data-you={u.you ? "true" : "false"}
-                data-rank-streak={u.rank.streak}
-                data-rank-solved={u.rank.solved}
-                data-rank-accuracy={u.rank.accuracy}
-                data-rank-weighted={u.rank.weighted}
-                data-v-streak={u.streak}
-                data-v-solved={u.solved}
-                data-v-accuracy={u.accuracy}
-                data-v-weighted={u.weighted}
-                style={`order:${u.rank.streak};`}
-              >
-                <span class="md__place" data-place>
-                  {u.rank.streak}
-                </span>
-                <span class="md__medal" aria-hidden="true" data-medal />
-                <span class="md__name">
-                  {t(u.name)}
-                  {u.you ? (
-                    <i class="md__youtag" aria-hidden="true">
-                      {" "}
-                      ←
-                    </i>
-                  ) : null}
-                </span>
-                <span class="md__bar" aria-hidden="true">
-                  <span class="md__bar-fill" data-fill style={`--w:${i === 0 ? 1 : 0.7};`} />
-                </span>
-                <span class="md__val" data-val>
-                  {u.streak}
-                </span>
-                <span class="md__unit" data-unit>
-                  {t(startUnit)}
-                </span>
-              </li>
-            ))
-          }
-        </ol>
-
-        <p class="md__hint">{t(ui.s3Hint)}</p>
-      </div>
-    </section>
-
-    <!-- ШАГ 4 · Серия дней -->
-    <section class="md__step" data-step="3" aria-label={t(ui.s4Title)}>
-      <div class="md__panel">
-        <span class="md__panel-label">{t(ui.s4Label)}</span>
-        <div class="md__days" role="group" aria-label={t(ui.s4Label)} data-days>
-          {
-            initialDays.map((on, i) => (
-              <button
-                type="button"
-                class:list={["md__day", { "is-on": on }]}
-                style={`--i:${i};`}
-                data-day={i}
-                aria-pressed={on ? "true" : "false"}
-                aria-label={`${t(ui.s4Label)} · ${i + 1}`}
-              >
-                <span class="md__day-num" aria-hidden="true">
-                  {i + 1}
-                </span>
-                <span class="md__day-mark" aria-hidden="true" />
-                {i === initialDays.length - 1 ? (
-                  <span class="md__day-today" aria-hidden="true">
-                    {t(ui.s4Today)}
-                  </span>
-                ) : null}
-              </button>
-            ))
-          }
-        </div>
-        <ul class="md__legend" role="list">
-          <li class="md__leg md__leg--on">
-            <span class="md__leg-swatch" aria-hidden="true"></span>{t(ui.s4On)}
-          </li>
-          <li class="md__leg md__leg--gap">
-            <span class="md__leg-swatch" aria-hidden="true"></span>{t(ui.s4Gap)}
-          </li>
-          <li class="md__leg md__leg--sess">{t(ui.s4Sessions)}</li>
-        </ul>
-        <p class="md__now" data-now aria-live="polite">{t(ui.s4NowPrefix)}: 4 {t(ui.s4DayUnit)}</p>
-      </div>
-    </section>
+    </div>
   </div>
 
-  <!-- Объяснение текущего шага -->
-  <div class="md__explain" data-explain>
-    <h3 class="md__title" data-title>{t(ui.s1Title)}</h3>
-    <p class="md__body" data-text>{t(ui.s1Body)}</p>
-  </div>
-
-  <!-- Управление -->
-  <div class="md__controls">
-    <button type="button" class="md__btn" data-prev>
-      <span aria-hidden="true">←</span>
-      {t(ui.prev)}
-    </button>
-    <span class="md__progress" aria-hidden="true">
-      <span class="md__progress-fill" data-progress></span>
-    </span>
-    <button type="button" class="md__btn" data-next>
-      {t(ui.next)}
-      <span aria-hidden="true">→</span>
-    </button>
-    <button type="button" class="md__btn md__btn--replay" data-replay>
-      <span aria-hidden="true">↺</span>
-      {t(ui.replay)}
-    </button>
-  </div>
-
-  <p class="md__facts">{t(ui.facts)}</p>
-</figure>
+  <p class="sd__facts">{t(ui.facts)}</p>
+</section>
 
 <style>
-  .md {
+  .sd {
+    --a: var(--project-accent);
+    --a-line: color-mix(in srgb, var(--a) 36%, transparent);
+    --a-soft: color-mix(in srgb, var(--a) 12%, transparent);
+    --a-faint: color-mix(in srgb, var(--a) 7%, transparent);
+    --a-glow: color-mix(in srgb, var(--a) 16%, transparent);
     position: relative;
-    margin: 0;
-    padding: var(--sp-6);
-    border: var(--bw-thin) solid var(--glass-edge);
-    border-radius: var(--r-lg);
-    background: var(--glass-tint-liquid);
-    overflow: hidden;
-    color: var(--text);
-    isolation: isolate;
     display: flex;
     flex-direction: column;
     gap: var(--sp-5);
     container-type: inline-size;
   }
 
-  /* Тонкая сетка-поле на фоне; цвет — лишь намёк акцентом. */
-  .md__field {
-    position: absolute;
-    inset: -2px;
-    z-index: -1;
-    background-image:
-      radial-gradient(
-        circle at 16% 22%,
-        color-mix(in oklab, var(--project-accent) 13%, transparent),
-        transparent 62%
-      ),
-      linear-gradient(transparent 95%, var(--border) 95%),
-      linear-gradient(90deg, transparent 95%, var(--border) 95%);
-    background-size:
-      100% 100%,
-      30px 30px,
-      30px 30px;
-    opacity: 0.5;
-  }
-
-  /* ---------- Интро ---------- */
-  .md__intro {
+  .sd__head {
     display: flex;
     flex-direction: column;
     gap: var(--sp-2);
-    margin: 0;
   }
-  .md__eyebrow {
+  .sd__eyebrow {
     margin: 0;
     font-family: var(--font-stack-mono);
     font-size: var(--fs-12);
@@ -653,201 +424,162 @@ const startUnit = unitFor("streak");
     text-transform: uppercase;
     color: var(--text-muted);
   }
-  .md__lead {
+  .sd__intro {
     margin: 0;
-    font-size: var(--fs-15);
+    font-size: var(--fs-16);
     line-height: var(--lh-normal);
     color: var(--text-secondary);
-    max-width: 62ch;
+    max-width: 66ch;
   }
 
-  /* ---------- Навигация по шагам ---------- */
-  .md__nav {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-2);
-    flex-wrap: wrap;
+  /* ------------------------ Раскладка пульта ------------------------ */
+  .sd__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--sp-4);
   }
-  .md__tab {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--sp-2);
-    min-height: 36px;
-    padding: var(--sp-1) var(--sp-3);
-    font: inherit;
-    color: var(--text-muted);
-    background: transparent;
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-pill);
-    cursor: pointer;
-    transition:
-      color var(--dur-fast) var(--ease-standard),
-      border-color var(--dur-fast) var(--ease-standard);
-  }
-  .md__tab:hover {
-    color: var(--text-secondary);
-    border-color: var(--border-hover);
-  }
-  .md__tab-num {
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
-    font-variant-numeric: tabular-nums;
-  }
-  .md__tab-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: var(--r-pill);
-    background: var(--text-faint);
-    transition: transform var(--dur-med) var(--ease-soft);
-  }
-  .md__tab.is-active {
-    color: var(--text);
-    border-color: color-mix(in oklab, var(--project-accent) 55%, var(--border));
-  }
-  .md__tab.is-active .md__tab-dot {
-    background: var(--project-accent);
-    transform: scale(1.25);
-  }
-  .md__tab:focus-visible {
-    outline: var(--ring-width) solid var(--ring-focus);
-    outline-offset: 2px;
-  }
-  .md__count {
-    margin-left: auto;
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
-    color: var(--text-muted);
-  }
-  .md__count b {
-    color: var(--text);
-    font-weight: var(--fw-semibold);
+  @container (min-width: 720px) {
+    .sd__grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .sd__console--wide {
+      grid-column: 1 / -1;
+    }
   }
 
-  /* ---------- Сцена: один шаг показан ---------- */
-  .md__stage {
-    position: relative;
-    min-height: 248px;
-  }
-  .md__step {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    transform: translateY(8px);
-    pointer-events: none;
-    visibility: hidden;
-    transition:
-      opacity var(--dur-slow) var(--ease-soft),
-      transform var(--dur-slow) var(--ease-soft);
-  }
-  .md__step[data-active="true"] {
-    position: relative;
-    opacity: 1;
-    transform: none;
-    pointer-events: auto;
-    visibility: visible;
-  }
-
-  .md__panel {
+  .sd__console {
     display: flex;
     flex-direction: column;
     gap: var(--sp-3);
-    padding: var(--sp-4);
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-md);
-    background: color-mix(in oklab, var(--surface) 60%, transparent);
+    padding: var(--sp-5);
+    border: var(--bw-thin) solid var(--glass-edge);
+    border-radius: var(--r-xl);
+    background:
+      radial-gradient(130% 130% at 0% 0%, var(--a-glow), transparent 52%),
+      var(--glass-tint-frost);
+    box-shadow: var(--shadow-2);
+    min-width: 0;
   }
 
-  .md__panel-label {
+  .sd__console-head {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    flex-wrap: wrap;
+  }
+  .sd__chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px var(--sp-2);
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
+    font-size: var(--fs-11);
+    letter-spacing: var(--ls-snug);
+    color: var(--a);
+    border: var(--bw-thin) solid var(--a-line);
+    border-radius: var(--r-pill);
+    background: var(--a-faint);
+  }
+  .sd__panel-title {
+    margin: 0;
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-bold);
+    font-size: var(--fs-20);
+    letter-spacing: var(--ls-tight);
+    color: var(--text);
+  }
+  .sd__last7 {
+    margin-left: auto;
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
+
+  .sd__label {
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-11);
     letter-spacing: var(--ls-wide);
     text-transform: uppercase;
     color: var(--text-muted);
   }
 
-  /* ---------- Шаг 1 · операции/уровни ---------- */
-  .md__ops {
+  /* ------------------------ Операции ------------------------ */
+  .sd__ops {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: var(--sp-2);
   }
-  @container (min-width: 520px) {
-    .md__ops {
+  @container (min-width: 420px) {
+    .sd__ops {
       grid-template-columns: repeat(4, 1fr);
     }
   }
-  .md__op {
+  .sd__op {
     display: flex;
     align-items: center;
     gap: var(--sp-2);
     min-height: var(--tap-min);
-    padding: var(--sp-2) var(--sp-3);
+    padding: var(--sp-1) var(--sp-2);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-sm);
     background: var(--surface);
     cursor: pointer;
     text-align: left;
     transition:
-      border-color var(--dur-med) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard),
       transform var(--dur-fast) var(--ease-soft);
   }
-  .md__op:hover {
+  .sd__op:hover {
     border-color: var(--border-hover);
   }
-  .md__op:active {
-    transform: scale(0.97);
+  .sd__op:active {
+    transform: scale(0.96);
   }
-  .md__op:focus-visible {
+  .sd__op:focus-visible {
     outline: var(--ring-width) solid var(--ring-focus);
     outline-offset: 2px;
   }
-  .md__op.is-picked {
-    border-color: color-mix(in oklab, var(--project-accent) 60%, var(--border));
-    background: color-mix(in oklab, var(--project-accent) 9%, var(--surface));
+  .sd__op.is-on {
+    border-color: var(--a-line);
+    background: color-mix(in srgb, var(--a) 9%, var(--surface));
   }
-  .md__glyph {
+  .sd__glyph {
     flex: none;
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     display: grid;
     place-items: center;
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-16);
-    color: var(--project-accent);
-    border: var(--bw-thin) solid color-mix(in oklab, var(--project-accent) 40%, var(--border));
+    font-size: var(--fs-15);
+    color: var(--a);
+    border: var(--bw-thin) solid color-mix(in srgb, var(--a) 40%, var(--border));
     border-radius: var(--r-xs);
-    background: color-mix(in oklab, var(--project-accent) 8%, transparent);
+    background: var(--a-faint);
   }
-  .md__op-label {
-    font-size: var(--fs-13);
+  .sd__op-name {
+    font-size: var(--fs-12);
     color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .md__op.is-picked .md__op-label {
+  .sd__op.is-on .sd__op-name {
     color: var(--text);
   }
 
-  .md__levels {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-2);
-    margin-top: var(--sp-1);
-  }
-  .md__level-row {
+  /* ------------------------ Уровни ------------------------ */
+  .sd__levels {
     display: flex;
     gap: var(--sp-2);
     flex-wrap: wrap;
   }
-  .md__level {
+  .sd__level {
     flex: 1;
-    min-width: 104px;
+    min-width: 96px;
     min-height: var(--tap-min);
     display: flex;
     flex-direction: column;
     gap: 2px;
-    align-items: flex-start;
     justify-content: center;
     padding: var(--sp-2) var(--sp-3);
     color: var(--text-muted);
@@ -857,173 +589,280 @@ const startUnit = unitFor("streak");
     cursor: pointer;
     text-align: left;
     transition:
-      border-color var(--dur-med) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard),
       color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard),
       transform var(--dur-fast) var(--ease-soft);
   }
-  .md__level:hover {
+  .sd__level:hover {
     border-color: var(--border-hover);
   }
-  .md__level:active {
-    transform: scale(0.97);
+  .sd__level:active {
+    transform: scale(0.96);
   }
-  .md__level:focus-visible {
+  .sd__level:focus-visible {
     outline: var(--ring-width) solid var(--ring-focus);
     outline-offset: 2px;
   }
-  .md__level-name {
+  .sd__level-name {
     font-family: var(--font-stack-mono);
     font-size: var(--fs-13);
   }
-  .md__level-meta {
+  .sd__level-meta {
     font-family: var(--font-stack-mono);
     font-size: var(--fs-11);
     color: var(--text-faint);
   }
-  .md__level.is-picked {
+  .sd__level.is-on {
     color: var(--text);
-    border-color: color-mix(in oklab, var(--project-accent) 60%, var(--border));
-    background: color-mix(in oklab, var(--project-accent) 9%, var(--surface));
+    border-color: var(--a-line);
+    background: color-mix(in srgb, var(--a) 9%, var(--surface));
   }
-  .md__level.is-picked .md__level-meta {
+  .sd__level.is-on .sd__level-meta {
     color: var(--text-muted);
-  }
-  .md__pick {
-    margin: 0;
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
-    color: color-mix(in oklab, var(--project-accent) 70%, var(--text-secondary));
   }
 
-  /* ---------- Шаг 2 · набор ---------- */
-  .md__set-head {
+  /* ------------------------ Игровое поле ------------------------ */
+  .sd__play {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
+    flex-direction: column;
     gap: var(--sp-3);
+    padding: var(--sp-4);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-lg);
+    background:
+      radial-gradient(120% 130% at 50% 0%, var(--a-soft), transparent 55%),
+      var(--surface);
   }
-  .md__set-count {
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
-    color: var(--text-muted);
-  }
-  .md__set {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--sp-2);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  @container (min-width: 520px) {
-    .md__set {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-  .md__row {
+  .sd__play-top {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: var(--sp-3);
-    padding: var(--sp-2) var(--sp-3);
+  }
+  .sd__counter {
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .sd__track {
+    flex: 1;
+    height: 4px;
+    border-radius: var(--r-pill);
+    background: var(--surface-3);
+    overflow: hidden;
+  }
+  .sd__track-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--a-line), var(--a));
+    transform: scaleX(var(--p, 0));
+    transform-origin: left center;
+    transition: transform var(--dur-slow) var(--ease-soft);
+  }
+
+  .sd__question {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: var(--sp-3);
+    padding: var(--sp-3) 0;
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-bold);
+    letter-spacing: var(--ls-tight);
+  }
+  .sd__expr {
+    font-size: var(--fs-32);
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+    text-align: center;
+  }
+  .sd__eq {
+    font-size: var(--fs-24);
+    color: var(--text-muted);
+  }
+  .sd__ph {
+    font-size: var(--fs-32);
+    color: var(--a);
+    min-width: 1.2ch;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .sd__question.is-wrong .sd__ph {
+    color: var(--text-secondary);
+  }
+
+  .sd__choices {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--sp-2);
+  }
+  @container (min-width: 420px) {
+    .sd__choices {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+  .sd__choice {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--tap-min);
+    padding: var(--sp-2);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-sm);
-    background: var(--surface);
+    background: var(--bg-elevated);
+    cursor: pointer;
     font-family: var(--font-stack-mono);
-    transition: border-color var(--dur-med) var(--ease-standard);
-  }
-  .md__expr {
-    font-size: var(--fs-15);
-    color: var(--text);
-  }
-  .md__mark {
-    flex: none;
-    width: 1.2em;
-    text-align: center;
-    font-size: var(--fs-15);
-    opacity: 0;
-    transform: scale(0.6);
     transition:
-      opacity var(--dur-med) var(--ease-soft),
-      transform var(--dur-med) var(--ease-spring);
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard),
+      opacity var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-soft);
   }
-  .md__row.is-correct {
-    border-color: color-mix(in oklab, var(--project-accent) 32%, var(--border));
+  .sd__choice[hidden] {
+    display: none;
   }
-  .md__row.is-correct .md__mark {
-    color: var(--project-accent);
+  .sd__choice:hover:not(:disabled) {
+    border-color: var(--border-hover);
+  }
+  .sd__choice:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+  .sd__choice:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  .sd__choice:disabled {
+    cursor: default;
+  }
+  .sd__choice-val {
+    font-size: var(--fs-17);
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .sd__choice-mark {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    font-size: var(--fs-11);
+    line-height: 1;
+    opacity: 0;
+    transform: scale(0.4);
+    transition:
+      opacity var(--dur-fast) var(--ease-soft),
+      transform var(--dur-fast) var(--ease-spring);
+  }
+  .sd__choice.is-correct {
+    border-color: var(--a-line);
+    background: color-mix(in srgb, var(--a) 14%, var(--bg-elevated));
+  }
+  .sd__choice.is-correct .sd__choice-mark {
+    color: var(--a);
     opacity: 1;
     transform: none;
   }
-  .md__row.is-wrong {
-    border-color: color-mix(in oklab, var(--state-warn) 30%, var(--border));
+  .sd__choice.is-wrong {
+    border-color: color-mix(in srgb, var(--state-warn) 32%, var(--border));
+    opacity: 0.72;
   }
-  .md__row.is-wrong .md__mark {
+  .sd__choice.is-wrong .sd__choice-mark {
     color: var(--text-muted);
     opacity: 1;
     transform: none;
   }
-  .md__set-foot {
+  .sd__choice.is-faded {
+    opacity: 0.4;
+  }
+
+  .sd__hint {
+    margin: 0;
+    font-size: var(--fs-13);
+    color: var(--text-muted);
+    min-height: 1.4em;
+  }
+  .sd__hint.is-good {
+    color: color-mix(in srgb, var(--a) 70%, var(--text-secondary));
+  }
+
+  .sd__console-foot {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--sp-3);
     flex-wrap: wrap;
   }
-  .md__set-stat {
-    margin: 0;
-    font-size: var(--fs-14);
-    color: var(--text-secondary);
+  .sd__score {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--sp-1);
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-16);
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
   }
-  .md__set-stat b {
-    color: var(--project-accent);
+  .sd__score b {
+    color: var(--a);
     font-weight: var(--fw-semibold);
   }
-  .md__set-ctl {
+  .sd__score-sep {
+    color: var(--text-faint);
+  }
+  .sd__score-lbl {
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+    margin-left: var(--sp-1);
+  }
+  .sd__ctl {
     display: flex;
     gap: var(--sp-2);
   }
-  .md__mini {
-    min-height: 36px;
-    padding: var(--sp-1) var(--sp-3);
+  .sd__btn {
+    min-height: 38px;
+    padding: var(--sp-1) var(--sp-4);
     font-family: var(--font-stack-mono);
     font-size: var(--fs-13);
-    color: var(--text);
-    background: color-mix(in oklab, var(--project-accent) 14%, var(--surface));
-    border: var(--bw-thin) solid color-mix(in oklab, var(--project-accent) 50%, var(--border));
     border-radius: var(--r-pill);
     cursor: pointer;
     transition:
       border-color var(--dur-fast) var(--ease-standard),
+      color var(--dur-fast) var(--ease-standard),
       transform var(--dur-fast) var(--ease-soft);
   }
-  .md__mini:hover {
-    border-color: var(--project-accent);
-  }
-  .md__mini:active {
+  .sd__btn:active {
     transform: scale(0.96);
   }
-  .md__mini:focus-visible {
+  .sd__btn:focus-visible {
     outline: var(--ring-width) solid var(--ring-focus);
     outline-offset: 2px;
   }
-  .md__mini--ghost {
+  .sd__btn--accent {
+    color: var(--text);
+    background: color-mix(in srgb, var(--a) 14%, var(--surface));
+    border: var(--bw-thin) solid var(--a-line);
+  }
+  .sd__btn--accent:hover {
+    border-color: var(--a);
+  }
+  .sd__btn--ghost {
     color: var(--text-muted);
     background: transparent;
-    border-color: var(--border);
+    border: var(--bw-thin) solid var(--border);
   }
-  .md__mini--ghost:hover {
+  .sd__btn--ghost:hover {
     color: var(--text-secondary);
     border-color: var(--border-hover);
   }
 
-  /* ---------- Шаг 3 · табло ---------- */
-  .md__modes {
+  /* ------------------------ Табло ------------------------ */
+  .sd__modes {
     display: flex;
     flex-wrap: wrap;
     gap: var(--sp-2);
   }
-  .md__mode {
+  .sd__mode {
     min-height: 34px;
     padding: var(--sp-1) var(--sp-3);
     font-family: var(--font-stack-mono);
@@ -1035,29 +874,31 @@ const startUnit = unitFor("streak");
     cursor: pointer;
     transition:
       color var(--dur-fast) var(--ease-standard),
-      border-color var(--dur-fast) var(--ease-standard);
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard);
   }
-  .md__mode:hover {
+  .sd__mode:hover {
     color: var(--text-secondary);
   }
-  .md__mode.is-active {
+  .sd__mode.is-on {
     color: var(--text);
-    border-color: color-mix(in oklab, var(--project-accent) 55%, var(--border));
-    background: color-mix(in oklab, var(--project-accent) 8%, transparent);
+    border-color: var(--a-line);
+    background: var(--a-faint);
   }
-  .md__mode:focus-visible {
+  .sd__mode:focus-visible {
     outline: var(--ring-width) solid var(--ring-focus);
     outline-offset: 2px;
   }
-  .md__mode-why {
+  .sd__why {
     margin: 0;
-    font-size: var(--fs-14);
+    font-size: var(--fs-13);
     line-height: var(--lh-snug);
     color: var(--text-secondary);
     min-height: 2.4em;
   }
 
-  .md__board {
+  .sd__board {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: var(--sp-2);
@@ -1065,99 +906,114 @@ const startUnit = unitFor("streak");
     padding: 0;
     list-style: none;
   }
-  .md__brow {
+  .sd__row {
     display: grid;
-    grid-template-columns: 22px 16px minmax(64px, auto) 1fr auto auto;
+    grid-template-columns: 20px 14px minmax(48px, auto) 1fr auto;
     align-items: center;
     gap: var(--sp-2);
-    padding: var(--sp-1) var(--sp-2);
+    padding: var(--sp-2);
     border: var(--bw-thin) solid transparent;
     border-radius: var(--r-sm);
-    /* FLIP: скрипт ставит --flip-y (стартовый сдвиг), CSS гасит его до 0. */
-    transform: translateY(var(--flip-y, 0));
+    background: var(--surface);
+    /* FLIP: скрипт задаёт стартовый сдвиг через --flip (px), CSS гасит до 0. */
+    transform: translateY(calc(var(--flip, 0) * 1px));
   }
-  .md__board.is-flip .md__brow {
+  .sd__board.is-flip .sd__row {
     transition: transform var(--dur-slower) var(--ease-soft);
   }
-  .md__brow.is-you {
-    border-color: color-mix(in oklab, var(--project-accent) 30%, var(--border));
-    background: color-mix(in oklab, var(--project-accent) 6%, transparent);
+  .sd__row.is-you {
+    border-color: var(--a-line);
+    background: color-mix(in srgb, var(--a) 7%, var(--surface));
   }
-  .md__place {
+  .sd__place {
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-14);
+    font-size: var(--fs-13);
     color: var(--text-muted);
     text-align: center;
     font-variant-numeric: tabular-nums;
   }
-  .md__brow.is-lead .md__place {
-    color: var(--project-accent);
+  .sd__row.is-lead .sd__place {
+    color: var(--a);
+    font-weight: var(--fw-semibold);
   }
-  .md__medal {
+  .sd__medal {
     width: 14px;
     text-align: center;
     font-size: var(--fs-13);
     line-height: 1;
-    opacity: 0.85;
   }
-  .md__name {
+  .sd__pname {
     font-size: var(--fs-14);
     color: var(--text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .md__youtag {
-    color: var(--project-accent);
-    font-style: normal;
+  .sd__row.is-you .sd__pname {
+    color: var(--a);
+    font-weight: var(--fw-medium);
   }
-  .md__bar {
+  .sd__bar {
     height: 8px;
     border-radius: var(--r-pill);
     background: var(--surface-3);
     overflow: hidden;
   }
-  .md__bar-fill {
+  .sd__bar-fill {
     display: block;
     height: 100%;
     width: 100%;
     border-radius: inherit;
-    background: linear-gradient(
-      90deg,
-      color-mix(in oklab, var(--project-accent) 65%, transparent),
-      var(--project-accent)
-    );
+    background: linear-gradient(90deg, var(--a-line), var(--a));
     transform-origin: left center;
-    /* Длина полосы через scaleX (--w 0..1), а не width — анимируем только transform. */
     transform: scaleX(var(--w, 1));
     transition: transform var(--dur-slower) var(--ease-soft);
   }
-  .md__val {
+  .sd__pval {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 1px;
     font-family: var(--font-stack-mono);
+    font-variant-numeric: tabular-nums;
+    justify-self: end;
+  }
+  .sd__pval b {
     font-size: var(--fs-15);
     color: var(--text);
-    font-variant-numeric: tabular-nums;
+    font-weight: var(--fw-semibold);
   }
-  .md__unit {
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
-    color: var(--text-muted);
-  }
-  .md__hint {
-    margin: 0;
-    font-size: var(--fs-13);
+  .sd__pval-unit {
+    font-size: var(--fs-12);
     color: var(--text-muted);
   }
 
-  /* ---------- Шаг 4 · серия дней ---------- */
-  .md__days {
-    display: flex;
-    gap: var(--sp-2);
-    flex-wrap: wrap;
+  /* «ты» падает в табло после игры — мягкий импульс (transform-only) */
+  .sd__row.is-land {
+    animation: sd-land var(--dur-slower) var(--ease-spring);
   }
-  .md__day {
+  @keyframes sd-land {
+    0% {
+      transform: translateY(calc(var(--flip, 0) * 1px)) scale(1.04);
+    }
+    100% {
+      transform: translateY(calc(var(--flip, 0) * 1px)) scale(1);
+    }
+  }
+
+  /* ------------------------ Серия дней ------------------------ */
+  .sd__days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: var(--sp-2);
+    margin-bottom: var(--sp-3);
+  }
+  @container (max-width: 380px) {
+    .sd__days {
+      gap: var(--sp-1);
+    }
+  }
+  .sd__day {
     position: relative;
-    width: 46px;
     min-height: var(--tap-min);
     display: grid;
     place-items: center;
@@ -1170,34 +1026,35 @@ const startUnit = unitFor("streak");
       background-color var(--dur-med) var(--ease-standard),
       transform var(--dur-fast) var(--ease-soft);
   }
-  .md__day:hover {
+  .sd__day:hover {
     border-color: var(--border-strong);
   }
-  .md__day:active {
-    transform: scale(0.95);
+  .sd__day:active {
+    transform: scale(0.94);
   }
-  .md__day:focus-visible {
+  .sd__day:focus-visible {
     outline: var(--ring-width) solid var(--ring-focus);
     outline-offset: 2px;
   }
-  .md__day-num {
+  .sd__day-num {
     font-family: var(--font-stack-mono);
     font-size: var(--fs-13);
     color: var(--text-faint);
   }
-  .md__day-mark {
+  .sd__day-mark {
     position: absolute;
     top: 3px;
     right: 5px;
     font-size: var(--fs-11);
-    color: var(--project-accent);
+    line-height: 1;
+    color: var(--a);
     opacity: 0;
     transform: scale(0.4);
     transition:
       opacity var(--dur-fast) var(--ease-soft),
       transform var(--dur-fast) var(--ease-spring);
   }
-  .md__day-today {
+  .sd__day-today {
     position: absolute;
     bottom: -16px;
     left: 50%;
@@ -1207,783 +1064,759 @@ const startUnit = unitFor("streak");
     color: var(--text-faint);
     white-space: nowrap;
   }
-  .md__day.is-on {
-    background: color-mix(in oklab, var(--project-accent) 22%, var(--surface));
+  .sd__day.is-on {
+    background: color-mix(in srgb, var(--a) 20%, var(--surface));
     border-style: solid;
-    border-color: color-mix(in oklab, var(--project-accent) 60%, var(--border));
+    border-color: var(--a-line);
   }
-  .md__day.is-on .md__day-num {
+  .sd__day.is-on .sd__day-num {
     color: var(--text);
   }
-  .md__day.is-on .md__day-mark {
+  .sd__day.is-on .sd__day-mark {
     opacity: 1;
     transform: none;
   }
-  /* дни, попавшие в текущую серию (хвост из ON), подсвечены ярче */
-  .md__day.is-run {
-    background: color-mix(in oklab, var(--project-accent) 34%, var(--surface));
+  /* дни внутри текущей серии (хвост из ON) — ярче */
+  .sd__day.is-run {
+    background: color-mix(in srgb, var(--a) 32%, var(--surface));
+    border-color: var(--a);
   }
 
-  .md__legend {
+  .sd__streak-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-4);
+    flex-wrap: wrap;
+    margin-top: var(--sp-3);
+  }
+  .sd__legend {
     display: flex;
     flex-wrap: wrap;
     gap: var(--sp-2) var(--sp-4);
-    margin: var(--sp-3) 0 0;
+    margin: 0;
     padding: 0;
     list-style: none;
   }
-  .md__leg {
+  .sd__leg {
     display: inline-flex;
     align-items: center;
     gap: var(--sp-2);
     font-size: var(--fs-13);
     color: var(--text-secondary);
   }
-  .md__leg-swatch {
+  .sd__leg-sw {
     width: 14px;
     height: 14px;
     border-radius: var(--r-xs);
     flex: none;
   }
-  .md__leg--on .md__leg-swatch {
-    background: color-mix(in oklab, var(--project-accent) 22%, var(--surface));
-    border: var(--bw-thin) solid color-mix(in oklab, var(--project-accent) 60%, var(--border));
+  .sd__leg--on .sd__leg-sw {
+    background: color-mix(in srgb, var(--a) 20%, var(--surface));
+    border: var(--bw-thin) solid var(--a-line);
   }
-  .md__leg--gap .md__leg-swatch {
+  .sd__leg--gap .sd__leg-sw {
     background: var(--surface);
     border: var(--bw-thin) dashed var(--border-hover);
   }
-  .md__leg--sess {
+  .sd__leg--sess {
     color: var(--text-muted);
   }
-  .md__now {
+  .sd__now {
     margin: 0;
     font-family: var(--font-stack-mono);
     font-size: var(--fs-14);
-    color: color-mix(in oklab, var(--project-accent) 70%, var(--text-secondary));
+    color: var(--text-secondary);
+    white-space: nowrap;
   }
-  .md__now b {
-    color: var(--project-accent);
+  .sd__now b {
+    color: var(--a);
     font-weight: var(--fw-semibold);
+    font-size: var(--fs-17);
   }
 
-  /* ---------- Объяснение шага ---------- */
-  .md__explain {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-2);
-    padding-top: var(--sp-3);
-    border-top: var(--bw-thin) solid var(--border);
-  }
-  .md__title {
-    margin: 0;
-    font-family: var(--font-stack-display);
-    font-weight: var(--fw-bold);
-    font-size: var(--fs-20);
-    letter-spacing: var(--ls-tight);
-    line-height: var(--lh-snug);
-    color: var(--text);
-  }
-  .md__body {
-    margin: 0;
-    font-size: var(--fs-16);
-    line-height: var(--lh-normal);
-    color: var(--text-secondary);
-    max-width: 64ch;
-  }
-
-  /* мягкая смена текста при переключении шага */
-  .md__explain[data-swap="true"] .md__title,
-  .md__explain[data-swap="true"] .md__body {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  .md__title,
-  .md__body {
-    transition:
-      opacity var(--dur-med) var(--ease-soft),
-      transform var(--dur-med) var(--ease-soft);
-  }
-
-  /* ---------- Управление ---------- */
-  .md__controls {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-3);
-    flex-wrap: wrap;
-  }
-  .md__btn {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--sp-2);
-    min-height: 40px;
-    padding: var(--sp-2) var(--sp-4);
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-14);
-    color: var(--text-secondary);
-    background: transparent;
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-pill);
-    cursor: pointer;
-    transition:
-      color var(--dur-fast) var(--ease-standard),
-      border-color var(--dur-fast) var(--ease-standard),
-      opacity var(--dur-fast) var(--ease-standard);
-  }
-  .md__btn:hover {
-    color: var(--text);
-    border-color: var(--border-hover);
-  }
-  .md__btn:focus-visible {
-    outline: var(--ring-width) solid var(--ring-focus);
-    outline-offset: 2px;
-  }
-  .md__btn:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
-  .md__btn--replay {
-    margin-left: auto;
-    color: var(--text-muted);
-  }
-
-  .md__progress {
-    flex: 1;
-    min-width: 80px;
-    height: 3px;
-    border-radius: var(--r-pill);
-    background: var(--surface-3);
-    overflow: hidden;
-  }
-  .md__progress-fill {
-    display: block;
-    height: 100%;
-    width: 100%;
-    border-radius: inherit;
-    background: color-mix(in oklab, var(--project-accent) 80%, transparent);
-    transform-origin: left center;
-    transform: scaleX(0);
-  }
-  /* Авто-таймер шага: плавное заполнение, только когда видно и играет */
-  .md.is-inview[data-playing="true"] .md__progress-fill[data-anim="true"] {
-    animation: md-progress var(--md-step-ms, 4600ms) linear forwards;
-  }
-  @keyframes md-progress {
-    from {
-      transform: scaleX(0);
-    }
-    to {
-      transform: scaleX(1);
-    }
-  }
-
-  .md__facts {
+  .sd__facts {
     margin: 0;
     font-family: var(--font-stack-mono);
     font-size: var(--fs-11);
     line-height: var(--lh-normal);
     color: var(--text-faint);
+    overflow-wrap: anywhere;
   }
 
-  /* ---------- Появление активной панели (только в кадре) ---------- */
+  /* ------------------------ Появление строк (только в кадре) ------------------------ */
   @media (prefers-reduced-motion: no-preference) {
-    .md.is-inview .md__step[data-active="true"] .md__op,
-    .md.is-inview .md__step[data-active="true"] .md__row,
-    .md.is-inview .md__step[data-active="true"] .md__day,
-    .md.is-inview .md__step[data-active="true"] .md__brow {
-      opacity: 0;
-      animation: md-in var(--dur-slow) var(--ease-soft) forwards;
-      animation-delay: calc(var(--i, 0) * 60ms + 80ms);
+    .sd.is-inview .sd__row {
+      animation: sd-rise var(--dur-slow) var(--ease-soft) both;
+      animation-delay: calc(var(--ri, 0) * 70ms);
     }
   }
-  @keyframes md-in {
+  @keyframes sd-rise {
     from {
       opacity: 0;
-      transform: translateY(6px);
+      transform: translateY(8px);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(calc(var(--flip, 0) * 1px));
     }
   }
 
-  /* ---------- Мобайл ---------- */
+  /* ------------------------ Мобайл ------------------------ */
   @container (max-width: 460px) {
-    .md__brow {
-      grid-template-columns: 20px 14px 1fr auto auto;
+    .sd__row {
+      grid-template-columns: 18px 14px 1fr auto;
     }
-    .md__bar {
+    .sd__bar {
       display: none;
     }
-  }
-
-  /* ---------- coarse pointer: без параллакса ---------- */
-  @media (pointer: coarse) {
-    .md__field {
-      transform: none;
+    .sd__console {
+      padding: var(--sp-4);
+    }
+    .sd__expr {
+      font-size: var(--fs-28);
     }
   }
 
-  /* ---------- reduced-motion: финальное читаемое состояние, без движения ---------- */
+  /* ------------------------ reduced-motion: статичное читаемое состояние ------------------------ */
   @media (prefers-reduced-motion: reduce) {
-    .md__field {
-      transform: none;
+    .sd__board.is-flip .sd__row,
+    .sd__row {
+      transition: none;
+      animation: none;
+    }
+    .sd__track-fill,
+    .sd__bar-fill {
       transition: none;
     }
-    .md__stage {
-      min-height: 0;
-    }
-    .md__step {
-      position: relative;
-      opacity: 1;
-      transform: none;
-      visibility: visible;
-      pointer-events: auto;
-      margin-bottom: var(--sp-4);
-    }
-    .md__step[data-active="false"] {
-      display: block;
-    }
-    .md__board.is-flip .md__brow,
-    .md__brow {
-      transition: none;
-      transform: none;
-    }
-    .md__bar-fill {
+    .sd__choice-mark,
+    .sd__day-mark {
       transition: none;
     }
-    .md__mark,
-    .md__day-mark {
-      transition: none;
-    }
-    .md__progress-fill {
-      display: none;
-    }
-    .md__title,
-    .md__body {
-      transition: none;
+    .sd__row.is-land {
+      animation: none;
     }
   }
 </style>
 
 <script>
-  // Самодостаточный пошаговый «проигрыватель». Дискретные шаги; никакого rAF.
-  // Всё движение — transform/opacity. Автоплей медленный (~4.6с), пауза на
-  // hover/focus и за экраном; таймеры чистятся при скрытии, на pagehide и при
-  // visibilitychange (hidden). Табло переезжает по FLIP (только transform).
+  // Оркестратор тренажёра .счёт. Один пульт: играешь слева, смотришь табло справа,
+  // держишь серию снизу. Нет постоянного rAF и нет нумерованного степпера.
+  //
+  // Движение — только transform/opacity: FLIP строк табло, scaleX полос и прогресса,
+  // fade отметок. Автопрогон набора ведёт цепочка setTimeout, которая чистится за
+  // экраном / на скрытой вкладке / на pagehide. Всё под IntersectionObserver
+  // (класс .is-inview). При prefers-reduced-motion — финальное читаемое состояние,
+  // все тапы/переключения/сортировка работают.
   (() => {
-    const roots = document.querySelectorAll<HTMLElement>("[data-md]");
-    const STEP_MS = 4600;
+    const root = document.querySelector<HTMLElement>("[data-sd]");
+    if (!root) return;
 
-    type StepEntry = { title: string; body: string };
-    type LevelInfo = { name: string; range: string; count: number };
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    type OpInfo = { glyph: string; name: string };
+    type LvInfo = { name: string; range: string; count: number; weight: number };
+    type ModeInfo = { why: string; unit: string };
+    type PData = {
+      id: string;
+      name: string;
+      you: boolean;
+      streak: number;
+      solved: number;
+      accuracy: number;
+      weighted: number;
+    };
     type Bundle = {
-      why: Record<string, string>;
-      units: Record<string, string>;
-      level: Record<string, LevelInfo>;
-      ops: Record<string, string>;
-      pickPrefix: string;
-      feeds: string;
-      leader: string;
-      rangeWord: string;
-      idle: string;
-      setWord: string;
-      solvedWord: string;
-      nowPrefix: string;
-      dayUnit: string;
-      today: string;
+      ops: Record<string, OpInfo>;
+      levels: Record<string, LvInfo>;
+      modes: Record<string, ModeInfo>;
+      players: PData[];
+      txt: Record<string, string>;
+      start: { op: string; level: string };
     };
 
-    const parse = <T,>(raw: string | undefined, fallback: T): T => {
-      if (!raw) return fallback;
-      try {
-        return JSON.parse(raw) as T;
-      } catch {
-        return fallback;
+    const fallback: Bundle = {
+      ops: {},
+      levels: {},
+      modes: {},
+      players: [],
+      txt: {},
+      start: { op: "mul", level: "medium" },
+    };
+    let data: Bundle = fallback;
+    try {
+      if (root.dataset.bundle) data = JSON.parse(root.dataset.bundle) as Bundle;
+    } catch {
+      data = fallback;
+    }
+    const txt = (k: string): string => data.txt[k] ?? "";
+
+    // ===================================================================
+    // ГЕНЕРАТОР ЗАДАЧ — настоящая арифметика под операцию и уровень.
+    // ===================================================================
+    type LevelKey = "easy" | "medium" | "hard";
+    const ranges: Record<LevelKey, { lo: number; hi: number }> = {
+      easy: { lo: 2, hi: 20 },
+      medium: { lo: 10, hi: 99 },
+      hard: { lo: 12, hi: 400 },
+    };
+
+    // Детерминированный PRNG (mulberry32) — стабильные наборы без Math.random в цикле.
+    const mkRng = (seed: number): (() => number) => {
+      let s = seed >>> 0;
+      return (): number => {
+        s = (s + 0x6d2b79f5) | 0;
+        let x = Math.imul(s ^ (s >>> 15), 1 | s);
+        x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+        return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+      };
+    };
+    const between = (rng: () => number, lo: number, hi: number): number =>
+      lo + Math.floor(rng() * (hi - lo + 1));
+
+    type Problem = { expr: string; answer: number; ansLabel: string };
+
+    const genProblem = (op: string, level: LevelKey, rng: () => number): Problem => {
+      const r = ranges[level];
+      const small =
+        level === "easy"
+          ? { lo: 2, hi: 9 }
+          : level === "medium"
+            ? { lo: 3, hi: 12 }
+            : { lo: 6, hi: 19 };
+      switch (op) {
+        case "add": {
+          const a = between(rng, r.lo, r.hi);
+          const b = between(rng, r.lo, r.hi);
+          return { expr: `${a} + ${b}`, answer: a + b, ansLabel: String(a + b) };
+        }
+        case "sub": {
+          const a = between(rng, r.lo, r.hi);
+          const b = between(rng, r.lo, a);
+          return { expr: `${a} − ${b}`, answer: a - b, ansLabel: String(a - b) };
+        }
+        case "mul": {
+          const a = between(rng, small.lo, small.hi);
+          const b = between(rng, small.lo, small.hi);
+          return { expr: `${a} × ${b}`, answer: a * b, ansLabel: String(a * b) };
+        }
+        case "div": {
+          const b = between(rng, small.lo, small.hi);
+          const q = between(rng, small.lo, small.hi);
+          const a = b * q;
+          return { expr: `${a} ÷ ${b}`, answer: q, ansLabel: String(q) };
+        }
+        case "rem": {
+          const b = between(rng, Math.max(3, small.lo), small.hi);
+          const q = between(rng, small.lo, small.hi);
+          const rem = between(rng, 1, b - 1);
+          const a = b * q + rem;
+          // Кодируем ответ как q*100+rem, метка читается «q · rem».
+          return { expr: `${a} ÷ ${b}`, answer: q * 100 + rem, ansLabel: `${q} · ${rem}` };
+        }
+        case "pow": {
+          const base = level === "hard" ? between(rng, 2, 13) : between(rng, 2, 9);
+          return { expr: `${base}²`, answer: base * base, ansLabel: String(base * base) };
+        }
+        case "root": {
+          const rt = level === "hard" ? between(rng, 4, 20) : between(rng, 2, 12);
+          const sq = rt * rt;
+          return { expr: `√${sq}`, answer: rt, ansLabel: String(rt) };
+        }
+        default: {
+          const a = between(rng, r.lo, r.hi);
+          const b = between(rng, r.lo, r.hi);
+          return { expr: `${a} + ${b}`, answer: a + b, ansLabel: String(a + b) };
+        }
       }
     };
 
-    roots.forEach((root) => {
-      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-      const stepEls = Array.from(root.querySelectorAll<HTMLElement>(".md__step"));
-      const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>(".md__tab"));
-      const explain = root.querySelector<HTMLElement>("[data-explain]");
-      const titleEl = root.querySelector<HTMLElement>("[data-title]");
-      const textEl = root.querySelector<HTMLElement>("[data-text]");
-      const curEl = root.querySelector<HTMLElement>("[data-cur]");
-      const prevBtn = root.querySelector<HTMLButtonElement>("[data-prev]");
-      const nextBtn = root.querySelector<HTMLButtonElement>("[data-next]");
-      const replayBtn = root.querySelector<HTMLButtonElement>("[data-replay]");
-      const progress = root.querySelector<HTMLElement>("[data-progress]");
-
-      if (!stepEls.length) return;
-
-      const stepCopy = parse<StepEntry[]>(root.dataset.copy, []);
-      const i18n = parse<Bundle>(root.dataset.i18n, {
-        why: {},
-        units: {},
-        level: {},
-        ops: {},
-        pickPrefix: "",
-        feeds: "",
-        leader: "",
-        rangeWord: "",
-        idle: "",
-        setWord: "",
-        solvedWord: "",
-        nowPrefix: "",
-        dayUnit: "",
-        today: "",
-      });
-      const sets = parse<Record<string, string[]>>(root.dataset.sets, {});
-
-      let idx = 0;
-      let playing = !reduce;
-      let timer = 0;
-      const timers: number[] = [];
-
-      const clearTimers = (): void => {
-        timers.forEach((id) => window.clearTimeout(id));
-        timers.length = 0;
-        if (timer) {
-          window.clearTimeout(timer);
-          timer = 0;
-        }
-      };
-
-      // =====================================================================
-      // ШАГ 1 — выбор операции и уровня (меняет шаг 2)
-      // =====================================================================
-      const opBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-op]"));
-      const levelBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-level]"));
-      const pickEl = root.querySelector<HTMLElement>("[data-pick]");
-
-      let pickedOp = "mul";
-      let pickedLevel = "medium";
-
-      const renderPick = (): void => {
-        if (!pickEl) return;
-        const lv = i18n.level[pickedLevel];
-        const opName = i18n.ops[pickedOp] ?? "";
-        if (!lv) return;
-        pickEl.textContent = `${i18n.pickPrefix}: ${opName} · ${lv.name} · ${i18n.rangeWord} ${lv.range} · ${lv.count}`;
-      };
-
-      // =====================================================================
-      // ШАГ 2 — набор задач: пересобирается под уровень, «решается» с 1 ошибкой
-      // =====================================================================
-      const setEl = root.querySelector<HTMLElement>("[data-set]");
-      const setLabel = root.querySelector<HTMLElement>("[data-set-label]");
-      const setCount = root.querySelector<HTMLElement>("[data-set-count]");
-      const setStat = root.querySelector<HTMLElement>("[data-set-stat]");
-      const solveBtn = root.querySelector<HTMLButtonElement>("[data-solve]");
-      const setResetBtn = root.querySelector<HTMLButtonElement>("[data-set-reset]");
-
-      // Какой пример помечается неверным: предпоследний (стабильно одна ошибка).
-      const wrongOffset = 2;
-
-      const buildSet = (): void => {
-        if (!setEl) return;
-        const exprs = sets[pickedLevel] ?? [];
-        const lv = i18n.level[pickedLevel];
-        setEl.innerHTML = "";
-        exprs.forEach((expr, i) => {
-          const li = document.createElement("li");
-          li.className = "md__row";
-          li.style.setProperty("--i", String(i));
-          li.dataset.row = "";
-          const e = document.createElement("span");
-          e.className = "md__expr";
-          e.textContent = expr;
-          const m = document.createElement("span");
-          m.className = "md__mark";
-          m.setAttribute("aria-hidden", "true");
-          li.append(e, m);
-          setEl.append(li);
-        });
-        if (setLabel && lv) setLabel.textContent = `${i18n.setWord} · ${lv.name}`;
-        if (setCount) setCount.textContent = String(exprs.length);
-        if (setStat) setStat.textContent = i18n.idle;
-      };
-
-      const solveSet = (): void => {
-        if (!setEl) return;
-        const rows = Array.from(setEl.querySelectorAll<HTMLElement>("[data-row]"));
-        const total = rows.length;
-        if (!total) return;
-        const wrongIdx = Math.max(0, total - wrongOffset);
-        let shown = 0;
-        rows.forEach((row, i) => {
-          const mark = row.querySelector<HTMLElement>(".md__mark");
-          const correct = i !== wrongIdx;
-          const paint = (): void => {
-            row.classList.toggle("is-correct", correct);
-            row.classList.toggle("is-wrong", !correct);
-            if (mark) mark.textContent = correct ? "✓" : "×";
-            shown += 1;
-            if (shown === total && setStat) {
-              const right = total - 1;
-              setStat.innerHTML = `<b>${right}/${total}</b> ${i18n.solvedWord} · ${i18n.feeds}`;
-            }
-          };
-          if (reduce) {
-            paint();
-          } else {
-            const id = window.setTimeout(paint, 140 + i * 150);
-            timers.push(id);
-          }
-        });
-      };
-
-      const resetSet = (): void => {
-        clearTimers();
-        if (!setEl) return;
-        setEl.querySelectorAll<HTMLElement>("[data-row]").forEach((row) => {
-          row.classList.remove("is-correct", "is-wrong");
-          const mark = row.querySelector<HTMLElement>(".md__mark");
-          if (mark) mark.textContent = "";
-        });
-        if (setStat) setStat.textContent = i18n.idle;
-        // решение блокирует автоплей текущего шага — после ручного действия
-        // заводим таймер заново через caller.
-      };
-
-      opBtns.forEach((b) => {
-        b.addEventListener("click", () => {
-          pickedOp = b.dataset.op ?? pickedOp;
-          opBtns.forEach((o) => {
-            const on = o === b;
-            o.classList.toggle("is-picked", on);
-            o.setAttribute("aria-pressed", on ? "true" : "false");
-          });
-          renderPick();
-          buildSet();
-          restartAuto();
-        });
-      });
-
-      levelBtns.forEach((b) => {
-        b.addEventListener("click", () => {
-          pickedLevel = b.dataset.level ?? pickedLevel;
-          levelBtns.forEach((o) => {
-            const on = o === b;
-            o.classList.toggle("is-picked", on);
-            o.setAttribute("aria-pressed", on ? "true" : "false");
-          });
-          renderPick();
-          buildSet();
-          restartAuto();
-        });
-      });
-
-      solveBtn?.addEventListener("click", () => {
-        clearTimers();
-        resetSet();
-        solveSet();
-        restartAuto();
-      });
-      setResetBtn?.addEventListener("click", () => {
-        resetSet();
-        restartAuto();
-      });
-
-      // =====================================================================
-      // ШАГ 3 — табло: 4 среза, FLIP-перестановка строк (только transform)
-      // =====================================================================
-      const board = root.querySelector<HTMLElement>("[data-board]");
-      const modeBtns = Array.from(root.querySelectorAll<HTMLButtonElement>(".md__mode"));
-      const whyEl = root.querySelector<HTMLElement>("[data-why]");
-      const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
-      const medals = ["①", "②", "③"];
-
-      const applyMode = (mode: string, animate: boolean): void => {
-        if (!board) return;
-        const rows = Array.from(board.querySelectorAll<HTMLElement>(".md__brow"));
-        if (!rows.length) return;
-
-        // 1) FIRST: запомнить текущие top каждой строки.
-        const first = new Map<HTMLElement, number>();
-        if (animate && !reduce) {
-          rows.forEach((r) => first.set(r, r.getBoundingClientRect().top));
-        }
-
-        // 2) Применить новый порядок (order) + значения + полосы + медали.
-        let max = 0;
-        rows.forEach((r) => {
-          const v = Number(r.dataset["v" + cap(mode)] ?? 0);
-          if (v > max) max = v;
-        });
-        rows.forEach((r) => {
-          const rank = Number(r.dataset["rank" + cap(mode)] ?? 1);
-          const v = Number(r.dataset["v" + cap(mode)] ?? 0);
-          r.style.order = String(rank);
-          r.classList.toggle("is-lead", rank === 1);
-          const place = r.querySelector<HTMLElement>("[data-place]");
-          if (place) place.textContent = String(rank);
-          const medal = r.querySelector<HTMLElement>("[data-medal]");
-          if (medal) medal.textContent = (rank >= 1 && rank <= 3 ? medals[rank - 1] : "") ?? "";
-          const valEl = r.querySelector<HTMLElement>("[data-val]");
-          if (valEl) valEl.textContent = String(v);
-          const fill = r.querySelector<HTMLElement>("[data-fill]");
-          if (fill) fill.style.setProperty("--w", max ? (v / max).toFixed(3) : "0");
-          const unitEl = r.querySelector<HTMLElement>("[data-unit]");
-          if (unitEl) unitEl.textContent = i18n.units[mode] ?? "";
-        });
-
-        modeBtns.forEach((b) => {
-          const on = b.dataset.mode === mode;
-          b.classList.toggle("is-active", on);
-          b.setAttribute("aria-selected", on ? "true" : "false");
-        });
-        if (whyEl && i18n.why[mode]) whyEl.textContent = i18n.why[mode];
-
-        // 3) LAST + INVERT + PLAY: посчитать дельту и проиграть на transform.
-        if (animate && !reduce) {
-          board.classList.remove("is-flip");
-          rows.forEach((r) => {
-            const before = first.get(r);
-            if (before === undefined) return;
-            const after = r.getBoundingClientRect().top;
-            const dy = before - after;
-            r.style.setProperty("--flip-y", `${dy}px`);
-          });
-          // force reflow → затем включить переход и обнулить сдвиг
-          void board.offsetWidth;
-          board.classList.add("is-flip");
-          rows.forEach((r) => r.style.setProperty("--flip-y", "0px"));
+    // Варианты ответа: верный + 2–3 правдоподобных «соседа».
+    const genChoices = (
+      p: Problem,
+      op: string,
+      rng: () => number,
+    ): { label: string; correct: boolean }[] => {
+      const labels = new Set<string>([p.ansLabel]);
+      const out: { label: string; correct: boolean }[] = [{ label: p.ansLabel, correct: true }];
+      const wantWrong = op === "mul" || op === "div" || op === "add" || op === "sub" ? 3 : 2;
+      let guard = 0;
+      while (out.length < wantWrong + 1 && guard < 60) {
+        guard += 1;
+        let lbl: string;
+        if (op === "rem") {
+          const q = Math.floor(p.answer / 100);
+          const rem = p.answer % 100;
+          const dq = Math.max(0, q + (rng() < 0.5 ? 1 : -1) * (1 + Math.floor(rng() * 2)));
+          const dr = Math.max(1, rem + (rng() < 0.5 ? 1 : -1));
+          lbl = rng() < 0.5 ? `${dq} · ${rem}` : `${q} · ${dr}`;
         } else {
-          rows.forEach((r) => r.style.setProperty("--flip-y", "0px"));
+          const delta = (1 + Math.floor(rng() * 4)) * (rng() < 0.5 ? 1 : -1);
+          const v = p.answer + delta;
+          if (v < 0 || v === p.answer) continue;
+          lbl = String(v);
+        }
+        if (labels.has(lbl)) continue;
+        labels.add(lbl);
+        out.push({ label: lbl, correct: false });
+      }
+      // Перемешать детерминированно.
+      for (let i = out.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(rng() * (i + 1));
+        const a = out[i];
+        const b = out[j];
+        if (a && b) {
+          out[i] = b;
+          out[j] = a;
+        }
+      }
+      return out;
+    };
+
+    // ===================================================================
+    // СОСТОЯНИЕ ТРЕНАЖЁРА
+    // ===================================================================
+    let curOp = data.start.op;
+    let curLevel = (data.start.level as LevelKey) || "medium";
+    let problems: Problem[] = [];
+    let choiceSets: { label: string; correct: boolean }[][] = [];
+    let qIndex = 0;
+    let correctCount = 0;
+    let triedCount = 0;
+    let answered = false; // на текущий вопрос уже ответили
+    let setSolved = false; // весь набор пройден
+    let autoRunning = false;
+    let inview = false;
+    const timers: number[] = [];
+
+    const clearTimers = (): void => {
+      timers.forEach((id) => window.clearTimeout(id));
+      timers.length = 0;
+    };
+    const after = (ms: number, fn: () => void): void => {
+      const id = window.setTimeout(fn, ms);
+      timers.push(id);
+    };
+
+    // --- DOM-узлы тренажёра ---
+    const opBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-op]"));
+    const levelBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-level]"));
+    const exprEl = root.querySelector<HTMLElement>("[data-expr]");
+    const phEl = root.querySelector<HTMLElement>("[data-ph]");
+    const questionEl = root.querySelector<HTMLElement>("[data-question]");
+    const choiceBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-choice]"));
+    const counterEl = root.querySelector<HTMLElement>("[data-counter]");
+    const trackEl = root.querySelector<HTMLElement>("[data-track]");
+    const hintEl = root.querySelector<HTMLElement>("[data-hint]");
+    const correctEl = root.querySelector<HTMLElement>("[data-correct]");
+    const triedEl = root.querySelector<HTMLElement>("[data-tried]");
+    const autoBtn = root.querySelector<HTMLButtonElement>("[data-autoplay]");
+    const resetBtn = root.querySelector<HTMLButtonElement>("[data-reset]");
+
+    const lvInfo = (): LvInfo =>
+      data.levels[curLevel] ?? { name: "", range: "", count: 7, weight: 2 };
+
+    const buildSet = (): void => {
+      const n = lvInfo().count || 5;
+      const seed = (curOp.charCodeAt(0) || 1) * 131 + curLevel.length * 977 + n * 17;
+      const rng = mkRng(seed);
+      problems = [];
+      choiceSets = [];
+      for (let i = 0; i < n; i += 1) {
+        const p = genProblem(curOp, curLevel, rng);
+        problems.push(p);
+        choiceSets.push(genChoices(p, curOp, rng));
+      }
+    };
+
+    const setProgress = (): void => {
+      const n = problems.length || 1;
+      if (trackEl) trackEl.style.setProperty("--p", String(Math.min(1, qIndex / n)));
+      if (counterEl && !setSolved) {
+        counterEl.textContent = `${txt("problemOf")} ${Math.min(qIndex + 1, n)} ${txt("setOf")} ${n}`;
+      }
+      if (correctEl) correctEl.textContent = String(correctCount);
+      if (triedEl) triedEl.textContent = String(triedCount);
+    };
+
+    const renderQuestion = (): void => {
+      const p = problems[qIndex];
+      const choices = choiceSets[qIndex];
+      answered = false;
+      questionEl?.classList.remove("is-wrong");
+      if (phEl) phEl.textContent = "?";
+      if (exprEl) exprEl.textContent = p ? p.expr : "—";
+      choiceBtns.forEach((btn, i) => {
+        const c = choices?.[i];
+        const valEl = btn.querySelector<HTMLElement>("[data-val]");
+        const markEl = btn.querySelector<HTMLElement>("[data-mark]");
+        btn.classList.remove("is-correct", "is-wrong", "is-faded");
+        btn.disabled = false;
+        if (markEl) markEl.textContent = "";
+        if (c) {
+          btn.hidden = false;
+          if (valEl) valEl.textContent = c.label;
+          btn.dataset.correct = c.correct ? "1" : "0";
+        } else {
+          btn.hidden = true;
+        }
+      });
+      if (hintEl) {
+        hintEl.textContent = txt("pickAnswer");
+        hintEl.classList.remove("is-good");
+      }
+      setProgress();
+    };
+
+    // Засчитать ответ: tap по варианту (или авто-выбор в прогоне).
+    const answer = (choiceIdx: number, auto: boolean): void => {
+      if (answered || setSolved) return;
+      const choices = choiceSets[qIndex];
+      const picked = choices?.[choiceIdx];
+      if (!picked) return;
+      answered = true;
+      triedCount += 1;
+      const isRight = picked.correct;
+      if (isRight) correctCount += 1;
+
+      choiceBtns.forEach((btn, i) => {
+        const c = choices?.[i];
+        if (!c) return;
+        btn.disabled = true;
+        const m = btn.querySelector<HTMLElement>("[data-mark]");
+        if (c.correct) {
+          btn.classList.add("is-correct");
+          if (m) m.textContent = "✓";
+        } else if (i === choiceIdx) {
+          btn.classList.add("is-wrong");
+          if (m) m.textContent = "✕";
+        } else {
+          btn.classList.add("is-faded");
+        }
+      });
+
+      const correctChoice = choices?.find((c) => c.correct);
+      if (phEl && correctChoice) phEl.textContent = correctChoice.label;
+      questionEl?.classList.toggle("is-wrong", !isRight);
+      if (hintEl) {
+        hintEl.textContent = `${correctCount} / ${triedCount} ${txt("yourScore")}`;
+        hintEl.classList.add("is-good");
+      }
+      if (correctEl) correctEl.textContent = String(correctCount);
+      if (triedEl) triedEl.textContent = String(triedCount);
+
+      const advance = (): void => {
+        if (qIndex + 1 < problems.length) {
+          qIndex += 1;
+          renderQuestion();
+          if (autoRunning) scheduleAuto();
+        } else {
+          finishSet();
         }
       };
+      after(reduced ? 0 : auto ? 760 : 600, advance);
+    };
 
+    const finishSet = (): void => {
+      setSolved = true;
+      autoRunning = false;
+      qIndex = problems.length;
+      setProgress();
+      if (counterEl) counterEl.textContent = txt("done");
+      if (hintEl) {
+        hintEl.textContent = txt("landed");
+        hintEl.classList.add("is-good");
+      }
+      landResult();
+    };
+
+    const startSet = (autoMode: boolean): void => {
+      clearTimers();
+      buildSet();
+      qIndex = 0;
+      correctCount = 0;
+      triedCount = 0;
+      setSolved = false;
+      answered = false;
+      autoRunning = autoMode;
+      renderQuestion();
+      if (autoMode) scheduleAuto();
+    };
+
+    // --- Автопрогон: цепочка setTimeout, чистится за кадром ---
+    const scheduleAuto = (): void => {
+      if (!autoRunning || reduced) return;
+      after(900, () => {
+        if (!autoRunning || answered || setSolved) return;
+        // Авто чаще выбирает верный, иногда мажет — чтобы accuracy была < 100%.
+        const choices = choiceSets[qIndex] ?? [];
+        const rightIdx = choices.findIndex((c) => c.correct);
+        const miss = (qIndex + 1) % 4 === 0 && choices.length > 1;
+        let pick = rightIdx;
+        if (miss) {
+          const wrongIdx = choices.findIndex((c) => !c.correct);
+          pick = wrongIdx >= 0 ? wrongIdx : rightIdx;
+        }
+        answer(pick >= 0 ? pick : 0, true);
+      });
+    };
+
+    // Выбор операции / уровня — пересобирает набор.
+    opBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.op;
+        if (!id || id === curOp) return;
+        curOp = id;
+        opBtns.forEach((b) => {
+          const on = b === btn;
+          b.classList.toggle("is-on", on);
+          b.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+        startSet(false);
+      });
+    });
+    levelBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.level as LevelKey | undefined;
+        if (!id || id === curLevel) return;
+        curLevel = id;
+        levelBtns.forEach((b) => {
+          const on = b === btn;
+          b.classList.toggle("is-on", on);
+          b.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+        startSet(false);
+      });
+    });
+
+    choiceBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.dataset.choice ?? "-1");
+        autoRunning = false;
+        answer(idx, false);
+      });
+    });
+
+    autoBtn?.addEventListener("click", () => startSet(!reduced));
+    resetBtn?.addEventListener("click", () => {
+      autoRunning = false;
+      startSet(false);
+    });
+
+    // ===================================================================
+    // ТАБЛО — четыре среза, FLIP-перестановка строк.
+    // ===================================================================
+    const board = root.querySelector<HTMLElement>("[data-board]");
+    const modeBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-mode]"));
+    const whyEl = root.querySelector<HTMLElement>("[data-why]");
+    const rowEls = Array.from(root.querySelectorAll<HTMLElement>("[data-row]"));
+    let curMode = "streak";
+    const medals = ["①", "②", "③"];
+
+    // Живые значения «тебя» — стартовые, оживают после игры.
+    const live: Record<string, { solved: number; accuracy: number; weighted: number }> = {};
+    data.players.forEach((p) => {
+      live[p.id] = { solved: p.solved, accuracy: p.accuracy, weighted: p.weighted };
+    });
+
+    const valueOf = (p: PData, key: string): number => {
+      const l = live[p.id] ?? { solved: p.solved, accuracy: p.accuracy, weighted: p.weighted };
+      if (key === "streak") return p.streak;
+      if (key === "solved") return l.solved;
+      if (key === "accuracy") return l.accuracy;
+      return l.weighted;
+    };
+
+    // Ранжируем игроков по выбранному срезу → порядок id и значения.
+    const rankFor = (key: string): { id: string; val: number; rank: number }[] => {
+      const arr = data.players.map((p) => ({ id: p.id, val: valueOf(p, key) }));
+      arr.sort((a, b) => b.val - a.val);
+      return arr.map((r, i) => ({ id: r.id, val: r.val, rank: i + 1 }));
+    };
+
+    // Установить срез: посчитать ранги, FLIP-переставить строки (только transform).
+    const setMode = (key: string, animate: boolean): void => {
+      curMode = key;
       modeBtns.forEach((b) => {
-        b.addEventListener("click", () => {
-          applyMode(b.dataset.mode ?? "streak", true);
-          restartAuto();
-        });
+        const on = b.dataset.mode === key;
+        b.classList.toggle("is-on", on);
+        b.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      if (whyEl) whyEl.textContent = data.modes[key]?.why ?? "";
+
+      const ranked = rankFor(key);
+      const maxVal = Math.max(1, ...ranked.map((r) => r.val));
+      const unit = data.modes[key]?.unit ?? "";
+
+      // FIRST: текущие top-позиции строк (только если двигаем).
+      const first = new Map<string, number>();
+      if (animate && !reduced && inview) {
+        rowEls.forEach((row) => first.set(row.dataset.row ?? "", row.getBoundingClientRect().top));
+      }
+
+      // Применяем новый порядок (order) + значения + классы лидера.
+      ranked.forEach((r) => {
+        const row = rowEls.find((el) => el.dataset.row === r.id);
+        if (!row) return;
+        row.style.order = String(r.rank);
+        const placeEl = row.querySelector<HTMLElement>("[data-place]");
+        if (placeEl) placeEl.textContent = String(r.rank);
+        const medalEl = row.querySelector<HTMLElement>("[data-medal]");
+        if (medalEl) medalEl.textContent = r.rank <= 3 ? (medals[r.rank - 1] ?? "") : "";
+        const valEl = row.querySelector<HTMLElement>("[data-pval]");
+        if (valEl) valEl.textContent = String(r.val);
+        const unitEl = row.querySelector<HTMLElement>("[data-unit]");
+        if (unitEl) unitEl.textContent = unit;
+        const fillEl = row.querySelector<HTMLElement>("[data-fill]");
+        if (fillEl) fillEl.style.setProperty("--w", (r.val / maxVal).toFixed(3));
+        row.classList.toggle("is-lead", r.rank === 1);
       });
 
-      // =====================================================================
-      // ШАГ 4 — серия дней: клик включает/выключает день; стрик = хвост ON
-      // =====================================================================
-      const dayBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-day]"));
-      const nowEl = root.querySelector<HTMLElement>("[data-now]");
-
-      const renderStreak = (): void => {
-        // текущая серия = длина хвоста ON, считая с последнего дня назад.
-        let run = 0;
-        for (let i = dayBtns.length - 1; i >= 0; i -= 1) {
-          if (dayBtns[i]?.classList.contains("is-on")) run += 1;
-          else break;
-        }
-        dayBtns.forEach((d, i) => {
-          const inRun = run > 0 && i >= dayBtns.length - run;
-          d.classList.toggle("is-run", inRun);
-        });
-        if (nowEl) {
-          nowEl.innerHTML = `${i18n.nowPrefix}: <b>${run}</b> ${i18n.dayUnit}`;
-        }
-      };
-
-      dayBtns.forEach((d) => {
-        d.addEventListener("click", () => {
-          const on = !d.classList.contains("is-on");
-          d.classList.toggle("is-on", on);
-          d.setAttribute("aria-pressed", on ? "true" : "false");
-          const mark = d.querySelector<HTMLElement>(".md__day-mark");
-          if (mark) mark.textContent = on ? "✓" : "";
-          renderStreak();
-          restartAuto();
-        });
-      });
-      // первичная отрисовка отметок и хвоста серии
-      dayBtns.forEach((d) => {
-        const mark = d.querySelector<HTMLElement>(".md__day-mark");
-        if (mark) mark.textContent = d.classList.contains("is-on") ? "✓" : "";
-      });
-
-      // =====================================================================
-      // Переключение шага
-      // =====================================================================
-      function show(n: number, viaAuto = false): void {
-        idx = (n + stepEls.length) % stepEls.length;
-
-        stepEls.forEach((s, i) => s.setAttribute("data-active", i === idx ? "true" : "false"));
-        tabs.forEach((tb, i) => {
-          const on = i === idx;
-          tb.classList.toggle("is-active", on);
-          tb.setAttribute("aria-selected", on ? "true" : "false");
-        });
-        if (curEl) curEl.textContent = String(idx + 1);
-
-        const entry = stepCopy[idx];
-        if (explain && titleEl && textEl && entry) {
-          explain.setAttribute("data-swap", "true");
-          const id = window.setTimeout(
-            () => {
-              titleEl.textContent = entry.title;
-              textEl.textContent = entry.body;
-              explain.removeAttribute("data-swap");
-            },
-            reduce ? 0 : 160,
-          );
-          timers.push(id);
-        }
-
-        if (prevBtn) prevBtn.disabled = idx === 0;
-
-        // на шаге 3 при входе ставим срез «стрик» по умолчанию (без FLIP-съезда)
-        if (idx === 2) applyMode("streak", false);
-
-        if (!reduce) reflowStepIn();
-        if (!viaAuto) restartAuto();
-      }
-
-      function reflowStepIn(): void {
-        const active = stepEls[idx];
-        if (!active) return;
-        active
-          .querySelectorAll<HTMLElement>(".md__op, .md__row, .md__day, .md__brow")
-          .forEach((el) => {
-            el.style.animation = "none";
-            void el.offsetWidth;
-            el.style.animation = "";
-          });
-      }
-
-      // =====================================================================
-      // Авто-таймер шага + прогресс-полоса
-      // =====================================================================
-      function armProgress(): void {
-        if (!progress || reduce || !playing) return;
-        progress.removeAttribute("data-anim");
-        progress.style.animation = "none";
-        void progress.offsetWidth;
-        progress.style.animation = "";
-        progress.setAttribute("data-anim", "true");
-      }
-
-      function clearProgress(): void {
-        if (!progress) return;
-        progress.removeAttribute("data-anim");
-      }
-
-      function scheduleNext(): void {
-        if (reduce || !playing) return;
-        clearTimers();
-        armProgress();
-        timer = window.setTimeout(() => {
-          show(idx + 1, true);
-          scheduleNext();
-        }, STEP_MS);
-        timers.push(timer);
-      }
-
-      function restartAuto(): void {
-        clearTimers();
-        clearProgress();
-        if (playing && !reduce) scheduleNext();
-      }
-
-      // =====================================================================
-      // Управление
-      // =====================================================================
-      tabs.forEach((tb) => tb.addEventListener("click", () => show(Number(tb.dataset.go ?? 0))));
-      prevBtn?.addEventListener("click", () => show(idx - 1));
-      nextBtn?.addEventListener("click", () => show(idx + 1));
-      replayBtn?.addEventListener("click", () => {
-        playing = !reduce;
-        root.setAttribute("data-playing", playing ? "true" : "false");
-        show(0);
-      });
-
-      const pause = (): void => {
-        playing = false;
-        root.setAttribute("data-playing", "false");
-        clearTimers();
-        clearProgress();
-      };
-      const resume = (): void => {
-        if (reduce || !root.classList.contains("is-inview")) return;
-        playing = true;
-        root.setAttribute("data-playing", "true");
-        scheduleNext();
-      };
-      root.addEventListener("mouseenter", pause);
-      root.addEventListener("mouseleave", resume);
-      root.addEventListener("focusin", pause);
-      root.addEventListener("focusout", (e) => {
-        if (!root.contains(e.relatedTarget as Node)) resume();
-      });
-
-      // =====================================================================
-      // Видимость: играть только в кадре
-      // =====================================================================
-      const supportsIO = "IntersectionObserver" in window;
-
-      // первичная отрисовка (нужна и при reduced-motion: значения/места/серия)
-      renderPick();
-      renderStreak();
-      applyMode("streak", false);
-
-      if (reduce || !supportsIO) {
-        // финальное читаемое состояние: набор решён, табло в дефолт-срезе.
-        root.classList.add("is-inview");
-        root.setAttribute("data-playing", "false");
-        resetSet();
-        solveSet();
-        if (prevBtn) prevBtn.disabled = true;
+      if (!animate || reduced || !inview) {
+        rowEls.forEach((row) => row.style.setProperty("--flip", "0"));
         return;
       }
 
-      let everInview = false;
-      const io = new IntersectionObserver(
-        (entries) => {
-          for (const e of entries) {
-            if (e.isIntersecting) {
-              root.classList.add("is-inview");
-              if (!everInview) {
-                everInview = true;
-                reflowStepIn();
-              }
-              playing = true;
-              root.setAttribute("data-playing", "true");
-              scheduleNext();
-            } else {
-              root.classList.remove("is-inview");
-              playing = false;
-              root.setAttribute("data-playing", "false");
-              clearTimers();
-              clearProgress();
-            }
-          }
-        },
-        { threshold: 0.3 },
-      );
-      io.observe(root);
-
-      document.addEventListener("visibilitychange", () => {
-        if (document.hidden) {
-          playing = false;
-          root.setAttribute("data-playing", "false");
-          clearTimers();
-          clearProgress();
-        }
+      // LAST + INVERT: после смены order считаем новый top, ставим обратный сдвиг.
+      board?.classList.remove("is-flip");
+      rowEls.forEach((row) => {
+        const id = row.dataset.row ?? "";
+        const before = first.get(id) ?? 0;
+        const afterTop = row.getBoundingClientRect().top;
+        row.style.setProperty("--flip", String(Math.round(before - afterTop)));
       });
+      // PLAY: на следующем кадре включаем переход и гасим сдвиг до 0.
+      requestAnimationFrame(() => {
+        board?.classList.add("is-flip");
+        rowEls.forEach((row) => row.style.setProperty("--flip", "0"));
+      });
+    };
 
-      window.addEventListener(
-        "pagehide",
-        () => {
-          clearTimers();
-          io.disconnect();
-        },
-        { once: true },
-      );
-
-      root.style.setProperty("--md-step-ms", `${STEP_MS}ms`);
-      root.setAttribute("data-playing", "true");
-      if (prevBtn) prevBtn.disabled = true;
+    modeBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const key = btn.dataset.mode;
+        if (!key || key === curMode) return;
+        setMode(key, true);
+      });
     });
+
+    // Результат набора падает в табло: пересчитываем живые значения «тебя».
+    const landResult = (): void => {
+      const me = data.players.find((p) => p.you);
+      if (!me) return;
+      const w = lvInfo().weight || 1;
+      const l = live[me.id];
+      if (l) {
+        l.solved += correctCount;
+        l.weighted += correctCount * w;
+        const sessAcc = triedCount > 0 ? Math.round((correctCount / triedCount) * 100) : l.accuracy;
+        l.accuracy = Math.round((l.accuracy + sessAcc) / 2);
+      }
+      setMode(curMode, true);
+      const meRow = rowEls.find((el) => el.dataset.row === me.id);
+      if (meRow && !reduced && inview) {
+        meRow.classList.remove("is-land");
+        void meRow.offsetWidth;
+        meRow.classList.add("is-land");
+      }
+      countTodayFromSession();
+    };
+
+    // ===================================================================
+    // СЕРИЯ ДНЕЙ
+    // ===================================================================
+    const dayBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-day]"));
+    const nowEl = root.querySelector<HTMLElement>("[data-now]");
+    const dayOn: boolean[] = dayBtns.map((b) => b.classList.contains("is-on"));
+
+    // Текущая серия = длина непрерывного хвоста ON, идущего к «сегодня» (последний).
+    const currentStreak = (): number => {
+      let run = 0;
+      for (let i = dayOn.length - 1; i >= 0; i -= 1) {
+        if (dayOn[i]) run += 1;
+        else break;
+      }
+      return run;
+    };
+
+    const renderDays = (): void => {
+      const run = currentStreak();
+      const runFrom = dayOn.length - run;
+      dayBtns.forEach((btn, i) => {
+        const on = dayOn[i] === true;
+        btn.classList.toggle("is-on", on);
+        btn.classList.toggle("is-run", on && i >= runFrom);
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
+        const mark = btn.querySelector<HTMLElement>(".sd__day-mark");
+        if (mark) mark.textContent = on ? "✓" : "";
+      });
+      if (nowEl) {
+        nowEl.textContent = "";
+        nowEl.append(`${txt("nowStreak")}: `);
+        const b = document.createElement("b");
+        b.textContent = String(run);
+        nowEl.append(b, ` ${txt("dayUnit")}`);
+      }
+    };
+
+    dayBtns.forEach((btn, i) => {
+      btn.addEventListener("click", () => {
+        dayOn[i] = !dayOn[i];
+        renderDays();
+      });
+    });
+
+    // Прохождение набора засчитывает «сегодня» (последний день). Несколько подходов
+    // за день не двигают серию: повторное засчитывание ничего не меняет.
+    const countTodayFromSession = (): void => {
+      if (correctCount <= 0) return;
+      const last = dayOn.length - 1;
+      if (!dayOn[last]) {
+        dayOn[last] = true;
+        renderDays();
+      }
+    };
+
+    // ===================================================================
+    // СТАРТ + IntersectionObserver-гейтинг
+    // ===================================================================
+    rowEls.forEach((row, i) => row.style.setProperty("--ri", String(i)));
+    startSet(false);
+    setMode("streak", false);
+    renderDays();
+
+    if (reduced || !("IntersectionObserver" in window)) {
+      inview = true;
+      root.classList.add("is-inview");
+      setMode("streak", false);
+      return;
+    }
+
+    const stopAll = (): void => {
+      inview = false;
+      autoRunning = false;
+      clearTimers();
+      root.classList.remove("is-inview");
+    };
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          inview = e.isIntersecting;
+          root.classList.toggle("is-inview", inview);
+          if (!inview) {
+            autoRunning = false;
+            clearTimers();
+          }
+        }
+      },
+      { threshold: 0.2 },
+    );
+    io.observe(root);
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) stopAll();
+    });
+    window.addEventListener("pagehide", stopAll);
   })();
 </script>
