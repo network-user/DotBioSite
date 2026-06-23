@@ -2,30 +2,34 @@
 /**
  * AgentsBridge.astro — сигнатурная визуализация .агенты (DotAgents).
  *
- * Цель этой версии: ЯСНОСТЬ. Медленный пошаговый рассказ о потоке одобрения
- * рискованной команды, по одному шагу за раз, с крупным заголовком и подробным
- * объяснением «что и почему». Управление полностью у пользователя: пронумерованные
- * вкладки-шаги, prev/next, кнопка «заново». Автопереход медленный (~4.5с/шаг) и
- * ставится на паузу при наведении.
- *
- * Поток (сверен по репозиторию DotAgents):
+ * РЕЖИМ: hands-on remote-control demo. Не пошаговый рассказ, а живой пульт,
+ * которым РУЛИТ посетитель. Слева — IDE-агент и локальный демон; справа — мок
+ * телефона (Telegram). Один и тот же рискованный вызов проходит через демона,
+ * а исход зависит от того, что делает посетитель:
  *   1. IDE-агент (Cursor / Claude Code / Antigravity) собирается выполнить
- *      рискованную команду; хук перехватывает её.
- *   2. Хук шлёт POST на локальный демон, слушающий ТОЛЬКО 127.0.0.1 (loopback),
- *      с заголовком X-DotAgents-Secret.
- *   3. Демон смотрит на режим сессии: remote=спросить, readonly=авто-allow,
- *      standby=авто-deny.
- *   4. В режиме remote приходит сообщение в Telegram с кнопками Allow / Deny;
- *      агент реально ждёт ответа (HOOK_TIMEOUT_SECONDS, по умолчанию 90с).
- *   5. Нет ответа за отведённое время → fail-closed: demon отвечает deny.
- *   6. Каждый callback подписан HMAC-SHA256 (truncated 16) + одноразовый nonce
- *      и expires_at → подделать и переиграть нельзя.
- *   Инвариант: код, approvals и transcript не покидают машину — облачного релея нет.
+ *      опасный shell/MCP-вызов (rm -rf /tmp/scratch, risk: high); установленный
+ *      хук перехватывает его ДО запуска.
+ *   2. Хук шлёт POST на локальный демон 127.0.0.1 (loopback) с заголовком
+ *      X-DotAgents-Secret. Пакет летит ТОЛЬКО по петле — наружу ничего не уходит.
+ *   3. Живой переключатель MODE: remote (спросить) · readonly (авто-allow +
+ *      уведомить) · standby (авто-deny). Флип мгновенно меняет исход того же
+ *      запроса.
+ *   4. В remote — мок Telegram с кнопками Allow / Deny, которые реально тапаются
+ *      и резолвят ждущего агента; виден обратный отсчёт до HOOK_TIMEOUT_SECONDS
+ *      (по умолчанию 90с — демо-таймер короче), а если истёк → fail-closed (deny).
+ *   5. Tamper-proof seal: каждый callback подписан HMAC-SHA256 (truncated 16) +
+ *      одноразовый nonce + expires_at. «Replay» падает — nonce уже сгорел;
+ *      «tamper» падает — подпись не сходится.
+ *   Инвариант: код, approvals и transcript не покидают машину — облачного релея
+ *   нет. Факты: 3 агента, 3 режима, argon2id passcode-auth, audit-log, API на
+ *   127.0.0.1.
  *
- * Перфоманс: анимируем только transform/opacity. Вся анимация под классом
- * .is-inview (IntersectionObserver); за экраном таймеры очищаются.
- * backdrop-filter/blur/box-shadow в циклах не трогаем. reduced-motion →
- * финальное читаемое состояние без движения. Курсорного параллакса нет.
+ * Перфоманс: анимируем ТОЛЬКО transform/opacity. Никаких вечных rAF — обратный
+ * отсчёт ведёт ОДНА CSS-анимация прогресс-бара (transform: scaleX), а fail-closed
+ * срабатывает по её `animationend`. Всё под .is-inview (IntersectionObserver):
+ * за экраном / на скрытой вкладке / на pagehide таймеры очищаются. Никаких
+ * layout/box-shadow/filter/backdrop-filter в анимациях. prefers-reduced-motion →
+ * финальное читаемое состояние без движения; все тапы/переключатели работают.
  */
 import type { Locale } from "../../../lib/i18n";
 
@@ -34,244 +38,225 @@ interface Props {
 }
 const { locale } = Astro.props;
 
-const copy = {
-  ru: {
-    eyebrow: "Поток одобрения",
-    intro:
-      "Как .агенты пропускают рискованную команду через тебя: ИИ-агент в IDE хочет что-то выполнить, локальный демон спрашивает разрешение в Telegram, а решение защищено от подделки. Листай по шагам.",
-    replay: "Сначала",
-    prev: "Назад",
-    next: "Дальше",
-    stepWord: "Шаг",
-    ofWord: "из",
-    agent: "IDE-агент",
-    agentSub: "Cursor · Claude Code · Antigravity",
-    daemon: "локальный демон",
-    daemonApi: "FastAPI · 127.0.0.1",
-    tg: "Telegram",
-    cmd: "rm -rf /tmp/scratch",
-    cmdKind: "shell · risk: high",
-    approve: "Allow",
-    deny: "Deny",
-    waiting: "ждёт твоего ответа…",
-    approved: "разрешено · команда выполняется",
-    denied: "отклонено · команда не запущена",
-    timeoutMsg: "нет ответа → deny (fail-closed)",
-    loopbackTag: "loopback",
-    sigTag: "HMAC + nonce",
-    interactHint: "Попробуй сам: нажми Allow / Deny или переключи режим демона.",
-    steps: [
-      {
-        title: "Агент хочет выполнить опасное",
-        body: "ИИ-агент прямо в твоём редакторе собирается запустить команду оболочки или вызвать MCP-инструмент. Установленный хук перехватывает вызов ДО запуска и ставит его на паузу. Так агент не может сам, без тебя, сделать что-то разрушительное.",
-        tag: "хук перехватывает вызов",
-      },
-      {
-        title: "Хук стучится только в свою машину",
-        body: "Хук отправляет запрос локальному демону по адресу 127.0.0.1 — это loopback, петля на саму себя: ничего не уходит в интернет, демон не слушает внешний порт. Запрос ещё и подписан секретным заголовком X-DotAgents-Secret, так что чужой процесс на машине не подсунет фальшивку.",
-        tag: "127.0.0.1 = только твой компьютер",
-      },
-      {
-        title: "Режим решает: спросить или ответить сразу",
-        body: "У сессии есть один из трёх режимов. remote — спрашивать тебя про каждое защищённое действие. readonly — авто-allow, только уведомить (когда смотришь, как агент работает). standby — авто-deny всего опасного (когда отошёл и не хочешь сюрпризов).",
-        tag: "remote · readonly · standby",
-      },
-      {
-        title: "В Telegram приходит запрос",
-        body: "В режиме remote демон шлёт тебе сообщение с самой командой и кнопками Allow / Deny. Telegram здесь — только канал доставки: код и контекст остаются на машине, в сообщении лишь то, что ты явно отправляешь своему боту. Агент тем временем реально стоит и ждёт.",
-        tag: "ты — пульт",
-      },
-      {
-        title: "Молчание = запрет (fail-closed)",
-        body: "Агент ждёт не вечно: до HOOK_TIMEOUT_SECONDS (по умолчанию 90 секунд). Если ты не ответил, демон сам отвечает deny — это «безопасное по умолчанию». Если что-то пошло не так или тебя нет рядом, система запрещает, а не разрешает молча.",
-        tag: "таймаут → deny",
-      },
-      {
-        title: "Решение нельзя подделать и переиграть",
-        body: "Каждая кнопка несёт callback, подписанный HMAC-SHA256 (общий секрет проверяет подлинность) плюс одноразовый nonce и срок годности expires_at. Подменишь данные — подпись не сойдётся; нажмёшь повторно ту же кнопку — nonce уже сгорел. Подделка и повтор исключены.",
-        tag: "tamper-proof · одноразово",
-      },
-    ],
-    invariant: "Код, approvals и transcript не покидают машину — облачного релея нет.",
-  },
-  en: {
-    eyebrow: "Approval flow",
-    intro:
-      "How .agents route a risky command through you: an AI agent in your IDE wants to run something, a local daemon asks for permission over Telegram, and the answer is tamper-proof. Step through it.",
-    replay: "Restart",
-    prev: "Back",
-    next: "Next",
-    stepWord: "Step",
-    ofWord: "of",
-    agent: "IDE agent",
-    agentSub: "Cursor · Claude Code · Antigravity",
-    daemon: "local daemon",
-    daemonApi: "FastAPI · 127.0.0.1",
-    tg: "Telegram",
-    cmd: "rm -rf /tmp/scratch",
-    cmdKind: "shell · risk: high",
-    approve: "Allow",
-    deny: "Deny",
-    waiting: "waiting for your reply…",
-    approved: "allowed · command runs",
-    denied: "denied · command never runs",
-    timeoutMsg: "no reply → deny (fail-closed)",
-    loopbackTag: "loopback",
-    sigTag: "HMAC + nonce",
-    interactHint: "Try it yourself: tap Allow / Deny, or switch the daemon's mode.",
-    steps: [
-      {
-        title: "The agent wants to do something risky",
-        body: "An AI agent right inside your editor is about to run a shell command or call an MCP tool. An installed hook intercepts the call BEFORE it runs and pauses it. That means the agent cannot do anything destructive on its own without you.",
-        tag: "hook intercepts the call",
-      },
-      {
-        title: "The hook only knocks on your own machine",
-        body: "The hook sends the request to a local daemon at 127.0.0.1 — that is loopback, a wire that loops back to itself: nothing goes to the internet and the daemon listens on no public port. The request also carries a secret X-DotAgents-Secret header, so a stray process on the box cannot forge one.",
-        tag: "127.0.0.1 = only your computer",
-      },
-      {
-        title: "The mode decides: ask, or answer at once",
-        body: "Each session is in one of three modes. remote — ask you about every protected action. readonly — auto-allow, notify only (while you watch the agent work). standby — auto-deny anything dangerous (when you stepped away and want no surprises).",
-        tag: "remote · readonly · standby",
-      },
-      {
-        title: "A request lands in Telegram",
-        body: "In remote mode the daemon sends you a message with the command itself and Allow / Deny buttons. Telegram is only the delivery channel here: your code and context stay on the machine, the message holds only what you explicitly send your own bot. Meanwhile the agent really sits and waits.",
-        tag: "you are the remote",
-      },
-      {
-        title: "Silence means deny (fail-closed)",
-        body: "The agent does not wait forever: up to HOOK_TIMEOUT_SECONDS (90s by default). If you do not reply, the daemon answers deny itself — that is the safe default. If something breaks or you are not around, the system blocks rather than silently allowing.",
-        tag: "timeout → deny",
-      },
-      {
-        title: "The decision cannot be forged or replayed",
-        body: "Every button carries a callback signed with HMAC-SHA256 (a shared secret proves it is genuine) plus a one-time nonce and an expires_at deadline. Tamper with the data and the signature will not match; press the same button twice and the nonce is already spent. Forgery and replay are both ruled out.",
-        tag: "tamper-proof · one-shot",
-      },
-    ],
-    invariant: "Code, approvals and transcript stay on the machine — there is no cloud relay.",
-  },
-}[locale];
+type Bi = { ru: string; en: string };
+const t = (b: Bi): string => b[locale];
 
-const steps = copy.steps;
-const total = steps.length;
+const intro: Bi = {
+  ru: "Это не схема — это пульт. Тот же рискованный вызов агента, но исход решаешь ты: переключи режим демона, ответь в Telegram, проверь печать на подделку. Всё на loopback, наружу ничего не уходит.",
+  en: "This isn't a diagram — it's a remote. The same risky agent call, but you decide the outcome: flip the daemon's mode, answer in Telegram, test the seal against forgery. All on loopback, nothing leaves the box.",
+};
+
+const cmd = "rm -rf /tmp/scratch";
+
+const copy = {
+  agent: { ru: "IDE-агент", en: "IDE agent" },
+  agentSub: { ru: "Cursor · Claude Code · Antigravity", en: "Cursor · Claude Code · Antigravity" },
+  cmdKind: { ru: "shell · risk: high", en: "shell · risk: high" },
+  intercepted: { ru: "перехвачено хуком — ждёт решения", en: "intercepted by hook — awaiting decision" },
+  daemon: { ru: "локальный демон", en: "local daemon" },
+  daemonApi: { ru: "FastAPI · 127.0.0.1 · argon2id", en: "FastAPI · 127.0.0.1 · argon2id" },
+  loopback: { ru: "loopback", en: "loopback" },
+  hookPost: { ru: "POST /api/v1 · X-DotAgents-Secret", en: "POST /api/v1 · X-DotAgents-Secret" },
+  phone: { ru: "твой телефон", en: "your phone" },
+  tgBot: { ru: "DotAgents bot", en: "DotAgents bot" },
+  waiting: { ru: "ждёт твоего ответа…", en: "waiting for your reply…" },
+  allow: { ru: "Allow", en: "Allow" },
+  deny: { ru: "Deny", en: "Deny" },
+  // Statuses
+  stIdle: { ru: "хук на паузе — выбери режим", en: "hook paused — pick a mode" },
+  stWaiting: { ru: "remote: жду — Allow или Deny", en: "remote: waiting — Allow or Deny" },
+  stAllowed: { ru: "allow · команда выполняется", en: "allowed · command runs" },
+  stDenied: { ru: "deny · команда не запущена", en: "denied · command never runs" },
+  stTimeout: { ru: "тишина → deny (fail-closed)", en: "silence → deny (fail-closed)" },
+  stAutoAllow: { ru: "readonly: авто-allow, только уведомление", en: "readonly: auto-allow, notify only" },
+  stAutoDeny: { ru: "standby: авто-deny, не спрашивает", en: "standby: auto-deny, never asks" },
+  // Modes
+  modeRemote: { ru: "remote", en: "remote" },
+  modeReadonly: { ru: "readonly", en: "readonly" },
+  modeStandby: { ru: "standby", en: "standby" },
+  modeRemoteHint: { ru: "спросить тебя в Telegram", en: "ask you in Telegram" },
+  modeReadonlyHint: { ru: "авто-allow + уведомить", en: "auto-allow + notify" },
+  modeStandbyHint: { ru: "авто-deny всего опасного", en: "auto-deny anything risky" },
+  modeLabel: { ru: "Режим сессии — флипни на лету", en: "Session mode — flip it on the fly" },
+  // Countdown
+  countLabel: { ru: "HOOK_TIMEOUT_SECONDS", en: "HOOK_TIMEOUT_SECONDS" },
+  countDefault: { ru: "по умолчанию 90с", en: "90s by default" },
+  failClosed: { ru: "истёк → fail-closed (deny)", en: "elapsed → fail-closed (deny)" },
+  // Seal
+  sealLabel: { ru: "Печать ответа — проверь на прочность", en: "Answer seal — try to break it" },
+  sealNote: { ru: "callback подписан и одноразовый", en: "callback is signed and one-shot" },
+  sealOk: { ru: "подпись сходится · nonce свежий", en: "signature matches · nonce fresh" },
+  sealReplay: { ru: "nonce уже сгорел — повтор отклонён", en: "nonce already spent — replay rejected" },
+  sealTamper: { ru: "подпись не сходится — подделка отклонена", en: "signature mismatch — tamper rejected" },
+  replayBtn: { ru: "Повторить ту же кнопку", en: "Replay same button" },
+  tamperBtn: { ru: "Подменить данные", en: "Tamper with data" },
+  resetBtn: { ru: "Сбросить", en: "Reset" },
+  // Invariant
+  invariant: {
+    ru: "Код, approvals и transcript не покидают машину — облачного релея нет.",
+    en: "Code, approvals and transcript stay on the machine — there is no cloud relay.",
+  },
+};
+
+// Поля строки подписи callback — точный формат:
+// action:resource_id:expires_at:nonce:hmac16 (DotAgents core/security).
+const sealFields: { tok: string; note: Bi }[] = [
+  { tok: "action", note: { ru: "ap.allow / ap.deny", en: "ap.allow / ap.deny" } },
+  { tok: "resource_id", note: { ru: "какой approval", en: "which approval" } },
+  { tok: "expires_at", note: { ru: "срок годности", en: "expiry deadline" } },
+  { tok: "nonce", note: { ru: "одноразовый код", en: "one-shot code" } },
+  { tok: "hmac16", note: { ru: "HMAC-SHA256, обрезан до 16", en: "HMAC-SHA256, truncated 16" } },
+];
+
+const modes: { id: string; hint: Bi }[] = [
+  { id: "remote", hint: copy.modeRemoteHint },
+  { id: "readonly", hint: copy.modeReadonlyHint },
+  { id: "standby", hint: copy.modeStandbyHint },
+];
 ---
 
-<section class="ab" aria-label={copy.eyebrow} data-ab>
-  <header class="ab__head">
-    <p class="ab__eyebrow">{copy.eyebrow}</p>
-    <p class="ab__intro">{copy.intro}</p>
-  </header>
+<section class="ab" data-ab aria-label={t({ ru: "Пульт одобрения .агенты", en: "DotAgents approval remote" })}>
+  <p class="ab__intro">{t(intro)}</p>
 
-  <!-- ===== Сцена: один фиксированный кадр, состояние меняется по шагам ===== -->
-  <div class="ab__stage" data-stage data-step="0" aria-hidden="true">
-    <!-- IDE-агент -->
-    <article class="ab-node ab-node--agent" data-node="agent">
-      <span class="ab-node__head">
-        <span class="ab-node__dot"></span>
-        <span class="ab-node__title">{copy.agent}</span>
-      </span>
-      <span class="ab-node__sub">{copy.agentSub}</span>
-      <code class="ab-node__cmd">{copy.cmd}</code>
-      <span class="ab-node__cmd-kind">{copy.cmdKind}</span>
-    </article>
-
-    <!-- провод agent -> daemon -->
-    <div class="ab-wire ab-wire--1">
-      <span class="ab-wire__line"></span>
-      <span class="ab-wire__pulse" data-pulse="1"></span>
-      <span class="ab-wire__tag">{copy.loopbackTag}</span>
-    </div>
-
-    <!-- локальный демон -->
-    <article class="ab-node ab-node--daemon" data-node="daemon">
-      <span class="ab-node__head">
-        <span class="ab-node__lock">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7">
-            <rect x="5" y="11" width="14" height="9" rx="2"></rect>
-            <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
-          </svg>
+  <!-- ============ Пульт: машина слева, телефон справа ============ -->
+  <div class="ab__stage" data-stage>
+    <!-- ---- Колонка «машина»: агент + демон ---- -->
+    <div class="ab__machine">
+      <article class="ab-node ab-node--agent" data-node="agent">
+        <span class="ab-node__head">
+          <span class="ab-node__dot" aria-hidden="true"></span>
+          <span class="ab-node__title">{t(copy.agent)}</span>
         </span>
-        <span class="ab-node__title">{copy.daemon}</span>
-      </span>
-      <span class="ab-node__sub">{copy.daemonApi}</span>
-      <span class="ab-node__modes" data-modes>
-        <button type="button" class="ab-mode" data-mode="remote">remote</button>
-        <button type="button" class="ab-mode" data-mode="readonly">readonly</button>
-        <button type="button" class="ab-mode" data-mode="standby">standby</button>
-      </span>
-    </article>
+        <span class="ab-node__sub mono">{t(copy.agentSub)}</span>
+        <code class="ab-node__cmd mono">{cmd}</code>
+        <span class="ab-node__kind mono">{t(copy.cmdKind)}</span>
+        <span class="ab-node__state mono" data-agent-state>{t(copy.intercepted)}</span>
+      </article>
 
-    <!-- провод daemon -> telegram -->
-    <div class="ab-wire ab-wire--2">
-      <span class="ab-wire__line"></span>
-      <span class="ab-wire__pulse" data-pulse="2"></span>
-      <span class="ab-wire__tag" data-sig-tag>{copy.sigTag}</span>
-    </div>
-
-    <!-- Telegram -->
-    <article class="ab-node ab-node--tg" data-node="tg">
-      <span class="ab-node__head">
-        <span class="ab-node__dot ab-node__dot--tg"></span>
-        <span class="ab-node__title">{copy.tg}</span>
-      </span>
-      <code class="ab-node__cmd ab-node__cmd--tg">{copy.cmd}</code>
-      <span class="ab-status" data-status data-state="idle">{copy.waiting}</span>
-      <div class="ab-buttons">
-        <button type="button" class="ab-btn ab-btn--approve" data-btn="approve">{copy.approve}</button>
-        <button type="button" class="ab-btn ab-btn--deny" data-btn="deny">{copy.deny}</button>
+      <!-- провод agent → daemon: пакет летит только по loopback -->
+      <div class="ab-wire" aria-hidden="true">
+        <span class="ab-wire__line"></span>
+        <span class="ab-wire__pkt" data-pkt></span>
+        <span class="ab-wire__tag mono">
+          <b>127.0.0.1</b> · {t(copy.loopback)}
+        </span>
+        <span class="ab-wire__post mono">{t(copy.hookPost)}</span>
       </div>
-    </article>
+
+      <article class="ab-node ab-node--daemon" data-node="daemon">
+        <span class="ab-node__head">
+          <span class="ab-node__lock" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7">
+              <rect x="5" y="11" width="14" height="9" rx="2"></rect>
+              <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
+            </svg>
+          </span>
+          <span class="ab-node__title">{t(copy.daemon)}</span>
+        </span>
+        <span class="ab-node__sub mono">{t(copy.daemonApi)}</span>
+
+        <!-- ЖИВОЙ переключатель режима -->
+        <span class="ab-modes__label caption">{t(copy.modeLabel)}</span>
+        <div class="ab-modes" role="radiogroup" aria-label={t(copy.modeLabel)}>
+          {
+            modes.map((m, i) => (
+              <button
+                type="button"
+                class="ab-mode"
+                role="radio"
+                data-mode={m.id}
+                aria-checked={i === 0 ? "true" : "false"}
+                style={`--i:${i}`}
+              >
+                <span class="ab-mode__id mono">{m.id}</span>
+                <span class="ab-mode__hint">{t(m.hint)}</span>
+              </button>
+            ))
+          }
+        </div>
+      </article>
+    </div>
+
+    <!-- ---- Колонка «телефон»: мок Telegram ---- -->
+    <div class="ab__phone-wrap">
+      <div class="ab-phone" data-phone>
+        <span class="ab-phone__notch" aria-hidden="true"></span>
+        <div class="ab-phone__screen">
+          <div class="ab-phone__bar">
+            <span class="ab-phone__dot" aria-hidden="true"></span>
+            <span class="ab-phone__app mono">{t(copy.tgBot)}</span>
+            <span class="ab-phone__net mono">{t(copy.phone)}</span>
+          </div>
+
+          <div class="ab-msg" data-msg>
+            <span class="ab-msg__from mono">{t(copy.daemon)}</span>
+            <code class="ab-msg__cmd mono">{cmd}</code>
+            <span class="ab-msg__kind mono">{t(copy.cmdKind)}</span>
+
+            <!-- обратный отсчёт до HOOK_TIMEOUT_SECONDS -->
+            <div class="ab-count" data-count hidden>
+              <span class="ab-count__row">
+                <span class="ab-count__label mono">{t(copy.countLabel)}</span>
+                <span class="ab-count__val mono" data-count-val>90s</span>
+              </span>
+              <span class="ab-count__track" aria-hidden="true"><i class="ab-count__fill" data-count-fill></i></span>
+              <span class="ab-count__note mono">{t(copy.countDefault)} · {t(copy.failClosed)}</span>
+            </div>
+
+            <div class="ab-msg__btns">
+              <button type="button" class="ab-tg ab-tg--allow" data-act="allow" disabled>
+                <span aria-hidden="true">✓</span> {t(copy.allow)}
+              </button>
+              <button type="button" class="ab-tg ab-tg--deny" data-act="deny" disabled>
+                <span aria-hidden="true">✕</span> {t(copy.deny)}
+              </button>
+            </div>
+
+            <span class="ab-msg__status mono" data-status data-state="idle" aria-live="polite">
+              {t(copy.stIdle)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <p class="ab__hint">{copy.interactHint}</p>
-
-  <!-- ===== Объяснение текущего шага ===== -->
-  <div class="ab__panel" data-panel aria-live="polite">
-    <p class="ab__step-meta">
-      <span data-step-word>{copy.stepWord}</span>
-      <span data-step-num>1</span> {copy.ofWord} {total}
-    </p>
-    <h3 class="ab__step-title" data-step-title>{steps[0]?.title}</h3>
-    <p class="ab__step-body" data-step-body>{steps[0]?.body}</p>
+  <!-- ============ Tamper-proof seal ============ -->
+  <div class="ab__seal" data-seal-block>
+    <span class="ab-seal__label caption">{t(copy.sealLabel)}</span>
+    <div class="ab-seal__row" data-seal data-state="empty">
+      <div class="ab-seal__fields">
+        {
+          sealFields.map((f, i) => (
+            <span class="ab-seal__chip mono" style={`--i:${i}`}>
+              {i > 0 && <span class="ab-seal__sep" aria-hidden="true">:</span>}
+              <span class="ab-seal__tok" title={t(f.note)}>{f.tok}</span>
+            </span>
+          ))
+        }
+      </div>
+      <span class="ab-seal__verdict mono" data-seal-verdict>{t(copy.sealNote)}</span>
+    </div>
+    <div class="ab-seal__btns">
+      <button type="button" class="ab-seal__btn" data-seal-act="replay" disabled>{t(copy.replayBtn)}</button>
+      <button type="button" class="ab-seal__btn" data-seal-act="tamper" disabled>{t(copy.tamperBtn)}</button>
+      <button type="button" class="ab-seal__btn ab-seal__btn--reset" data-seal-act="reset">{t(copy.resetBtn)}</button>
+    </div>
   </div>
-
-  <!-- ===== Управление: вкладки-шаги + prev/next + replay ===== -->
-  <nav class="ab__controls" aria-label={copy.eyebrow}>
-    <div class="ab__dots" role="tablist" data-dots>
-      {
-        steps.map((s, i) => (
-          <button
-            type="button"
-            class:list={["ab__dot", { "is-active": i === 0 }]}
-            role="tab"
-            data-go={i}
-            aria-selected={i === 0 ? "true" : "false"}
-            aria-label={`${copy.stepWord} ${i + 1}: ${s.title}`}
-          >
-            <span class="ab__dot-num">{i + 1}</span>
-          </button>
-        ))
-      }
-    </div>
-    <div class="ab__nav">
-      <button type="button" class="ab__btn" data-prev>{copy.prev}</button>
-      <button type="button" class="ab__btn" data-next>{copy.next}</button>
-      <button type="button" class="ab__btn ab__btn--replay" data-replay>{copy.replay}</button>
-    </div>
-  </nav>
 
   <p class="ab__invariant">
     <span class="ab__invariant-mark" aria-hidden="true"></span>
-    {copy.invariant}
+    {t(copy.invariant)}
   </p>
 </section>
 
 <style>
   .ab {
     --accent: var(--project-accent);
+    --ab-line: color-mix(in srgb, var(--accent) 38%, transparent);
+    --ab-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+    --ab-glow: color-mix(in srgb, var(--accent) 16%, transparent);
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: var(--sp-5);
@@ -279,50 +264,60 @@ const total = steps.length;
     container-type: inline-size;
   }
 
-  /* ---------- Шапка ---------- */
-  .ab__head {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-2);
-  }
-
-  .ab__eyebrow {
-    margin: 0;
+  .ab :global(.mono) {
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-11);
-    letter-spacing: var(--ls-eyebrow);
-    text-transform: uppercase;
+  }
+  .ab :global(.caption) {
+    font-size: var(--fs-12);
     color: var(--text-muted);
   }
 
   .ab__intro {
     margin: 0;
-    max-width: 62ch;
-    font-size: var(--fs-15);
+    max-width: 64ch;
+    font-size: var(--fs-16);
     line-height: var(--lh-normal);
     color: var(--text-secondary);
   }
 
-  /* Подсказка «потыкай» */
-  .ab__hint {
-    margin: 0;
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
-    color: color-mix(in srgb, var(--accent) 65%, var(--text-muted));
-  }
-
-  /* ---------- Сцена ---------- */
+  /* ========================= Пульт ========================= */
   .ab__stage {
     display: grid;
     grid-template-columns: 1fr;
-    gap: var(--sp-3);
-    align-items: stretch;
-    padding: var(--sp-5);
+    gap: var(--sp-5);
+    padding: var(--sp-6);
     border: var(--bw-thin) solid var(--glass-edge);
     border-radius: var(--r-lg);
-    background: var(--glass-tint-liquid);
+    background:
+      radial-gradient(120% 130% at 8% 0%, var(--ab-glow), transparent 50%),
+      var(--glass-tint-1);
   }
 
+  /* тонкая дотовая подложка (бренд-мотив) */
+  .ab__stage::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 26px 26px;
+    mask-image: radial-gradient(120% 100% at 50% 0%, #000 30%, transparent 92%);
+    -webkit-mask-image: radial-gradient(120% 100% at 50% 0%, #000 30%, transparent 92%);
+    pointer-events: none;
+  }
+  .ab__stage > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .ab__machine {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    min-width: 0;
+  }
+
+  /* ---- Узлы ---- */
   .ab-node {
     position: relative;
     display: flex;
@@ -340,13 +335,22 @@ const total = steps.length;
   .ab-node--daemon {
     border-color: color-mix(in srgb, var(--accent) 26%, var(--border));
   }
+  .ab-node[data-active="true"] {
+    border-color: color-mix(in srgb, var(--accent) 58%, var(--glass-edge));
+    background: var(--surface-2);
+  }
+  .ab-node[data-active="true"] .ab-node__dot {
+    background: var(--accent);
+  }
+  .ab-node[data-dim="true"] {
+    opacity: 0.5;
+  }
 
   .ab-node__head {
     display: flex;
     align-items: center;
     gap: var(--sp-2);
   }
-
   .ab-node__title {
     font-family: var(--font-stack-display);
     font-weight: var(--fw-bold);
@@ -354,30 +358,33 @@ const total = steps.length;
     letter-spacing: var(--ls-tight);
     line-height: var(--lh-tight);
   }
-
   .ab-node__sub {
-    font-family: var(--font-stack-mono);
     font-size: var(--fs-13);
     color: var(--text-muted);
     line-height: var(--lh-snug);
   }
-
   .ab-node__cmd {
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
-    color: var(--text-secondary);
-    padding: var(--sp-2) var(--sp-3);
+    align-self: flex-start;
+    font-size: var(--fs-14);
+    color: var(--text);
+    padding: var(--sp-1) var(--sp-3);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-sm);
     background: var(--bg-elevated);
     word-break: break-all;
   }
-
-  .ab-node__cmd-kind {
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
+  .ab-node__kind {
+    font-size: var(--fs-12);
     color: var(--text-muted);
   }
+  .ab-node__state {
+    font-size: var(--fs-12);
+    color: color-mix(in srgb, var(--accent) 60%, var(--text-muted));
+    min-height: 1.3em;
+    transition: color var(--dur-med) var(--ease-standard);
+  }
+  .ab-node--agent[data-resolved="allow"] .ab-node__state { color: var(--text); }
+  .ab-node--agent[data-resolved="deny"] .ab-node__state { color: var(--text-secondary); }
 
   .ab-node__dot {
     width: 8px;
@@ -387,292 +394,452 @@ const total = steps.length;
     background: var(--text-faint);
     transition: background-color var(--dur-med) var(--ease-standard);
   }
-
   .ab-node__lock {
     display: inline-flex;
     color: var(--accent);
   }
 
-  /* Активный узел текущего шага */
-  .ab-node[data-active="true"] {
-    border-color: color-mix(in srgb, var(--accent) 58%, var(--glass-edge));
-  }
-  .ab-node[data-active="true"] .ab-node__dot {
-    background: var(--accent);
-  }
-  /* Узлы, ещё не задействованные на шаге, слегка приглушаем */
-  .ab-node[data-dim="true"] { opacity: 0.42; }
-
-  /* ---------- Режимы внутри демона ---------- */
-  .ab-node__modes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-1);
-    margin-top: 2px;
-  }
-
-  .ab-mode {
-    appearance: none;
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
-    padding: 3px var(--sp-2);
-    border-radius: var(--r-pill);
-    border: var(--bw-thin) solid var(--border);
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition:
-      color var(--dur-med) var(--ease-standard),
-      border-color var(--dur-med) var(--ease-standard),
-      background-color var(--dur-med) var(--ease-standard);
-  }
-  .ab-mode:hover {
-    color: var(--text-secondary);
-    border-color: var(--border-hover);
-  }
-  .ab-mode:focus-visible {
-    outline: var(--ring-width) solid var(--ring-focus);
-    outline-offset: 2px;
-  }
-  .ab-mode[data-on="true"] {
-    color: var(--text);
-    border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-    background: color-mix(in srgb, var(--accent) 14%, transparent);
-  }
-
-  /* ---------- Провода ---------- */
+  /* ---- Провод + loopback-пакет ---- */
   .ab-wire {
     position: relative;
-    height: 30px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
-
   .ab-wire__line {
     position: absolute;
     left: 50%;
-    top: 0;
-    height: 30px;
+    top: 6px;
+    bottom: 6px;
     width: 1px;
-    background: linear-gradient(
-      to bottom,
-      transparent,
-      color-mix(in srgb, var(--accent) 40%, var(--border)),
-      transparent
-    );
+    background: linear-gradient(to bottom, transparent, var(--ab-line), transparent);
   }
-
-  .ab-wire__pulse {
+  .ab-wire__pkt {
     position: absolute;
     left: 50%;
-    top: 0;
+    top: 6px;
     width: 8px;
     height: 8px;
     margin-left: -4px;
     border-radius: var(--r-pill);
     background: var(--accent);
     opacity: 0;
+    --pkt-dist: 32px;
   }
-
   .ab-wire__tag {
     position: absolute;
     left: calc(50% + 12px);
     top: 50%;
     transform: translateY(-50%);
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
+    font-size: var(--fs-12);
     color: var(--text-muted);
     white-space: nowrap;
-    opacity: 0;
-    transition: opacity var(--dur-med) var(--ease-standard);
   }
-  .ab-wire__tag[data-on="true"] {
-    opacity: 1;
-    color: color-mix(in srgb, var(--accent) 70%, var(--text-secondary));
+  .ab-wire__tag b {
+    color: color-mix(in srgb, var(--accent) 75%, var(--text-secondary));
+    font-weight: var(--fw-semibold);
+  }
+  .ab-wire__post {
+    position: absolute;
+    right: calc(50% + 12px);
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: var(--fs-11);
+    color: var(--text-faint);
+    white-space: nowrap;
   }
 
-  /* ---------- Telegram-карточка ---------- */
-  .ab-node__cmd--tg { color: var(--text); }
+  /* ---- Живой переключатель режима ---- */
+  .ab-modes__label {
+    margin-top: var(--sp-1);
+  }
+  .ab-modes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+  .ab-mode {
+    appearance: none;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    min-height: var(--tap-min);
+    padding: var(--sp-2) var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    color: var(--text-muted);
+    text-align: left;
+    cursor: pointer;
+    transition:
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-soft);
+  }
+  .ab-mode:hover {
+    color: var(--text-secondary);
+    border-color: var(--border-hover);
+  }
+  .ab-mode:active {
+    transform: scale(0.97);
+  }
+  .ab-mode:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  .ab-mode[aria-checked="true"] {
+    color: var(--text);
+    border-color: var(--ab-line);
+    background: var(--ab-soft);
+  }
+  .ab-mode__id {
+    font-size: var(--fs-14);
+    font-weight: var(--fw-semibold);
+  }
+  .ab-mode[aria-checked="true"] .ab-mode__id {
+    color: var(--accent);
+  }
+  .ab-mode__hint {
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
 
-  .ab-status {
-    font-family: var(--font-stack-mono);
+  /* ========================= Телефон (мок Telegram) ========================= */
+  .ab__phone-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  .ab-phone {
+    position: relative;
+    width: 100%;
+    max-width: 320px;
+    padding: var(--sp-2);
+    border: var(--bw-thin) solid var(--glass-edge);
+    border-radius: var(--r-xl);
+    background: var(--bg-elevated);
+  }
+  .ab-phone__notch {
+    position: absolute;
+    top: 7px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 64px;
+    height: 4px;
+    border-radius: var(--r-pill);
+    background: var(--border-hover);
+  }
+  .ab-phone__screen {
+    margin-top: var(--sp-3);
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-lg);
+    background: var(--bg-deep);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+  }
+  .ab-phone__bar {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding-bottom: var(--sp-2);
+    border-bottom: var(--bw-thin) solid var(--border);
+  }
+  .ab-phone__dot {
+    width: 7px;
+    height: 7px;
+    flex: none;
+    border-radius: var(--r-pill);
+    background: var(--accent);
+  }
+  .ab-phone__app {
     font-size: var(--fs-13);
+    color: var(--text);
+    font-weight: var(--fw-semibold);
+  }
+  .ab-phone__net {
+    margin-left: auto;
+    font-size: var(--fs-11);
+    color: var(--text-faint);
+  }
+
+  /* ---- Сообщение-карточка ---- */
+  .ab-msg {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    transition: border-color var(--dur-med) var(--ease-standard);
+  }
+  .ab-msg[data-lit="true"] {
+    border-color: var(--ab-line);
+  }
+  .ab-msg__from {
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+  }
+  .ab-msg__cmd {
+    align-self: flex-start;
+    font-size: var(--fs-14);
+    color: var(--text);
+    padding: var(--sp-1) var(--sp-2);
+    border-radius: var(--r-xs);
+    background: var(--bg-elevated);
+    word-break: break-all;
+  }
+  .ab-msg__kind {
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+  }
+
+  /* ---- Обратный отсчёт ---- */
+  .ab-count {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+  }
+  .ab-count[hidden] {
+    display: none;
+  }
+  .ab-count__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--sp-2);
+  }
+  .ab-count__label {
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+    letter-spacing: var(--ls-snug);
+  }
+  .ab-count__val {
+    font-size: var(--fs-13);
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .ab-count__track {
+    position: relative;
+    height: 4px;
+    border-radius: var(--r-pill);
+    background: var(--border);
+    overflow: hidden;
+  }
+  .ab-count__fill {
+    position: absolute;
+    inset: 0;
+    transform-origin: left center;
+    transform: scaleX(1);
+    border-radius: inherit;
+    background: var(--accent);
+  }
+  /* Отсчёт ведёт ОДНА css-анимация (scaleX) только когда блок виден и активен;
+     её animationend → fail-closed. Длительность задаёт JS через --count-ms. */
+  .ab.is-inview .ab-count[data-run="true"] .ab-count__fill {
+    animation: ab-count-down var(--count-ms, 8000ms) linear forwards;
+  }
+  @keyframes ab-count-down {
+    to { transform: scaleX(0); }
+  }
+
+  /* ---- Кнопки Telegram ---- */
+  .ab-msg__btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-2);
+  }
+  .ab-tg {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-1);
+    min-height: var(--tap-min);
+    padding: var(--sp-2);
+    border-radius: var(--r-sm);
+    border: var(--bw-thin) solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-14);
+    cursor: pointer;
+    transition:
+      border-color var(--dur-fast) var(--ease-standard),
+      color var(--dur-fast) var(--ease-standard),
+      opacity var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-soft);
+  }
+  .ab-tg:hover:not(:disabled) {
+    color: var(--text);
+    border-color: var(--border-hover);
+  }
+  .ab-tg:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+  .ab-tg:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  .ab-tg:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .ab-tg--allow:not(:disabled) {
+    border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
+  }
+  .ab-tg[data-picked="true"] {
+    color: var(--text);
+    border-color: var(--accent);
+    background: var(--ab-soft);
+    transform: scale(1.03);
+  }
+  .ab-tg[data-faded="true"] {
+    opacity: 0.28;
+  }
+
+  .ab-msg__status {
+    font-size: var(--fs-12);
     color: var(--text-muted);
     line-height: var(--lh-snug);
     min-height: 1.3em;
     transition: color var(--dur-med) var(--ease-standard);
   }
-  .ab-status[data-state="waiting"] { color: var(--text-secondary); }
-  .ab-status[data-state="approved"],
-  .ab-status[data-state="denied"],
-  .ab-status[data-state="timeout"] { color: var(--text); }
-  .ab-status[data-state="approved"]::before { content: "✓ "; color: var(--accent); }
-  .ab-status[data-state="denied"]::before,
-  .ab-status[data-state="timeout"]::before { content: "✕ "; color: var(--text-secondary); }
+  .ab-msg__status[data-state="waiting"] { color: var(--text-secondary); }
+  .ab-msg__status[data-state="allowed"] { color: var(--text); }
+  .ab-msg__status[data-state="allowed"]::before { content: "✓ "; color: var(--accent); }
+  .ab-msg__status[data-state="denied"],
+  .ab-msg__status[data-state="timeout"] { color: var(--text); }
+  .ab-msg__status[data-state="denied"]::before,
+  .ab-msg__status[data-state="timeout"]::before { content: "✕ "; color: var(--text-secondary); }
 
-  .ab-buttons {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--sp-2);
-  }
-
-  .ab-btn {
-    appearance: none;
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
-    text-align: center;
-    padding: var(--sp-2) var(--sp-2);
-    border-radius: var(--r-sm);
-    border: var(--bw-thin) solid var(--border);
-    background: transparent;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition:
-      border-color var(--dur-med) var(--ease-standard),
-      color var(--dur-med) var(--ease-standard),
-      opacity var(--dur-med) var(--ease-standard),
-      transform var(--dur-med) var(--ease-soft);
-  }
-  .ab-btn:hover { border-color: var(--border-hover); color: var(--text); }
-  .ab-btn:focus-visible {
-    outline: var(--ring-width) solid var(--ring-focus);
-    outline-offset: 2px;
-  }
-  .ab-btn--approve { border-color: color-mix(in srgb, var(--accent) 30%, var(--border)); }
-  .ab-btn[data-picked="true"] {
-    border-color: var(--accent);
-    color: var(--text);
-    transform: scale(1.04);
-  }
-  .ab-btn[data-dimmed="true"] { opacity: 0.3; }
-
-  /* ---------- Панель объяснения ---------- */
-  .ab__panel {
+  /* ========================= Tamper-proof seal ========================= */
+  .ab__seal {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-2);
-    min-height: 150px;
+    gap: var(--sp-3);
+    padding: var(--sp-5);
+    border: var(--bw-thin) solid var(--glass-edge);
+    border-radius: var(--r-lg);
+    background: var(--glass-tint-1);
+  }
+  .ab-seal__row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    padding: var(--sp-3) var(--sp-4);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    transition: border-color var(--dur-med) var(--ease-standard);
+  }
+  .ab-seal__row[data-state="ok"] {
+    border-color: var(--ab-line);
+  }
+  .ab-seal__row[data-state="replay"],
+  .ab-seal__row[data-state="tamper"] {
+    border-color: color-mix(in srgb, var(--state-error) 42%, transparent);
+  }
+  .ab-seal__row[data-state="replay"],
+  .ab-seal__row[data-state="tamper"] {
+    animation: ab-shake var(--dur-slow) var(--ease-standard);
+  }
+  @keyframes ab-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
   }
 
-  .ab__step-meta {
-    margin: 0;
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
-    letter-spacing: var(--ls-wide);
-    text-transform: uppercase;
-    color: var(--text-muted);
-  }
-
-  .ab__step-title {
-    margin: 0;
-    font-family: var(--font-stack-display);
-    font-weight: var(--fw-bold);
-    font-size: var(--fs-22);
-    letter-spacing: var(--ls-tight);
-    line-height: var(--lh-snug);
-    color: var(--text);
-  }
-
-  .ab__step-body {
-    margin: 0;
-    max-width: 64ch;
-    font-size: var(--fs-16);
-    line-height: var(--lh-normal);
-    color: var(--text-secondary);
-  }
-
-  /* мягкое появление текста при смене шага — только opacity/transform */
-  .ab__panel[data-enter="true"] .ab__step-title,
-  .ab__panel[data-enter="true"] .ab__step-body {
-    animation: ab-fade var(--dur-slow) var(--ease-soft) both;
-  }
-  .ab__panel[data-enter="true"] .ab__step-body { animation-delay: 60ms; }
-
-  @keyframes ab-fade {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  /* ---------- Управление ---------- */
-  .ab__controls {
+  .ab-seal__fields {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--sp-3);
+    gap: var(--sp-1) 0;
   }
-
-  .ab__dots {
+  .ab-seal__chip {
     display: inline-flex;
-    gap: var(--sp-2);
+    align-items: center;
   }
-
-  .ab__dot {
-    position: relative;
-    width: var(--tap-min);
-    height: var(--tap-min);
-    display: grid;
-    place-items: center;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: var(--text-muted);
+  .ab-seal__sep {
+    color: var(--text-faint);
+    padding-inline: 2px;
   }
-  .ab__dot-num {
-    display: grid;
-    place-items: center;
-    width: 30px;
-    height: 30px;
-    border-radius: var(--r-pill);
-    border: var(--bw-thin) solid var(--border);
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-14);
-    transition:
-      border-color var(--dur-med) var(--ease-standard),
-      color var(--dur-med) var(--ease-standard),
-      background-color var(--dur-med) var(--ease-standard);
-  }
-  .ab__dot:hover .ab__dot-num { border-color: var(--border-hover); color: var(--text-secondary); }
-  .ab__dot.is-active { color: var(--text); }
-  .ab__dot.is-active .ab__dot-num {
-    border-color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 16%, transparent);
-  }
-  .ab__dot:focus-visible { outline: none; }
-  .ab__dot:focus-visible .ab__dot-num {
-    outline: var(--ring-width) solid var(--ring-focus);
-    outline-offset: 2px;
-  }
-
-  .ab__nav {
-    display: inline-flex;
-    gap: var(--sp-2);
-  }
-
-  .ab__btn {
-    font-family: var(--font-stack-mono);
+  .ab-seal__tok {
     font-size: var(--fs-13);
+    color: var(--text-secondary);
+    padding: 2px var(--sp-2);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-xs);
+    background: var(--bg-elevated);
+    cursor: help;
+    transition: color var(--dur-med) var(--ease-standard), border-color var(--dur-med) var(--ease-standard);
+  }
+  .ab-seal__row[data-state="ok"] .ab-seal__tok {
+    color: var(--text);
+    border-color: var(--ab-line);
+  }
+  /* tamper: пятое поле (подпись) рвётся */
+  .ab-seal__row[data-state="tamper"] .ab-seal__chip:last-child .ab-seal__tok {
+    color: var(--state-error);
+    border-color: color-mix(in srgb, var(--state-error) 50%, transparent);
+  }
+  /* replay: nonce уже сгорел */
+  .ab-seal__row[data-state="replay"] .ab-seal__chip:nth-child(4) .ab-seal__tok {
+    color: var(--state-error);
+    border-color: color-mix(in srgb, var(--state-error) 50%, transparent);
+  }
+
+  .ab-seal__verdict {
+    font-size: var(--fs-13);
+    color: var(--text-muted);
+    transition: color var(--dur-med) var(--ease-standard);
+  }
+  .ab-seal__row[data-state="ok"] .ab-seal__verdict { color: var(--text); }
+  .ab-seal__row[data-state="replay"] .ab-seal__verdict,
+  .ab-seal__row[data-state="tamper"] .ab-seal__verdict { color: var(--state-error); }
+
+  .ab-seal__btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+  .ab-seal__btn {
+    appearance: none;
+    min-height: var(--tap-min);
     padding: var(--sp-2) var(--sp-3);
-    min-height: 38px;
-    border-radius: var(--r-sm);
+    border-radius: var(--r-pill);
     border: var(--bw-thin) solid var(--border);
     background: transparent;
     color: var(--text-secondary);
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-13);
     cursor: pointer;
     transition:
-      border-color var(--dur-med) var(--ease-standard),
-      color var(--dur-med) var(--ease-standard);
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard);
   }
-  .ab__btn:hover { border-color: var(--border-hover); color: var(--text); }
-  .ab__btn:disabled { opacity: 0.4; cursor: default; }
-  .ab__btn:focus-visible {
+  .ab-seal__btn:hover:not(:disabled) {
+    color: var(--text);
+    border-color: var(--border-hover);
+  }
+  .ab-seal__btn:focus-visible {
     outline: var(--ring-width) solid var(--ring-focus);
     outline-offset: 2px;
   }
-  .ab__btn--replay { border-color: color-mix(in srgb, var(--accent) 30%, var(--border)); }
+  .ab-seal__btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .ab-seal__btn--reset {
+    margin-left: auto;
+  }
 
-  /* ---------- Инвариант ---------- */
+  /* ========================= Инвариант ========================= */
   .ab__invariant {
     margin: 0;
     display: flex;
@@ -690,417 +857,361 @@ const total = steps.length;
     background: var(--accent);
   }
 
-  /* ---------- Широкая раскладка: горизонтальный поток ---------- */
-  @container (min-width: 640px) {
+  /* ========================= Появление под .is-inview ========================= */
+  @keyframes ab-rise {
+    from { opacity: 0; transform: translate3d(0, 10px, 0); }
+    to { opacity: 1; transform: none; }
+  }
+  .ab.is-inview .ab-node,
+  .ab.is-inview .ab-phone,
+  .ab.is-inview .ab__seal {
+    animation: ab-rise var(--dur-slower) var(--ease-soft) both;
+  }
+  .ab.is-inview .ab-node--daemon { animation-delay: 70ms; }
+  .ab.is-inview .ab-phone { animation-delay: 140ms; }
+  .ab.is-inview .ab__seal { animation-delay: 200ms; }
+
+  /* loopback-пакет: летит ВНИЗ по проводу, только при .is-inview и data-run */
+  .ab.is-inview .ab-wire__pkt[data-run="true"] {
+    animation: ab-pkt var(--dur-glacial) var(--ease-standard) forwards;
+  }
+  @keyframes ab-pkt {
+    0% { transform: translate3d(0, 0, 0) scale(0.6); opacity: 0; }
+    18% { opacity: 1; transform: translate3d(0, 4px, 0) scale(1); }
+    82% { opacity: 1; transform: translate3d(0, var(--pkt-dist), 0) scale(1); }
+    100% { transform: translate3d(0, var(--pkt-dist), 0) scale(0.6); opacity: 0; }
+  }
+
+  /* ========================= Широкая раскладка ========================= */
+  @container (min-width: 720px) {
     .ab__stage {
-      grid-template-columns: 1fr auto 1.1fr auto 1fr;
-      align-items: stretch;
+      grid-template-columns: 1.15fr 0.85fr;
+      align-items: start;
+      gap: var(--sp-6);
     }
-    .ab-wire { height: auto; width: 48px; }
-    .ab-wire__line {
-      top: 50%;
-      left: 0;
-      width: 48px;
-      height: 1px;
-      transform: translateY(-50%);
-      background: linear-gradient(
-        to right,
-        transparent,
-        color-mix(in srgb, var(--accent) 40%, var(--border)),
-        transparent
-      );
-    }
-    .ab-wire__pulse { top: 50%; left: 0; margin-top: -4px; margin-left: 0; }
-    .ab-wire__tag {
-      left: 50%;
-      top: auto;
-      bottom: -18px;
-      transform: translateX(-50%);
+    .ab__phone-wrap {
+      justify-content: flex-end;
+      position: sticky;
+      top: var(--sp-5);
     }
   }
 
-  /* ---------- Пульс по проводу: ТОЛЬКО на видимой секции и активном проводе ---------- */
-  @media (prefers-reduced-motion: no-preference) {
-    .ab.is-inview .ab-wire__pulse[data-run="1"] {
-      animation: ab-pulse-v var(--dur-glacial) var(--ease-standard) forwards;
-    }
-    @container (min-width: 640px) {
-      .ab.is-inview .ab-wire__pulse[data-run="1"] {
-        animation-name: ab-pulse-h;
-      }
-    }
-  }
-
-  @keyframes ab-pulse-v {
-    0% { transform: translateY(0) scale(0.6); opacity: 0; }
-    18% { opacity: 1; }
-    82% { opacity: 1; }
-    100% { transform: translateY(30px) scale(0.6); opacity: 0; }
-  }
-  @keyframes ab-pulse-h {
-    0% { transform: translateX(0) scale(0.6); opacity: 0; }
-    18% { opacity: 1; }
-    82% { opacity: 1; }
-    100% { transform: translateX(48px) scale(0.6); opacity: 0; }
-  }
-
-  /* ---------- Reduced motion: финальное читаемое состояние, без движения ---------- */
+  /* ========================= Reduced motion: статика, тапы живут ========================= */
   @media (prefers-reduced-motion: reduce) {
-    .ab-node,
-    .ab-wire__tag,
-    .ab__panel .ab__step-title,
-    .ab__panel .ab__step-body {
-      transform: none;
-      transition: none;
+    .ab.is-inview .ab-node,
+    .ab.is-inview .ab-phone,
+    .ab.is-inview .ab__seal,
+    .ab.is-inview .ab-wire__pkt[data-run="true"],
+    .ab-seal__row[data-state="replay"],
+    .ab-seal__row[data-state="tamper"] {
       animation: none;
     }
-  }
-
-  /* ---------- Coarse pointer: без параллакса ---------- */
-  @media (pointer: coarse) {
-    .ab-node { transform: none; }
+    .ab-count[data-run="true"] .ab-count__fill {
+      animation: none;
+      transform: scaleX(1);
+    }
+    .ab-node,
+    .ab-msg,
+    .ab-tg,
+    .ab-mode,
+    .ab-seal__tok {
+      transition: none;
+    }
   }
 </style>
 
 <script>
-  // Пошаговый рассказ о потоке одобрения. Дискретные шаги, без rAF: текст и
-  // состояния сцены переключаются классами/атрибутами (только transform/opacity).
-  // Автопереход ~4.5с/шаг, пауза при наведении/фокусе. Управление: вкладки,
-  // prev/next, replay. Анимация загейчена за IntersectionObserver: за экраном
-  // таймеры очищаются и .is-inview снимается.
+  // Hands-on remote-control demo для .агенты.
+  //
+  // Никакого постоянного rAF. Единственная авто-анимация — обратный отсчёт
+  // (CSS scaleX прогресс-бара); его `animationend` срабатывает как fail-closed.
+  // Всё движение под .is-inview (IntersectionObserver). За экраном / на скрытой
+  // вкладке / на pagehide любой таймер отсчёта снимается, .is-inview убирается.
+  // Под prefers-reduced-motion движения нет — финальные читаемые состояния,
+  // но все тапы (режим, Allow/Deny, replay/tamper) работают.
   (() => {
     const root = document.querySelector<HTMLElement>("[data-ab]");
     if (!root) return;
 
-    const stage = root.querySelector<HTMLElement>("[data-stage]");
-    const panel = root.querySelector<HTMLElement>("[data-panel]");
-    const titleEl = root.querySelector<HTMLElement>("[data-step-title]");
-    const bodyEl = root.querySelector<HTMLElement>("[data-step-body]");
-    const numEl = root.querySelector<HTMLElement>("[data-step-num]");
-    const dots = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-go]"));
-    const prevBtn = root.querySelector<HTMLButtonElement>("[data-prev]");
-    const nextBtn = root.querySelector<HTMLButtonElement>("[data-next]");
-    const replayBtn = root.querySelector<HTMLButtonElement>("[data-replay]");
-    if (!stage || !panel || !titleEl || !bodyEl) return;
-
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const locale = document.documentElement.lang === "en" ? "en" : "ru";
+    const isEn = document.documentElement.lang === "en";
 
-    // Тексты шагов — параллельный массив к разметке (берём из data-атрибутов панели,
-    // но проще держать рядом, синхронно с .astro). Считываем из DOM узлов вкладок,
-    // чтобы не дублировать строки: title лежит в aria-label вкладки после ": ".
-    const titles = dots.map((d) => {
-      const label = d.getAttribute("aria-label") || "";
-      const idx = label.indexOf(": ");
-      return idx >= 0 ? label.slice(idx + 2) : label;
-    });
-
-    // Тела шагов держим здесь (двуязычно), синхронно с разметкой выше.
-    const bodies = {
-      ru: [
-        "ИИ-агент прямо в твоём редакторе собирается запустить команду оболочки или вызвать MCP-инструмент. Установленный хук перехватывает вызов ДО запуска и ставит его на паузу. Так агент не может сам, без тебя, сделать что-то разрушительное.",
-        "Хук отправляет запрос локальному демону по адресу 127.0.0.1 — это loopback, петля на саму себя: ничего не уходит в интернет, демон не слушает внешний порт. Запрос ещё и подписан секретным заголовком X-DotAgents-Secret, так что чужой процесс на машине не подсунет фальшивку.",
-        "У сессии есть один из трёх режимов. remote — спрашивать тебя про каждое защищённое действие. readonly — авто-allow, только уведомить (когда смотришь, как агент работает). standby — авто-deny всего опасного (когда отошёл и не хочешь сюрпризов).",
-        "В режиме remote демон шлёт тебе сообщение с самой командой и кнопками Allow / Deny. Telegram здесь — только канал доставки: код и контекст остаются на машине, в сообщении лишь то, что ты явно отправляешь своему боту. Агент тем временем реально стоит и ждёт.",
-        "Агент ждёт не вечно: до HOOK_TIMEOUT_SECONDS (по умолчанию 90 секунд). Если ты не ответил, демон сам отвечает deny — это «безопасное по умолчанию». Если что-то пошло не так или тебя нет рядом, система запрещает, а не разрешает молча.",
-        "Каждая кнопка несёт callback, подписанный HMAC-SHA256 (общий секрет проверяет подлинность) плюс одноразовый nonce и срок годности expires_at. Подменишь данные — подпись не сойдётся; нажмёшь повторно ту же кнопку — nonce уже сгорел. Подделка и повтор исключены.",
-      ],
-      en: [
-        "An AI agent right inside your editor is about to run a shell command or call an MCP tool. An installed hook intercepts the call BEFORE it runs and pauses it. That means the agent cannot do anything destructive on its own without you.",
-        "The hook sends the request to a local daemon at 127.0.0.1 — that is loopback, a wire that loops back to itself: nothing goes to the internet and the daemon listens on no public port. The request also carries a secret X-DotAgents-Secret header, so a stray process on the box cannot forge one.",
-        "Each session is in one of three modes. remote — ask you about every protected action. readonly — auto-allow, notify only (while you watch the agent work). standby — auto-deny anything dangerous (when you stepped away and want no surprises).",
-        "In remote mode the daemon sends you a message with the command itself and Allow / Deny buttons. Telegram is only the delivery channel here: your code and context stay on the machine, the message holds only what you explicitly send your own bot. Meanwhile the agent really sits and waits.",
-        "The agent does not wait forever: up to HOOK_TIMEOUT_SECONDS (90s by default). If you do not reply, the daemon answers deny itself — that is the safe default. If something breaks or you are not around, the system blocks rather than silently allowing.",
-        "Every button carries a callback signed with HMAC-SHA256 (a shared secret proves it is genuine) plus a one-time nonce and an expires_at deadline. Tamper with the data and the signature will not match; press the same button twice and the nonce is already spent. Forgery and replay are both ruled out.",
-      ],
-    }[locale];
-
-    const status = {
-      ru: {
-        waiting: "ждёт твоего ответа…",
-        approved: "разрешено · команда выполняется",
-        denied: "отклонено · команда не запущена",
-        timeout: "нет ответа → deny (fail-closed)",
-        autoAllow: "readonly: авто-allow, только уведомление",
-        autoDeny: "standby: авто-deny, не спрашивает",
-      },
-      en: {
-        waiting: "waiting for your reply…",
-        approved: "allowed · command runs",
-        denied: "denied · command never runs",
-        timeout: "no reply → deny (fail-closed)",
-        autoAllow: "readonly: auto-allow, notify only",
-        autoDeny: "standby: auto-deny, never asks",
-      },
-    }[locale];
-
-    const total = titles.length;
-
-    // Узлы и элементы сцены
-    const nodeAgent = stage.querySelector<HTMLElement>('[data-node="agent"]');
-    const nodeDaemon = stage.querySelector<HTMLElement>('[data-node="daemon"]');
-    const nodeTg = stage.querySelector<HTMLElement>('[data-node="tg"]');
-    const pulse1 = stage.querySelector<HTMLElement>('[data-pulse="1"]');
-    const pulse2 = stage.querySelector<HTMLElement>('[data-pulse="2"]');
-    const statusEl = stage.querySelector<HTMLElement>("[data-status]");
-    const btnApprove = stage.querySelector<HTMLElement>('[data-btn="approve"]');
-    const btnDeny = stage.querySelector<HTMLElement>('[data-btn="deny"]');
-    const modeEls = Array.from(stage.querySelectorAll<HTMLElement>(".ab-mode"));
-    const loopbackTag = stage.querySelector<HTMLElement>(".ab-wire--1 .ab-wire__tag");
-    const sigTag = stage.querySelector<HTMLElement>("[data-sig-tag]");
-
-    const timers: number[] = [];
-    const clearTimers = () => {
-      timers.forEach((id) => clearTimeout(id));
-      timers.length = 0;
+    const txt = {
+      stIdle: isEn ? "hook paused — pick a mode" : "хук на паузе — выбери режим",
+      stWaiting: isEn ? "remote: waiting — Allow or Deny" : "remote: жду — Allow или Deny",
+      stAllowed: isEn ? "allowed · command runs" : "allow · команда выполняется",
+      stDenied: isEn ? "denied · command never runs" : "deny · команда не запущена",
+      stTimeout: isEn ? "silence → deny (fail-closed)" : "тишина → deny (fail-closed)",
+      stAutoAllow: isEn ? "readonly: auto-allow, notify only" : "readonly: авто-allow, только уведомление",
+      stAutoDeny: isEn ? "standby: auto-deny, never asks" : "standby: авто-deny, не спрашивает",
+      agentIntercepted: isEn ? "intercepted by hook — awaiting decision" : "перехвачено хуком — ждёт решения",
+      agentRuns: isEn ? "running — call allowed" : "выполняется — вызов разрешён",
+      agentBlocked: isEn ? "blocked — call never ran" : "заблокировано — вызов не запущен",
+      sealNote: isEn ? "callback is signed and one-shot" : "callback подписан и одноразовый",
+      sealOk: isEn ? "signature matches · nonce fresh" : "подпись сходится · nonce свежий",
+      sealReplay: isEn ? "nonce already spent — replay rejected" : "nonce уже сгорел — повтор отклонён",
+      sealTamper: isEn ? "signature mismatch — tamper rejected" : "подпись не сходится — подделка отклонена",
     };
 
-    let current = -1;
+    // --- Узлы сцены ---
+    const nodeAgent = root.querySelector<HTMLElement>('[data-node="agent"]');
+    const nodeDaemon = root.querySelector<HTMLElement>('[data-node="daemon"]');
+    const agentState = root.querySelector<HTMLElement>("[data-agent-state]");
+    const pkt = root.querySelector<HTMLElement>("[data-pkt]");
+    const wire = root.querySelector<HTMLElement>(".ab-wire");
+    const modeEls = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-mode]"));
+
+    const msg = root.querySelector<HTMLElement>("[data-msg]");
+    const statusEl = root.querySelector<HTMLElement>("[data-status]");
+    const allowBtn = root.querySelector<HTMLButtonElement>('[data-act="allow"]');
+    const denyBtn = root.querySelector<HTMLButtonElement>('[data-act="deny"]');
+    const countBox = root.querySelector<HTMLElement>("[data-count]");
+    const countVal = root.querySelector<HTMLElement>("[data-count-val]");
+    const countFill = root.querySelector<HTMLElement>("[data-count-fill]");
+
+    const sealRow = root.querySelector<HTMLElement>("[data-seal]");
+    const sealVerdict = root.querySelector<HTMLElement>("[data-seal-verdict]");
+    const replayBtn = root.querySelector<HTMLButtonElement>('[data-seal-act="replay"]');
+    const tamperBtn = root.querySelector<HTMLButtonElement>('[data-seal-act="tamper"]');
+    const resetBtn = root.querySelector<HTMLButtonElement>('[data-seal-act="reset"]');
+
+    if (!statusEl || !allowBtn || !denyBtn || !sealRow) return;
+
     let inview = false;
+    let countTimer = 0; // безопасная страховка к animationend
 
-    function firePulse(el: HTMLElement | null) {
-      if (!el || reduce || !inview) return;
-      el.removeAttribute("data-run");
-      void el.offsetWidth; // reflow → рестарт keyframes
-      el.setAttribute("data-run", "1");
-    }
+    // Пакет летит по реальной высоте провода (а не фикс-смещению).
+    const syncPktDist = (): void => {
+      if (!pkt || !wire) return;
+      const h = wire.clientHeight;
+      if (h > 0) pkt.style.setProperty("--pkt-dist", `${Math.max(12, h - 12)}px`);
+    };
 
-    function setActiveNode(key: "agent" | "daemon" | "tg" | null) {
-      const map = { agent: nodeAgent, daemon: nodeDaemon, tg: nodeTg };
-      (Object.keys(map) as Array<keyof typeof map>).forEach((k) => {
-        map[k]?.setAttribute("data-active", k === key ? "true" : "false");
-      });
-    }
+    const firePacket = (): void => {
+      if (!pkt || reduce || !inview) return;
+      syncPktDist();
+      pkt.removeAttribute("data-run");
+      void pkt.offsetWidth; // reflow → рестарт keyframes
+      pkt.setAttribute("data-run", "true");
+    };
 
-    function dim(keys: Array<"agent" | "daemon" | "tg">) {
-      const map = { agent: nodeAgent, daemon: nodeDaemon, tg: nodeTg };
-      (Object.keys(map) as Array<keyof typeof map>).forEach((k) => {
-        map[k]?.setAttribute("data-dim", keys.includes(k) ? "true" : "false");
-      });
-    }
-
-    function setModes(active: string | null) {
-      modeEls.forEach((m) =>
-        m.setAttribute("data-on", m.dataset.mode === active ? "true" : "false"),
-      );
-    }
-
-    function setStatus(state: string, text: string) {
-      if (!statusEl) return;
+    const setStatus = (state: string, text: string): void => {
       statusEl.setAttribute("data-state", state);
       statusEl.textContent = text;
-    }
+    };
 
-    function resetButtons() {
-      [btnApprove, btnDeny].forEach((b) => {
-        b?.removeAttribute("data-picked");
-        b?.removeAttribute("data-dimmed");
+    const setAgent = (resolved: "" | "allow" | "deny", text: string): void => {
+      if (resolved) nodeAgent?.setAttribute("data-resolved", resolved);
+      else nodeAgent?.removeAttribute("data-resolved");
+      if (agentState) agentState.textContent = text;
+    };
+
+    const setButtonsEnabled = (on: boolean): void => {
+      [allowBtn, denyBtn].forEach((b) => {
+        b.disabled = !on;
+        b.removeAttribute("data-picked");
+        b.removeAttribute("data-faded");
       });
-    }
+    };
 
-    // Привести сцену к состоянию шага i (детерминированно, без случайностей).
-    function paintStage(i: number) {
-      resetButtons();
-      setModes(null);
-      loopbackTag?.setAttribute("data-on", "false");
-      sigTag?.setAttribute("data-on", "false");
-      stage!.setAttribute("data-step", String(i));
-
-      switch (i) {
-        case 0: // агент перехвачен
-          setActiveNode("agent");
-          dim(["daemon", "tg"]);
-          setStatus("idle", status.waiting);
-          break;
-        case 1: // loopback к демону
-          setActiveNode("daemon");
-          dim(["tg"]);
-          loopbackTag?.setAttribute("data-on", "true");
-          firePulse(pulse1);
-          setStatus("idle", status.waiting);
-          break;
-        case 2: // режимы
-          setActiveNode("daemon");
-          dim([]);
-          setModes("remote");
-          setStatus("idle", status.waiting);
-          break;
-        case 3: // запрос в Telegram
-          setActiveNode("tg");
-          dim([]);
-          setModes("remote");
-          firePulse(pulse2);
-          setStatus("waiting", status.waiting);
-          break;
-        case 4: // fail-closed таймаут
-          setActiveNode("tg");
-          dim([]);
-          setModes("remote");
-          setStatus("timeout", status.timeout);
-          btnDeny?.setAttribute("data-picked", "true");
-          btnApprove?.setAttribute("data-dimmed", "true");
-          break;
-        case 5: // подпись
-          setActiveNode("tg");
-          dim([]);
-          setModes("remote");
-          sigTag?.setAttribute("data-on", "true");
-          setStatus("approved", status.approved);
-          btnApprove?.setAttribute("data-picked", "true");
-          btnDeny?.setAttribute("data-dimmed", "true");
-          break;
+    const stopCountdown = (): void => {
+      if (countTimer) {
+        window.clearTimeout(countTimer);
+        countTimer = 0;
       }
-    }
-
-    function go(i: number, opts: { auto?: boolean } = {}) {
-      const idx = ((i % total) + total) % total;
-      if (idx === current) return;
-      current = idx;
-
-      // текст
-      if (titleEl) titleEl.textContent = titles[idx] ?? "";
-      if (bodyEl) bodyEl.textContent = bodies[idx] ?? "";
-      if (numEl) numEl.textContent = String(idx + 1);
-
-      // мягкое появление текста
-      if (!reduce) {
-        panel!.removeAttribute("data-enter");
-        void panel!.offsetWidth;
-        panel!.setAttribute("data-enter", "true");
+      if (countBox) {
+        countBox.removeAttribute("data-run");
+        countBox.hidden = true;
       }
+    };
 
-      // вкладки
-      dots.forEach((d, di) => {
-        const on = di === idx;
-        d.classList.toggle("is-active", on);
-        d.setAttribute("aria-selected", on ? "true" : "false");
-      });
+    // Демо-таймер: КОРОТКИЙ (8с), но подписан как 90с по умолчанию.
+    const COUNT_MS = 8000;
+    const COUNT_LABEL_S = 90;
 
-      // сцена
-      paintStage(idx);
-
-      // если пользователь переключил вручную — не сбрасываем автоплей грубо,
-      // но перезапускаем таймер от текущего шага
-      if (!opts.auto) restartAuto();
-    }
-
-    // ---------- Автопереход ----------
-    const STEP_MS = 4500;
-    let paused = false;
-    let autoTimer = 0;
-
-    function clearAuto() {
-      if (autoTimer) {
-        clearTimeout(autoTimer);
-        autoTimer = 0;
+    const startCountdown = (): void => {
+      if (!countBox || !countFill) return;
+      stopCountdown();
+      if (countVal) countVal.textContent = `${COUNT_LABEL_S}s`;
+      countBox.hidden = false;
+      countBox.style.setProperty("--count-ms", `${COUNT_MS}ms`);
+      // под reduced-motion бар стоит полным, fail-closed по короткому таймауту
+      if (reduce || !inview) {
+        countTimer = window.setTimeout(failClosed, COUNT_MS);
+        return;
       }
-    }
-    function scheduleAuto() {
-      clearAuto();
-      if (reduce || !inview || paused) return;
-      autoTimer = window.setTimeout(() => {
-        go(current + 1, { auto: true });
-        scheduleAuto();
-      }, STEP_MS);
-    }
-    function restartAuto() {
-      scheduleAuto();
+      // рестарт CSS-анимации scaleX
+      void countFill.offsetWidth;
+      countBox.setAttribute("data-run", "true");
+      // страховочный таймаут чуть позже animationend
+      countTimer = window.setTimeout(failClosed, COUNT_MS + 300);
+    };
+
+    function failClosed(): void {
+      stopCountdown();
+      // нет ответа → deny, fail-closed
+      denyBtn!.setAttribute("data-picked", "true");
+      allowBtn!.setAttribute("data-faded", "true");
+      allowBtn!.disabled = true;
+      denyBtn!.disabled = true;
+      setStatus("timeout", txt.stTimeout);
+      setAgent("deny", txt.agentBlocked);
+      armSeal();
     }
 
-    // ---------- Управление ----------
-    dots.forEach((d) =>
-      d.addEventListener("click", () => go(Number(d.dataset.go))),
-    );
-    prevBtn?.addEventListener("click", () => go(current - 1));
-    nextBtn?.addEventListener("click", () => go(current + 1));
-    replayBtn?.addEventListener("click", () => {
-      current = -1;
-      go(0);
+    // animationend отсчёта = fail-closed (основной путь под движением).
+    countFill?.addEventListener("animationend", () => {
+      if (countBox?.getAttribute("data-run") === "true") failClosed();
     });
 
-    // ── Интерактив: пользователь сам отвечает в Telegram и переключает режим
-    // демона. Меняем только состояние сцены; канонический кадр шага вернётся при
-    // следующей навигации через paintStage().
-    btnApprove?.addEventListener("click", () => {
-      setActiveNode("tg");
-      dim([]);
-      resetButtons();
-      sigTag?.setAttribute("data-on", "true");
-      setStatus("approved", status.approved);
-      btnApprove.setAttribute("data-picked", "true");
-      btnDeny?.setAttribute("data-dimmed", "true");
-    });
-    btnDeny?.addEventListener("click", () => {
-      setActiveNode("tg");
-      dim([]);
-      resetButtons();
-      sigTag?.setAttribute("data-on", "true");
-      setStatus("denied", status.denied);
-      btnDeny.setAttribute("data-picked", "true");
-      btnApprove?.setAttribute("data-dimmed", "true");
-    });
+    // --- Печать (seal) ---
+    const armSeal = (): void => {
+      sealRow.setAttribute("data-state", "ok");
+      if (sealVerdict) sealVerdict.textContent = txt.sealOk;
+      if (replayBtn) replayBtn.disabled = false;
+      if (tamperBtn) tamperBtn.disabled = false;
+      if (msg) msg.setAttribute("data-lit", "true");
+    };
+    const resetSeal = (): void => {
+      sealRow.setAttribute("data-state", "empty");
+      if (sealVerdict) sealVerdict.textContent = txt.sealNote;
+      if (replayBtn) replayBtn.disabled = true;
+      if (tamperBtn) tamperBtn.disabled = true;
+    };
+
+    // --- Резолв запроса (вручную или авто по режиму) ---
+    const resolveAllow = (auto: boolean): void => {
+      stopCountdown();
+      allowBtn.setAttribute("data-picked", "true");
+      denyBtn.setAttribute("data-faded", "true");
+      allowBtn.disabled = true;
+      denyBtn.disabled = true;
+      setStatus("allowed", auto ? txt.stAutoAllow : txt.stAllowed);
+      setAgent("allow", txt.agentRuns);
+      armSeal();
+    };
+    const resolveDeny = (auto: boolean): void => {
+      stopCountdown();
+      denyBtn.setAttribute("data-picked", "true");
+      allowBtn.setAttribute("data-faded", "true");
+      allowBtn.disabled = true;
+      denyBtn.disabled = true;
+      setStatus("denied", auto ? txt.stAutoDeny : txt.stDenied);
+      setAgent("deny", txt.agentBlocked);
+      armSeal();
+    };
+
+    // Применить режим к ТОМУ ЖЕ запросу — мгновенно меняет исход.
+    const applyMode = (next: string): void => {
+      modeEls.forEach((m) => m.setAttribute("aria-checked", m.dataset.mode === next ? "true" : "false"));
+      nodeDaemon?.setAttribute("data-active", "true");
+      resetSeal();
+      if (msg) msg.removeAttribute("data-lit");
+
+      if (next === "remote") {
+        // ждёт твоего тапа + обратный отсчёт
+        setButtonsEnabled(true);
+        setStatus("waiting", txt.stWaiting);
+        setAgent("", txt.agentIntercepted);
+        firePacket();
+        startCountdown();
+      } else if (next === "readonly") {
+        setButtonsEnabled(false);
+        firePacket();
+        resolveAllow(true);
+      } else {
+        setButtonsEnabled(false);
+        firePacket();
+        resolveDeny(true);
+      }
+    };
+
+    // --- Слушатели ---
     modeEls.forEach((m) => {
-      m.addEventListener("click", () => {
-        const mode = m.dataset.mode || "remote";
-        setActiveNode("daemon");
-        dim([]);
-        setModes(mode);
-        resetButtons();
-        if (mode === "remote") setStatus("waiting", status.waiting);
-        else if (mode === "readonly") setStatus("approved", status.autoAllow);
-        else setStatus("denied", status.autoDeny);
-      });
+      m.addEventListener("click", () => applyMode(m.dataset.mode || "remote"));
+    });
+    allowBtn.addEventListener("click", () => resolveAllow(false));
+    denyBtn.addEventListener("click", () => resolveDeny(false));
+
+    replayBtn?.addEventListener("click", () => {
+      if (sealRow.getAttribute("data-state") !== "ok") return;
+      sealRow.setAttribute("data-state", "empty");
+      void sealRow.offsetWidth;
+      sealRow.setAttribute("data-state", "replay");
+      if (sealVerdict) sealVerdict.textContent = txt.sealReplay;
+    });
+    tamperBtn?.addEventListener("click", () => {
+      if (sealRow.getAttribute("data-state") !== "ok") return;
+      sealRow.setAttribute("data-state", "empty");
+      void sealRow.offsetWidth;
+      sealRow.setAttribute("data-state", "tamper");
+      if (sealVerdict) sealVerdict.textContent = txt.sealTamper;
+    });
+    resetBtn?.addEventListener("click", () => {
+      stopCountdown();
+      resetSeal();
+      setButtonsEnabled(false);
+      setStatus("idle", txt.stIdle);
+      setAgent("", txt.agentIntercepted);
+      nodeDaemon?.setAttribute("data-active", "false");
+      modeEls.forEach((m) => m.setAttribute("aria-checked", m.dataset.mode === "remote" ? "true" : "false"));
+      if (msg) msg.removeAttribute("data-lit");
     });
 
-    // Пауза автоплея при наведении/фокусе внутри секции
-    const pause = () => {
-      paused = true;
-      clearAuto();
-    };
-    const resume = () => {
-      paused = false;
-      scheduleAuto();
-    };
-    root.addEventListener("pointerenter", pause);
-    root.addEventListener("pointerleave", resume);
-    root.addEventListener("focusin", pause);
-    root.addEventListener("focusout", (e) => {
-      if (!root.contains(e.relatedTarget as Node)) resume();
-    });
-
-    // ---------- Видимость ----------
+    // --- Видимость: гейт всего движения ---
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
-          if (e.isIntersecting) {
-            if (!inview) {
-              inview = true;
-              root.classList.add("is-inview");
-              if (current < 0) go(0);
-              else paintStage(current); // перерисовать (мог сброситься пульс)
-              scheduleAuto();
-            }
-          } else if (inview) {
+          if (e.isIntersecting && !inview) {
+            inview = true;
+            root.classList.add("is-inview");
+            syncPktDist();
+          } else if (!e.isIntersecting && inview) {
             inview = false;
             root.classList.remove("is-inview");
-            clearAuto();
-            clearTimers();
+            stopCountdown();
           }
         }
       },
-      { threshold: 0.3 },
+      { threshold: 0.25 },
     );
+
+    if ("ResizeObserver" in window && wire) {
+      new ResizeObserver(syncPktDist).observe(wire);
+    }
+
+    // Старт: ничего не разрешено, хук ждёт выбора режима.
+    setButtonsEnabled(false);
+    setStatus("idle", txt.stIdle);
+    nodeDaemon?.setAttribute("data-active", "false");
+
+    if (reduce || !("IntersectionObserver" in window)) {
+      // Финальное читаемое состояние без движения. Демонстрируем remote-исход
+      // как «застывший» кадр; тапы/переключатели по-прежнему живут.
+      root.classList.add("is-inview");
+      inview = false; // под reduced пакет/отсчёт не запускаем
+      modeEls.forEach((m) => m.setAttribute("aria-checked", m.dataset.mode === "remote" ? "true" : "false"));
+      nodeDaemon?.setAttribute("data-active", "true");
+      setButtonsEnabled(true);
+      setStatus("waiting", txt.stWaiting);
+      setAgent("", txt.agentIntercepted);
+      return;
+    }
+
     io.observe(root);
 
-    // Под reduced-motion показываем первый шаг сразу и не двигаем; пользователь
-    // листает руками. Финальное состояние остаётся читаемым.
-    if (reduce && current < 0) go(0);
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        inview = false;
+        root.classList.remove("is-inview");
+        stopCountdown();
+      }
+    });
 
     window.addEventListener(
       "pagehide",
       () => {
-        clearAuto();
-        clearTimers();
+        stopCountdown();
         io.disconnect();
       },
       { once: true },

@@ -1,0 +1,343 @@
+---
+/**
+ * InfraCard.astro — лёгкая карточка для тира "infra" (инструменты/инфраструктура
+ * экосистемы DotCore).
+ *
+ * Отличается от ProjectCard намеренно: нет большого лого-блока, нет 3D-тилта и
+ * нет ссылки на case-страницу (её для infra-тира не существует). Главное
+ * действие — переход в репозиторий. Спокойнее продуктовых карточек, чтобы тир
+ * читался как вторичный, но оставался частью того же монохромного языка.
+ */
+import { useTranslations, type Locale } from "../lib/i18n";
+import {
+  type Project,
+  projectName,
+  projectBrand,
+  projectTagline,
+  projectDescription,
+  repoUrl,
+} from "../lib/projects";
+import Icon from "./Icon/Icon.astro";
+import ProjectGlyph from "./ProjectGlyph.astro";
+
+interface Props {
+  project: Project;
+  locale: Locale;
+  /** Индекс в сетке (для staggered scroll-reveal). */
+  index?: number;
+}
+
+const { project: p, locale, index = 0 } = Astro.props;
+const t = useTranslations(locale);
+
+const name = projectName(p, locale);
+const brand = projectBrand(p, locale);
+const tagline = projectTagline(p, locale);
+const desc = projectDescription(p, locale);
+const accent = p.accent ?? "var(--accent-core)";
+const highlights = p.highlights?.slice(0, 3) ?? [];
+const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
+---
+
+<article
+  class="infra-card glass"
+  data-reveal
+  data-reveal-delay={index * 80}
+  aria-labelledby={`infra-${p.slug}-title`}
+  style={`--project-accent: ${accent};`}
+>
+  <span class="infra-card__glyph" aria-hidden="true">
+    <ProjectGlyph slug={p.slug} />
+  </span>
+
+  <div class="infra-card__body">
+    <div class="infra-card__eyebrow">
+      <span class="infra-card__tier eyebrow">{t("projects.tier.infra")}</span>
+      <span class="infra-card__category eyebrow">{t(`projects.category.${p.category}`)}</span>
+      <span class={`infra-card__status infra-card__status--${p.status}`}>
+        <Icon name="dot" size={9} />
+        <span>{t(`projects.status.${p.status}`)}</span>
+      </span>
+    </div>
+
+    <h3 class="infra-card__brand display" id={`infra-${p.slug}-title`}>{brand}</h3>
+    <p class="infra-card__name mono caption">{name}</p>
+    <p class="infra-card__tagline subtitle">{tagline}</p>
+    <p class="infra-card__desc body-sm">{desc}</p>
+
+    {
+      highlights.length > 0 && (
+        <dl class="infra-card__highlights" aria-label={t("projects.highlights")}>
+          {highlights.map((h) => (
+            <div class="infra-card__highlight">
+              <dd>{h.value}</dd>
+              <dt>{h.label[locale]}</dt>
+            </div>
+          ))}
+        </dl>
+      )
+    }
+
+    <ul class="infra-card__stack" aria-label={t("projects.stack")}>
+      {p.stack.slice(0, 6).map((s) => <li class="infra-card__chip">{s}</li>)}
+      {
+        p.stack.length > 6 && (
+          <li class="infra-card__chip infra-card__chip--more">+{p.stack.length - 6}</li>
+        )
+      }
+    </ul>
+
+    {
+      (primaryRepoUrl || p.links?.domain) && (
+        <footer class="infra-card__actions">
+          {primaryRepoUrl && (
+            <a
+              href={primaryRepoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="infra-card__cta cta cta--ghost"
+            >
+              <Icon name="github" size={16} />
+              <span>{t("projects.viewSource")}</span>
+            </a>
+          )}
+          {p.links?.domain && (
+            <a
+              href={p.links.domain}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="infra-card__cta cta cta--ghost"
+            >
+              <Icon name="globe" size={16} />
+              <span>{t("projects.openSite")}</span>
+            </a>
+          )}
+        </footer>
+      )
+    }
+  </div>
+</article>
+
+<style>
+  /* =====================================================================
+   * Infra card — облегчённая версия project-card. Один frosted-pane, но
+   * без cover-блока, без тилта и без case-ссылки. Цвет — лишь шёпотом:
+   * угловой wash, акцент-чип глифа, статус-точка, hover-обводка.
+   * ===================================================================== */
+  .infra-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--sp-4);
+    padding: clamp(16px, 3vw, 22px);
+    border-radius: var(--r-xl);
+    background:
+      radial-gradient(
+        120% 90% at 0% 0%,
+        color-mix(in srgb, var(--project-accent) 7%, transparent),
+        transparent 56%
+      ),
+      var(--glass-tint-1);
+    border: var(--bw-thin) solid var(--glass-edge);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 14px 36px rgba(0, 0, 0, 0.36);
+    transition: border-color var(--dur-fast) var(--ease-standard);
+  }
+
+  .infra-card:hover,
+  .infra-card:focus-within {
+    border-color: color-mix(in srgb, var(--project-accent) 26%, var(--glass-edge-bright));
+  }
+
+  /* ---------- Glyph chip ---------- */
+  .infra-card__glyph {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    color: var(--project-accent);
+    border-radius: var(--r-lg);
+    border: var(--bw-thin) solid rgba(255, 255, 255, 0.1);
+    background:
+      radial-gradient(
+        130% 130% at 50% 18%,
+        color-mix(in srgb, var(--project-accent) 18%, transparent),
+        transparent 70%
+      ),
+      var(--bg-elevated);
+    filter: drop-shadow(0 3px 10px color-mix(in srgb, var(--project-accent) 22%, transparent));
+  }
+
+  .infra-card__glyph :global(.project-glyph) {
+    width: 28px;
+  }
+
+  /* ---------- Body ---------- */
+  .infra-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    min-width: 0;
+  }
+
+  .infra-card__eyebrow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sp-2) var(--sp-3);
+  }
+
+  .infra-card__tier {
+    color: var(--project-accent);
+    font-weight: var(--fw-semibold);
+  }
+
+  .infra-card__category {
+    color: var(--text-muted);
+  }
+
+  .infra-card__status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-1);
+    margin-inline-start: auto;
+    font-size: var(--fs-11);
+    font-weight: var(--fw-medium);
+    text-transform: lowercase;
+    color: var(--state-ok);
+  }
+
+  .infra-card__status--wip {
+    color: var(--state-warn);
+  }
+  .infra-card__status--beta {
+    color: var(--state-info);
+  }
+  .infra-card__status--archived {
+    color: var(--text-muted);
+  }
+
+  .infra-card__brand {
+    font-size: var(--fs-28);
+    line-height: 1;
+    background: linear-gradient(180deg, var(--accent) 0%, rgba(255, 255, 255, 0.74) 130%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    width: fit-content;
+    max-width: 100%;
+  }
+
+  .infra-card__name {
+    color: var(--text-muted);
+    margin-block-start: calc(var(--sp-2) * -1);
+  }
+
+  .infra-card__tagline {
+    font-size: var(--fs-16);
+    color: var(--text);
+    font-weight: var(--fw-medium);
+  }
+
+  .infra-card__desc {
+    color: var(--text-secondary);
+    font-size: var(--fs-14);
+    line-height: var(--lh-normal);
+    max-width: 68ch;
+  }
+
+  /* ---------- Highlights (compact inline row) ---------- */
+  .infra-card__highlights {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-3) var(--sp-5);
+    padding-block: var(--sp-2);
+    border-block: var(--bw-thin) solid var(--border);
+  }
+
+  .infra-card__highlight {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-2);
+    min-width: 0;
+  }
+
+  .infra-card__highlight dd {
+    color: var(--text);
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-bold);
+    font-size: var(--fs-18);
+    line-height: 1;
+  }
+
+  .infra-card__highlight dt {
+    color: var(--text-muted);
+    font-size: var(--fs-11);
+    text-transform: uppercase;
+    letter-spacing: var(--ls-wide);
+  }
+
+  /* ---------- Stack chips ---------- */
+  .infra-card__stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+
+  .infra-card__chip {
+    padding: 3px var(--sp-2);
+    font-size: var(--fs-11);
+    font-weight: var(--fw-medium);
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.05);
+    border: var(--bw-thin) solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--r-sm);
+  }
+
+  .infra-card__chip--more {
+    color: var(--text-muted);
+  }
+
+  /* ---------- Actions ---------- */
+  .infra-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    margin-block-start: var(--sp-1);
+  }
+
+  .infra-card__cta {
+    font-size: var(--fs-13);
+    padding: var(--sp-2) var(--sp-4);
+    min-height: var(--tap-min);
+  }
+
+  @media (max-width: 479px) {
+    .infra-card__actions {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+    .infra-card__cta {
+      width: 100%;
+    }
+  }
+
+  /* ---------- Horizontal on wider viewports ---------- */
+  @media (min-width: 620px) {
+    .infra-card {
+      grid-template-columns: auto 1fr;
+      gap: var(--sp-5);
+      align-items: start;
+    }
+
+    .infra-card__glyph {
+      width: 60px;
+      height: 60px;
+    }
+
+    .infra-card__glyph :global(.project-glyph) {
+      width: 32px;
+    }
+  }
+</style>

@@ -1,0 +1,69 @@
+# Шаблон конфига Caddy. deploy/setup.sh подставит {{DOMAIN}} и {{ROOT}}
+# и запишет результат в /etc/caddy/Caddyfile. Вручную править не нужно —
+# меняй этот шаблон и перезапусти setup.sh.
+
+# ── Глобальные опции ────────────────────────────────────────────────────────
+# Анти-slowloris таймауты: главная защита одиночного сервера от «удержания»
+# соединений медленной отправкой/чтением. Ограничивают, сколько клиент может
+# тянуть передачу заголовков/тела, держать idle-соединение и слать заголовки.
+{
+	servers {
+		timeouts {
+			read_body   10s
+			read_header 5s
+			write       60s
+			idle        2m
+		}
+		max_header_size 16KB
+	}
+}
+
+{{DOMAIN}} {
+	root * {{ROOT}}
+
+	# Режем огромные тела запросов на входе (сайт статический, POST-тел нет).
+	request_body {
+		max_size 256KB
+	}
+
+	# Сжатие на лету (zstd предпочтительнее, gzip как фолбэк)
+	encode zstd gzip
+
+	# ── Security-заголовки (перенесено из public/_headers) ──────────────────
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Cross-Origin-Opener-Policy "same-origin"
+		Permissions-Policy "accelerometer=(), autoplay=(), camera=(), display-capture=(), encrypted-media=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), publickey-credentials-get=(), usb=(), xr-spatial-tracking=()"
+		Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data: https:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; form-action 'self'; upgrade-insecure-requests"
+		# Скрываем "Server: Caddy"
+		-Server
+		# HSTS не было на Cloudflare. С авто-HTTPS можно включить (необратимо
+		# на срок max-age — браузеры запомнят). Раскомментируй осознанно:
+		# Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+
+	# ── Cache-Control (перенесено из public/_headers) ───────────────────────
+	# Хэшированные ассеты — на год, immutable
+	@assets path /_assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+
+	# Обложки проектов и иконки — на неделю
+	@week path /projects/* /favicon.svg /icon-192.svg /icon-512.svg
+	header @week Cache-Control "public, max-age=604800"
+
+	# Манифест, sitemap, robots — на час
+	@shortcache path /manifest.webmanifest /sitemap.xml /robots.txt
+	header @shortcache Cache-Control "public, max-age=3600"
+
+	# Если позже добавишь src/pages/404.astro — Astro сгенерит /404.html,
+	# и Caddy начнёт отдавать его на 404. Пока файла нет — отдаётся
+	# стандартная страница ошибки Caddy, это безопасно.
+	handle_errors {
+		rewrite * /404.html
+		file_server
+	}
+
+	file_server
+}

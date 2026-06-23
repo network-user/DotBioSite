@@ -35,6 +35,15 @@ export interface ProjectLinks {
 
 export type ProjectCategory = "platform" | "bot" | "tool" | "site" | "library";
 export type ProjectStatus = "active" | "wip" | "beta" | "archived";
+/**
+ * Тир проекта в витрине:
+ *   - "product" (по умолчанию) — флагманский продукт: featured-карточка, case-
+ *     страница, веха в таймлайне.
+ *   - "infra" — инструмент/инфраструктура экосистемы DotCore: лёгкая карточка
+ *     со ссылкой прямо в репозиторий, без отдельной case-страницы и без вехи в
+ *     таймлайне. Рендерится отдельной подсекцией «Экосистема DotCore».
+ */
+export type ProjectTier = "product" | "infra";
 
 /** Краткая метрика для секции Metrics на case-study странице. */
 export interface ProjectMetric {
@@ -100,32 +109,6 @@ export interface ProjectCapability {
   detail?: { ru: string; en: string };
 }
 
-export interface ProjectEngineeringChoice {
-  question: { ru: string; en: string };
-  answer: { ru: string; en: string };
-  /** Опциональный отвергнутый вариант — «наивное» решение и чем оно плохо. */
-  rejected?: { ru: string; en: string };
-}
-
-/** Нарратив «проблема → решение → итог» — компактная врезка над overview. */
-export interface ProjectNarrative {
-  problem: { ru: string; en: string };
-  solution: { ru: string; en: string };
-  outcome: { ru: string; en: string };
-}
-
-/** Реальный сниппет кода ключевого механизма проекта. */
-export interface ProjectCodeSnippet {
-  /** Путь файла-источника — показывается подписью под кодом. */
-  file: string;
-  /** Язык для подписи (например, "python"). */
-  lang: string;
-  /** Сам код, как есть (многострочный). */
-  code: string;
-  /** Короткое пояснение «что это и почему важно». */
-  caption: { ru: string; en: string };
-}
-
 export interface ProjectTimelineEntry {
   date: string;
   title: { ru: string; en: string };
@@ -142,6 +125,8 @@ export interface Project {
   stack: ReadonlyArray<string>;
   category: ProjectCategory;
   status: ProjectStatus;
+  /** Тир витрины. Без поля считается "product". См. {@link ProjectTier}. */
+  tier?: ProjectTier;
   /** Год запуска (для timeline). */
   year?: number;
   repos: ReadonlyArray<ProjectRepo>;
@@ -159,15 +144,12 @@ export interface Project {
 
   // ---------- Расширения для case-study страницы (все опциональны) ----------
   overview?: { ru: ReadonlyArray<string>; en: ReadonlyArray<string> };
-  narrative?: ProjectNarrative;
   metrics?: ReadonlyArray<ProjectMetric>;
   stackGroups?: ProjectStackGroups;
   architectureNodes?: ReadonlyArray<ProjectArchitectureNode>;
   architectureEdges?: ReadonlyArray<ProjectArchitectureEdge>;
   clusters?: ReadonlyArray<ProjectCluster>;
   capabilities?: ReadonlyArray<ProjectCapability>;
-  engineeringChoices?: ReadonlyArray<ProjectEngineeringChoice>;
-  codeSnippet?: ProjectCodeSnippet;
   timeline?: ReadonlyArray<ProjectTimelineEntry>;
 }
 
@@ -187,6 +169,7 @@ const FEATURED_ORDER: ReadonlyArray<string> = [
   "dotschet", // .счёт — тренажёр устного счёта
   "dotagents", // .агенты
   "dotworkbot", // .работа
+  "dottraceip", // .след — async CLI для массового анализа IP
 ];
 
 const orderIndex = (slug: string): number => {
@@ -194,8 +177,8 @@ const orderIndex = (slug: string): number => {
   return i === -1 ? FEATURED_ORDER.length : i;
 };
 
-/** Все проекты в кураторском порядке витрины (см. `FEATURED_ORDER`). */
-export const projects: ReadonlyArray<Project> = Object.values(modules)
+/** Все загруженные проекты в кураторском порядке витрины (см. `FEATURED_ORDER`). */
+const allProjects: ReadonlyArray<Project> = Object.values(modules)
   .map((m) => m.default)
   .filter((p): p is Project => Boolean(p && p.slug))
   .sort((a, b) => {
@@ -207,6 +190,20 @@ export const projects: ReadonlyArray<Project> = Object.values(modules)
     if (by !== ay) return by - ay;
     return a.slug.localeCompare(b.slug);
   });
+
+/**
+ * Продукты-флагманы (тир "product"). Это единственный список, который питает
+ * витрину, таймлайн, case-страницы и sitemap — infra-инструменты сюда не
+ * попадают, поэтому для них не генерируются пустые case-страницы и они не
+ * становятся вехами в таймлайне.
+ */
+export const projects: ReadonlyArray<Project> = allProjects.filter((p) => p.tier !== "infra");
+
+/**
+ * Инструменты/инфраструктура экосистемы DotCore (тир "infra"). Рендерятся
+ * отдельной лёгкой подсекцией; ссылка ведёт в репозиторий, не на case-страницу.
+ */
+export const infraProjects: ReadonlyArray<Project> = allProjects.filter((p) => p.tier === "infra");
 
 export function findProject(slug: string): Project | undefined {
   return projects.find((p) => p.slug === slug);

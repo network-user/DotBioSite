@@ -94,58 +94,39 @@
   ],
   "overview": {
     "ru": [
-      "DotSound начинался как ответ на простой вопрос: почему, чтобы поделиться своим треком, нужно идти на платформу с рекламой и регистрацией? Здесь точка входа - Telegram. Заливаешь файл прямо в чат с ботом, и трек появляется в общем каталоге, готовый к прослушиванию. Bot и React Mini App остались тонкими клиентами: вся логика, поиск и хранилище живут в одном бэкенде.",
-      "Главное инженерное решение - вынести всё тяжёлое из горячего пути. ASR, разделение источников и рекомендации считает отдельный GPU-воркер, который сам забирает задачи по HMAC и никогда не открывает порты наружу. Backend при этом не грузит ни Whisper, ни Demucs и остаётся отзывчивым. Каждый трек загружается ровно один раз: SHA-256 от содержимого - это и ключ дедупликации, и часть пути HLS-сегментов, так что одинаковые файлы не транскодируются дважды.",
-      "Самое заметное для слушателя происходит само собой. Demucs выделяет вокал, faster-whisper транскрибирует и выравнивает текст построчно с тайм-кодами - лирика проявляется в плеере синхронно с музыкой, без чьего-либо участия. Комментарии и присутствие летят по WebSocket в реальном времени. А чтобы открытость не превратилась в дыру, правила анти-абуза и модерации вынесены в закрытое ядро: публичные репозитории показывают код, приватный PrivateCore хранит политики."
+      "Музыкальный сервис без рекламы с точкой входа прямо в Telegram: залил трек в бота - и он зазвучал у всех, с адаптивным стримингом и текстом, который проявляется построчно сам. Всё тяжёлое - ASR, разделение вокала, рекомендации - считает отдельный GPU-воркер, поэтому Backend остаётся быстрым."
     ],
     "en": [
-      "DotSound started from a simple question: why do you need an ad-laden, sign-up platform just to share your own track? Here the entry point is Telegram. You drop a file straight into the bot chat and the track lands in a shared catalog, ready to play. The Bot and React Mini App stay thin clients: all logic, search, and storage live in a single backend.",
-      "The core engineering decision is to keep everything heavy off the hot path. ASR, source separation, and recommendations run on a separate GPU worker that pulls jobs over HMAC and never exposes a port. The Backend never loads Whisper or Demucs and stays responsive. Every track is uploaded exactly once: the content's SHA-256 is both the dedup key and part of the HLS segment path, so identical files are never transcoded twice.",
-      "What the listener notices most happens automatically. Demucs isolates the vocals, faster-whisper transcribes and aligns the text line by line with timecodes, and the lyrics surface in the player in sync with the music, with no manual intervention. Comments and presence stream over WebSocket in real time. And so openness doesn't become a hole, anti-abuse and moderation rules sit in a closed core: the public repos show the code, the private PrivateCore holds the policies."
+      "An ad-free music service whose entry point is Telegram itself: drop a track into the bot and it plays for everyone, with adaptive streaming and lyrics that surface line by line on their own. Everything heavy - ASR, vocal separation, recommendations - runs on a separate GPU worker, so the Backend stays fast."
     ]
-  },
-  "narrative": {
-    "problem": {
-      "ru": "Чтобы поделиться своим треком, нужно идти на платформу с рекламой и регистрацией.",
-      "en": "To share your own track you have to go through an ad-laden platform with a sign-up."
-    },
-    "solution": {
-      "ru": "Точка входа - Telegram: залил файл в бота, и трек в общем каталоге. Всё тяжёлое (ASR, разделение, рекомендации) считает отдельный GPU-воркер по HMAC, а Backend остаётся отзывчивым.",
-      "en": "The entry point is Telegram: drop a file into the bot and the track lands in a shared catalog. Everything heavy (ASR, separation, recommendations) runs on a separate GPU worker over HMAC, and the Backend stays responsive."
-    },
-    "outcome": {
-      "ru": "Лирика проявляется сама и синхронно, один трек хранится ровно один раз, а открытый клиент сосуществует с закрытым ядром политик.",
-      "en": "Lyrics surface on their own in sync, a track is stored exactly once, and an open client coexists with a closed policy core."
-    }
   },
   "metrics": [
     {
-      "value": "4",
+      "value": "340k+",
       "label": {
-        "ru": "репозитория · открытый клиент + закрытое ядро",
-        "en": "repos · open client + closed core"
+        "ru": "строк в 3 открытых репозиториях",
+        "en": "lines across 3 open repositories"
       }
     },
     {
-      "value": "390k+",
+      "value": "550",
       "label": {
-        "ru": "строк в кодовой базе экосистемы",
-        "en": "lines across the ecosystem codebase"
+        "ru": "API-эндпоинтов в бэкенде",
+        "en": "API endpoints in the backend"
       }
     },
     {
-      "value": "9",
-      "unit": "мес",
+      "value": "17",
       "label": {
-        "ru": "от первой версии до ASR-стриминга",
-        "en": "months from first version to ASR streaming"
+        "ru": "типов GPU-задач в воркере",
+        "en": "GPU job types in the worker"
       }
     },
     {
-      "value": "500+",
+      "value": "125",
       "label": {
-        "ru": "API-эндпоинтов",
-        "en": "API endpoints"
+        "ru": "миграций базы данных",
+        "en": "database migrations"
       }
     }
   ],
@@ -277,73 +258,6 @@
       }
     }
   ],
-  "engineeringChoices": [
-    {
-      "question": {
-        "ru": "Почему отдельный ComputeWorker, а не очередь внутри Backend?",
-        "en": "Why a separate ComputeWorker instead of an in-process queue?"
-      },
-      "answer": {
-        "ru": "ASR требует GPU и десятков секунд на трек. Pull-based воркер с HMAC масштабируется горизонтально и не открывает портов: он сам стучится к ядру, а Backend никогда не грузит Whisper или Demucs и остаётся быстрым.",
-        "en": "ASR needs GPU and tens of seconds per track. A pull-based worker over HMAC scales horizontally and exposes no ports: it dials home itself, and the Backend never loads Whisper or Demucs, so it stays fast."
-      },
-      "rejected": {
-        "ru": "Очередь прямо в Backend (Celery или in-process) проще в развёртывании, но тогда Backend держал бы GPU и блокировался на десятки секунд ASR, теряя отзывчивость API.",
-        "en": "An in-process queue in the Backend (Celery or similar) is simpler to deploy, but then the Backend would hold the GPU and block for tens of seconds of ASR, losing API responsiveness."
-      }
-    },
-    {
-      "question": {
-        "ru": "Почему Telegram Mini App, а не самостоятельный сайт?",
-        "en": "Why a Telegram Mini App instead of a standalone site?"
-      },
-      "answer": {
-        "ru": "Аудитория уже в Telegram. Mini App убирает трение онбординга: один тап в боте, и React-приложение работает поверх Telegram-сессии, которую раздаёт тот же FastAPI-процесс.",
-        "en": "The audience already lives in Telegram. A Mini App removes onboarding friction: one tap in the bot, and a React app runs over the existing Telegram session, served by the same FastAPI process."
-      },
-      "rejected": {
-        "ru": "Самостоятельный сайт дал бы полную свободу UI, но это отдельный онбординг, своя авторизация и трение входа, которых внутри Telegram просто нет.",
-        "en": "A standalone site would give full UI freedom, but that means separate onboarding, its own auth and entry friction that simply don't exist inside Telegram."
-      }
-    },
-    {
-      "question": {
-        "ru": "Зачем приватный PrivateCore?",
-        "en": "Why a private PrivateCore?"
-      },
-      "answer": {
-        "ru": "Правила анти-абуза, модерации и контракты интеграций нельзя открывать: иначе их легко обойти. Публичные репо показывают код API и клиентов, а политики и секретные константы остаются в приватном ядре. Открытость без рисков.",
-        "en": "Anti-abuse rules, moderation, and integration contracts can't be public, or they're trivial to bypass. The public repos show API and client code, while policy and secret constants stay in the private core. Openness without the risk."
-      },
-      "rejected": {
-        "ru": "Открыть весь код честнее и проще, но правила анти-абуза и модерации превратились бы в готовую инструкцию по их обходу.",
-        "en": "Open-sourcing everything is more honest and simpler, but anti-abuse and moderation rules would turn into a ready-made guide for bypassing them."
-      }
-    },
-    {
-      "question": {
-        "ru": "Почему content-addressed storage?",
-        "en": "Why content-addressed storage?"
-      },
-      "answer": {
-        "ru": "SHA-256 источника - это и ключ дедупликации, и часть пути HLS-сегментов. Один и тот же трек не транскодируется дважды, а сегменты кешируются как immutable на год.",
-        "en": "The source SHA-256 is both the dedup key and part of the HLS segment path. The same track is never transcoded twice, and segments are cached immutable for a year."
-      },
-      "rejected": {
-        "ru": "Случайный UUID как ключ проще генерировать, но не даёт дедупа: один и тот же трек попал бы в транскод и хранилище многократно.",
-        "en": "A random UUID key is simpler to generate but gives no dedup: the same track would be transcoded and stored many times over."
-      }
-    }
-  ],
-  "codeSnippet": {
-    "file": "DotSoundComputeWorker · worker/backend_client.py",
-    "lang": "python",
-    "code": "def _sign(*, secret, method, path, timestamp, nonce, body: bytes) -> str:\n    # Каноническая строка: метод, путь, время, одноразовый nonce, хеш тела.\n    body_sha = hashlib.sha256(body or b\"\").hexdigest()\n    payload = f\"{method.upper()}\\n{path}\\n{timestamp}\\n{nonce}\\n{body_sha}\".encode()\n    key = hashlib.sha256(secret.encode()).hexdigest()\n    return hmac.new(key.encode(), payload, hashlib.sha256).hexdigest()",
-    "caption": {
-      "ru": "Каждый запрос воркера подписан HMAC: метод, путь, время, одноразовый nonce и хеш тела. Без общего секрета подпись не собрать, а nonce не даёт переслать запрос второй раз.",
-      "en": "Every worker request is signed with HMAC over the method, path, timestamp, a one-time nonce and a hash of the body. Without the shared secret the signature can't be forged, and the nonce blocks replay."
-    }
-  },
   "timeline": [
     {
       "date": "Sep 2025",

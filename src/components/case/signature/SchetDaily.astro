@@ -2,24 +2,34 @@
 /**
  * SchetDaily.astro — сигнатурная визуализация .счёт (DotSchet).
  *
- * Пошаговый «проигрыватель» реального конвейера тренажёра (проверено по репо
- * DotSchet: ProblemGenerator / DIFFICULTY_CONFIG / StatsService /
- * get_top_users_by_*):
- *   1) выбор операции (7 типов) и уровня (3),
- *   2) решённый сет задач (лёгкий 5 / средний 7 / сложный 10),
- *   3) результаты читаются рейтингом ЧЕТЫРЬМЯ способами
- *      (стрик / решено / точность / взвешенные очки, где сложное весит больше:
- *       easy/medium/hard = 1/2/3),
- *   4) серия дней: +1 за день хотя бы с одним верным ответом, пропуск обнуляет.
+ * Язык: «табло, которое само себя переранжирует». Один и тот же результат
+ * читается четырьмя срезами, и при переключении строки ФИЗИЧЕСКИ съезжают на
+ * новые места (FLIP на transform). Всё проверено по репо DotSchet:
+ *   - ProblemGenerator — генерит задачи под выбранный тип/уровень;
+ *   - DIFFICULTY_CONFIG — уровень меняет диапазон чисел и размер набора
+ *     (лёгкий 5 / средний 7 / сложный 10);
+ *   - StatsService.get_top_users_by_streak / _by_solved / _by_accuracy /
+ *     _by_weighted_score — четыре среза одних данных; взвешенные очки считают
+ *     сложное дороже: easy/medium/hard = 1/2/3.
  *
- * Темп задан родителем: МЕДЛЕННЫЙ, последовательный показ по одному шагу;
- * управление вручную (точки-вкладки, назад/вперёд, повтор). Авто-проигрывание
- * мягкое (~4.6с/шаг) и ставится на паузу на hover и за экраном.
+ * Шаги «проигрывателя»:
+ *   1) Выбор: 7 операций × 3 уровня; уровень меняет диапазон и размер набора.
+ *   2) Решение мини-сета: примеры вспыхивают верно/неверно, эти отметки
+ *      кормят табло (твои «решено/попыток»).
+ *   3) Табло с 4 срезами — центр всей сцены, строки переезжают на новые места.
+ *   4) Серия дней: клик по дню добавляет/снимает «верный ответ»; пропуск в
+ *      середине обнуляет серию; несколько подходов за день её не двигают.
  *
- * Движение: только transform/opacity, всё за классом .is-inview через
- * IntersectionObserver. Никакого backdrop-filter/blur в анимациях, никаких
- * «дрожащих» эффектов. reduced-motion → финальное читаемое состояние без движения.
- * Курсорного параллакса нет (убран ради перфа).
+ * Перф-бюджет: анимируем ТОЛЬКО transform/opacity (FLIP, scaleX полос, fade
+ * шагов). Ни width/height, ни box-shadow, ни filter/backdrop-filter в движении.
+ * Постоянного rAF нет: автоплей ведёт одна CSS-анимация прогресс-полосы, шаг
+ * двигает setTimeout, который чистится за экраном / на скрытой вкладке /
+ * pagehide. Всё движение под IntersectionObserver (класс .is-inview). При
+ * prefers-reduced-motion — финальное читаемое состояние без движения, а все
+ * тапы/переключения/сортировка продолжают работать.
+ *
+ * Факты (как в репо, без выдумок): RU/EN на лету, aiogram 3, PostgreSQL +
+ * asyncpg, Redis FSM, APScheduler в одном процессе, тесты на testcontainers.
  */
 import type { Locale } from "../../../lib/i18n";
 
@@ -28,239 +38,320 @@ interface Props {
 }
 const { locale } = Astro.props;
 
-const t = {
-  ru: {
-    eyebrow: "Тренажёр устного счёта · как он устроен",
-    intro:
-      "Четыре шага: выбрать тип задач и уровень, прорешать набор, попасть в рейтинг и удержать серию дней. Листай по шагам — каждый объясняю отдельно.",
-    replay: "Повторить с начала",
-    prev: "Назад",
-    next: "Дальше",
-    paused: "пауза",
-    stepWord: "Шаг",
-    ofWord: "из",
+type Bi = { ru: string; en: string };
+const t = (b: Bi): string => b[locale];
 
-    // Шаг 1
-    s1Title: "Выбор: 7 операций и 3 уровня",
-    s1Body:
-      "Сначала выбираешь, что тренировать, и насколько сложно. Семь типов операций и три уровня - от лёгкого к сложному. Уровень меняет диапазон чисел и размер набора, поэтому одна и та же тема растёт вместе с тобой.",
-    s1Ops: "Операции",
-    s1Levels: "Уровень",
-    lvlE: "лёгкий",
-    lvlM: "средний",
-    lvlH: "сложный",
-    s1Pick: "выбрано: умножение · средний",
-
-    // Шаг 2
-    s2Title: "Решаешь набор задач",
-    s2Body:
-      "Под выбранный уровень собирается набор: на лёгком 5 примеров, на среднем 7, на сложном 10. Каждый ответ сразу помечается верным или нет - именно эти отметки потом и кормят рейтинг.",
-    s2Set: "Набор · средний уровень",
-    s2Count: "7 задач",
-    s2Solved: "решено 6 из 7",
-
-    // Шаг 3
-    s3Title: "Один результат — четыре рейтинга",
-    s3Body:
-      "Если ранжировать только по числу решённых задач, побеждает тот, у кого больше времени, а не тот, кто точнее или берёт сложное. Поэтому одни и те же результаты читаются четырьмя срезами - и в каждом находится свой лидер.",
-    s3Hint: "переключай срезы - значения и порядок мест меняются",
-    mStreak: "стрик",
-    mStreakFull: "серия дней",
-    mStreakWhy: "кто занимается без пропусков дольше всех",
-    mSolved: "решено",
-    mSolvedFull: "всего верных",
-    mSolvedWhy: "общий объём - награда за усидчивость",
-    mAccuracy: "точность",
-    mAccuracyFull: "доля верных",
-    mAccuracyWhy: "верных из всех попыток, в процентах",
-    mWeighted: "очки",
-    mWeightedFull: "взвешенные очки",
-    mWeightedWhy: "сложное весит больше: лёгкое 1 · среднее 2 · сложное 3",
-    rankWord: "место",
-
-    // Шаг 4
-    s4Title: "Серия дней держит ритм",
-    s4Body:
-      "Серия (стрик) - это сколько дней подряд ты занимался. Любой день хотя бы с одним верным ответом добавляет +1. Несколько подходов за один день серию не двигают, а пропуск целого дня обнуляет её - так награда идёт за привычку, а не за разовый рывок.",
-    s4Label: "Последние 7 дней",
-    s4On: "день с верным ответом",
-    s4Gap: "пропуск - серия обнулилась",
-    s4Now: "текущая серия: 4 дня",
+const ui = {
+  eyebrow: {
+    ru: "Тренажёр устного счёта · как он устроен",
+    en: "Mental-math trainer · how it works",
   },
-  en: {
-    eyebrow: "Mental-math trainer · how it works",
-    intro:
-      "Four steps: pick a problem type and level, solve a set, land on the leaderboard, and keep a day streak going. Step through them — each one is explained on its own.",
-    replay: "Replay from start",
-    prev: "Back",
-    next: "Next",
-    paused: "paused",
-    stepWord: "Step",
-    ofWord: "of",
-
-    // Step 1
-    s1Title: "Pick: 7 operations, 3 levels",
-    s1Body:
-      "First you choose what to practise and how hard it should be. Seven operation types and three levels, from easy to hard. The level changes the number range and the set size, so a single topic keeps growing with you.",
-    s1Ops: "Operations",
-    s1Levels: "Level",
-    lvlE: "easy",
-    lvlM: "medium",
-    lvlH: "hard",
-    s1Pick: "picked: multiplication · medium",
-
-    // Step 2
-    s2Title: "Solve a set of problems",
-    s2Body:
-      "For the chosen level a set is built: 5 problems on easy, 7 on medium, 10 on hard. Every answer is marked right or wrong on the spot - and those marks are exactly what feeds the leaderboard later.",
-    s2Set: "Set · medium level",
-    s2Count: "7 problems",
-    s2Solved: "6 of 7 correct",
-
-    // Step 3
-    s3Title: "One result — four leaderboards",
-    s3Body:
-      "Rank by solved count alone and the winner is whoever had the most time, not whoever is the most accurate or takes on the hard ones. So the same results are read through four cuts - and each cut has its own leader.",
-    s3Hint: "switch the cuts - values and the order of places change",
-    mStreak: "streak",
-    mStreakFull: "day streak",
-    mStreakWhy: "who has practised the longest without skipping",
-    mSolved: "solved",
-    mSolvedFull: "total correct",
-    mSolvedWhy: "raw volume - a reward for sticking with it",
-    mAccuracy: "accuracy",
-    mAccuracyFull: "share correct",
-    mAccuracyWhy: "correct out of all attempts, as a percentage",
-    mWeighted: "points",
-    mWeightedFull: "weighted points",
-    mWeightedWhy: "harder counts more: easy 1 · medium 2 · hard 3",
-    rankWord: "place",
-
-    // Step 4
-    s4Title: "The day streak keeps the rhythm",
-    s4Body:
-      "A streak is how many days in a row you have practised. Any day with at least one correct answer adds +1. Several sessions in one day do not move it, and skipping a whole day resets it - so the reward is for the habit, not for one big push.",
-    s4Label: "Last 7 days",
-    s4On: "day with a correct answer",
-    s4Gap: "a skipped day reset the streak",
-    s4Now: "current streak: 4 days",
+  intro: {
+    ru: "Четыре шага: выбрать тип задач и уровень, прорешать набор, попасть в рейтинг и удержать серию дней. Листай по шагам — каждый объясняю отдельно, и в каждом можно потыкать.",
+    en: "Four steps: pick a problem type and level, solve a set, land on the leaderboard, and keep a day streak going. Step through them — each one is explained on its own, and each one is yours to poke.",
   },
-}[locale];
+  replay: { ru: "Повторить с начала", en: "Replay from start" },
+  prev: { ru: "Назад", en: "Back" },
+  next: { ru: "Дальше", en: "Next" },
+  stepWord: { ru: "Шаг", en: "Step" },
+  ofWord: { ru: "из", en: "of" },
+  facts: {
+    ru: "aiogram 3 · PostgreSQL + asyncpg · Redis FSM · APScheduler в процессе · testcontainers",
+    en: "aiogram 3 · PostgreSQL + asyncpg · Redis FSM · in-process APScheduler · testcontainers",
+  },
 
-// 7 операций — ровно как TrainingMode / ProblemGenerator. Подсвечивается умножение.
-const operations = [
-  { glyph: "+", ru: "сложение", en: "addition" },
-  { glyph: "−", ru: "вычитание", en: "subtraction" },
-  { glyph: "×", ru: "умножение", en: "multiplication", picked: true },
-  { glyph: "÷", ru: "деление", en: "division" },
-  { glyph: "÷ᵣ", ru: "с остатком", en: "remainder" },
-  { glyph: "xⁿ", ru: "степени", en: "powers" },
-  { glyph: "√", ru: "корни", en: "roots" },
+  // Шаг 1
+  s1Title: { ru: "Выбор: 7 операций и 3 уровня", en: "Pick: 7 operations, 3 levels" },
+  s1Body: {
+    ru: "Сначала выбираешь, что тренировать, и насколько сложно. Семь типов операций и три уровня — от лёгкого к сложному. Уровень меняет диапазон чисел и размер набора (лёгкий 5 / средний 7 / сложный 10), поэтому одна и та же тема растёт вместе с тобой. Тапни операцию и уровень — подпись внизу пересоберётся.",
+    en: "First you choose what to practise and how hard it should be. Seven operation types and three levels, from easy to hard. The level changes the number range and the set size (easy 5 / medium 7 / hard 10), so a single topic keeps growing with you. Tap an operation and a level — the line below rebuilds itself.",
+  },
+  s1Ops: { ru: "Операции", en: "Operations" },
+  s1Levels: { ru: "Уровень", en: "Level" },
+  s1Range: { ru: "диапазон", en: "range" },
+  s1PickPrefix: { ru: "выбрано", en: "picked" },
+
+  // Шаг 2
+  s2Title: { ru: "Решаешь набор задач", en: "Solve a set of problems" },
+  s2Body: {
+    ru: "Под выбранный уровень собирается набор: на лёгком 5 примеров, на среднем 7, на сложном 10. Жми «прорешать» — ответы вспыхивают верными или нет, ровно одна ошибка. Именно эти отметки потом и кормят рейтинг: верных из попыток.",
+    en: "For the chosen level a set is built: 5 problems on easy, 7 on medium, 10 on hard. Hit “solve” — answers flash right or wrong, exactly one miss. Those marks are what feeds the leaderboard later: correct out of attempts.",
+  },
+  s2Set: { ru: "Набор", en: "Set" },
+  s2Solve: { ru: "Прорешать набор", en: "Solve the set" },
+  s2Reset: { ru: "Сбросить", en: "Reset" },
+  s2Idle: { ru: "набор готов — нажми «прорешать»", en: "set ready — hit “solve”" },
+  s2Feeds: { ru: "идёт в табло", en: "feeds the board" },
+
+  // Шаг 3
+  s3Title: { ru: "Один результат — четыре рейтинга", en: "One result — four leaderboards" },
+  s3Body: {
+    ru: "Если ранжировать только по числу решённых задач, побеждает тот, у кого больше времени, а не тот, кто точнее или берёт сложное. Поэтому одни и те же результаты читаются четырьмя срезами — и в каждом свой лидер. Переключай срез: строки сами переезжают на новые места.",
+    en: "Rank by solved count alone and the winner is whoever had the most time, not whoever is the most accurate or takes on the hard ones. So the same results are read through four cuts — and each cut has its own leader. Switch the cut: rows slide to their new ranks themselves.",
+  },
+  s3Hint: {
+    ru: "переключай срезы — значения и порядок мест меняются",
+    en: "switch the cuts — values and the order of places change",
+  },
+  mStreak: { ru: "стрик", en: "streak" },
+  mStreakFull: { ru: "серия дней", en: "day streak" },
+  mStreakWhy: {
+    ru: "кто занимается без пропусков дольше всех",
+    en: "who has practised the longest without skipping",
+  },
+  mSolved: { ru: "решено", en: "solved" },
+  mSolvedFull: { ru: "всего верных", en: "total correct" },
+  mSolvedWhy: {
+    ru: "общий объём — награда за усидчивость",
+    en: "raw volume — a reward for sticking with it",
+  },
+  mAccuracy: { ru: "точность", en: "accuracy" },
+  mAccuracyFull: { ru: "доля верных", en: "share correct" },
+  mAccuracyWhy: {
+    ru: "верных из всех попыток, в процентах",
+    en: "correct out of all attempts, as a percentage",
+  },
+  mWeighted: { ru: "очки", en: "points" },
+  mWeightedFull: { ru: "взвешенные очки", en: "weighted points" },
+  mWeightedWhy: {
+    ru: "сложное весит больше: лёгкое 1 · среднее 2 · сложное 3",
+    en: "harder counts more: easy 1 · medium 2 · hard 3",
+  },
+  leaderWord: { ru: "лидер", en: "leader" },
+
+  // Шаг 4
+  s4Title: { ru: "Серия дней держит ритм", en: "The day streak keeps the rhythm" },
+  s4Body: {
+    ru: "Серия (стрик) — это сколько дней подряд ты занимался. Любой день хотя бы с одним верным ответом добавляет +1. Несколько подходов за один день серию не двигают, а пропуск целого дня обнуляет её. Тапай по дням: включай и выключай — текущая серия пересчитывается на глазах.",
+    en: "A streak is how many days in a row you have practised. Any day with at least one correct answer adds +1. Several sessions in one day do not move it, and skipping a whole day resets it. Tap the days on and off — the current streak recomputes live.",
+  },
+  s4Label: { ru: "Последние 7 дней", en: "Last 7 days" },
+  s4On: { ru: "день с верным ответом", en: "day with a correct answer" },
+  s4Gap: { ru: "пропуск — серия обнуляется", en: "a skipped day resets the streak" },
+  s4Sessions: {
+    ru: "+ второй подход (день уже засчитан)",
+    en: "+ second session (day already counts)",
+  },
+  s4NowPrefix: { ru: "текущая серия", en: "current streak" },
+  s4DayUnit: { ru: "дн.", en: "d." },
+  s4Today: { ru: "сегодня", en: "today" },
+};
+
+// 7 операций — ровно как TrainingMode / ProblemGenerator.
+type Op = { id: string; glyph: string; name: Bi };
+const operations: Op[] = [
+  { id: "add", glyph: "+", name: { ru: "сложение", en: "addition" } },
+  { id: "sub", glyph: "−", name: { ru: "вычитание", en: "subtraction" } },
+  { id: "mul", glyph: "×", name: { ru: "умножение", en: "multiplication" } },
+  { id: "div", glyph: "÷", name: { ru: "деление", en: "division" } },
+  { id: "rem", glyph: "÷ᵣ", name: { ru: "с остатком", en: "remainder" } },
+  { id: "pow", glyph: "xⁿ", name: { ru: "степени", en: "powers" } },
+  { id: "root", glyph: "√", name: { ru: "корни", en: "roots" } },
 ];
 
-// Решённый сет среднего уровня → 7 задач (examples_count=7), 6 верных.
-const sample = [
-  { expr: "14 × 6", correct: true },
-  { expr: "√196", correct: true },
-  { expr: "87 − 39", correct: false },
-  { expr: "2⁵", correct: true },
-  { expr: "144 ÷ 12", correct: true },
-  { expr: "63 ÷ 8 (ост.)", correct: true },
-  { expr: "23 × 17", correct: true },
+// DIFFICULTY_CONFIG: уровень → диапазон чисел и размер набора.
+type Level = { id: string; name: Bi; range: string; count: number };
+const levels: Level[] = [
+  { id: "easy", name: { ru: "лёгкий", en: "easy" }, range: "2–20", count: 5 },
+  { id: "medium", name: { ru: "средний", en: "medium" }, range: "10–99", count: 7 },
+  { id: "hard", name: { ru: "сложный", en: "hard" }, range: "12–400", count: 10 },
 ];
+// Keyed-доступ без числовых индексов (strict: noUncheckedIndexedAccess).
+const opName = (id: string): Bi => operations.find((o) => o.id === id)?.name ?? { ru: "", en: "" };
+const levelById = (id: string): Level =>
+  levels.find((l) => l.id === id) ?? { id, name: { ru: "", en: "" }, range: "", count: 0 };
 
-// Четыре среза одних результатов — порядок мест в каждом срезе свой.
-// Значения подобраны так, чтобы лидер в каждом срезе был РАЗНЫЙ:
-//   streak → A, solved → B, accuracy → C, weighted → A.
-const boardModes = [
-  { key: "streak", label: "mStreak", full: "mStreakFull", why: "mStreakWhy", unit: { ru: " дн.", en: " d." } },
-  { key: "solved", label: "mSolved", full: "mSolvedFull", why: "mSolvedWhy", unit: { ru: "", en: "" } },
-  { key: "accuracy", label: "mAccuracy", full: "mAccuracyFull", why: "mAccuracyWhy", unit: { ru: "%", en: "%" } },
-  { key: "weighted", label: "mWeighted", full: "mWeightedFull", why: "mWeightedWhy", unit: { ru: "", en: "" } },
-] as const;
+// Демо-наборы под уровень (×, средний — стартовый): по DIFFICULTY_CONFIG.count.
+// Ровно один пример помечается неверным — он и тянет «точность» вниз.
+type Problem = { expr: string };
+const setsByLevel: Record<string, Problem[]> = {
+  easy: [
+    { expr: "8 × 4" },
+    { expr: "6 × 7" },
+    { expr: "9 × 3" },
+    { expr: "5 × 8" },
+    { expr: "7 × 6" },
+  ],
+  medium: [
+    { expr: "14 × 6" },
+    { expr: "13 × 7" },
+    { expr: "24 × 5" },
+    { expr: "18 × 9" },
+    { expr: "12 × 12" },
+    { expr: "16 × 8" },
+    { expr: "23 × 17" },
+  ],
+  hard: [
+    { expr: "27 × 14" },
+    { expr: "34 × 19" },
+    { expr: "48 × 23" },
+    { expr: "56 × 17" },
+    { expr: "73 × 12" },
+    { expr: "29 × 31" },
+    { expr: "84 × 16" },
+    { expr: "37 × 28" },
+    { expr: "62 × 24" },
+    { expr: "91 × 13" },
+  ],
+};
 
-// Три игрока с разными профилями. data-rank-* хранит позицию в каждом срезе,
-// чтобы скрипт переставлял строки и нормировал длину полосы без layout-анимаций.
-const players = [
+// Четыре среза. Лидер в каждом — РАЗНЫЙ: streak→A, solved→B, accuracy→C, weighted→A.
+type Mode = { key: string; label: Bi; full: Bi; why: Bi; unit: Bi };
+const boardModes: Mode[] = [
+  {
+    key: "streak",
+    label: ui.mStreak,
+    full: ui.mStreakFull,
+    why: ui.mStreakWhy,
+    unit: { ru: " дн.", en: " d." },
+  },
+  {
+    key: "solved",
+    label: ui.mSolved,
+    full: ui.mSolvedFull,
+    why: ui.mSolvedWhy,
+    unit: { ru: "", en: "" },
+  },
+  {
+    key: "accuracy",
+    label: ui.mAccuracy,
+    full: ui.mAccuracyFull,
+    why: ui.mAccuracyWhy,
+    unit: { ru: "%", en: "%" },
+  },
+  {
+    key: "weighted",
+    label: ui.mWeighted,
+    full: ui.mWeightedFull,
+    why: ui.mWeightedWhy,
+    unit: { ru: "", en: "" },
+  },
+];
+const unitFor = (key: string): Bi =>
+  boardModes.find((m) => m.key === key)?.unit ?? { ru: "", en: "" };
+
+// Игроки с разными профилями + позиция в каждом срезе (для FLIP-перестановки).
+type Player = {
+  id: string;
+  name: Bi;
+  you?: boolean;
+  streak: number;
+  solved: number;
+  accuracy: number;
+  weighted: number;
+  rank: Record<string, number>;
+};
+const players: Player[] = [
   {
     id: "A",
-    ru: "Аня",
-    en: "Anya",
+    name: { ru: "Аня", en: "Anya" },
     streak: 41,
     solved: 980,
     accuracy: 92,
     weighted: 2410,
-    rank: { streak: 1, solved: 3, accuracy: 3, weighted: 1 },
+    rank: { streak: 1, solved: 4, accuracy: 4, weighted: 1 },
   },
   {
     id: "B",
-    ru: "Борис",
-    en: "Boris",
+    name: { ru: "Борис", en: "Boris" },
     streak: 33,
     solved: 1510,
     accuracy: 90,
     weighted: 2180,
-    rank: { streak: 2, solved: 1, accuracy: 2, weighted: 2 },
+    rank: { streak: 2, solved: 1, accuracy: 3, weighted: 2 },
   },
   {
     id: "C",
-    ru: "Вера",
-    en: "Vera",
+    name: { ru: "Вера", en: "Vera" },
     streak: 28,
     solved: 870,
     accuracy: 97,
     weighted: 1640,
-    rank: { streak: 3, solved: 2, accuracy: 1, weighted: 3 },
+    rank: { streak: 3, solved: 3, accuracy: 1, weighted: 3 },
+  },
+  {
+    id: "you",
+    name: { ru: "ты", en: "you" },
+    you: true,
+    streak: 4,
+    solved: 1190,
+    accuracy: 94,
+    weighted: 1980,
+    rank: { streak: 4, solved: 2, accuracy: 2, weighted: 4 },
   },
 ];
 
-// Серия дней: 7 ячеек. Активный день = был верный ответ; «дыра» = пропуск.
-// Сценарий: ✓✓× (пропуск обнулил) ✓✓✓✓ → текущая серия 4.
-const days = [
-  { on: true },
-  { on: true },
-  { on: false, gap: true },
-  { on: true },
-  { on: true },
-  { on: true },
-  { on: true },
-];
+// Серия дней: 7 ячеек. Стартовый сценарий ✓✓×(пропуск)✓✓✓✓ → текущая серия 4.
+const initialDays = [true, true, false, true, true, true, true];
 
-const steps = [1, 2, 3, 4];
+const steps = [0, 1, 2, 3];
 
-// Единый источник правды для скрипта: заголовок + текст каждого шага и
-// объяснение «почему» для каждого среза рейтинга. Сериализуем в data-*,
-// чтобы не дублировать строки в JS и не терять локализацию.
+// Единый источник правды для скрипта (сериализуем в data-*, чтобы не дублировать
+// строки и не терять локализацию).
 const stepCopy = [
-  { title: t.s1Title, body: t.s1Body },
-  { title: t.s2Title, body: t.s2Body },
-  { title: t.s3Title, body: t.s3Body },
-  { title: t.s4Title, body: t.s4Body },
+  { title: t(ui.s1Title), body: t(ui.s1Body) },
+  { title: t(ui.s2Title), body: t(ui.s2Body) },
+  { title: t(ui.s3Title), body: t(ui.s3Body) },
+  { title: t(ui.s4Title), body: t(ui.s4Body) },
 ];
-const modeWhy = {
-  streak: t.mStreakWhy,
-  solved: t.mSolvedWhy,
-  accuracy: t.mAccuracyWhy,
-  weighted: t.mWeightedWhy,
+const i18nBundle = {
+  why: {
+    streak: t(ui.mStreakWhy),
+    solved: t(ui.mSolvedWhy),
+    accuracy: t(ui.mAccuracyWhy),
+    weighted: t(ui.mWeightedWhy),
+  },
+  units: {
+    streak: t(unitFor("streak")),
+    solved: t(unitFor("solved")),
+    accuracy: t(unitFor("accuracy")),
+    weighted: t(unitFor("weighted")),
+  },
+  level: Object.fromEntries(
+    levels.map((l) => [l.id, { name: t(l.name), range: l.range, count: l.count }]),
+  ),
+  ops: Object.fromEntries(operations.map((o) => [o.id, t(o.name)])),
+  pickPrefix: t(ui.s1PickPrefix),
+  feeds: t(ui.s2Feeds),
+  leader: t(ui.leaderWord),
+  rangeWord: t(ui.s1Range),
+  idle: t(ui.s2Idle),
+  setWord: t(ui.s2Set),
+  solvedWord: t(ui.mSolved),
+  nowPrefix: t(ui.s4NowPrefix),
+  dayUnit: t(ui.s4DayUnit),
+  today: t(ui.s4Today),
 };
+const setsJSON = Object.fromEntries(
+  Object.entries(setsByLevel).map(([k, v]) => [k, v.map((p) => p.expr)]),
+);
+
+// Стартовый выбор: умножение · средний.
+const startOp = "mul";
+const startLevel = "medium";
+const startSet = setsByLevel[startLevel] ?? [];
+const startLevelInfo = levelById(startLevel);
+const startOpName = opName(startOp);
+const startUnit = unitFor("streak");
 ---
 
 <figure
   class="md"
-  aria-label={t.eyebrow}
+  aria-label={t(ui.eyebrow)}
   data-md
   data-copy={JSON.stringify(stepCopy)}
-  data-modewhy={JSON.stringify(modeWhy)}
+  data-i18n={JSON.stringify(i18nBundle)}
+  data-sets={JSON.stringify(setsJSON)}
 >
   <div class="md__field" aria-hidden="true"></div>
 
   <header class="md__intro">
-    <p class="md__eyebrow">{t.eyebrow}</p>
-    <p class="md__lead">{t.intro}</p>
+    <p class="md__eyebrow">{t(ui.eyebrow)}</p>
+    <p class="md__lead">{t(ui.intro)}</p>
   </header>
 
   <!-- Навигация по шагам: точки-вкладки + счётчик -->
-  <div class="md__nav" role="tablist" aria-label={t.eyebrow}>
+  <div class="md__nav" role="tablist" aria-label={t(ui.eyebrow)}>
     {
       steps.map((n, i) => (
         <button
@@ -268,76 +359,113 @@ const modeWhy = {
           class:list={["md__tab", { "is-active": i === 0 }]}
           role="tab"
           aria-selected={i === 0 ? "true" : "false"}
+          aria-label={`${t(ui.stepWord)} ${n + 1}`}
           data-go={i}
         >
-          <span class="md__tab-num">{n}</span>
+          <span class="md__tab-num" aria-hidden="true">
+            {n + 1}
+          </span>
           <span class="md__tab-dot" aria-hidden="true" />
         </button>
       ))
     }
     <span class="md__count" data-count aria-live="polite">
-      {t.stepWord} <b data-cur>1</b> {t.ofWord} {steps.length}
+      {t(ui.stepWord)}
+      <b data-cur>1</b>
+      {t(ui.ofWord)}
+      {steps.length}
     </span>
   </div>
 
-  <!-- Сцена: все шаги в DOM, активный показан, остальные спрятаны (для reduced-motion видны все) -->
+  <!-- Сцена: все шаги в DOM, активный показан (для reduced-motion видны все) -->
   <div class="md__stage">
     <!-- ШАГ 1 · Выбор операции и уровня -->
-    <section class="md__step" data-step="0" data-active="true">
+    <section class="md__step" data-step="0" data-active="true" aria-label={t(ui.s1Title)}>
       <div class="md__panel">
-        <span class="md__panel-label">{t.s1Ops}</span>
-        <ul class="md__ops" role="list">
+        <span class="md__panel-label">{t(ui.s1Ops)}</span>
+        <div class="md__ops" role="group" aria-label={t(ui.s1Ops)} data-ops>
           {
             operations.map((op) => (
-              <li class:list={["md__op", { "is-picked": op.picked }]}>
-                <span class="md__glyph">{op.glyph}</span>
-                <span class="md__op-label">{op[locale]}</span>
-              </li>
+              <button
+                type="button"
+                class:list={["md__op", { "is-picked": op.id === startOp }]}
+                data-op={op.id}
+                aria-pressed={op.id === startOp ? "true" : "false"}
+              >
+                <span class="md__glyph" aria-hidden="true">
+                  {op.glyph}
+                </span>
+                <span class="md__op-label">{t(op.name)}</span>
+              </button>
             ))
           }
-        </ul>
+        </div>
 
         <div class="md__levels">
-          <span class="md__panel-label">{t.s1Levels}</span>
-          <div class="md__level-row">
-            <span class="md__level">{t.lvlE} · 5</span>
-            <span class="md__level is-picked">{t.lvlM} · 7</span>
-            <span class="md__level">{t.lvlH} · 10</span>
+          <span class="md__panel-label">{t(ui.s1Levels)}</span>
+          <div class="md__level-row" role="group" aria-label={t(ui.s1Levels)} data-levels>
+            {
+              levels.map((lv) => (
+                <button
+                  type="button"
+                  class:list={["md__level", { "is-picked": lv.id === startLevel }]}
+                  data-level={lv.id}
+                  aria-pressed={lv.id === startLevel ? "true" : "false"}
+                >
+                  <span class="md__level-name">{t(lv.name)}</span>
+                  <span class="md__level-meta" aria-hidden="true">
+                    {t(ui.s1Range)} {lv.range} · {lv.count}
+                  </span>
+                </button>
+              ))
+            }
           </div>
         </div>
 
-        <p class="md__pick">{t.s1Pick}</p>
+        <p class="md__pick" data-pick aria-live="polite">
+          {t(ui.s1PickPrefix)}: {t(startOpName)} · {t(startLevelInfo.name)} · {t(ui.s1Range)}
+          {startLevelInfo.range} · {startLevelInfo.count}
+        </p>
       </div>
     </section>
 
     <!-- ШАГ 2 · Решённый набор -->
-    <section class="md__step" data-step="1">
+    <section class="md__step" data-step="1" aria-label={t(ui.s2Title)}>
       <div class="md__panel">
         <div class="md__set-head">
-          <span class="md__panel-label">{t.s2Set}</span>
-          <span class="md__set-count">{t.s2Count}</span>
+          <span class="md__panel-label" data-set-label
+            >{t(ui.s2Set)} · {t(startLevelInfo.name)}</span
+          >
+          <span class="md__set-count" data-set-count>{startSet.length}</span>
         </div>
-        <ul class="md__set" role="list">
+        <ul class="md__set" role="list" data-set>
           {
-            sample.map((p, i) => (
-              <li
-                class:list={["md__row", { "is-correct": p.correct, "is-wrong": !p.correct }]}
-                style={`--i:${i};`}
-              >
-                <span class="md__expr">{p.expr}</span>
-                <span class="md__mark" aria-hidden="true">{p.correct ? "✓" : "×"}</span>
+            startSet.map((p, i) => (
+              <li class="md__row" style={`--i:${i};`} data-row>
+                <span class="md__expr" data-expr>
+                  {p.expr}
+                </span>
+                <span class="md__mark" aria-hidden="true" data-mark />
               </li>
             ))
           }
         </ul>
-        <p class="md__set-foot">{t.s2Solved}</p>
+        <div class="md__set-foot">
+          <p class="md__set-stat" data-set-stat aria-live="polite">{t(ui.s2Idle)}</p>
+          <div class="md__set-ctl">
+            <button type="button" class="md__mini" data-solve>{t(ui.s2Solve)}</button>
+            <button type="button" class="md__mini md__mini--ghost" data-set-reset
+              >{t(ui.s2Reset)}</button
+            >
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- ШАГ 3 · Рейтинг: четыре среза -->
-    <section class="md__step" data-step="2">
+    <!-- ШАГ 3 · Табло: четыре среза (центр сцены) -->
+    <section class="md__step" data-step="2" aria-label={t(ui.s3Title)}>
       <div class="md__panel">
-        <div class="md__modes" role="tablist" aria-label={t.s3Title} data-modes>
+        <div class="md__modes" role="tablist" aria-label={t(ui.s3Title)} data-modes>
           {
             boardModes.map((m, i) => (
               <button
@@ -347,20 +475,21 @@ const modeWhy = {
                 aria-selected={i === 0 ? "true" : "false"}
                 data-mode={m.key}
               >
-                {t[m.label as keyof typeof t]}
+                {t(m.label)}
               </button>
             ))
           }
         </div>
 
-        <p class="md__mode-why" data-why>{t.mStreakWhy}</p>
+        <p class="md__mode-why" data-why aria-live="polite">{t(ui.mStreakWhy)}</p>
 
-        <ol class="md__board" role="list" data-board>
+        <ol class="md__board" data-board>
           {
             players.map((u, i) => (
               <li
-                class="md__brow"
-                style={`order:${u.rank.streak};`}
+                class:list={["md__brow", { "is-you": u.you }]}
+                data-brow={u.id}
+                data-you={u.you ? "true" : "false"}
                 data-rank-streak={u.rank.streak}
                 data-rank-solved={u.rank.solved}
                 data-rank-accuracy={u.rank.accuracy}
@@ -369,70 +498,107 @@ const modeWhy = {
                 data-v-solved={u.solved}
                 data-v-accuracy={u.accuracy}
                 data-v-weighted={u.weighted}
+                style={`order:${u.rank.streak};`}
               >
-                <span class="md__place" data-place>{u.rank.streak}</span>
-                <span class="md__name">{u[locale]}</span>
-                <span class="md__bar" aria-hidden="true">
-                  <span class="md__bar-fill" data-fill style={`--w:${i === 0 ? 1 : i === 1 ? 0.78 : 0.56};`} />
+                <span class="md__place" data-place>
+                  {u.rank.streak}
                 </span>
-                <span class="md__val" data-val>{u.streak}</span>
-                <span class="md__unit" data-unit>{boardModes[0].unit[locale]}</span>
+                <span class="md__medal" aria-hidden="true" data-medal />
+                <span class="md__name">
+                  {t(u.name)}
+                  {u.you ? (
+                    <i class="md__youtag" aria-hidden="true">
+                      {" "}
+                      ←
+                    </i>
+                  ) : null}
+                </span>
+                <span class="md__bar" aria-hidden="true">
+                  <span class="md__bar-fill" data-fill style={`--w:${i === 0 ? 1 : 0.7};`} />
+                </span>
+                <span class="md__val" data-val>
+                  {u.streak}
+                </span>
+                <span class="md__unit" data-unit>
+                  {t(startUnit)}
+                </span>
               </li>
             ))
           }
         </ol>
 
-        <p class="md__hint">{t.s3Hint}</p>
+        <p class="md__hint">{t(ui.s3Hint)}</p>
       </div>
     </section>
 
     <!-- ШАГ 4 · Серия дней -->
-    <section class="md__step" data-step="3">
+    <section class="md__step" data-step="3" aria-label={t(ui.s4Title)}>
       <div class="md__panel">
-        <span class="md__panel-label">{t.s4Label}</span>
-        <div class="md__days" role="list">
+        <span class="md__panel-label">{t(ui.s4Label)}</span>
+        <div class="md__days" role="group" aria-label={t(ui.s4Label)} data-days>
           {
-            days.map((d, i) => (
-              <span
-                class:list={["md__day", { "is-on": d.on, "is-gap": d.gap }]}
+            initialDays.map((on, i) => (
+              <button
+                type="button"
+                class:list={["md__day", { "is-on": on }]}
                 style={`--i:${i};`}
-                role="listitem"
+                data-day={i}
+                aria-pressed={on ? "true" : "false"}
+                aria-label={`${t(ui.s4Label)} · ${i + 1}`}
               >
-                <span class="md__day-num" aria-hidden="true">{i + 1}</span>
-              </span>
+                <span class="md__day-num" aria-hidden="true">
+                  {i + 1}
+                </span>
+                <span class="md__day-mark" aria-hidden="true" />
+                {i === initialDays.length - 1 ? (
+                  <span class="md__day-today" aria-hidden="true">
+                    {t(ui.s4Today)}
+                  </span>
+                ) : null}
+              </button>
             ))
           }
         </div>
         <ul class="md__legend" role="list">
-          <li class="md__leg md__leg--on"><span class="md__leg-swatch" aria-hidden="true"></span>{t.s4On}</li>
-          <li class="md__leg md__leg--gap"><span class="md__leg-swatch" aria-hidden="true"></span>{t.s4Gap}</li>
+          <li class="md__leg md__leg--on">
+            <span class="md__leg-swatch" aria-hidden="true"></span>{t(ui.s4On)}
+          </li>
+          <li class="md__leg md__leg--gap">
+            <span class="md__leg-swatch" aria-hidden="true"></span>{t(ui.s4Gap)}
+          </li>
+          <li class="md__leg md__leg--sess">{t(ui.s4Sessions)}</li>
         </ul>
-        <p class="md__now">{t.s4Now}</p>
+        <p class="md__now" data-now aria-live="polite">{t(ui.s4NowPrefix)}: 4 {t(ui.s4DayUnit)}</p>
       </div>
     </section>
   </div>
 
   <!-- Объяснение текущего шага -->
   <div class="md__explain" data-explain>
-    <h3 class="md__title" data-title>{t.s1Title}</h3>
-    <p class="md__body" data-text>{t.s1Body}</p>
+    <h3 class="md__title" data-title>{t(ui.s1Title)}</h3>
+    <p class="md__body" data-text>{t(ui.s1Body)}</p>
   </div>
 
   <!-- Управление -->
   <div class="md__controls">
     <button type="button" class="md__btn" data-prev>
-      <span aria-hidden="true">←</span> {t.prev}
+      <span aria-hidden="true">←</span>
+      {t(ui.prev)}
     </button>
     <span class="md__progress" aria-hidden="true">
       <span class="md__progress-fill" data-progress></span>
     </span>
     <button type="button" class="md__btn" data-next>
-      {t.next} <span aria-hidden="true">→</span>
+      {t(ui.next)}
+      <span aria-hidden="true">→</span>
     </button>
     <button type="button" class="md__btn md__btn--replay" data-replay>
-      <span aria-hidden="true">↺</span> {t.replay}
+      <span aria-hidden="true">↺</span>
+      {t(ui.replay)}
     </button>
   </div>
+
+  <p class="md__facts">{t(ui.facts)}</p>
 </figure>
 
 <style>
@@ -452,7 +618,7 @@ const modeWhy = {
     container-type: inline-size;
   }
 
-  /* Тонкая сетка-поле на фоне; цвет — лишь намёк акцентом. Параллакс по общим vars. */
+  /* Тонкая сетка-поле на фоне; цвет — лишь намёк акцентом. */
   .md__field {
     position: absolute;
     inset: -2px;
@@ -465,7 +631,10 @@ const modeWhy = {
       ),
       linear-gradient(transparent 95%, var(--border) 95%),
       linear-gradient(90deg, transparent 95%, var(--border) 95%);
-    background-size: 100% 100%, 30px 30px, 30px 30px;
+    background-size:
+      100% 100%,
+      30px 30px,
+      30px 30px;
     opacity: 0.5;
   }
 
@@ -557,7 +726,7 @@ const modeWhy = {
   /* ---------- Сцена: один шаг показан ---------- */
   .md__stage {
     position: relative;
-    min-height: 240px;
+    min-height: 248px;
   }
   .md__step {
     position: absolute;
@@ -601,22 +770,36 @@ const modeWhy = {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: var(--sp-2);
-    margin: 0;
-    padding: 0;
-    list-style: none;
   }
   @container (min-width: 520px) {
-    .md__ops { grid-template-columns: repeat(4, 1fr); }
+    .md__ops {
+      grid-template-columns: repeat(4, 1fr);
+    }
   }
   .md__op {
     display: flex;
     align-items: center;
     gap: var(--sp-2);
+    min-height: var(--tap-min);
     padding: var(--sp-2) var(--sp-3);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-sm);
     background: var(--surface);
-    transition: border-color var(--dur-med) var(--ease-standard);
+    cursor: pointer;
+    text-align: left;
+    transition:
+      border-color var(--dur-med) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-soft);
+  }
+  .md__op:hover {
+    border-color: var(--border-hover);
+  }
+  .md__op:active {
+    transform: scale(0.97);
+  }
+  .md__op:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
   }
   .md__op.is-picked {
     border-color: color-mix(in oklab, var(--project-accent) 60%, var(--border));
@@ -642,7 +825,9 @@ const modeWhy = {
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .md__op.is-picked .md__op-label { color: var(--text); }
+  .md__op.is-picked .md__op-label {
+    color: var(--text);
+  }
 
   .md__levels {
     display: flex;
@@ -657,20 +842,51 @@ const modeWhy = {
   }
   .md__level {
     flex: 1;
-    min-width: 92px;
-    text-align: center;
-    padding: var(--sp-2) var(--sp-2);
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
+    min-width: 104px;
+    min-height: var(--tap-min);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: flex-start;
+    justify-content: center;
+    padding: var(--sp-2) var(--sp-3);
     color: var(--text-muted);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-sm);
     background: var(--surface);
+    cursor: pointer;
+    text-align: left;
+    transition:
+      border-color var(--dur-med) var(--ease-standard),
+      color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-soft);
+  }
+  .md__level:hover {
+    border-color: var(--border-hover);
+  }
+  .md__level:active {
+    transform: scale(0.97);
+  }
+  .md__level:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  .md__level-name {
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-13);
+  }
+  .md__level-meta {
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-11);
+    color: var(--text-faint);
   }
   .md__level.is-picked {
     color: var(--text);
     border-color: color-mix(in oklab, var(--project-accent) 60%, var(--border));
     background: color-mix(in oklab, var(--project-accent) 9%, var(--surface));
+  }
+  .md__level.is-picked .md__level-meta {
+    color: var(--text-muted);
   }
   .md__pick {
     margin: 0;
@@ -700,7 +916,9 @@ const modeWhy = {
     list-style: none;
   }
   @container (min-width: 520px) {
-    .md__set { grid-template-columns: 1fr 1fr; }
+    .md__set {
+      grid-template-columns: 1fr 1fr;
+    }
   }
   .md__row {
     display: flex;
@@ -712,6 +930,7 @@ const modeWhy = {
     border-radius: var(--r-sm);
     background: var(--surface);
     font-family: var(--font-stack-mono);
+    transition: border-color var(--dur-med) var(--ease-standard);
   }
   .md__expr {
     font-size: var(--fs-15);
@@ -719,20 +938,86 @@ const modeWhy = {
   }
   .md__mark {
     flex: none;
+    width: 1.2em;
+    text-align: center;
     font-size: var(--fs-15);
+    opacity: 0;
+    transform: scale(0.6);
+    transition:
+      opacity var(--dur-med) var(--ease-soft),
+      transform var(--dur-med) var(--ease-spring);
   }
   .md__row.is-correct {
     border-color: color-mix(in oklab, var(--project-accent) 32%, var(--border));
   }
-  .md__row.is-correct .md__mark { color: var(--project-accent); }
-  .md__row.is-wrong .md__mark { color: var(--text-muted); }
+  .md__row.is-correct .md__mark {
+    color: var(--project-accent);
+    opacity: 1;
+    transform: none;
+  }
+  .md__row.is-wrong {
+    border-color: color-mix(in oklab, var(--state-warn) 30%, var(--border));
+  }
+  .md__row.is-wrong .md__mark {
+    color: var(--text-muted);
+    opacity: 1;
+    transform: none;
+  }
   .md__set-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    flex-wrap: wrap;
+  }
+  .md__set-stat {
     margin: 0;
     font-size: var(--fs-14);
     color: var(--text-secondary);
   }
+  .md__set-stat b {
+    color: var(--project-accent);
+    font-weight: var(--fw-semibold);
+  }
+  .md__set-ctl {
+    display: flex;
+    gap: var(--sp-2);
+  }
+  .md__mini {
+    min-height: 36px;
+    padding: var(--sp-1) var(--sp-3);
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-13);
+    color: var(--text);
+    background: color-mix(in oklab, var(--project-accent) 14%, var(--surface));
+    border: var(--bw-thin) solid color-mix(in oklab, var(--project-accent) 50%, var(--border));
+    border-radius: var(--r-pill);
+    cursor: pointer;
+    transition:
+      border-color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-soft);
+  }
+  .md__mini:hover {
+    border-color: var(--project-accent);
+  }
+  .md__mini:active {
+    transform: scale(0.96);
+  }
+  .md__mini:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  .md__mini--ghost {
+    color: var(--text-muted);
+    background: transparent;
+    border-color: var(--border);
+  }
+  .md__mini--ghost:hover {
+    color: var(--text-secondary);
+    border-color: var(--border-hover);
+  }
 
-  /* ---------- Шаг 3 · рейтинг ---------- */
+  /* ---------- Шаг 3 · табло ---------- */
   .md__modes {
     display: flex;
     flex-wrap: wrap;
@@ -752,10 +1037,13 @@ const modeWhy = {
       color var(--dur-fast) var(--ease-standard),
       border-color var(--dur-fast) var(--ease-standard);
   }
-  .md__mode:hover { color: var(--text-secondary); }
+  .md__mode:hover {
+    color: var(--text-secondary);
+  }
   .md__mode.is-active {
     color: var(--text);
     border-color: color-mix(in oklab, var(--project-accent) 55%, var(--border));
+    background: color-mix(in oklab, var(--project-accent) 8%, transparent);
   }
   .md__mode:focus-visible {
     outline: var(--ring-width) solid var(--ring-focus);
@@ -779,10 +1067,21 @@ const modeWhy = {
   }
   .md__brow {
     display: grid;
-    grid-template-columns: 24px minmax(54px, auto) 1fr auto auto;
+    grid-template-columns: 22px 16px minmax(64px, auto) 1fr auto auto;
     align-items: center;
     gap: var(--sp-2);
-    transition: opacity var(--dur-med) var(--ease-standard);
+    padding: var(--sp-1) var(--sp-2);
+    border: var(--bw-thin) solid transparent;
+    border-radius: var(--r-sm);
+    /* FLIP: скрипт ставит --flip-y (стартовый сдвиг), CSS гасит его до 0. */
+    transform: translateY(var(--flip-y, 0));
+  }
+  .md__board.is-flip .md__brow {
+    transition: transform var(--dur-slower) var(--ease-soft);
+  }
+  .md__brow.is-you {
+    border-color: color-mix(in oklab, var(--project-accent) 30%, var(--border));
+    background: color-mix(in oklab, var(--project-accent) 6%, transparent);
   }
   .md__place {
     font-family: var(--font-stack-mono);
@@ -791,13 +1090,26 @@ const modeWhy = {
     text-align: center;
     font-variant-numeric: tabular-nums;
   }
-  .md__brow:first-child .md__place { color: var(--project-accent); }
+  .md__brow.is-lead .md__place {
+    color: var(--project-accent);
+  }
+  .md__medal {
+    width: 14px;
+    text-align: center;
+    font-size: var(--fs-13);
+    line-height: 1;
+    opacity: 0.85;
+  }
   .md__name {
     font-size: var(--fs-14);
     color: var(--text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .md__youtag {
+    color: var(--project-accent);
+    font-style: normal;
   }
   .md__bar {
     height: 8px;
@@ -845,36 +1157,78 @@ const modeWhy = {
   }
   .md__day {
     position: relative;
-    width: 40px;
-    height: 40px;
+    width: 46px;
+    min-height: var(--tap-min);
     display: grid;
     place-items: center;
     border-radius: var(--r-sm);
-    background: var(--surface-3);
-    border: var(--bw-thin) solid var(--border);
+    background: var(--surface);
+    border: var(--bw-thin) dashed var(--border-hover);
+    cursor: pointer;
+    transition:
+      border-color var(--dur-med) var(--ease-standard),
+      background-color var(--dur-med) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-soft);
+  }
+  .md__day:hover {
+    border-color: var(--border-strong);
+  }
+  .md__day:active {
+    transform: scale(0.95);
+  }
+  .md__day:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
   }
   .md__day-num {
     font-family: var(--font-stack-mono);
     font-size: var(--fs-13);
-    color: var(--text-muted);
+    color: var(--text-faint);
+  }
+  .md__day-mark {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    font-size: var(--fs-11);
+    color: var(--project-accent);
+    opacity: 0;
+    transform: scale(0.4);
+    transition:
+      opacity var(--dur-fast) var(--ease-soft),
+      transform var(--dur-fast) var(--ease-spring);
+  }
+  .md__day-today {
+    position: absolute;
+    bottom: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-10);
+    color: var(--text-faint);
+    white-space: nowrap;
   }
   .md__day.is-on {
     background: color-mix(in oklab, var(--project-accent) 22%, var(--surface));
+    border-style: solid;
     border-color: color-mix(in oklab, var(--project-accent) 60%, var(--border));
   }
-  .md__day.is-on .md__day-num { color: var(--text); }
-  .md__day.is-gap {
-    background: var(--surface);
-    border-style: dashed;
-    border-color: var(--border-hover);
+  .md__day.is-on .md__day-num {
+    color: var(--text);
   }
-  .md__day.is-gap .md__day-num { color: var(--text-faint); }
+  .md__day.is-on .md__day-mark {
+    opacity: 1;
+    transform: none;
+  }
+  /* дни, попавшие в текущую серию (хвост из ON), подсвечены ярче */
+  .md__day.is-run {
+    background: color-mix(in oklab, var(--project-accent) 34%, var(--surface));
+  }
 
   .md__legend {
     display: flex;
     flex-wrap: wrap;
     gap: var(--sp-2) var(--sp-4);
-    margin: 0;
+    margin: var(--sp-3) 0 0;
     padding: 0;
     list-style: none;
   }
@@ -899,11 +1253,18 @@ const modeWhy = {
     background: var(--surface);
     border: var(--bw-thin) dashed var(--border-hover);
   }
+  .md__leg--sess {
+    color: var(--text-muted);
+  }
   .md__now {
     margin: 0;
     font-family: var(--font-stack-mono);
     font-size: var(--fs-14);
     color: color-mix(in oklab, var(--project-accent) 70%, var(--text-secondary));
+  }
+  .md__now b {
+    color: var(--project-accent);
+    font-weight: var(--fw-semibold);
   }
 
   /* ---------- Объяснение шага ---------- */
@@ -997,18 +1358,31 @@ const modeWhy = {
   .md__progress-fill {
     display: block;
     height: 100%;
-    width: 0%;
+    width: 100%;
     border-radius: inherit;
     background: color-mix(in oklab, var(--project-accent) 80%, transparent);
     transform-origin: left center;
+    transform: scaleX(0);
   }
   /* Авто-таймер шага: плавное заполнение, только когда видно и играет */
   .md.is-inview[data-playing="true"] .md__progress-fill[data-anim="true"] {
     animation: md-progress var(--md-step-ms, 4600ms) linear forwards;
   }
   @keyframes md-progress {
-    from { transform: scaleX(0); width: 100%; }
-    to { transform: scaleX(1); width: 100%; }
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  .md__facts {
+    margin: 0;
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-11);
+    line-height: var(--lh-normal);
+    color: var(--text-faint);
   }
 
   /* ---------- Появление активной панели (только в кадре) ---------- */
@@ -1019,31 +1393,46 @@ const modeWhy = {
     .md.is-inview .md__step[data-active="true"] .md__brow {
       opacity: 0;
       animation: md-in var(--dur-slow) var(--ease-soft) forwards;
-      animation-delay: calc(var(--i, 0) * 70ms + 90ms);
+      animation-delay: calc(var(--i, 0) * 60ms + 80ms);
     }
   }
   @keyframes md-in {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   /* ---------- Мобайл ---------- */
   @container (max-width: 460px) {
     .md__brow {
-      grid-template-columns: 22px 1fr auto auto;
+      grid-template-columns: 20px 14px 1fr auto auto;
     }
-    .md__bar { display: none; }
+    .md__bar {
+      display: none;
+    }
   }
 
   /* ---------- coarse pointer: без параллакса ---------- */
   @media (pointer: coarse) {
-    .md__field { transform: none; }
+    .md__field {
+      transform: none;
+    }
   }
 
   /* ---------- reduced-motion: финальное читаемое состояние, без движения ---------- */
   @media (prefers-reduced-motion: reduce) {
-    .md__field { transform: none; transition: none; }
-    .md__stage { min-height: 0; }
+    .md__field {
+      transform: none;
+      transition: none;
+    }
+    .md__stage {
+      min-height: 0;
+    }
     .md__step {
       position: relative;
       opacity: 1;
@@ -1052,28 +1441,72 @@ const modeWhy = {
       pointer-events: auto;
       margin-bottom: var(--sp-4);
     }
-    .md__step[data-active="false"] { display: block; }
-    .md__bar-fill { transition: none; }
-    .md__progress-fill { display: none; }
+    .md__step[data-active="false"] {
+      display: block;
+    }
+    .md__board.is-flip .md__brow,
+    .md__brow {
+      transition: none;
+      transform: none;
+    }
+    .md__bar-fill {
+      transition: none;
+    }
+    .md__mark,
+    .md__day-mark {
+      transition: none;
+    }
+    .md__progress-fill {
+      display: none;
+    }
     .md__title,
-    .md__body { transition: none; }
+    .md__body {
+      transition: none;
+    }
   }
 </style>
 
 <script>
-  // Самодостаточный пошаговый «проигрыватель». Дискретные шаги; никакого rAF
-  // и собственных слушателей на document для параллакса. Всё движение —
-  // transform/opacity. Авто-проигрывание медленное (~4.6с), пауза на hover и
-  // за экраном; таймеры чистятся при скрытии и на pagehide.
+  // Самодостаточный пошаговый «проигрыватель». Дискретные шаги; никакого rAF.
+  // Всё движение — transform/opacity. Автоплей медленный (~4.6с), пауза на
+  // hover/focus и за экраном; таймеры чистятся при скрытии, на pagehide и при
+  // visibilitychange (hidden). Табло переезжает по FLIP (только transform).
   (() => {
     const roots = document.querySelectorAll<HTMLElement>("[data-md]");
     const STEP_MS = 4600;
 
+    type StepEntry = { title: string; body: string };
+    type LevelInfo = { name: string; range: string; count: number };
+    type Bundle = {
+      why: Record<string, string>;
+      units: Record<string, string>;
+      level: Record<string, LevelInfo>;
+      ops: Record<string, string>;
+      pickPrefix: string;
+      feeds: string;
+      leader: string;
+      rangeWord: string;
+      idle: string;
+      setWord: string;
+      solvedWord: string;
+      nowPrefix: string;
+      dayUnit: string;
+      today: string;
+    };
+
+    const parse = <T,>(raw: string | undefined, fallback: T): T => {
+      if (!raw) return fallback;
+      try {
+        return JSON.parse(raw) as T;
+      } catch {
+        return fallback;
+      }
+    };
+
     roots.forEach((root) => {
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const lang = document.documentElement.lang === "en" ? "en" : "ru";
 
-      const steps = Array.from(root.querySelectorAll<HTMLElement>(".md__step"));
+      const stepEls = Array.from(root.querySelectorAll<HTMLElement>(".md__step"));
       const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>(".md__tab"));
       const explain = root.querySelector<HTMLElement>("[data-explain]");
       const titleEl = root.querySelector<HTMLElement>("[data-title]");
@@ -1084,20 +1517,33 @@ const modeWhy = {
       const replayBtn = root.querySelector<HTMLButtonElement>("[data-replay]");
       const progress = root.querySelector<HTMLElement>("[data-progress]");
 
-      if (!steps.length) return;
+      if (!stepEls.length) return;
 
-      // Тексты шагов и объяснения срезов — из data-* (единый источник из .astro).
-      const stepCopy = (JSON.parse(root.dataset.copy || "[]") as
-        | { title: string; body: string }[]) ?? [];
-      const whyText = (JSON.parse(root.dataset.modewhy || "{}") as
-        Record<string, string>) ?? {};
+      const stepCopy = parse<StepEntry[]>(root.dataset.copy, []);
+      const i18n = parse<Bundle>(root.dataset.i18n, {
+        why: {},
+        units: {},
+        level: {},
+        ops: {},
+        pickPrefix: "",
+        feeds: "",
+        leader: "",
+        rangeWord: "",
+        idle: "",
+        setWord: "",
+        solvedWord: "",
+        nowPrefix: "",
+        dayUnit: "",
+        today: "",
+      });
+      const sets = parse<Record<string, string[]>>(root.dataset.sets, {});
 
       let idx = 0;
       let playing = !reduce;
       let timer = 0;
       const timers: number[] = [];
 
-      const clearTimers = () => {
+      const clearTimers = (): void => {
         timers.forEach((id) => window.clearTimeout(id));
         timers.length = 0;
         if (timer) {
@@ -1106,66 +1552,264 @@ const modeWhy = {
         }
       };
 
-      // ---- Рейтинг (шаг 3): переключение срезов ----
+      // =====================================================================
+      // ШАГ 1 — выбор операции и уровня (меняет шаг 2)
+      // =====================================================================
+      const opBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-op]"));
+      const levelBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-level]"));
+      const pickEl = root.querySelector<HTMLElement>("[data-pick]");
+
+      let pickedOp = "mul";
+      let pickedLevel = "medium";
+
+      const renderPick = (): void => {
+        if (!pickEl) return;
+        const lv = i18n.level[pickedLevel];
+        const opName = i18n.ops[pickedOp] ?? "";
+        if (!lv) return;
+        pickEl.textContent = `${i18n.pickPrefix}: ${opName} · ${lv.name} · ${i18n.rangeWord} ${lv.range} · ${lv.count}`;
+      };
+
+      // =====================================================================
+      // ШАГ 2 — набор задач: пересобирается под уровень, «решается» с 1 ошибкой
+      // =====================================================================
+      const setEl = root.querySelector<HTMLElement>("[data-set]");
+      const setLabel = root.querySelector<HTMLElement>("[data-set-label]");
+      const setCount = root.querySelector<HTMLElement>("[data-set-count]");
+      const setStat = root.querySelector<HTMLElement>("[data-set-stat]");
+      const solveBtn = root.querySelector<HTMLButtonElement>("[data-solve]");
+      const setResetBtn = root.querySelector<HTMLButtonElement>("[data-set-reset]");
+
+      // Какой пример помечается неверным: предпоследний (стабильно одна ошибка).
+      const wrongOffset = 2;
+
+      const buildSet = (): void => {
+        if (!setEl) return;
+        const exprs = sets[pickedLevel] ?? [];
+        const lv = i18n.level[pickedLevel];
+        setEl.innerHTML = "";
+        exprs.forEach((expr, i) => {
+          const li = document.createElement("li");
+          li.className = "md__row";
+          li.style.setProperty("--i", String(i));
+          li.dataset.row = "";
+          const e = document.createElement("span");
+          e.className = "md__expr";
+          e.textContent = expr;
+          const m = document.createElement("span");
+          m.className = "md__mark";
+          m.setAttribute("aria-hidden", "true");
+          li.append(e, m);
+          setEl.append(li);
+        });
+        if (setLabel && lv) setLabel.textContent = `${i18n.setWord} · ${lv.name}`;
+        if (setCount) setCount.textContent = String(exprs.length);
+        if (setStat) setStat.textContent = i18n.idle;
+      };
+
+      const solveSet = (): void => {
+        if (!setEl) return;
+        const rows = Array.from(setEl.querySelectorAll<HTMLElement>("[data-row]"));
+        const total = rows.length;
+        if (!total) return;
+        const wrongIdx = Math.max(0, total - wrongOffset);
+        let shown = 0;
+        rows.forEach((row, i) => {
+          const mark = row.querySelector<HTMLElement>(".md__mark");
+          const correct = i !== wrongIdx;
+          const paint = (): void => {
+            row.classList.toggle("is-correct", correct);
+            row.classList.toggle("is-wrong", !correct);
+            if (mark) mark.textContent = correct ? "✓" : "×";
+            shown += 1;
+            if (shown === total && setStat) {
+              const right = total - 1;
+              setStat.innerHTML = `<b>${right}/${total}</b> ${i18n.solvedWord} · ${i18n.feeds}`;
+            }
+          };
+          if (reduce) {
+            paint();
+          } else {
+            const id = window.setTimeout(paint, 140 + i * 150);
+            timers.push(id);
+          }
+        });
+      };
+
+      const resetSet = (): void => {
+        clearTimers();
+        if (!setEl) return;
+        setEl.querySelectorAll<HTMLElement>("[data-row]").forEach((row) => {
+          row.classList.remove("is-correct", "is-wrong");
+          const mark = row.querySelector<HTMLElement>(".md__mark");
+          if (mark) mark.textContent = "";
+        });
+        if (setStat) setStat.textContent = i18n.idle;
+        // решение блокирует автоплей текущего шага — после ручного действия
+        // заводим таймер заново через caller.
+      };
+
+      opBtns.forEach((b) => {
+        b.addEventListener("click", () => {
+          pickedOp = b.dataset.op ?? pickedOp;
+          opBtns.forEach((o) => {
+            const on = o === b;
+            o.classList.toggle("is-picked", on);
+            o.setAttribute("aria-pressed", on ? "true" : "false");
+          });
+          renderPick();
+          buildSet();
+          restartAuto();
+        });
+      });
+
+      levelBtns.forEach((b) => {
+        b.addEventListener("click", () => {
+          pickedLevel = b.dataset.level ?? pickedLevel;
+          levelBtns.forEach((o) => {
+            const on = o === b;
+            o.classList.toggle("is-picked", on);
+            o.setAttribute("aria-pressed", on ? "true" : "false");
+          });
+          renderPick();
+          buildSet();
+          restartAuto();
+        });
+      });
+
+      solveBtn?.addEventListener("click", () => {
+        clearTimers();
+        resetSet();
+        solveSet();
+        restartAuto();
+      });
+      setResetBtn?.addEventListener("click", () => {
+        resetSet();
+        restartAuto();
+      });
+
+      // =====================================================================
+      // ШАГ 3 — табло: 4 среза, FLIP-перестановка строк (только transform)
+      // =====================================================================
       const board = root.querySelector<HTMLElement>("[data-board]");
       const modeBtns = Array.from(root.querySelectorAll<HTMLButtonElement>(".md__mode"));
       const whyEl = root.querySelector<HTMLElement>("[data-why]");
+      const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
+      const medals = ["①", "②", "③"];
 
-      function applyMode(mode: string) {
+      const applyMode = (mode: string, animate: boolean): void => {
         if (!board) return;
         const rows = Array.from(board.querySelectorAll<HTMLElement>(".md__brow"));
-        // нормируем длину полос по значению в текущем срезе
+        if (!rows.length) return;
+
+        // 1) FIRST: запомнить текущие top каждой строки.
+        const first = new Map<HTMLElement, number>();
+        if (animate && !reduce) {
+          rows.forEach((r) => first.set(r, r.getBoundingClientRect().top));
+        }
+
+        // 2) Применить новый порядок (order) + значения + полосы + медали.
         let max = 0;
         rows.forEach((r) => {
-          const v = Number(r.dataset["v" + cap(mode)] || 0);
+          const v = Number(r.dataset["v" + cap(mode)] ?? 0);
           if (v > max) max = v;
         });
         rows.forEach((r) => {
-          const rank = Number(r.dataset["rank" + cap(mode)] || 1);
-          const v = Number(r.dataset["v" + cap(mode)] || 0);
+          const rank = Number(r.dataset["rank" + cap(mode)] ?? 1);
+          const v = Number(r.dataset["v" + cap(mode)] ?? 0);
           r.style.order = String(rank);
+          r.classList.toggle("is-lead", rank === 1);
           const place = r.querySelector<HTMLElement>("[data-place]");
           if (place) place.textContent = String(rank);
+          const medal = r.querySelector<HTMLElement>("[data-medal]");
+          if (medal) medal.textContent = (rank >= 1 && rank <= 3 ? medals[rank - 1] : "") ?? "";
           const valEl = r.querySelector<HTMLElement>("[data-val]");
           if (valEl) valEl.textContent = String(v);
           const fill = r.querySelector<HTMLElement>("[data-fill]");
-          // длина полосы как доля 0..1 от максимума в текущем срезе (scaleX)
           if (fill) fill.style.setProperty("--w", max ? (v / max).toFixed(3) : "0");
           const unitEl = r.querySelector<HTMLElement>("[data-unit]");
-          if (unitEl) unitEl.textContent = UNITS[mode]?.[lang] ?? "";
+          if (unitEl) unitEl.textContent = i18n.units[mode] ?? "";
         });
+
         modeBtns.forEach((b) => {
           const on = b.dataset.mode === mode;
           b.classList.toggle("is-active", on);
           b.setAttribute("aria-selected", on ? "true" : "false");
         });
-        if (whyEl && whyText[mode]) whyEl.textContent = whyText[mode];
-      }
+        if (whyEl && i18n.why[mode]) whyEl.textContent = i18n.why[mode];
 
-      const UNITS: Record<string, { ru: string; en: string }> = {
-        streak: { ru: " дн.", en: " d." },
-        solved: { ru: "", en: "" },
-        accuracy: { ru: "%", en: "%" },
-        weighted: { ru: "", en: "" },
+        // 3) LAST + INVERT + PLAY: посчитать дельту и проиграть на transform.
+        if (animate && !reduce) {
+          board.classList.remove("is-flip");
+          rows.forEach((r) => {
+            const before = first.get(r);
+            if (before === undefined) return;
+            const after = r.getBoundingClientRect().top;
+            const dy = before - after;
+            r.style.setProperty("--flip-y", `${dy}px`);
+          });
+          // force reflow → затем включить переход и обнулить сдвиг
+          void board.offsetWidth;
+          board.classList.add("is-flip");
+          rows.forEach((r) => r.style.setProperty("--flip-y", "0px"));
+        } else {
+          rows.forEach((r) => r.style.setProperty("--flip-y", "0px"));
+        }
       };
-      const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
       modeBtns.forEach((b) => {
         b.addEventListener("click", () => {
-          applyMode(b.dataset.mode || "streak");
-          // ручное взаимодействие со срезами не должно «перебрасывать» шаг —
-          // просто сбрасываем авто-таймер текущего шага
+          applyMode(b.dataset.mode ?? "streak", true);
           restartAuto();
         });
       });
 
-      // ---- Переключение шага ----
-      function show(n: number, viaAuto = false) {
-        idx = (n + steps.length) % steps.length;
+      // =====================================================================
+      // ШАГ 4 — серия дней: клик включает/выключает день; стрик = хвост ON
+      // =====================================================================
+      const dayBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-day]"));
+      const nowEl = root.querySelector<HTMLElement>("[data-now]");
 
-        steps.forEach((s, i) =>
-          s.setAttribute("data-active", i === idx ? "true" : "false"),
-        );
+      const renderStreak = (): void => {
+        // текущая серия = длина хвоста ON, считая с последнего дня назад.
+        let run = 0;
+        for (let i = dayBtns.length - 1; i >= 0; i -= 1) {
+          if (dayBtns[i]?.classList.contains("is-on")) run += 1;
+          else break;
+        }
+        dayBtns.forEach((d, i) => {
+          const inRun = run > 0 && i >= dayBtns.length - run;
+          d.classList.toggle("is-run", inRun);
+        });
+        if (nowEl) {
+          nowEl.innerHTML = `${i18n.nowPrefix}: <b>${run}</b> ${i18n.dayUnit}`;
+        }
+      };
+
+      dayBtns.forEach((d) => {
+        d.addEventListener("click", () => {
+          const on = !d.classList.contains("is-on");
+          d.classList.toggle("is-on", on);
+          d.setAttribute("aria-pressed", on ? "true" : "false");
+          const mark = d.querySelector<HTMLElement>(".md__day-mark");
+          if (mark) mark.textContent = on ? "✓" : "";
+          renderStreak();
+          restartAuto();
+        });
+      });
+      // первичная отрисовка отметок и хвоста серии
+      dayBtns.forEach((d) => {
+        const mark = d.querySelector<HTMLElement>(".md__day-mark");
+        if (mark) mark.textContent = d.classList.contains("is-on") ? "✓" : "";
+      });
+
+      // =====================================================================
+      // Переключение шага
+      // =====================================================================
+      function show(n: number, viaAuto = false): void {
+        idx = (n + stepEls.length) % stepEls.length;
+
+        stepEls.forEach((s, i) => s.setAttribute("data-active", i === idx ? "true" : "false"));
         tabs.forEach((tb, i) => {
           const on = i === idx;
           tb.classList.toggle("is-active", on);
@@ -1173,34 +1817,32 @@ const modeWhy = {
         });
         if (curEl) curEl.textContent = String(idx + 1);
 
-        // мягкая подмена текста объяснения
         const entry = stepCopy[idx];
         if (explain && titleEl && textEl && entry) {
           explain.setAttribute("data-swap", "true");
-          window.setTimeout(() => {
-            titleEl.textContent = entry.title;
-            textEl.textContent = entry.body;
-            explain.removeAttribute("data-swap");
-          }, reduce ? 0 : 160);
+          const id = window.setTimeout(
+            () => {
+              titleEl.textContent = entry.title;
+              textEl.textContent = entry.body;
+              explain.removeAttribute("data-swap");
+            },
+            reduce ? 0 : 160,
+          );
+          timers.push(id);
         }
 
         if (prevBtn) prevBtn.disabled = idx === 0;
 
-        // на шаге 3 при входе ставим срез «стрик» по умолчанию
-        if (idx === 2) applyMode("streak");
+        // на шаге 3 при входе ставим срез «стрик» по умолчанию (без FLIP-съезда)
+        if (idx === 2) applyMode("streak", false);
 
-        // перезапустить покадровое появление активной панели
         if (!reduce) reflowStepIn();
-
-        // Ручной переход — заново заводим авто-таймер. Авто-переход управляется
-        // из scheduleNext (он сам заведёт прогресс-полосу), здесь ничего не делаем.
         if (!viaAuto) restartAuto();
       }
 
-      function reflowStepIn() {
-        const active = steps[idx];
+      function reflowStepIn(): void {
+        const active = stepEls[idx];
         if (!active) return;
-        // снять/вернуть .is-inview-зависимую анимацию через короткий тогл класса
         active
           .querySelectorAll<HTMLElement>(".md__op, .md__row, .md__day, .md__brow")
           .forEach((el) => {
@@ -1210,10 +1852,11 @@ const modeWhy = {
           });
       }
 
-      // ---- Авто-таймер шага + прогресс-полоса ----
-      function armProgress() {
+      // =====================================================================
+      // Авто-таймер шага + прогресс-полоса
+      // =====================================================================
+      function armProgress(): void {
         if (!progress || reduce || !playing) return;
-        // рестартуем CSS-анимацию полосы: снять data-anim, сделать reflow, вернуть
         progress.removeAttribute("data-anim");
         progress.style.animation = "none";
         void progress.offsetWidth;
@@ -1221,12 +1864,12 @@ const modeWhy = {
         progress.setAttribute("data-anim", "true");
       }
 
-      function clearProgress() {
+      function clearProgress(): void {
         if (!progress) return;
         progress.removeAttribute("data-anim");
       }
 
-      function scheduleNext() {
+      function scheduleNext(): void {
         if (reduce || !playing) return;
         clearTimers();
         armProgress();
@@ -1237,18 +1880,16 @@ const modeWhy = {
         timers.push(timer);
       }
 
-      function restartAuto() {
+      function restartAuto(): void {
         clearTimers();
         clearProgress();
         if (playing && !reduce) scheduleNext();
       }
 
-      // ---- Управление ----
-      tabs.forEach((tb) =>
-        tb.addEventListener("click", () => {
-          show(Number(tb.dataset.go || 0));
-        }),
-      );
+      // =====================================================================
+      // Управление
+      // =====================================================================
+      tabs.forEach((tb) => tb.addEventListener("click", () => show(Number(tb.dataset.go ?? 0))));
       prevBtn?.addEventListener("click", () => show(idx - 1));
       nextBtn?.addEventListener("click", () => show(idx + 1));
       replayBtn?.addEventListener("click", () => {
@@ -1257,15 +1898,13 @@ const modeWhy = {
         show(0);
       });
 
-      // пауза авто-проигрывания на hover/focus, продолжение при уходе
-      const pause = () => {
+      const pause = (): void => {
         playing = false;
         root.setAttribute("data-playing", "false");
         clearTimers();
         clearProgress();
       };
-      const resume = () => {
-        // не возобновляем за экраном и при reduced-motion
+      const resume = (): void => {
         if (reduce || !root.classList.contains("is-inview")) return;
         playing = true;
         root.setAttribute("data-playing", "true");
@@ -1278,7 +1917,26 @@ const modeWhy = {
         if (!root.contains(e.relatedTarget as Node)) resume();
       });
 
-      // ---- Видимость: играть только в кадре ----
+      // =====================================================================
+      // Видимость: играть только в кадре
+      // =====================================================================
+      const supportsIO = "IntersectionObserver" in window;
+
+      // первичная отрисовка (нужна и при reduced-motion: значения/места/серия)
+      renderPick();
+      renderStreak();
+      applyMode("streak", false);
+
+      if (reduce || !supportsIO) {
+        // финальное читаемое состояние: набор решён, табло в дефолт-срезе.
+        root.classList.add("is-inview");
+        root.setAttribute("data-playing", "false");
+        resetSet();
+        solveSet();
+        if (prevBtn) prevBtn.disabled = true;
+        return;
+      }
+
       let everInview = false;
       const io = new IntersectionObserver(
         (entries) => {
@@ -1287,10 +1945,10 @@ const modeWhy = {
               root.classList.add("is-inview");
               if (!everInview) {
                 everInview = true;
-                if (!reduce) reflowStepIn();
+                reflowStepIn();
               }
-              playing = !reduce;
-              root.setAttribute("data-playing", playing ? "true" : "false");
+              playing = true;
+              root.setAttribute("data-playing", "true");
               scheduleNext();
             } else {
               root.classList.remove("is-inview");
@@ -1305,6 +1963,15 @@ const modeWhy = {
       );
       io.observe(root);
 
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          playing = false;
+          root.setAttribute("data-playing", "false");
+          clearTimers();
+          clearProgress();
+        }
+      });
+
       window.addEventListener(
         "pagehide",
         () => {
@@ -1314,9 +1981,8 @@ const modeWhy = {
         { once: true },
       );
 
-      // старт: длительность авто-шага → в CSS-var, чтобы полоса и таймер совпадали
       root.style.setProperty("--md-step-ms", `${STEP_MS}ms`);
-      root.setAttribute("data-playing", reduce ? "false" : "true");
+      root.setAttribute("data-playing", "true");
       if (prevBtn) prevBtn.disabled = true;
     });
   })();

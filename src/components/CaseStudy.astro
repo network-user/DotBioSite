@@ -15,11 +15,9 @@ import Architecture from "./diagram/Architecture.astro";
 import StackMatrix from "./case/StackMatrix.astro";
 import StackComposition from "./case/StackComposition.astro";
 import Capabilities from "./case/Capabilities.astro";
-import EngineeringCallouts from "./case/EngineeringCallouts.astro";
 import CaseTimeline from "./case/CaseTimeline.astro";
 import CaseFooterCrossLinks from "./case/CaseFooterCrossLinks.astro";
 import ProjectSignature from "./case/signature/ProjectSignature.astro";
-import CodeSnippet from "./case/CodeSnippet.astro";
 
 interface Props {
   project: Project;
@@ -45,14 +43,19 @@ const hasStackGroups =
   p.stackGroups && Object.values(p.stackGroups).some((arr) => arr && arr.length > 0);
 const hasArchitecture = p.architectureNodes && p.architectureNodes.length > 0;
 const hasCapabilities = p.capabilities && p.capabilities.length > 0;
-const hasEngineering = p.engineeringChoices && p.engineeringChoices.length > 0;
 const hasTimeline = p.timeline && p.timeline.length > 0;
-const hasCode = Boolean(p.codeSnippet);
 const hasLinks = p.links && Object.keys(p.links).length > 0;
 
 // Сигнатурная визуализация «как это работает» — bespoke-анимация ключевых
 // механизмов проекта. Список slug-ов, для которых она есть (см. ProjectSignature).
-const SIGNATURE_SLUGS = new Set(["dotsound", "dotlearn", "dotagents", "dotworkbot", "dotschet"]);
+const SIGNATURE_SLUGS = new Set([
+  "dotsound",
+  "dotlearn",
+  "dotagents",
+  "dotworkbot",
+  "dotschet",
+  "dottraceip",
+]);
 const hasSignature = SIGNATURE_SLUGS.has(p.slug);
 ---
 
@@ -174,24 +177,6 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
       <header class="case__h">
         <h2 class="eyebrow">{t("case.overview")}</h2>
       </header>
-      {
-        p.narrative && (
-          <ol class="case__narrative">
-            <li class="case__narrative-row">
-              <span class="case__narrative-label eyebrow">{t("case.narrative.problem")}</span>
-              <span class="case__narrative-text">{p.narrative.problem[locale]}</span>
-            </li>
-            <li class="case__narrative-row case__narrative-row--solution">
-              <span class="case__narrative-label eyebrow">{t("case.narrative.solution")}</span>
-              <span class="case__narrative-text">{p.narrative.solution[locale]}</span>
-            </li>
-            <li class="case__narrative-row">
-              <span class="case__narrative-label eyebrow">{t("case.narrative.outcome")}</span>
-              <span class="case__narrative-text">{p.narrative.outcome[locale]}</span>
-            </li>
-          </ol>
-        )
-      }
       {overviewParas.map((para) => <p class="case__lede body">{para}</p>)}
     </section>
 
@@ -220,18 +205,24 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
             <h2 class="eyebrow">{t("case.metrics")}</h2>
             <p class="case__h-lede subtitle">{t("case.metricsLede")}</p>
           </header>
-          <div class="case__metrics">
+          <div class="case__metrics case__scale" data-scale>
             {p.metrics!.map((m, i) => {
               const vlen = m.value.length;
               const numClass =
                 vlen >= 7 ? "case__metric-num--xs" : vlen >= 5 ? "case__metric-num--sm" : "";
               return (
-                <div class="case__metric" data-reveal data-reveal-delay={i * 60}>
+                <div
+                  class:list={["case__metric", i === 0 && "case__metric--lead"]}
+                  data-reveal
+                  data-reveal-delay={i * 60}
+                  style={`--i:${i}`}
+                >
                   <span class:list={["metric", numClass]}>
                     <span class="case__metric-val" data-countup>{m.value}</span>
                     {m.unit && <span class="metric__unit">{m.unit}</span>}
                   </span>
                   <span class="metric__label">{m.label[locale]}</span>
+                  <span class="case__metric-bar" aria-hidden="true"></span>
                 </div>
               );
             })}
@@ -293,32 +284,6 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
             <p class="case__h-lede subtitle">{t("case.capabilitiesLede")}</p>
           </header>
           <Capabilities items={p.capabilities!} locale={locale} />
-        </section>
-      )
-    }
-
-    <!-- 7. Engineering choices -->
-    {
-      hasEngineering && (
-        <section class="case__section" data-reveal>
-          <header class="case__h">
-            <h2 class="eyebrow">{t("case.engineering")}</h2>
-            <p class="case__h-lede subtitle">{t("case.engineeringLede")}</p>
-          </header>
-          <EngineeringCallouts items={p.engineeringChoices!} locale={locale} />
-        </section>
-      )
-    }
-
-    <!-- 7b. Code snippet — реальный фрагмент ключевого механизма -->
-    {
-      hasCode && (
-        <section class="case__section case__section--narrow" data-reveal>
-          <header class="case__h">
-            <h2 class="eyebrow">{t("case.code")}</h2>
-            <p class="case__h-lede subtitle">{t("case.codeLede")}</p>
-          </header>
-          <CodeSnippet snippet={p.codeSnippet!} locale={locale} />
         </section>
       )
     }
@@ -647,45 +612,6 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
     line-height: var(--lh-normal);
   }
 
-  /* Нарратив «проблема → решение → итог»: сканируемая врезка над overview. */
-  .case__narrative {
-    list-style: none;
-    margin: 0 0 var(--sp-5);
-    padding: var(--sp-4) 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-3);
-    border-block: var(--bw-thin) solid var(--border);
-  }
-
-  .case__narrative-row {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--sp-1);
-  }
-
-  .case__narrative-label {
-    color: var(--text-muted);
-  }
-
-  .case__narrative-row--solution .case__narrative-label {
-    color: var(--project-accent);
-  }
-
-  .case__narrative-text {
-    color: var(--text-secondary);
-    font-size: var(--fs-15);
-    line-height: var(--lh-normal);
-  }
-
-  @media (min-width: 720px) {
-    .case__narrative-row {
-      grid-template-columns: 116px 1fr;
-      gap: var(--sp-4);
-      align-items: baseline;
-    }
-  }
-
   .case__metrics {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -737,6 +663,45 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
 
   .case__metric .case__metric-num--xs {
     font-size: var(--fs-22);
+  }
+
+  /* «Масштаб»: ведущая метрика крупнее, у каждой плитки снизу растёт акцент-бар. */
+  .case__scale .case__metric {
+    justify-content: space-between;
+  }
+
+  .case__metric-bar {
+    position: absolute;
+    inset-inline: var(--sp-5);
+    inset-block-end: 0;
+    height: 2px;
+    border-radius: var(--r-pill) var(--r-pill) 0 0;
+    background: linear-gradient(
+      to right,
+      var(--project-accent),
+      color-mix(in srgb, var(--project-accent) 18%, transparent)
+    );
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform var(--dur-slower) var(--ease-soft);
+    transition-delay: calc(var(--i, 0) * 80ms + 140ms);
+  }
+
+  .case__metric.is-visible .case__metric-bar {
+    transform: scaleX(1);
+  }
+
+  @media (min-width: 720px) {
+    .case__metric--lead {
+      grid-column: span 2;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .case__metric-bar {
+      transform: scaleX(1);
+      transition: none;
+    }
   }
 
   .case__arch {

@@ -1,0 +1,5 @@
+# Bash-скрипты и шаблоны для сервера — всегда LF.
+# Иначе при редактировании в Windows в файл попадёт CRLF и на Linux
+# сломается shebang (bash: \r: команда не найдена).
+*.sh text eol=lf
+deploy/Caddyfile.tmpl text eol=lf

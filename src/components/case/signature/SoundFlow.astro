@@ -315,6 +315,12 @@ const total = steps.length;
                   </>
                 ))}
               </div>
+              {/* тонкий эквалайзер вокала — только scaleY, играет под .is-run */}
+              <div class="sf-lyr__eq" aria-hidden="true">
+                {Array.from({ length: 16 }).map((_, k) => (
+                  <span class="sf-lyr__eq-bar" style={`--b:${k}`} />
+                ))}
+              </div>
               <ul class="sf-lyr__lines">
                 {lyricLines.map((l, k) => (
                   <li class="sf-lyr__line" data-line={k} style={`--i:${k}`}>
@@ -354,6 +360,8 @@ const total = steps.length;
 
           {i === 5 && (
             <div class="sf__viz sf-rec" data-viz aria-label={t({ ru: "Подбор рекомендаций", en: "Recommendation match" })}>
+              {/* луч-развёртка при «посчитать близость» — только transform/opacity */}
+              <span class="sf-rec__sweep" data-sf-sweep aria-hidden="true" />
               <div class="sf-rec__towers">
                 <div class="sf-rec__tower sf-rec__tower--item">
                   <span class="sf-rec__tower-cap caption">{t({ ru: "эмбеддинг трека", en: "track embedding" })}</span>
@@ -710,6 +718,12 @@ const total = steps.length;
     background: var(--surface);
   }
 
+  /* Мягкий пульс хеш-чипа в момент ref_count++ (blob тот же, ссылок больше).
+     transform-only, конечная анимация по классу is-bump (снимается в JS). */
+  .sf-dedup__hash.is-bump {
+    animation: sf-pop var(--dur-med) var(--ease-spring);
+  }
+
   .sf-dedup__hash-val {
     font-size: var(--fs-18);
     color: var(--text);
@@ -1047,6 +1061,54 @@ const total = steps.length;
     }
   }
 
+  /* Тонкий эквалайзер вокала: 16 полосок, анимируется только scaleY от базовой
+     линии. Появляется (opacity) при .is-run, после чего бесконечно дышит — но
+     это transform-only и гаснет за кадром вместе с автоплеем (см. play-state). */
+  .sf-lyr__eq {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 28px;
+    opacity: 0;
+    transition: opacity var(--dur-slow) var(--ease-soft);
+  }
+
+  [data-viz].is-run .sf-lyr__eq {
+    opacity: 0.9;
+    transition-delay: 900ms;
+  }
+
+  .sf-lyr__eq-bar {
+    width: 3px;
+    height: 100%;
+    border-radius: var(--r-pill);
+    background: linear-gradient(to top, var(--sf-accent), var(--sf-line));
+    transform: scaleY(0.18);
+    transform-origin: bottom center;
+  }
+
+  /* «Дыхание» только пока сцена активна (.is-run) — иначе полоски замирают,
+     никаких вечных циклов за кадром. Фаза разнесена по индексу --b. */
+  [data-viz].is-run .sf-lyr__eq-bar {
+    animation: sf-eq 1100ms var(--ease-drift) infinite alternate;
+    animation-delay: calc(var(--b) * -90ms);
+  }
+
+  /* Жёсткое правило бюджета: бесконечный эквалайзер замирает, когда блок ушёл
+     за кадр или вкладка скрыта (класс is-inview снимается в IO/pagehide). */
+  .sf:not(.is-inview) .sf-lyr__eq-bar {
+    animation-play-state: paused;
+  }
+
+  @keyframes sf-eq {
+    from {
+      transform: scaleY(0.18);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+
   .sf-lyr__lines {
     list-style: none;
     margin: 0;
@@ -1131,7 +1193,21 @@ const total = steps.length;
     cursor: pointer;
     transition:
       border-color var(--dur-fast) var(--ease-standard),
-      background-color var(--dur-fast) var(--ease-standard);
+      background-color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-soft);
+  }
+
+  /* лёгкий «отклик» на тап — только transform */
+  .sf-jobs__chip:hover {
+    transform: translateY(-1px);
+  }
+
+  .sf-jobs__chip:active {
+    transform: scale(0.97);
+  }
+
+  .sf-jobs__chip.is-sel {
+    transform: translateY(-1px);
   }
 
   [data-viz].is-run .sf-jobs__chip {
@@ -1190,6 +1266,49 @@ const total = steps.length;
     grid-template-columns: auto auto auto 1fr;
     align-items: center;
     gap: var(--sp-3) var(--sp-4);
+    overflow: hidden; /* удерживает луч-развёртку внутри карточки */
+  }
+
+  /* Луч-развёртка: тонкая вертикальная полоса света проходит слева направо
+     один раз при «посчитать близость». Только transform/opacity, конечная
+     анимация (играет по классу is-sweep, который снимается на animationend). */
+  .sf-rec__sweep {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 40%;
+    pointer-events: none;
+    opacity: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--sf-accent) 22%, transparent),
+      transparent
+    );
+    transform: translate3d(-120%, 0, 0);
+    z-index: 2;
+  }
+
+  .sf-rec__sweep.is-sweep {
+    animation: sf-sweep var(--dur-glacial) var(--ease-soft) both;
+  }
+
+  @keyframes sf-sweep {
+    0% {
+      opacity: 0;
+      transform: translate3d(-120%, 0, 0);
+    }
+    15% {
+      opacity: 1;
+    }
+    85% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translate3d(320%, 0, 0);
+    }
   }
 
   .sf-rec__towers {
@@ -1519,7 +1638,10 @@ const total = steps.length;
     [data-viz].is-run .sf-sig__chip,
     [data-viz].is-run .sf-jobs__chip,
     [data-viz].is-run .sf-rec__tower,
-    [data-viz].is-run .sf-lyr__line {
+    [data-viz].is-run .sf-lyr__line,
+    [data-viz].is-run .sf-lyr__eq-bar,
+    .sf-dedup__hash.is-bump,
+    .sf-rec__sweep.is-sweep {
       animation: none;
     }
     .sf-dedup__pkt {
@@ -1535,6 +1657,17 @@ const total = steps.length;
     .sf__pip i {
       transform: scaleX(1);
       opacity: 0.5;
+    }
+    /* статичный, читаемый эквалайзер — без «дыхания» */
+    .sf-lyr__eq {
+      opacity: 0.9;
+    }
+    .sf-lyr__eq-bar {
+      transform: scaleY(0.55);
+    }
+    /* луч-развёртка не нужна в статике */
+    .sf-rec__sweep {
+      display: none;
     }
   }
 </style>
@@ -1670,6 +1803,7 @@ const total = steps.length;
       if (!scene) return;
       const users = Array.from(scene.querySelectorAll<HTMLElement>("[data-sf-user]"));
       const refEl = scene.querySelector<HTMLElement>("[data-sf-ref]");
+      const hashChip = scene.querySelector<HTMLElement>(".sf-dedup__hash");
       // Пакет летит по реальной ширине провода, а не по фикс-смещению: меряем
       // .sf-dedup__wire и кладём дистанцию в --pkt-x (пакеты её наследуют).
       const wire = scene.querySelector<HTMLElement>(".sf-dedup__wire");
@@ -1690,6 +1824,12 @@ const total = steps.length;
           u.classList.remove("is-tap");
           void u.offsetWidth;
           u.classList.add("is-tap");
+          // мягкий пульс хеш-чипа: blob тот же, ref_count++
+          if (hashChip) {
+            hashChip.classList.remove("is-bump");
+            void hashChip.offsetWidth;
+            hashChip.classList.add("is-bump");
+          }
           replayViz(scene); // повторно прогнать пакеты
         });
       });
@@ -1792,6 +1932,9 @@ const total = steps.length;
       const viz = scene.querySelector<HTMLElement>("[data-viz]");
       const btn = scene.querySelector<HTMLButtonElement>("[data-sf-compute]");
       const score = scene.querySelector<HTMLElement>(".sf-rec__score");
+      const sweep = scene.querySelector<HTMLElement>("[data-sf-sweep]");
+      // снимаем класс по окончании, чтобы луч можно было запустить заново
+      sweep?.addEventListener("animationend", () => sweep.classList.remove("is-sweep"));
       btn?.addEventListener("click", () => {
         viz?.classList.add("is-computed");
         if (score) score.textContent = "0.87";
@@ -1800,6 +1943,12 @@ const total = steps.length;
           dot.style.animation = "none";
           void dot.offsetWidth;
           dot.style.animation = "";
+        }
+        // луч-развёртка проходит один раз поверх карточки
+        if (sweep && !reduced) {
+          sweep.classList.remove("is-sweep");
+          void sweep.offsetWidth;
+          sweep.classList.add("is-sweep");
         }
       });
     };
@@ -1828,6 +1977,8 @@ const total = steps.length;
       (entries) => {
         for (const e of entries) {
           inview = e.isIntersecting;
+          // is-inview гейтит бесконечный эквалайзер (паузится за кадром)
+          root.classList.toggle("is-inview", inview);
           syncAutoplay();
         }
       },
@@ -1857,8 +2008,16 @@ const total = steps.length;
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
         inview = false;
+        root.classList.remove("is-inview");
         syncAutoplay();
       }
+    });
+
+    // pagehide: страница уходит из bfcache/выгружается — гасим всё движение.
+    window.addEventListener("pagehide", () => {
+      inview = false;
+      root.classList.remove("is-inview");
+      syncAutoplay();
     });
   })();
 </script>

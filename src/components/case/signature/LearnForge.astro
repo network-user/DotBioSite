@@ -2,26 +2,27 @@
 /**
  * LearnForge.astro — сигнатурная визуализация .учёба (DotLearn).
  *
- * Цель этой версии: ЯСНОСТЬ. Медленный, пошаговый разбор codegen-петли
- * lesson-forge — по одному шагу за раз, с подробным объяснением на каждом.
- * Пользователь управляет: нумерованные вкладки, prev/next, повтор. Авто-показ
- * мягкий (~4.6s на шаг), пауза при наведении. Никаких быстрых циклов.
+ * Язык: «кузница / конвейер» — одна просьба к ИИ-агенту едет по ленте через
+ * стадии и собирается в готовую, проверенную тему-артефакт. Не просто рассказ,
+ * а сборка на экране: токен-запрос летит по конвейеру, файлы темы появляются
+ * по одному, Zod-контракт интерактивно отклоняет/принимает манифест, gold-
+ * решение «исполняется» в мок-результат, открывается PR — и петля замыкается
+ * на local-first инвариант.
  *
- * Шесть шагов петли (точно по репозиторию DotLearn):
- *   1. запрос агенту       — ты просишь у ИИ-агента тему
- *   2. тема как код        — он пишет модуль (theory в MDX + exercises в YAML),
- *                            а не строку в базе данных
- *   3. Zod-контракт        — общая схема, которую проверяют и веб-апп, и бэкенд
- *   4. прогон в sandbox    — gold-решение реально исполняется в браузере
- *                            (sql.js для SQL, Pyodide для Python, в Web Worker)
- *   5. открыт PR           — если прошло, открывается pull request
- *   6. local-first         — приложение работает без сервера, код в браузере
+ * Шесть шагов петли lesson-forge (точно по репозиторию DotLearn):
+ *   1. запрос агенту   — «добавь тему по SQL JOIN» едет по конвейеру
+ *   2. тема как код    — topics/sql-joins/ собирается по файлам (MDX + YAML)
+ *   3. Zod-контракт    — общая схема web+api валидирует манифест (toggle bad field)
+ *   4. gold-прогон     — эталонное решение «исполняется» в мок-результат (sql.js/Pyodide)
+ *   5. открыт PR       — петля замыкается
+ *   6. local-first     — приложение читает темы и исполняет код в браузере, BYOK
  *
- * Бюджет анимации (строго): анимируются ТОЛЬКО transform и opacity.
- * Всё движение под классом .is-inview (IntersectionObserver). Авто-таймер —
- * setTimeout, гасится за экраном и на pagehide. reduced-motion → финальный
- * читаемый кадр без движения. Курсорного параллакса нет (убран ради перфа —
- * менял стиль на каждое движение мыши).
+ * Бюджет анимации (строго): анимируются ТОЛЬКО transform и opacity. Постоянного
+ * rAF нет — автоплей ведёт ОДНА CSS-анимация заполнения активного пипа, шаг
+ * переключается по её `animationend`. Всё движение под классом .is-run/.is-in,
+ * который вешается при открытии шага, и гасится за экраном (IntersectionObserver),
+ * на скрытой вкладке (visibilitychange) и на pagehide. prefers-reduced-motion →
+ * финальный читаемый кадр без движения; вкладки, тоглы и кнопки работают.
  */
 import type { Locale } from "../../../lib/i18n";
 
@@ -30,435 +31,440 @@ interface Props {
 }
 const { locale } = Astro.props;
 
-const copy = {
-  ru: {
-    eyebrow: "Цикл lesson-forge",
-    intro:
-      "Как из одной просьбы рождается готовая тема: ты говоришь ИИ-агенту, что добавить — а на выходе получается проверенный учебный модуль, который запускается прямо в браузере, без сервера.",
-    stepWord: "Шаг",
-    prev: "Назад",
-    next: "Далее",
-    replay: "Сначала",
-    pausedHint: "пауза — наведён курсор",
-    autoHint: "сам листает; наведи, чтобы остановить",
-    steps: [
-      {
-        tag: "запрос",
-        title: "Ты просишь у агента тему",
-        body: "Всё начинается с обычной фразы человеку-агенту: «добавь тему по SQL JOIN». Агент (Cursor или Claude Code) подхватывает навык lesson-forge — заранее описанный сценарий, который превращает свободную просьбу в строгий план темы. Никакой ручной разметки от тебя не требуется.",
-        chip: "«добавь тему по SQL JOIN»",
-      },
-      {
-        tag: "тема как код",
-        title: "Тема пишется как код, а не как запись в базе",
-        body: "Агент создаёт целую папку темы: теория в файлах MDX (текст с интерактивными вставками) и задачи в YAML. Это обычный модуль в репозитории, а не строка в базе данных. Поэтому тему можно читать в git, ревьюить в pull request и форкать — она версионируется как код.",
-        chip: "topics/sql-joins/ · theory.mdx · exercises.yaml",
-      },
-      {
-        tag: "Zod-контракт",
-        title: "Форма проверяется по общей схеме (Zod)",
-        body: "Каждый файл сверяется с Zod-контрактом. Zod — это схема данных: одно описание того, как обязана выглядеть тема. Важно, что эта схема одна на всех — её используют и веб-приложение, и бэкенд. Так тема физически не может прийти кривой: лишнее поле или неверный тип отклоняются сразу.",
-        chip: "packages/contracts · одна схема на web и api",
-      },
-      {
-        tag: "sandbox",
-        title: "Эталонное решение реально запускается в браузере",
-        body: "Мало проверить форму — надо убедиться, что задача решаема. Поэтому gold-решение (эталонный ответ) по-настоящему исполняется: SQL — через sql.js (SQLite, собранный в WebAssembly), Python — через Pyodide. Оба крутятся в Web Worker — отдельном фоновом потоке, чтобы тяжёлый прогон не подвешивал интерфейс. Результат должен совпасть с ожидаемым.",
-        chip: "sql.js · Pyodide · Web Worker",
-      },
-      {
-        tag: "PR",
-        title: "Прошло — открывается pull request",
-        body: "Если контракт пройден и решение совпало с ожидаемым, тема готова к слиянию: открывается pull request с новой папкой. Дальше — обычное ревью мейнтейнера. Петля замыкается: каждый следующий PR проходит ровно тот же контракт и тот же прогон.",
-        chip: "git checkout -b topic/sql-joins · открыт PR",
-      },
-      {
-        tag: "local-first",
-        title: "Local-first: всё работает без сервера",
-        body: "Готовую тему учащийся открывает локально. Приложение читает папки тем напрямую и исполняет код прямо в браузере — бэкенд не обязателен. Ключи к ИИ (если нужна генерация) хранятся у пользователя, не на сервере. Сервер — необязательное усиление, а не зависимость.",
-        chip: "в браузере · без бэкенда · ключи у пользователя",
-      },
-    ],
-  },
-  en: {
-    eyebrow: "The lesson-forge loop",
-    intro:
-      "How one request becomes a finished topic: you tell the AI agent what to add, and out comes a validated learning module that runs right in the browser, with no server.",
-    stepWord: "Step",
-    prev: "Back",
-    next: "Next",
-    replay: "Restart",
-    pausedHint: "paused — pointer over",
-    autoHint: "auto-advances; hover to stop",
-    steps: [
-      {
-        tag: "ask",
-        title: "You ask the agent for a topic",
-        body: "It all starts with a plain sentence to a human-style agent: \"add a topic on SQL JOINs\". The agent (Cursor or Claude Code) picks up the lesson-forge skill — a predefined playbook that turns a free-text request into a strict topic plan. You write no markup yourself.",
-        chip: "\"add a topic on SQL JOINs\"",
-      },
-      {
-        tag: "topic as code",
-        title: "The topic is written as code, not a DB row",
-        body: "The agent creates a whole topic folder: theory in MDX files (prose with interactive widgets) and exercises in YAML. It is an ordinary module in the repository, not a row in a database. That is why a topic can be read in git, reviewed in a pull request and forked — it is versioned like code.",
-        chip: "topics/sql-joins/ · theory.mdx · exercises.yaml",
-      },
-      {
-        tag: "Zod contract",
-        title: "Its shape is checked against a shared schema (Zod)",
-        body: "Every file is validated against a Zod contract. Zod is a data schema: one definition of how a topic must look. The key point is that this schema is shared — both the web app and the backend use the very same one. So a topic literally cannot arrive malformed: an extra field or a wrong type is rejected immediately.",
-        chip: "packages/contracts · one schema for web and api",
-      },
-      {
-        tag: "sandbox",
-        title: "The gold solution actually runs in the browser",
-        body: "Checking the shape isn't enough — the task must be solvable. So the gold solution (the reference answer) is genuinely executed: SQL via sql.js (SQLite compiled to WebAssembly), Python via Pyodide. Both run inside a Web Worker — a separate background thread, so a heavy run never freezes the UI. The output must match what's expected.",
-        chip: "sql.js · Pyodide · Web Worker",
-      },
-      {
-        tag: "PR",
-        title: "If it passes, a pull request is opened",
-        body: "Once the contract is satisfied and the solution matches the expected output, the topic is ready to merge: a pull request with the new folder is opened. From there it's a normal maintainer review. The loop closes: every next PR passes exactly the same contract and the same run.",
-        chip: "git checkout -b topic/sql-joins · PR opened",
-      },
-      {
-        tag: "local-first",
-        title: "Local-first: it all works with no server",
-        body: "A learner opens the finished topic locally. The app reads the topic folders directly and executes code right in the browser — no backend required. AI keys (if generation is needed) stay with the user, never on a server. The server is an optional enhancement, never a dependency.",
-        chip: "in the browser · no backend · keys stay with you",
-      },
-    ],
-  },
-}[locale];
+type Bi = { ru: string; en: string };
+const t = (b: Bi) => b[locale];
 
-const steps = copy.steps;
+const intro: Bi = {
+  ru: "Путь одной просьбы в .учёба — как «добавь тему по SQL JOIN» становится готовым, проверенным модулем. Шесть шагов конвейера lesson-forge; листайте вкладки, тыкайте сцену или дайте проиграться.",
+  en: "The path of one request through .учёба — how “add a topic on SQL JOINs” becomes a finished, validated module. Six steps of the lesson-forge conveyor; switch tabs, poke the scene, or let it play.",
+};
+
+// --- Шаги: id, короткая вкладка, заголовок, подробное объяснение ---
+const steps: { id: string; tab: Bi; title: Bi; body: Bi }[] = [
+  {
+    id: "ask",
+    tab: { ru: "Запрос", en: "Request" },
+    title: { ru: "Ты просишь у агента тему", en: "You ask the agent for a topic" },
+    body: {
+      ru: "Всё начинается с обычной фразы человеку-агенту: «добавь тему по SQL JOIN». Агент (Cursor или Claude Code) подхватывает навык lesson-forge — заранее описанный плейбук, который превращает свободную просьбу в строгий план темы. Токен запроса въезжает на конвейер: никакой ручной разметки от тебя не требуется.",
+      en: "It all starts with a plain sentence to a human-style agent: “add a topic on SQL JOINs”. The agent (Cursor or Claude Code) picks up the lesson-forge skill — a predefined playbook that turns a free-text request into a strict topic plan. The request token rolls onto the conveyor: you write no markup yourself.",
+    },
+  },
+  {
+    id: "assemble",
+    tab: { ru: "Тема как код", en: "Topic as code" },
+    title: { ru: "Тема собирается как код, а не как запись в базе", en: "The topic assembles as code, not a DB row" },
+    body: {
+      ru: "Агент собирает целую папку темы по файлам: теория в MDX (текст с интерактивными вставками) и задачи в YAML. Это обычный модуль в репозитории, а не строка в базе данных. Поэтому тему можно читать в git, ревьюить в pull request и форкать — она версионируется как код.",
+      en: "The agent assembles a whole topic folder file by file: theory in MDX (prose with interactive widgets) and exercises in YAML. It is an ordinary module in the repository, not a row in a database. That is why a topic can be read in git, reviewed in a pull request and forked — it is versioned like code.",
+    },
+  },
+  {
+    id: "contract",
+    tab: { ru: "Zod-контракт", en: "Zod contract" },
+    title: { ru: "Форма проверяется по общей схеме (Zod)", en: "Its shape is checked against a shared schema (Zod)" },
+    body: {
+      ru: "Манифест темы сверяется с Zod-контрактом — одной схемой, которая описывает, как обязана выглядеть тема. Эта схема одна на всех: её используют и веб-приложение, и бэкенд, а типы выводятся через z.infer. Переключите «плохое поле» — и схема отклонит манифест сразу; почините — и он пройдёт.",
+      en: "The topic manifest is checked against a Zod contract — one schema describing how a topic must look. That schema is shared: both the web app and the api use the very same one, with types via z.infer. Toggle a “bad field” and the schema rejects the manifest at once; fix it and it passes.",
+    },
+  },
+  {
+    id: "run",
+    tab: { ru: "Прогон", en: "Run" },
+    title: { ru: "Эталонное решение реально исполняется в браузере", en: "The gold solution actually runs in the browser" },
+    body: {
+      ru: "Мало проверить форму — надо убедиться, что задача решаема. Поэтому gold-решение (эталонный ответ) по-настоящему исполняется: SQL — через sql.js (SQLite в WebAssembly), Python — через Pyodide. Оба крутятся в Web Worker, чтобы тяжёлый прогон не подвешивал интерфейс. Нажмите «прогнать» — появится живой результат, который должен совпасть с ожидаемым.",
+      en: "Checking the shape isn't enough — the task must be solvable. So the gold solution (the reference answer) is genuinely executed: SQL via sql.js (SQLite in WebAssembly), Python via Pyodide. Both run inside a Web Worker so a heavy run never freezes the UI. Hit “run” and a live result appears — and it must match what's expected.",
+    },
+  },
+  {
+    id: "pr",
+    tab: { ru: "PR", en: "PR" },
+    title: { ru: "Прошло — открывается pull request", en: "If it passes, a pull request is opened" },
+    body: {
+      ru: "Если контракт пройден и решение совпало с ожидаемым, тема готова к слиянию: открывается pull request с новой папкой. Дальше — обычное ревью мейнтейнера. Петля замыкается: каждый следующий PR проходит ровно тот же контракт и тот же прогон.",
+      en: "Once the contract is satisfied and the solution matches the expected output, the topic is ready to merge: a pull request with the new folder is opened. From there it's a normal maintainer review. The loop closes: every next PR passes exactly the same contract and the same run.",
+    },
+  },
+  {
+    id: "local",
+    tab: { ru: "Local-first", en: "Local-first" },
+    title: { ru: "Local-first: всё работает без сервера", en: "Local-first: it all works with no server" },
+    body: {
+      ru: "Готовую тему учащийся открывает локально. Приложение читает папки тем напрямую через import.meta.glob и исполняет код прямо в браузере — бэкенд не обязателен. Прогресс живёт в IndexedDB/Dexie с ts-fsrs. Ключи к ИИ — BYOK: OpenAI, Anthropic, Ollama или OpenRouter — остаются в браузере и не уходят на сервер.",
+      en: "A learner opens the finished topic locally. The app reads the topic folders directly via import.meta.glob and executes code right in the browser — no backend required. Progress lives in IndexedDB/Dexie with ts-fsrs. AI keys are BYOK — OpenAI, Anthropic, Ollama or OpenRouter — kept in the browser and never sent to a server.",
+    },
+  },
+];
+
+// --- Шаг 1: стадии конвейера, по которым едет токен запроса ---
+const conveyorStages: { k: string; d: Bi }[] = [
+  { k: "skill", d: { ru: "навык lesson-forge", en: "lesson-forge skill" } },
+  { k: "plan", d: { ru: "строгий план темы", en: "strict topic plan" } },
+  { k: "scaffold", d: { ru: "каркас папки", en: "scaffold folder" } },
+];
+
+// --- Шаг 2: файлы артефакта темы (появляются по одному) ---
+const artifactFiles: { name: string; kind: Bi }[] = [
+  { name: "topics/sql-joins/", kind: { ru: "папка модуля", en: "module folder" } },
+  { name: "theory.mdx", kind: { ru: "теория в MDX", en: "theory in MDX" } },
+  { name: "exercises.yaml", kind: { ru: "задачи в YAML", en: "exercises in YAML" } },
+  { name: "manifest", kind: { ru: "манифест темы", en: "topic manifest" } },
+];
+
+// --- Шаг 3: поля Zod-контракта (манифест темы) ---
+type SchemaField = { key: string; type: Bi };
+const schemaFields: SchemaField[] = [
+  { key: "slug", type: { ru: "string", en: "string" } },
+  { key: "title", type: { ru: "string", en: "string" } },
+  { key: "theory", type: { ru: "MDX path", en: "MDX path" } },
+  { key: "exercises[]", type: { ru: "Exercise[]", en: "Exercise[]" } },
+];
+
+// --- Шаг 4: два рантайма + мок-результат gold-прогона ---
+const runtimes: { id: string; engine: Bi }[] = [
+  { id: "sql.js", engine: { ru: "SQLite в WASM", en: "SQLite in WASM" } },
+  { id: "Pyodide", engine: { ru: "Python в WASM", en: "Python in WASM" } },
+];
+// мок-результат SQL JOIN (живая таблица «появляется» по одной строке)
+const sqlResult = {
+  cols: ["order_id", "customer"],
+  rows: [
+    ["1001", "@nova"],
+    ["1002", "@mira"],
+    ["1003", "@keto"],
+  ],
+};
+
+// --- Шаг 5: чек-лист перед PR ---
+const prChecks: Bi[] = [
+  { ru: "Zod-контракт пройден", en: "Zod contract satisfied" },
+  { ru: "gold-решение совпало", en: "gold solution matched" },
+  { ru: "ветка topic/sql-joins", en: "branch topic/sql-joins" },
+];
+
+// --- Шаг 6: инварианты local-first ---
+const localFacts: { k: string; d: Bi }[] = [
+  { k: "import.meta.glob", d: { ru: "темы читаются напрямую", en: "topics read directly" } },
+  { k: "Web Workers", d: { ru: "sql.js + Pyodide", en: "sql.js + Pyodide" } },
+  { k: "IndexedDB / Dexie", d: { ru: "прогресс + ts-fsrs", en: "progress + ts-fsrs" } },
+  { k: "BYOK", d: { ru: "ключи в браузере", en: "keys in the browser" } },
+];
+const byokProviders = ["OpenAI", "Anthropic", "Ollama", "OpenRouter"];
+
+const ui = {
+  prev: { ru: "Назад", en: "Back" },
+  next: { ru: "Дальше", en: "Next" },
+  play: { ru: "Авто", en: "Auto" },
+  pause: { ru: "Пауза", en: "Pause" },
+  replayAssemble: { ru: "Собрать заново", en: "Assemble again" },
+  badField: { ru: "Сломать поле", en: "Break a field" },
+  fixField: { ru: "Починить", en: "Fix it" },
+  run: { ru: "Прогнать решение", en: "Run the solution" },
+  catalog: { ru: "22 темы в каталоге", en: "22 topics in the catalog" },
+  stepOf: (n: number, all: number): Bi => ({
+    ru: `Шаг ${n} из ${all}`,
+    en: `Step ${n} of ${all}`,
+  }),
+};
 const total = steps.length;
-
-// Глифы под каждый шаг (line-icons, currentColor).
-const glyphs = ["ask", "code", "shield", "play", "branch", "browser"] as const;
-
-// Короткие сноски «что это» — раскрываются по тапу на чип шага. Расширяют уже
-// выверенный текст, не противореча ему.
-const glosses = {
-  ru: [
-    "Навык — сохранённый плейбук агента: одна команда разворачивает строгий план темы.",
-    "Папку темы можно ревьюить в PR, форкать и версионировать — как обычный код.",
-    "Одна схема на веб и бэкенд: лишнее поле или неверный тип отклоняются сразу.",
-    "sql.js — это SQLite в WebAssembly, Pyodide — Python в браузере; прогон в Web Worker не вешает интерфейс.",
-    "Каждый PR проходит тот же контракт и тот же прогон — петля воспроизводима.",
-    "Бэкенд не нужен: темы читаются и исполняются локально, ключи к ИИ остаются у тебя.",
-  ],
-  en: [
-    "A skill is a saved agent playbook: one command unfolds a strict topic plan.",
-    "A topic folder can be reviewed in a PR, forked and versioned — like ordinary code.",
-    "One schema for web and backend: an extra field or a wrong type is rejected at once.",
-    "sql.js is SQLite in WebAssembly, Pyodide is Python in the browser; the Web Worker run never freezes the UI.",
-    "Every PR passes the same contract and the same run — the loop is reproducible.",
-    "No backend needed: topics are read and executed locally, your AI keys stay with you.",
-  ],
-}[locale];
 ---
 
-<figure
+<section
   class="lf"
-  data-sig="dotlearn"
   data-lf
-  aria-label={copy.eyebrow}
+  data-lf-locale={locale}
+  aria-label={t({ ru: "Как работает DotLearn", en: "How DotLearn works" })}
 >
-  <div class="lf__inner glass glass--bordered">
-    <!-- Шапка: что это вообще -->
-    <header class="lf__head">
-      <p class="lf__eyebrow mono">{copy.eyebrow}</p>
-      <p class="lf__intro">{copy.intro}</p>
-    </header>
+  <p class="lf__intro">{t(intro)}</p>
 
-    <!-- Нумерованные вкладки шагов: основной способ управления -->
-    <ol class="lf__tabs" role="tablist" aria-label={copy.eyebrow}>
-      {
-        steps.map((s, i) => (
-          <li class="lf__tab-item" role="presentation">
-            <button
-              type="button"
-              class="lf__tab"
-              role="tab"
-              data-go={i}
-              aria-selected={i === 0 ? "true" : "false"}
-              tabindex={i === 0 ? 0 : -1}
-            >
-              <span class="lf__tab-num mono">{i + 1}</span>
-              <span class="lf__tab-tag">{s.tag}</span>
-            </button>
-          </li>
-        ))
-      }
-    </ol>
+  <!-- Нумерованные вкладки шагов -->
+  <nav class="lf__tabs" role="tablist" aria-label={t({ ru: "Шаги", en: "Steps" })}>
+    {
+      steps.map((s, i) => (
+        <button
+          class="lf__tab"
+          type="button"
+          role="tab"
+          id={`lf-tab-${i}`}
+          aria-controls={`lf-step-${i}`}
+          data-lf-tab={i}
+          aria-selected={i === 0 ? "true" : "false"}
+        >
+          <span class="lf__tab-num mono" aria-hidden="true">{i + 1}</span>
+          <span class="lf__tab-label">{t(s.tab)}</span>
+        </button>
+      ))
+    }
+  </nav>
 
-    <!-- Тонкий прогресс-рельс под вкладками -->
-    <div class="lf__rail" aria-hidden="true">
-      <span class="lf__rail-fill" data-rail></span>
-    </div>
+  <!-- Колода: один шаг видим, высота по контенту -->
+  <div class="lf__deck">
+    {
+      steps.map((s, i) => (
+        <article
+          class="lf__step"
+          role="tabpanel"
+          id={`lf-step-${i}`}
+          aria-labelledby={`lf-tab-${i}`}
+          data-lf-step={i}
+          hidden={i !== 0}
+        >
+          <header class="lf__head">
+            <span class="lf__eyebrow caption">{t(ui.stepOf(i + 1, total))}</span>
+            <h3 class="lf__title">{t(s.title)}</h3>
+            <p class="lf__body">{t(s.body)}</p>
+          </header>
 
-    <!-- Сцена: один активный шаг за раз -->
-    <div class="lf__stage" data-stage>
-      {
-        steps.map((s, i) => (
-          <article
-            class="lf__panel"
-            role="tabpanel"
-            data-panel={i}
-            data-active={i === 0 ? "true" : "false"}
-            aria-hidden={i === 0 ? "false" : "true"}
-          >
-            <div class="lf__glyphwrap" aria-hidden="true">
-              <span class="lf__step-no mono">
-                {copy.stepWord} {i + 1} / {total}
-              </span>
-              <span class="lf__glyph-badge">
-                <svg
-                  class="lf__glyph"
-                  viewBox="0 0 24 24"
-                  width="26"
-                  height="26"
-                  aria-hidden="true"
-                >
-                  {glyphs[i] === "ask" && (
-                    <g
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.6"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <path d="M4 6h16v9H9l-4 4V6Z" />
-                      <path d="M8 10.5h8M8 13h5" />
-                    </g>
-                  )}
-                  {glyphs[i] === "code" && (
-                    <g
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.6"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <path d="M9 8l-4 4 4 4M15 8l4 4-4 4" />
-                    </g>
-                  )}
-                  {glyphs[i] === "shield" && (
-                    <g
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.6"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <path d="M12 3l7 3v5c0 4.4-3 7.4-7 9-4-1.6-7-4.6-7-9V6l7-3Z" />
-                      <path d="M9 12l2 2 4-4" />
-                    </g>
-                  )}
-                  {glyphs[i] === "play" && (
-                    <g
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.6"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <rect x="3.5" y="5" width="17" height="14" rx="2" />
-                      <path d="M10 9.5l4 2.5-4 2.5v-5Z" />
-                    </g>
-                  )}
-                  {glyphs[i] === "branch" && (
-                    <g
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.6"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <circle cx="7" cy="6" r="2.2" />
-                      <circle cx="7" cy="18" r="2.2" />
-                      <circle cx="17" cy="9" r="2.2" />
-                      <path d="M7 8.2v7.6M9.2 6h3.6a2 2 0 0 1 2 2v0" />
-                    </g>
-                  )}
-                  {glyphs[i] === "browser" && (
-                    <g
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.6"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <rect x="3.5" y="5" width="17" height="14" rx="2" />
-                      <path d="M3.5 9h17M6.5 7h.01M9 7h.01" />
-                    </g>
-                  )}
-                </svg>
-              </span>
+          {/* --- Шаг 1: конвейер с токеном запроса --- */}
+          {i === 0 && (
+            <div class="lf__viz lf-ask" data-viz aria-label={t({ ru: "Конвейер запроса", en: "Request conveyor" })}>
+              <div class="lf-ask__belt" aria-hidden="true">
+                <span class="lf-ask__token mono" data-lf-token>«add a topic on SQL JOIN»</span>
+                <ol class="lf-ask__stages">
+                  {conveyorStages.map((st, k) => (
+                    <li class="lf-ask__stage" data-stage={k} style={`--i:${k}`}>
+                      <span class="lf-ask__teeth" aria-hidden="true" />
+                      <span class="lf-ask__stage-k mono">{st.k}</span>
+                      <span class="lf-ask__stage-d">{t(st.d)}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+              <p class="lf-ask__hint">
+                {t({ ru: "Свободная фраза → строгий план темы. Ручной разметки нет.", en: "Free-text → a strict topic plan. No manual markup." })}
+              </p>
             </div>
+          )}
 
-            <div class="lf__body">
-              <h3 class="lf__title">{s.title}</h3>
-              <p class="lf__text">{s.body}</p>
-              <button type="button" class="lf__chip mono" data-chip aria-expanded="false">
-                <span class="lf__chip-code">{s.chip}</span>
-                <span class="lf__chip-cue" aria-hidden="true">+</span>
+          {/* --- Шаг 2: сборка артефакта по файлам --- */}
+          {i === 1 && (
+            <div class="lf__viz lf-build" data-viz aria-label={t({ ru: "Сборка папки темы", en: "Assembling the topic folder" })}>
+              <ul class="lf-build__tree" role="list">
+                {artifactFiles.map((f, k) => (
+                  <li class="lf-build__file" data-file={k} style={`--i:${k}`}>
+                    <span class="lf-build__dot" aria-hidden="true" />
+                    <span class="lf-build__name mono">{f.name}</span>
+                    <span class="lf-build__kind">{t(f.kind)}</span>
+                  </li>
+                ))}
+              </ul>
+              <p class="lf-build__note">
+                {t({ ru: "Не строка в базе — модуль в git: читается, ревьюится в PR, форкается.", en: "Not a DB row — a module in git: readable, reviewed in a PR, forkable." })}
+              </p>
+              <button class="lf-build__replay" type="button" data-lf-reassemble>
+                <span aria-hidden="true">↺</span> {t(ui.replayAssemble)}
               </button>
-              <p class="lf__gloss" data-gloss hidden>{glosses[i]}</p>
             </div>
-          </article>
-        ))
-      }
-    </div>
+          )}
 
-    <!-- Управление: prev / hint / next + повтор -->
-    <div class="lf__controls">
-      <button type="button" class="lf__nav" data-prev>
-        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-          <path
-            d="M15 5l-7 7 7 7"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"></path>
-        </svg>
-        <span>{copy.prev}</span>
-      </button>
+          {/* --- Шаг 3: интерактивный Zod-контракт --- */}
+          {i === 2 && (
+            <div class="lf__viz lf-zod" data-viz data-state="ok" aria-label={t({ ru: "Zod-контракт темы", en: "The topic Zod contract" })}>
+              <span class="lf-zod__cap caption">
+                {t({ ru: "packages/contracts — одна схема на web и api", en: "packages/contracts — one schema for web and api" })}
+              </span>
+              <div class="lf-zod__schema mono" aria-hidden="true">
+                <span class="lf-zod__line lf-zod__line--head">topicSchema = z.object(&#123;</span>
+                {schemaFields.map((f, k) => (
+                  <span class="lf-zod__line" data-field={k}>
+                    {"  "}{f.key}: <em data-type>{t(f.type)}</em>,
+                  </span>
+                ))}
+                <span class="lf-zod__line lf-zod__line--head">&#125;)</span>
+                <span class="lf-zod__line lf-zod__line--infer">type Topic = z.infer&lt;typeof topicSchema&gt;</span>
+              </div>
+              <div class="lf-zod__verdict" data-lf-verdict role="status" aria-live="polite">
+                <span class="lf-zod__verdict-icon" aria-hidden="true" />
+                <span class="lf-zod__verdict-t">
+                  {t({ ru: "manifest валиден — обе стороны согласны", en: "manifest valid — both sides agree" })}
+                </span>
+              </div>
+              <button class="lf-zod__toggle" type="button" data-lf-badfield aria-pressed="false">
+                {t(ui.badField)}
+              </button>
+            </div>
+          )}
 
-      <span
-        class="lf__hint mono"
-        data-hint
-        data-auto={copy.autoHint}
-        data-paused={copy.pausedHint}>{copy.autoHint}</span>
+          {/* --- Шаг 4: gold-прогон в мок-результат --- */}
+          {i === 3 && (
+            <div class="lf__viz lf-run" data-viz aria-label={t({ ru: "Прогон gold-решения", en: "Gold solution run" })}>
+              <div class="lf-run__engines">
+                {runtimes.map((r, k) => (
+                  <button class="lf-run__engine" type="button" data-lf-engine={k} aria-pressed={k === 0 ? "true" : "false"} style={`--i:${k}`}>
+                    <span class="lf-run__engine-id mono">{r.id}</span>
+                    <span class="lf-run__engine-note">{t(r.engine)}</span>
+                  </button>
+                ))}
+                <span class="lf-run__worker caption">{t({ ru: "в Web Worker", en: "in a Web Worker" })}</span>
+              </div>
+              <div class="lf-run__panel">
+                <code class="lf-run__sql mono" data-lf-sql>SELECT order_id, customer FROM orders JOIN users …</code>
+                <table class="lf-run__table" data-lf-table aria-hidden="true">
+                  <thead>
+                    <tr>
+                      {sqlResult.cols.map((c) => (
+                        <th class="lf-run__th mono">{c}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sqlResult.rows.map((row, r) => (
+                      <tr class="lf-run__tr" data-row={r} style={`--i:${r}`}>
+                        {row.map((cell) => (
+                          <td class="lf-run__td mono">{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <span class="lf-run__match mono" data-lf-match aria-live="polite">
+                  {t({ ru: "ожидается совпадение с gold", en: "expecting a match with gold" })}
+                </span>
+              </div>
+              <button class="lf-run__btn" type="button" data-lf-run>
+                <span aria-hidden="true">▷</span> {t(ui.run)}
+              </button>
+            </div>
+          )}
 
-      <button type="button" class="lf__nav" data-next>
-        <span>{copy.next}</span>
-        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-          <path
-            d="M9 5l7 7-7 7"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"></path>
-        </svg>
-      </button>
+          {/* --- Шаг 5: открыт PR --- */}
+          {i === 4 && (
+            <div class="lf__viz lf-pr" data-viz aria-label={t({ ru: "Открытие pull request", en: "Opening a pull request" })}>
+              <ul class="lf-pr__checks" role="list">
+                {prChecks.map((c, k) => (
+                  <li class="lf-pr__check" data-check={k} style={`--i:${k}`}>
+                    <span class="lf-pr__tick" aria-hidden="true" />
+                    {t(c)}
+                  </li>
+                ))}
+              </ul>
+              <div class="lf-pr__card" data-lf-prcard>
+                <span class="lf-pr__branch mono" aria-hidden="true">topic/sql-joins → main</span>
+                <span class="lf-pr__state mono" data-lf-prstate>open PR</span>
+                <span class="lf-pr__note">
+                  {t({ ru: "ревью мейнтейнера; петля замыкается", en: "maintainer review; the loop closes" })}
+                </span>
+              </div>
+            </div>
+          )}
 
-      <button type="button" class="lf__replay" data-replay>
-        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
-          <path
-            d="M4 12a8 8 0 1 0 2.3-5.6M4 4v3.4h3.4"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"></path>
-        </svg>
-        <span>{copy.replay}</span>
-      </button>
-    </div>
+          {/* --- Шаг 6: local-first --- */}
+          {i === 5 && (
+            <div class="lf__viz lf-local" data-viz aria-label={t({ ru: "Local-first рантайм", en: "Local-first runtime" })}>
+              <ul class="lf-local__grid" role="list">
+                {localFacts.map((f, k) => (
+                  <li class="lf-local__fact" data-fact={k} style={`--i:${k}`}>
+                    <span class="lf-local__k mono">{f.k}</span>
+                    <span class="lf-local__d">{t(f.d)}</span>
+                  </li>
+                ))}
+              </ul>
+              <div class="lf-local__byok">
+                <span class="lf-local__byok-cap caption">{t({ ru: "BYOK — ключи у тебя", en: "BYOK — keys stay with you" })}</span>
+                <div class="lf-local__providers">
+                  {byokProviders.map((p, k) => (
+                    <button class="lf-local__provider mono" type="button" data-lf-provider={k} style={`--i:${k}`}>
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p class="lf-local__hint" data-lf-byok-note aria-live="polite">
+                {t({ ru: "Тап по провайдеру — ключ остаётся в браузере, не уходит на сервер.", en: "Tap a provider — its key stays in the browser, never sent to a server." })}
+              </p>
+            </div>
+          )}
+        </article>
+      ))
+    }
   </div>
-</figure>
+
+  <!-- Управление: назад / прогресс+пауза / вперёд -->
+  <div class="lf__controls">
+    <button class="lf__ctl" type="button" data-lf-prev aria-label={t(ui.prev)}>
+      <span aria-hidden="true">←</span><span class="lf__ctl-t">{t(ui.prev)}</span>
+    </button>
+
+    <div class="lf__progress-wrap">
+      <button
+        class="lf__play"
+        type="button"
+        data-lf-play
+        aria-pressed="true"
+        aria-label={t(ui.pause)}
+      >
+        <span class="lf__play-icon" aria-hidden="true"></span>
+      </button>
+      <div class="lf__progress" aria-hidden="true">
+        {steps.map((_, i) => <span class="lf__pip" data-lf-pip={i}><i></i></span>)}
+      </div>
+      <span class="lf__catalog mono" aria-hidden="true">{t(ui.catalog)}</span>
+    </div>
+
+    <button class="lf__ctl" type="button" data-lf-next aria-label={t(ui.next)}>
+      <span class="lf__ctl-t">{t(ui.next)}</span><span aria-hidden="true">→</span>
+    </button>
+  </div>
+</section>
 
 <style>
   .lf {
-    margin: 0;
-    --lf-on: var(--project-accent);
-  }
-
-  .lf__inner {
-    padding: var(--sp-6);
-    border-radius: var(--r-lg);
-    display: grid;
+    --lf-accent: var(--project-accent);
+    --lf-line: color-mix(in srgb, var(--lf-accent) 36%, transparent);
+    --lf-glow: color-mix(in srgb, var(--lf-accent) 18%, transparent);
+    --lf-soft: color-mix(in srgb, var(--lf-accent) 12%, transparent);
+    --lf-step: 7000ms; /* автоплей: один шаг */
+    --lf-err: color-mix(in srgb, var(--state-error) 64%, var(--text-muted));
+    position: relative;
+    display: flex;
+    flex-direction: column;
     gap: var(--sp-5);
   }
 
-  /* ---------- Шапка ---------- */
-  .lf__head {
-    display: grid;
-    gap: var(--sp-2);
-  }
-
-  .lf__eyebrow {
-    margin: 0;
-    font-size: var(--fs-13);
-    letter-spacing: var(--ls-eyebrow);
-    text-transform: uppercase;
-    color: var(--text-muted);
-  }
-
+  /* ---------- Вводная строка ---------- */
   .lf__intro {
-    margin: 0;
     font-size: var(--fs-16);
     line-height: var(--lh-normal);
     color: var(--text-secondary);
-    max-width: 60ch;
+    max-width: 64ch;
   }
 
-  /* ---------- Вкладки шагов ---------- */
+  /* ---------- Нумерованные вкладки ---------- */
   .lf__tabs {
-    list-style: none;
-    margin: 0;
-    padding: 0;
     display: flex;
     flex-wrap: wrap;
     gap: var(--sp-2);
   }
 
-  .lf__tab-item {
-    display: flex;
-  }
-
   .lf__tab {
-    appearance: none;
-    cursor: pointer;
     display: inline-flex;
     align-items: center;
     gap: var(--sp-2);
     padding: var(--sp-2) var(--sp-3);
-    border: 1px solid var(--border);
+    border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-pill);
-    background: var(--surface);
-    color: var(--text-muted);
+    background: var(--glass-tint-1);
+    color: var(--text-secondary);
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-14);
+    font-weight: var(--fw-medium);
+    cursor: pointer;
     transition:
-      color var(--dur-med) var(--ease-standard),
-      border-color var(--dur-med) var(--ease-standard),
-      transform var(--dur-med) var(--ease-soft);
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard);
   }
 
   .lf__tab:hover {
+    color: var(--text);
     border-color: var(--border-hover);
-    color: var(--text-secondary);
-  }
-
-  .lf__tab-num {
-    display: inline-grid;
-    place-items: center;
-    width: 22px;
-    height: 22px;
-    border-radius: var(--r-pill);
-    border: 1px solid var(--border);
-    font-size: var(--fs-13);
-    line-height: 1;
-    flex: none;
-  }
-
-  .lf__tab-tag {
-    font-size: var(--fs-13);
-    letter-spacing: var(--ls-snug);
-    white-space: nowrap;
   }
 
   .lf__tab[aria-selected="true"] {
     color: var(--text);
-    border-color: color-mix(in srgb, var(--lf-on) 55%, var(--border));
-  }
-
-  .lf__tab[aria-selected="true"] .lf__tab-num {
-    color: var(--lf-on);
-    border-color: color-mix(in srgb, var(--lf-on) 55%, var(--border));
+    border-color: var(--lf-line);
+    background: var(--lf-soft);
   }
 
   .lf__tab:focus-visible {
@@ -466,183 +472,49 @@ const glosses = {
     outline-offset: 2px;
   }
 
-  /* ---------- Прогресс-рельс ---------- */
-  .lf__rail {
-    position: relative;
-    height: 2px;
-    background: var(--border);
-    border-radius: var(--r-pill);
-    overflow: hidden;
-  }
-
-  .lf__rail-fill {
-    position: absolute;
-    inset: 0;
-    transform-origin: left center;
-    transform: scaleX(var(--fill, 0.16));
-    background: linear-gradient(
-      to right,
-      color-mix(in srgb, var(--lf-on) 55%, transparent),
-      var(--lf-on)
-    );
-    transition: transform var(--dur-slower) var(--ease-standard);
-  }
-
-  /* ---------- Сцена: один шаг за раз ---------- */
-  .lf__stage {
-    position: relative;
-    display: grid;
-  }
-
-  .lf__panel {
-    grid-area: 1 / 1;
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: var(--sp-4) var(--sp-5);
-    align-items: start;
-    /* Скрытые шаги не перехватывают события и не двигаются */
-    opacity: 0;
-    transform: translateY(10px);
-    pointer-events: none;
-    transition:
-      opacity var(--dur-slow) var(--ease-standard),
-      transform var(--dur-slow) var(--ease-soft);
-  }
-
-  .lf__panel[data-active="true"] {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-  }
-
-  /* Анимируем шаги только когда блок в зоне видимости */
-  .lf:not(.is-inview) .lf__panel {
-    transition: none;
-  }
-
-  .lf__glyphwrap {
-    display: grid;
-    gap: var(--sp-2);
-    justify-items: start;
-  }
-
-  .lf__step-no {
-    font-size: var(--fs-13);
-    color: var(--text-muted);
-    letter-spacing: var(--ls-snug);
-    white-space: nowrap;
-  }
-
-  .lf__glyph-badge {
-    display: grid;
-    place-items: center;
-    width: 52px;
-    height: 52px;
-    border-radius: var(--r-md);
-    border: 1px solid color-mix(in srgb, var(--lf-on) 40%, var(--border));
-    background: var(--surface);
-    color: var(--lf-on);
-  }
-
-  .lf__body {
-    display: grid;
-    gap: var(--sp-3);
-    min-width: 0;
-  }
-
-  .lf__title {
-    margin: 0;
-    font-family: var(--font-stack-display);
-    font-weight: var(--fw-bold);
-    font-size: var(--fs-20);
-    line-height: var(--lh-snug);
-    letter-spacing: var(--ls-tight);
-    color: var(--text);
-  }
-
-  .lf__text {
-    margin: 0;
-    font-size: var(--fs-16);
-    line-height: var(--lh-normal);
-    color: var(--text-secondary);
-    max-width: 62ch;
-  }
-
-  .lf__chip {
-    appearance: none;
-    cursor: pointer;
-    justify-self: start;
+  .lf__tab-num {
     display: inline-flex;
     align-items: center;
-    gap: var(--sp-2);
-    font-size: var(--fs-13);
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: var(--bw-thin) solid var(--border);
+    font-size: var(--fs-12);
     color: var(--text-muted);
-    padding: var(--sp-2) var(--sp-3);
-    border: 1px solid var(--border);
-    border-radius: var(--r-sm);
-    background: var(--bg-elevated);
-    letter-spacing: var(--ls-snug);
-    max-width: 100%;
-    text-align: left;
     transition:
-      color var(--dur-med) var(--ease-standard),
-      border-color var(--dur-med) var(--ease-standard);
-  }
-  .lf__chip:hover {
-    color: var(--text-secondary);
-    border-color: var(--border-hover);
-  }
-  .lf__chip:focus-visible {
-    outline: var(--ring-width) solid var(--ring-focus);
-    outline-offset: 2px;
-  }
-  .lf__chip-code {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .lf__chip-cue {
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: 16px;
-    height: 16px;
-    border-radius: var(--r-pill);
-    border: 1px solid color-mix(in srgb, var(--lf-on) 45%, var(--border));
-    color: var(--lf-on);
-    font-size: var(--fs-13);
-    line-height: 1;
-    transition: transform var(--dur-med) var(--ease-soft);
-  }
-  .lf__chip[aria-expanded="true"] {
-    color: var(--text);
-    border-color: color-mix(in srgb, var(--lf-on) 50%, var(--border));
-  }
-  .lf__chip[aria-expanded="true"] .lf__chip-cue {
-    transform: rotate(45deg);
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard);
   }
 
-  .lf__gloss {
-    margin: 0;
-    font-size: var(--fs-14);
-    line-height: var(--lh-normal);
-    color: var(--text-secondary);
-    padding-left: var(--sp-3);
-    border-left: 2px solid color-mix(in srgb, var(--lf-on) 50%, var(--border));
+  .lf__tab[aria-selected="true"] .lf__tab-num {
+    color: var(--lf-accent);
+    border-color: var(--lf-line);
   }
-  .lf__gloss[hidden] {
+
+  /* ---------- Колода и карточка шага ---------- */
+  .lf__deck {
+    position: relative;
+  }
+
+  .lf__step {
     display: none;
   }
-  @media (prefers-reduced-motion: no-preference) {
-    .lf__gloss:not([hidden]) {
-      animation: lf-gloss-in var(--dur-slow) var(--ease-soft) both;
-    }
+
+  .lf__step:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-5);
   }
-  @keyframes lf-gloss-in {
+
+  .lf__step.is-in {
+    animation: lf-card-in var(--dur-slower) var(--ease-soft) both;
+  }
+
+  @keyframes lf-card-in {
     from {
       opacity: 0;
-      transform: translateY(-4px);
+      transform: translate3d(calc(var(--dir, 1) * 18px), 0, 0);
     }
     to {
       opacity: 1;
@@ -650,298 +522,1301 @@ const glosses = {
     }
   }
 
-  /* ---------- Управление ---------- */
-  .lf__controls {
+  .lf__eyebrow {
+    display: block;
+    color: var(--lf-accent);
+    margin-bottom: var(--sp-2);
+  }
+
+  .lf__title {
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-bold);
+    font-size: var(--fs-24);
+    letter-spacing: var(--ls-tight);
+    line-height: var(--lh-snug);
+  }
+
+  .lf__body {
+    margin-top: var(--sp-3);
+    max-width: 64ch;
+    font-size: var(--fs-16);
+    line-height: var(--lh-normal);
+    color: var(--text-secondary);
+  }
+
+  /* ---------- Контейнер сцены: высота по контенту ---------- */
+  .lf__viz {
+    position: relative;
+    border: var(--bw-thin) solid var(--glass-edge);
+    border-radius: var(--r-lg);
+    background:
+      radial-gradient(120% 130% at 10% 0%, var(--lf-glow), transparent 48%),
+      var(--glass-tint-1);
+    padding: var(--sp-6);
+  }
+
+  /* тонкая дотовая подложка (бренд-мотив) */
+  .lf__viz::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 26px 26px;
+    mask-image: radial-gradient(120% 100% at 50% 0%, #000 30%, transparent 92%);
+    -webkit-mask-image: radial-gradient(120% 100% at 50% 0%, #000 30%, transparent 92%);
+    pointer-events: none;
+  }
+
+  .lf__viz > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  @keyframes lf-rise {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 10px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes lf-rise-x {
+    from {
+      opacity: 0;
+      transform: translate3d(-10px, 0, 0);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes lf-pop {
+    50% {
+      transform: scale(1.06);
+    }
+  }
+
+  /* =========================================================================
+   * Шаг 1 — КОНВЕЙЕР ЗАПРОСА
+   * ======================================================================= */
+  .lf-ask {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    flex-direction: column;
+    gap: var(--sp-4);
+  }
+
+  .lf-ask__belt {
+    position: relative;
+    padding-top: var(--sp-6);
+  }
+
+  /* лента конвейера */
+  .lf-ask__belt::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 12px;
+    height: 2px;
+    background: repeating-linear-gradient(
+      to right,
+      var(--lf-line) 0 10px,
+      transparent 10px 20px
+    );
+    opacity: 0.7;
+  }
+
+  .lf-ask__token {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    padding: 2px var(--sp-2);
+    border: var(--bw-thin) solid var(--lf-line);
+    border-radius: var(--r-xs);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: var(--fs-12);
+    white-space: nowrap;
+  }
+
+  [data-viz].is-run .lf-ask__token {
+    animation: lf-token 2400ms var(--ease-standard) both;
+  }
+
+  @keyframes lf-token {
+    0% {
+      opacity: 0;
+      transform: translate3d(0, 0, 0) scale(0.9);
+    }
+    12% {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    100% {
+      opacity: 1;
+      transform: translate3d(var(--token-x, 70%), 0, 0) scale(1);
+    }
+  }
+
+  .lf-ask__stages {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: var(--sp-3);
   }
 
-  .lf__nav,
-  .lf__replay {
-    appearance: none;
-    cursor: pointer;
+  .lf-ask__stage {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--surface);
+  }
+
+  [data-viz].is-run .lf-ask__stage {
+    animation: lf-rise var(--dur-slow) var(--ease-soft) both;
+    animation-delay: calc(280ms + var(--i) * 360ms);
+  }
+
+  .lf-ask__teeth {
+    position: absolute;
+    top: -7px;
+    left: 50%;
+    width: 12px;
+    height: 12px;
+    margin-left: -6px;
+    border: var(--bw-thin) solid var(--lf-line);
+    border-radius: 3px;
+    background: var(--surface-2);
+    transform: rotate(45deg);
+  }
+
+  .lf-ask__stage-k {
+    font-size: var(--fs-13);
+    color: var(--lf-accent);
+  }
+
+  .lf-ask__stage-d {
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  .lf-ask__hint {
+    font-size: var(--fs-13);
+    color: var(--text-muted);
+  }
+
+  /* =========================================================================
+   * Шаг 2 — СБОРКА АРТЕФАКТА
+   * ======================================================================= */
+  .lf-build {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+  }
+
+  .lf-build__tree {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+
+  .lf-build__file {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+  }
+
+  /* первая строка — папка, с акцентной рамкой */
+  .lf-build__file[data-file="0"] {
+    border-color: var(--lf-line);
+  }
+
+  [data-viz].is-run .lf-build__file {
+    animation: lf-rise-x var(--dur-slow) var(--ease-soft) both;
+    animation-delay: calc(var(--i) * 360ms);
+  }
+
+  .lf-build__dot {
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-radius: 2px;
+    background: var(--lf-accent);
+    opacity: 0.8;
+  }
+
+  .lf-build__name {
+    font-size: var(--fs-14);
+    color: var(--text);
+  }
+
+  .lf-build__kind {
+    margin-left: auto;
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
+
+  .lf-build__note {
+    font-size: var(--fs-13);
+    color: var(--text-muted);
+  }
+
+  .lf-build__replay {
+    align-self: flex-start;
     display: inline-flex;
     align-items: center;
     gap: var(--sp-2);
-    padding: var(--sp-2) var(--sp-4);
-    border: 1px solid var(--border);
+    min-height: var(--tap-min);
+    padding: var(--sp-2) var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-pill);
-    background: var(--surface);
+    background: transparent;
     color: var(--text-secondary);
-    font-size: var(--fs-14);
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-13);
+    cursor: pointer;
     transition:
-      color var(--dur-med) var(--ease-standard),
-      border-color var(--dur-med) var(--ease-standard),
-      opacity var(--dur-med) var(--ease-standard);
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard);
   }
 
-  .lf__nav:hover,
-  .lf__replay:hover {
+  .lf-build__replay:hover {
     color: var(--text);
     border-color: var(--border-hover);
   }
 
-  .lf__nav:disabled {
-    opacity: 0.35;
-    cursor: default;
-  }
-
-  .lf__nav:focus-visible,
-  .lf__replay:focus-visible {
+  .lf-build__replay:focus-visible {
     outline: var(--ring-width) solid var(--ring-focus);
     outline-offset: 2px;
   }
 
-  .lf__replay {
-    margin-left: auto;
+  /* =========================================================================
+   * Шаг 3 — ZOD КОНТРАКТ
+   * ======================================================================= */
+  .lf-zod {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+  }
+
+  .lf-zod__cap {
     color: var(--text-muted);
   }
 
-  .lf__hint {
-    flex: 1 1 auto;
-    text-align: center;
+  .lf-zod__schema {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--sp-4);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--bg-elevated);
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+    overflow-x: auto;
+  }
+
+  .lf-zod__line {
+    white-space: pre;
+  }
+
+  .lf-zod__line--head {
+    color: var(--text);
+  }
+
+  .lf-zod__line--infer {
+    margin-top: 4px;
+    color: var(--lf-accent);
+  }
+
+  .lf-zod__line em {
+    font-style: normal;
+    color: var(--text);
+  }
+
+  /* подсвеченное «плохое» поле */
+  [data-state="bad"] .lf-zod__line[data-field="3"] {
+    color: var(--lf-err);
+  }
+
+  [data-state="bad"] .lf-zod__line[data-field="3"] em {
+    color: var(--lf-err);
+    text-decoration: line-through;
+  }
+
+  .lf-zod__verdict {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    align-self: flex-start;
+    padding: var(--sp-2) var(--sp-3);
+    border: var(--bw-thin) solid var(--lf-line);
+    border-radius: var(--r-pill);
+    background: var(--lf-soft);
+    font-size: var(--fs-14);
+    color: var(--text);
+    transition:
+      border-color var(--dur-med) var(--ease-standard),
+      background-color var(--dur-med) var(--ease-standard),
+      color var(--dur-med) var(--ease-standard);
+  }
+
+  .lf-zod__verdict-icon {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--lf-accent);
+    transition: background-color var(--dur-med) var(--ease-standard);
+  }
+
+  [data-state="bad"] .lf-zod__verdict {
+    border-color: color-mix(in srgb, var(--lf-err) 50%, transparent);
+    background: color-mix(in srgb, var(--lf-err) 12%, transparent);
+    color: var(--text);
+    animation: lf-shake var(--dur-slow) var(--ease-standard);
+  }
+
+  [data-state="bad"] .lf-zod__verdict-icon {
+    background: var(--lf-err);
+    border-radius: 1px;
+  }
+
+  @keyframes lf-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+
+  .lf-zod__toggle {
+    align-self: flex-start;
+    min-height: var(--tap-min);
+    padding: var(--sp-2) var(--sp-4);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-pill);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-13);
+    cursor: pointer;
+    transition:
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard);
+  }
+
+  .lf-zod__toggle:hover {
+    color: var(--text);
+    border-color: var(--border-hover);
+  }
+
+  .lf-zod__toggle[aria-pressed="true"] {
+    color: var(--text);
+    border-color: color-mix(in srgb, var(--lf-err) 50%, transparent);
+  }
+
+  .lf-zod__toggle:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+
+  /* =========================================================================
+   * Шаг 4 — GOLD-ПРОГОН
+   * ======================================================================= */
+  .lf-run {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+  }
+
+  .lf-run__engines {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-2);
+  }
+
+  .lf-run__engine {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: var(--sp-2) var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    cursor: pointer;
+    transition:
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard);
+  }
+
+  .lf-run__engine:hover {
+    border-color: var(--border-hover);
+  }
+
+  .lf-run__engine[aria-pressed="true"] {
+    border-color: var(--lf-line);
+    background: var(--lf-soft);
+  }
+
+  .lf-run__engine:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+
+  .lf-run__engine-id {
+    font-size: var(--fs-14);
+    color: var(--text);
+  }
+
+  .lf-run__engine-note {
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
+
+  .lf-run__worker {
+    color: var(--text-muted);
+    margin-left: var(--sp-1);
+  }
+
+  .lf-run__panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    padding: var(--sp-4);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--bg-elevated);
+  }
+
+  .lf-run__sql {
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow-x: auto;
+  }
+
+  .lf-run__table {
+    border-collapse: collapse;
+    width: max-content;
+    min-width: 0;
+    opacity: 0;
+    transform: translateY(8px);
+    transition:
+      opacity var(--dur-slow) var(--ease-soft),
+      transform var(--dur-slow) var(--ease-soft);
+  }
+
+  .lf-run.is-ran .lf-run__table {
+    opacity: 1;
+    transform: none;
+  }
+
+  .lf-run__th,
+  .lf-run__td {
+    padding: var(--sp-1) var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    font-size: var(--fs-13);
+    text-align: left;
+  }
+
+  .lf-run__th {
+    color: var(--lf-accent);
+    background: var(--surface);
+  }
+
+  .lf-run__td {
+    color: var(--text);
+  }
+
+  .lf-run__tr {
+    opacity: 0;
+  }
+
+  .lf-run.is-ran .lf-run__tr {
+    animation: lf-rise var(--dur-med) var(--ease-soft) both;
+    animation-delay: calc(var(--i) * 160ms);
+  }
+
+  .lf-run__match {
     font-size: var(--fs-13);
     color: var(--text-muted);
-    letter-spacing: var(--ls-snug);
-    min-width: 14ch;
+    transition: color var(--dur-med) var(--ease-standard);
   }
 
-  /* ---------- Узкие экраны ---------- */
-  @media (max-width: 560px) {
-    .lf__panel {
-      grid-template-columns: 1fr;
-      gap: var(--sp-3);
-    }
-    .lf__glyphwrap {
-      grid-auto-flow: column;
-      align-items: center;
-    }
-    .lf__hint {
-      order: 3;
-      flex-basis: 100%;
-    }
-    .lf__replay {
-      margin-left: 0;
-    }
+  .lf-run.is-ran .lf-run__match {
+    color: var(--lf-accent);
   }
 
-  /* ---------- Reduced motion: всё видно, без движения ----------
-   * Показываем ВСЕ шаги одним читаемым столбцом, без переходов. */
-  @media (prefers-reduced-motion: reduce) {
-    .lf__inner {
-      transform: none;
-      transition: none;
-    }
-    .lf__stage {
-      display: grid;
-      gap: var(--sp-6);
-    }
-    .lf__panel {
-      grid-area: auto;
-      opacity: 1;
-      transform: none;
-      pointer-events: auto;
-      transition: none;
-      padding-bottom: var(--sp-5);
-      border-bottom: 1px solid var(--border);
-    }
-    .lf__panel:last-child {
-      border-bottom: 0;
-      padding-bottom: 0;
-    }
-    .lf__rail-fill {
+  .lf-run__btn {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    min-height: var(--tap-min);
+    padding: var(--sp-2) var(--sp-4);
+    border: var(--bw-thin) solid var(--lf-line);
+    border-radius: var(--r-pill);
+    background: var(--lf-soft);
+    color: var(--text);
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-14);
+    font-weight: var(--fw-medium);
+    cursor: pointer;
+    transition: border-color var(--dur-fast) var(--ease-standard);
+  }
+
+  .lf-run__btn:hover {
+    border-color: var(--lf-accent);
+  }
+
+  .lf-run__btn:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+
+  /* =========================================================================
+   * Шаг 5 — PR
+   * ======================================================================= */
+  .lf-pr {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+  }
+
+  .lf-pr__checks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+
+  .lf-pr__check {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    font-size: var(--fs-15);
+    color: var(--text-secondary);
+  }
+
+  [data-viz].is-run .lf-pr__check {
+    animation: lf-rise-x var(--dur-slow) var(--ease-soft) both;
+    animation-delay: calc(var(--i) * 260ms);
+  }
+
+  .lf-pr__tick {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: var(--bw-thin) solid var(--lf-line);
+    background:
+      linear-gradient(45deg, transparent 42%, var(--lf-accent) 42% 58%, transparent 58%),
+      linear-gradient(-45deg, transparent 46%, var(--lf-accent) 46% 54%, transparent 54%);
+    background-size: 100% 100%;
+  }
+
+  .lf-pr__card {
+    display: grid;
+    gap: 3px;
+    padding: var(--sp-4);
+    border: var(--bw-thin) solid var(--lf-line);
+    border-radius: var(--r-md);
+    background: var(--surface);
+  }
+
+  [data-viz].is-run .lf-pr__card {
+    animation: lf-rise var(--dur-slow) var(--ease-spring) both;
+    animation-delay: calc(3 * 260ms);
+  }
+
+  .lf-pr__branch {
+    font-size: var(--fs-13);
+    color: var(--text-muted);
+  }
+
+  .lf-pr__state {
+    font-size: var(--fs-16);
+    font-weight: var(--fw-semibold);
+    color: var(--lf-accent);
+  }
+
+  .lf-pr__note {
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  /* =========================================================================
+   * Шаг 6 — LOCAL-FIRST
+   * ======================================================================= */
+  .lf-local {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+  }
+
+  .lf-local__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--sp-2);
+  }
+
+  .lf-local__fact {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+  }
+
+  [data-viz].is-run .lf-local__fact {
+    animation: lf-rise var(--dur-slow) var(--ease-soft) both;
+    animation-delay: calc(var(--i) * 90ms);
+  }
+
+  .lf-local__k {
+    font-size: var(--fs-13);
+    color: var(--lf-accent);
+  }
+
+  .lf-local__d {
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  .lf-local__byok {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+
+  .lf-local__byok-cap {
+    color: var(--text-muted);
+  }
+
+  .lf-local__providers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+
+  .lf-local__provider {
+    min-height: var(--tap-min);
+    padding: var(--sp-2) var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-pill);
+    background: var(--surface);
+    color: var(--text-secondary);
+    font-size: var(--fs-13);
+    cursor: pointer;
+    transition:
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard);
+  }
+
+  [data-viz].is-run .lf-local__provider {
+    animation: lf-rise var(--dur-slow) var(--ease-spring) both;
+    animation-delay: calc(360ms + var(--i) * 80ms);
+  }
+
+  .lf-local__provider:hover {
+    color: var(--text);
+    border-color: var(--border-hover);
+  }
+
+  .lf-local__provider.is-sel {
+    color: var(--text);
+    border-color: var(--lf-line);
+    background: var(--lf-soft);
+  }
+
+  .lf-local__provider:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+
+  .lf-local__hint {
+    font-size: var(--fs-13);
+    color: var(--text);
+    min-height: 1.4em;
+  }
+
+  /* ---------- Управление ---------- */
+  .lf__controls {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+  }
+
+  .lf__ctl {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    min-height: var(--tap-min);
+    padding: var(--sp-2) var(--sp-4);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-pill);
+    background: var(--glass-tint-1);
+    color: var(--text-secondary);
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-14);
+    font-weight: var(--fw-medium);
+    cursor: pointer;
+    transition:
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-soft);
+  }
+
+  .lf__ctl:hover {
+    color: var(--text);
+    border-color: var(--border-hover);
+  }
+
+  .lf__ctl:active {
+    transform: scale(0.97);
+  }
+
+  .lf__ctl:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+
+  .lf__progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    margin-inline: auto;
+  }
+
+  .lf__catalog {
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
+
+  .lf__play {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: var(--bw-thin) solid var(--border);
+    border-radius: 50%;
+    background: var(--glass-tint-1);
+    color: var(--text);
+    cursor: pointer;
+    transition: border-color var(--dur-fast) var(--ease-standard);
+  }
+
+  .lf__play:hover {
+    border-color: var(--lf-line);
+  }
+
+  .lf__play:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+
+  .lf__play-icon {
+    position: relative;
+    width: 12px;
+    height: 12px;
+  }
+
+  .lf__play[data-state="playing"] .lf__play-icon::before,
+  .lf__play[data-state="playing"] .lf__play-icon::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    width: 3px;
+    height: 12px;
+    border-radius: 1px;
+    background: currentColor;
+  }
+
+  .lf__play[data-state="playing"] .lf__play-icon::before {
+    left: 1px;
+  }
+
+  .lf__play[data-state="playing"] .lf__play-icon::after {
+    right: 1px;
+  }
+
+  .lf__play[data-state="paused"] .lf__play-icon::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 2px;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 6px 0 6px 11px;
+    border-color: transparent transparent transparent currentColor;
+  }
+
+  .lf__progress {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+  }
+
+  .lf__pip {
+    position: relative;
+    width: 30px;
+    height: 4px;
+    border-radius: var(--r-pill);
+    background: var(--border);
+    overflow: hidden;
+  }
+
+  .lf__pip i {
+    position: absolute;
+    inset: 0;
+    transform-origin: left center;
+    transform: scaleX(0);
+    background: var(--lf-accent);
+    border-radius: inherit;
+  }
+
+  .lf__pip.is-done i {
+    transform: scaleX(1);
+    opacity: 0.5;
+  }
+
+  .lf.is-autoplay .lf__pip.is-active i {
+    animation: lf-pip-fill var(--lf-step) linear forwards;
+  }
+
+  .lf.is-paused .lf__pip.is-active i {
+    animation-play-state: paused;
+  }
+
+  @keyframes lf-pip-fill {
+    to {
       transform: scaleX(1);
-      transition: none;
     }
-    /* вкладки/хинт не нужны как «навигация», но остаются читаемыми */
-    .lf__hint {
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 680px) {
+    .lf-ask__stages {
+      grid-template-columns: 1fr;
+    }
+    [data-viz].is-run .lf-ask__token {
+      animation: none;
+      opacity: 1;
+    }
+    .lf-ask__teeth {
+      display: none;
+    }
+    .lf-local__grid {
+      grid-template-columns: 1fr;
+    }
+    .lf__title {
+      font-size: var(--fs-22);
+    }
+    .lf__viz {
+      padding: var(--sp-4);
+    }
+    .lf__catalog {
       display: none;
     }
   }
 
-  @media (pointer: coarse) {
-    .lf__inner {
+  /* ---------- Reduced motion: статичное читаемое состояние ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .lf__step.is-in,
+    [data-viz].is-run .lf-ask__token,
+    [data-viz].is-run .lf-ask__stage,
+    [data-viz].is-run .lf-build__file,
+    [data-viz].is-run .lf-pr__check,
+    [data-viz].is-run .lf-pr__card,
+    [data-viz].is-run .lf-local__fact,
+    [data-viz].is-run .lf-local__provider,
+    .lf-run.is-ran .lf-run__tr,
+    [data-state="bad"] .lf-zod__verdict {
+      animation: none;
+    }
+    .lf-ask__token {
+      position: static;
+      display: inline-block;
+      margin-bottom: var(--sp-3);
+      opacity: 1;
+    }
+    .lf-run__table {
+      opacity: 1;
       transform: none;
+    }
+    .lf-run__tr {
+      opacity: 1;
+    }
+    .lf__pip i {
+      transform: scaleX(1);
+      opacity: 0.5;
+    }
+    /* все шаги раскрыты одним читаемым столбцом — разделяем их */
+    .lf__deck {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-6);
+    }
+    .lf__step:not([hidden]) {
+      padding-bottom: var(--sp-6);
+      border-bottom: var(--bw-thin) solid var(--border);
+    }
+    .lf__step:last-child:not([hidden]) {
+      padding-bottom: 0;
+      border-bottom: 0;
     }
   }
 </style>
 
 <script>
-  // Драйвер пошагового разбора. Дискретные шаги, всё через классы/атрибуты —
-  // анимируются только opacity/transform (см. .lf__panel). Авто-показ мягкий
-  // (~4.6s), пауза при наведении/фокусе, полный контроль вкладками и prev/next.
-  // Анимация включается только когда блок в зоне видимости и гасится за экраном.
+  // Оркестратор сигнатуры DotLearn (lesson-forge).
+  //
+  // Структура повторяет SoundFlow (gold standard): один шаг виден, высота по
+  // контенту. Никакого постоянного rAF: автоплей ведёт ОДНА CSS-анимация
+  // заполнения активного пипа (transform: scaleX), переход к следующему шагу —
+  // по её `animationend`. Пауза при наведении/фокусе — animation-play-state
+  // (класс .is-paused). Кнопка play/pause снимает/возвращает .is-autoplay.
+  // Внутри шага появление под-элементов делает CSS-стаггер по классу .is-run.
+  // Всё включается только когда блок виден (IntersectionObserver) и гасится за
+  // экраном, на скрытой вкладке (visibilitychange) и на pagehide.
   (() => {
-    const fig = document.querySelector<HTMLElement>('.lf[data-lf]');
-    if (!fig) return;
+    const root = document.querySelector<HTMLElement>("[data-lf]");
+    if (!root) return;
+    root.classList.add("is-ready");
 
-    const reduce =
-      typeof matchMedia === "function" &&
-      matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const isEn = root.dataset.lfLocale === "en";
 
-    const panels = Array.from(
-      fig.querySelectorAll<HTMLElement>(".lf__panel"),
-    );
-    const tabs = Array.from(fig.querySelectorAll<HTMLButtonElement>(".lf__tab"));
-    const rail = fig.querySelector<HTMLElement>("[data-rail]");
-    const prevBtn = fig.querySelector<HTMLButtonElement>("[data-prev]");
-    const nextBtn = fig.querySelector<HTMLButtonElement>("[data-next]");
-    const replayBtn = fig.querySelector<HTMLButtonElement>("[data-replay]");
-    const hint = fig.querySelector<HTMLElement>("[data-hint]");
-    const N = panels.length;
-    if (N === 0) return;
+    const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-lf-tab]"));
+    const stepEls = Array.from(root.querySelectorAll<HTMLElement>("[data-lf-step]"));
+    const pips = Array.from(root.querySelectorAll<HTMLElement>("[data-lf-pip]"));
+    const N = stepEls.length;
+    if (!N) return;
 
-    const AUTO_MS = 4600; // ~4.6s на шаг — успеть прочитать
-    // Строки подсказки приходят из Astro в нужной локали (data-атрибуты).
-    const autoText = hint?.dataset.auto ?? hint?.textContent ?? "";
-    const pausedText = hint?.dataset.paused ?? autoText;
+    const prevBtn = root.querySelector<HTMLButtonElement>("[data-lf-prev]");
+    const nextBtn = root.querySelector<HTMLButtonElement>("[data-lf-next]");
+    const playBtn = root.querySelector<HTMLButtonElement>("[data-lf-play]");
+    const tablist = root.querySelector<HTMLElement>('[role="tablist"]');
 
-    let index = 0;
-    let timer = 0;
-    let inView = false;
-    let hovered = false;
-    let userPaused = false; // достиг конца — больше не автолистаем
+    let current = 0;
+    let playing = !reduced;
+    let inview = false;
+    let hover = false;
 
-    function clearTimer() {
-      if (timer) {
-        clearTimeout(timer);
-        timer = 0;
+    const autoplayOn = (): boolean => playing && inview && !reduced;
+    const running = (): boolean => autoplayOn() && !hover;
+
+    const syncAutoplay = (): void => {
+      root.classList.toggle("is-autoplay", autoplayOn());
+      root.classList.toggle("is-paused", autoplayOn() && hover);
+      if (playBtn) {
+        playBtn.dataset.state = playing ? "playing" : "paused";
+        playBtn.setAttribute("aria-pressed", playing ? "true" : "false");
+        playBtn.setAttribute("aria-label", playing ? (isEn ? "Pause" : "Пауза") : (isEn ? "Auto" : "Авто"));
       }
-    }
+    };
 
-    function render(next: number) {
-      index = Math.max(0, Math.min(N - 1, next));
-      panels.forEach((p, i) => {
-        const on = i === index;
-        p.setAttribute("data-active", on ? "true" : "false");
-        p.setAttribute("aria-hidden", on ? "false" : "true");
+    const replayViz = (stepEl: HTMLElement): void => {
+      const viz = stepEl.querySelector<HTMLElement>("[data-viz]");
+      if (!viz) return;
+      viz.classList.remove("is-run");
+      void viz.offsetWidth;
+      viz.classList.add("is-run");
+    };
+
+    const setStep = (idx: number, dir = 1): void => {
+      const i = ((idx % N) + N) % N;
+      current = i;
+      stepEls.forEach((el, k) => {
+        el.hidden = k !== i;
+        el.setAttribute("aria-hidden", k !== i ? "true" : "false");
       });
-      tabs.forEach((tb, i) => {
-        const on = i === index;
-        tb.setAttribute("aria-selected", on ? "true" : "false");
-        tb.tabIndex = on ? 0 : -1;
+      const card = stepEls[i];
+      if (!card) return;
+      card.style.setProperty("--dir", String(dir));
+      card.classList.remove("is-in");
+      void card.offsetWidth;
+      card.classList.add("is-in");
+      replayViz(card);
+      tabs.forEach((tb, k) => {
+        tb.setAttribute("aria-selected", k === i ? "true" : "false");
+        tb.tabIndex = k === i ? 0 : -1;
       });
-      if (rail) {
-        // заполнение: от первого шага (1/N) до полного на последнем
-        const fill = (index + 1) / N;
-        rail.style.setProperty("--fill", String(fill));
-      }
-      if (prevBtn) prevBtn.disabled = index === 0;
-      if (nextBtn) nextBtn.disabled = index === N - 1;
-    }
-
-    function maybeAutoAdvance() {
-      clearTimer();
-      // авто-показ только: виден, без наведения, не дошли до конца, не reduce
-      if (reduce || !inView || hovered || userPaused) return;
-      if (index >= N - 1) {
-        userPaused = true;
-        if (hint) hint.textContent = "";
-        return;
-      }
-      if (hint) hint.textContent = autoText;
-      timer = window.setTimeout(() => {
-        render(index + 1);
-        maybeAutoAdvance();
-      }, AUTO_MS);
-    }
-
-    function goManual(next: number) {
-      // ручной выбор останавливает авто-показ до повтора
-      userPaused = true;
-      clearTimer();
-      render(next);
-      if (hint) hint.textContent = "";
-    }
-
-    // --- управление ---
-    tabs.forEach((tb) => {
-      tb.addEventListener("click", () => {
-        const n = Number(tb.dataset.go ?? 0);
-        goManual(n);
+      pips.forEach((p, k) => {
+        p.classList.toggle("is-active", k === i);
+        p.classList.toggle("is-done", k < i);
       });
-    });
-    prevBtn?.addEventListener("click", () => goManual(index - 1));
-    nextBtn?.addEventListener("click", () => goManual(index + 1));
-    replayBtn?.addEventListener("click", () => {
-      userPaused = false;
-      render(0);
-      maybeAutoAdvance();
-    });
+    };
 
-    // Интерактив: чип шага раскрывает короткую сноску «что это» (одна на панель).
-    fig.querySelectorAll<HTMLButtonElement>("[data-chip]").forEach((chip) => {
-      const gloss = chip.parentElement?.querySelector<HTMLElement>("[data-gloss]");
-      chip.addEventListener("click", () => {
-        const open = chip.getAttribute("aria-expanded") === "true";
-        chip.setAttribute("aria-expanded", open ? "false" : "true");
-        if (gloss) gloss.hidden = open;
+    // Автопереход по завершении заполнения активного пипа.
+    pips.forEach((p) => {
+      const fill = p.querySelector<HTMLElement>("i");
+      fill?.addEventListener("animationend", () => {
+        if (!running()) return;
+        if (!p.classList.contains("is-active")) return;
+        setStep(current + 1, 1);
       });
     });
 
-    // клавиатура по вкладкам: стрелки влево/вправо
-    fig.addEventListener("keydown", (e) => {
+    const manual = (idx: number): void => {
+      const dir = idx > current ? 1 : -1;
+      playing = false;
+      setStep(idx, dir);
+      syncAutoplay();
+    };
+
+    tabs.forEach((tb, k) => tb.addEventListener("click", () => manual(k)));
+    prevBtn?.addEventListener("click", () => manual(current - 1));
+    nextBtn?.addEventListener("click", () => manual(current + 1));
+    playBtn?.addEventListener("click", () => {
+      if (reduced) return;
+      playing = !playing;
+      syncAutoplay();
+    });
+
+    tablist?.addEventListener("keydown", (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") {
-        goManual(index + 1);
-        tabs[index]?.focus();
+        e.preventDefault();
+        manual(current + 1);
+        tabs[current]?.focus();
       } else if (e.key === "ArrowLeft") {
-        goManual(index - 1);
-        tabs[index]?.focus();
+        e.preventDefault();
+        manual(current - 1);
+        tabs[current]?.focus();
       }
     });
 
-    // пауза при наведении/фокусе
-    function onEnter() {
-      hovered = true;
-      clearTimer();
-      if (hint && !userPaused) hint.textContent = pausedText;
-    }
-    function onLeave() {
-      hovered = false;
-      if (!userPaused) {
-        if (hint) hint.textContent = autoText;
-        maybeAutoAdvance();
-      }
-    }
-    fig.addEventListener("pointerenter", onEnter);
-    fig.addEventListener("pointerleave", onLeave);
-    fig.addEventListener("focusin", onEnter);
-    fig.addEventListener("focusout", (e) => {
-      if (!fig.contains(e.relatedTarget as Node)) onLeave();
-    });
+    // --- Интерактив сцен -----------------------------------------------------
 
-    // включаем движение только когда виден; гасим за экраном
+    // Шаг 1: ширина «пробега» токена считается по контейнеру ленты.
+    const wireAsk = (): void => {
+      const scene = stepEls[0];
+      if (!scene) return;
+      const belt = scene.querySelector<HTMLElement>(".lf-ask__belt");
+      const token = scene.querySelector<HTMLElement>("[data-lf-token]");
+      const syncX = (): void => {
+        if (!belt || !token) return;
+        const span = belt.clientWidth - token.clientWidth;
+        if (span > 0) token.style.setProperty("--token-x", `${Math.max(12, span)}px`);
+      };
+      syncX();
+      if (belt && "ResizeObserver" in window) {
+        new ResizeObserver(syncX).observe(belt);
+      }
+    };
+
+    // Шаг 2: «собрать заново» — перепрогнать появление файлов.
+    const wireBuild = (): void => {
+      const scene = stepEls[1];
+      if (!scene) return;
+      const replay = scene.querySelector<HTMLButtonElement>("[data-lf-reassemble]");
+      replay?.addEventListener("click", () => replayViz(scene));
+    };
+
+    // Шаг 3: тогл «плохого поля» — Zod отклоняет/принимает манифест.
+    const wireZod = (): void => {
+      const scene = stepEls[2];
+      if (!scene) return;
+      const viz = scene.querySelector<HTMLElement>("[data-viz]");
+      const toggle = scene.querySelector<HTMLButtonElement>("[data-lf-badfield]");
+      const verdict = scene.querySelector<HTMLElement>("[data-lf-verdict]");
+      const verdictT = verdict?.querySelector<HTMLElement>(".lf-zod__verdict-t");
+      const badType = scene.querySelector<HTMLElement>('[data-field="3"] [data-type]');
+      const okType = "Exercise[]";
+      const badTypeText = isEn ? "extra field ✗" : "лишнее поле ✗";
+      const msg = {
+        ok: isEn ? "manifest valid — both sides agree" : "manifest валиден — обе стороны согласны",
+        bad: isEn
+          ? "ZodError: unrecognized_keys — rejected by web AND api"
+          : "ZodError: unrecognized_keys — отклонено web И api",
+        labelBreak: isEn ? "Break a field" : "Сломать поле",
+        labelFix: isEn ? "Fix it" : "Починить",
+      };
+      let bad = false;
+      const update = (): void => {
+        viz?.setAttribute("data-state", bad ? "bad" : "ok");
+        if (verdictT) verdictT.textContent = bad ? msg.bad : msg.ok;
+        if (badType) badType.textContent = bad ? badTypeText : okType;
+        if (toggle) {
+          toggle.setAttribute("aria-pressed", bad ? "true" : "false");
+          toggle.textContent = bad ? msg.labelFix : msg.labelBreak;
+        }
+      };
+      // принудительный reflow, чтобы повторный shake проигрывался
+      const restartShake = (): void => {
+        if (!verdict) return;
+        verdict.style.animation = "none";
+        void verdict.offsetWidth;
+        verdict.style.animation = "";
+      };
+      toggle?.addEventListener("click", () => {
+        bad = !bad;
+        update();
+        if (bad) restartShake();
+      });
+      update();
+    };
+
+    // Шаг 4: выбор рантайма + «прогон» с проявлением живой таблицы.
+    const wireRun = (): void => {
+      const scene = stepEls[3];
+      if (!scene) return;
+      const viz = scene.querySelector<HTMLElement>(".lf-run");
+      const engines = Array.from(scene.querySelectorAll<HTMLButtonElement>("[data-lf-engine]"));
+      const sqlEl = scene.querySelector<HTMLElement>("[data-lf-sql]");
+      const matchEl = scene.querySelector<HTMLElement>("[data-lf-match]");
+      const table = scene.querySelector<HTMLElement>("[data-lf-table]");
+      const runBtn = scene.querySelector<HTMLButtonElement>("[data-lf-run]");
+
+      const samples = [
+        {
+          // sql.js
+          sql: "SELECT order_id, customer FROM orders JOIN users …",
+          match: isEn ? "rows match gold — sql.js ✓" : "строки совпали с gold — sql.js ✓",
+        },
+        {
+          // Pyodide
+          sql: "def solve(rows): return [r for r in rows if r.join]",
+          match: isEn ? "output matches gold — Pyodide ✓" : "вывод совпал с gold — Pyodide ✓",
+        },
+      ];
+      let engine = 0;
+      const selectEngine = (k: number): void => {
+        engine = k;
+        engines.forEach((b, i) => b.setAttribute("aria-pressed", i === k ? "true" : "false"));
+        if (sqlEl) sqlEl.textContent = samples[k]?.sql ?? "";
+        // новый выбор сбрасывает результат прогона
+        viz?.classList.remove("is-ran");
+        if (matchEl) {
+          matchEl.textContent = isEn ? "expecting a match with gold" : "ожидается совпадение с gold";
+        }
+        if (table) table.setAttribute("aria-hidden", "true");
+      };
+      engines.forEach((b, k) => b.addEventListener("click", () => selectEngine(k)));
+
+      runBtn?.addEventListener("click", () => {
+        viz?.classList.remove("is-ran");
+        void viz?.offsetWidth;
+        viz?.classList.add("is-ran");
+        if (matchEl) matchEl.textContent = samples[engine]?.match ?? "";
+        if (table) table.setAttribute("aria-hidden", "false");
+      });
+
+      selectEngine(0);
+    };
+
+    // Шаг 6: тап по провайдеру — выделяем (ключ остаётся в браузере).
+    const wireLocal = (): void => {
+      const scene = stepEls[5];
+      if (!scene) return;
+      const providers = Array.from(scene.querySelectorAll<HTMLButtonElement>("[data-lf-provider]"));
+      const note = scene.querySelector<HTMLElement>("[data-lf-byok-note]");
+      providers.forEach((p) => {
+        p.addEventListener("click", () => {
+          providers.forEach((o) => o.classList.toggle("is-sel", o === p));
+          const name = p.textContent?.trim() ?? "";
+          if (note) {
+            note.textContent = isEn
+              ? `${name}: the key stays in the browser, never sent to a server.`
+              : `${name}: ключ остаётся в браузере и не уходит на сервер.`;
+          }
+        });
+      });
+    };
+
+    wireAsk();
+    wireBuild();
+    wireZod();
+    wireRun();
+    wireLocal();
+
+    setStep(0, 1);
+    syncAutoplay();
+
+    // Reduced motion / нет IO: статичное читаемое состояние, тоглы работают.
+    if (reduced || !("IntersectionObserver" in window)) {
+      // показать «собранные» состояния, чтобы всё читалось без движения
+      stepEls.forEach((el) => {
+        el.hidden = false;
+        el.setAttribute("aria-hidden", "false");
+      });
+      stepEls[3]?.querySelector(".lf-run")?.classList.add("is-ran");
+      stepEls[3]?.querySelector("[data-lf-table]")?.setAttribute("aria-hidden", "false");
+      pips.forEach((p) => p.classList.add("is-done"));
+      return;
+    }
+
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
-          inView = e.isIntersecting;
-          fig.classList.toggle("is-inview", inView);
-          if (inView) {
-            maybeAutoAdvance();
-          } else {
-            clearTimer();
-          }
+          inview = e.isIntersecting;
+          syncAutoplay();
         }
       },
       { threshold: 0.25 },
     );
-    io.observe(fig);
+    io.observe(root);
 
-    // стартовый кадр
-    render(0);
-    if (reduce) {
-      // финальный читаемый кадр: рельс полный, хинт скрыт CSS-ом
-      if (rail) rail.style.setProperty("--fill", "1");
-      if (prevBtn) prevBtn.disabled = false;
-      if (nextBtn) nextBtn.disabled = false;
-    }
+    root.addEventListener("pointerenter", () => {
+      hover = true;
+      syncAutoplay();
+    });
+    root.addEventListener("pointerleave", () => {
+      hover = false;
+      syncAutoplay();
+    });
+    root.addEventListener("focusin", () => {
+      hover = true;
+      syncAutoplay();
+    });
+    root.addEventListener("focusout", (e: FocusEvent) => {
+      if (!root.contains(e.relatedTarget as Node)) {
+        hover = false;
+        syncAutoplay();
+      }
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        inview = false;
+        syncAutoplay();
+      }
+    });
 
     window.addEventListener(
       "pagehide",
       () => {
-        clearTimer();
+        inview = false;
+        syncAutoplay();
         io.disconnect();
       },
       { once: true },

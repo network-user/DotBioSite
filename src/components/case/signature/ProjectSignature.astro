@@ -16,6 +16,7 @@ import LearnForge from "./LearnForge.astro";
 import AgentsBridge from "./AgentsBridge.astro";
 import WorkShifts from "./WorkShifts.astro";
 import SchetDaily from "./SchetDaily.astro";
+import TraceScan from "./TraceScan.astro";
 
 interface Props {
   slug: string;
@@ -30,6 +31,7 @@ const REGISTRY: Record<string, typeof SoundFlow> = {
   dotagents: AgentsBridge,
   dotworkbot: WorkShifts,
   dotschet: SchetDaily,
+  dottraceip: TraceScan,
 };
 
 const Signature = REGISTRY[slug];

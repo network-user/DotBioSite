@@ -1,8 +1,9 @@
 ---
 import { useTranslations, type Locale } from "../lib/i18n";
-import { projects } from "../lib/projects";
+import { projects, infraProjects } from "../lib/projects";
 import SectionHeader from "./SectionHeader.astro";
 import ProjectCard from "./ProjectCard.astro";
+import InfraCard from "./InfraCard.astro";
 import YearStrip from "./illustration/YearStrip.astro";
 
 interface Props {
@@ -12,6 +13,7 @@ const { locale } = Astro.props;
 const t = useTranslations(locale);
 
 const visible = projects.filter((p) => !p.comingSoon);
+const infra = infraProjects.filter((p) => !p.comingSoon);
 const years = visible.map((p) => p.year).filter((y): y is number => typeof y === "number");
 ---
 
@@ -27,6 +29,25 @@ const years = visible.map((p) => p.year).filter((y): y is number => typeof y ===
     <div class="projects__grid">
       {visible.map((p, i) => <ProjectCard project={p} locale={locale} index={i} />)}
     </div>
+
+    {
+      infra.length > 0 && (
+        <div class="projects__ecosystem" data-reveal aria-labelledby="ecosystem-title">
+          <div class="projects__ecosystem-head">
+            <span class="projects__ecosystem-line" aria-hidden="true" />
+            <h3 id="ecosystem-title" class="projects__ecosystem-title">
+              {t("projects.ecosystem.title")}
+            </h3>
+            <p class="projects__ecosystem-lede caption">{t("projects.ecosystem.lede")}</p>
+          </div>
+          <div class="projects__infra-grid">
+            {infra.map((p, i) => (
+              <InfraCard project={p} locale={locale} index={i} />
+            ))}
+          </div>
+        </div>
+      )
+    }
 
     {
       years.length > 1 && (
@@ -168,10 +189,60 @@ const years = visible.map((p) => p.year).filter((y): y is number => typeof y ===
     color: var(--text-faint);
   }
 
+  /* ---------- Ecosystem / infra tier ---------- */
+  .projects__ecosystem {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-5);
+    margin-block-start: var(--sp-7);
+  }
+
+  .projects__ecosystem-head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+
+  /* Тонкий разделитель — отделяет вторичный тир от продуктовой сетки. */
+  .projects__ecosystem-line {
+    height: 1px;
+    width: 100%;
+    background: linear-gradient(90deg, var(--border-hover), transparent);
+    margin-block-end: var(--sp-2);
+  }
+
+  .projects__ecosystem-title {
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-bold);
+    letter-spacing: var(--ls-tight);
+    font-size: var(--fs-22);
+    color: var(--text);
+  }
+
+  .projects__ecosystem-lede {
+    color: var(--text-secondary);
+    max-width: 60ch;
+  }
+
+  .projects__infra-grid {
+    display: grid;
+    gap: var(--sp-4);
+    grid-template-columns: 1fr;
+  }
+
   @media (min-width: 900px) {
     .projects__grid {
       gap: var(--sp-7);
       grid-template-columns: repeat(2, 1fr);
+    }
+
+    .projects__ecosystem {
+      margin-block-start: var(--sp-9);
+    }
+
+    .projects__infra-grid {
+      gap: var(--sp-5);
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
     }
   }
 </style>

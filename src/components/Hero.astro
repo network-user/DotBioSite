@@ -62,15 +62,15 @@ const subtitle = t("hero.subtitle");
       {eyebrow}
     </p>
 
-    <h1
-      class="hero__brand display-xl"
-      data-reveal
-      data-reveal-delay="60"
-      data-brand={brand}
-      style="view-transition-name: brand-root;"
-    >
-      {brand}
-    </h1>
+    <div class="hero__brand-wrap" data-reveal data-reveal-delay="60">
+      <span class="hero__brand-aura" aria-hidden="true"></span>
+      <h1
+        class="hero__brand display-xl"
+        style="view-transition-name: brand-root;"
+      >
+        {brand}
+      </h1>
+    </div>
 
     <p class="hero__tagline title" data-reveal data-reveal-delay="180">
       {tagline}
@@ -332,58 +332,57 @@ const subtitle = t("hero.subtitle");
     color: transparent;
   }
 
-  /* Блик «проявителя»: узкая светлая полоса, обрезанная по форме текста, очень
-     медленно проезжает поперёк вордмарка. Двигаем ТОЛЬКО transform (translateX),
-     прозрачность управляется тем же keyframe — никакого background-position. */
-  .hero__brand::after {
-    content: attr(data-brand);
+  /* Никаких масок по буквам: слово стоит на месте, а позади него медленно живёт
+     мягкий свет — широкий световой «бутон», который дышит яркостью и чуть
+     дрейфует вбок. Лежит ПОД текстом (изолированный стек-контекст + z-index:-1),
+     поэтому даёт слову лёгкое свечение, не перекрывая буквы. Анимируем только
+     opacity + transform; ни фильтров, ни background-position — дёшево и плавно. */
+  .hero__brand-wrap {
+    position: relative;
+    display: inline-block;
+    isolation: isolate;
+  }
+
+  .hero__brand-aura {
     position: absolute;
-    inset: 0;
+    z-index: -1;
+    inset: -45% -16%;
     pointer-events: none;
-    background: linear-gradient(
-      100deg,
-      transparent 38%,
-      rgba(255, 255, 255, 0.9) 50%,
-      transparent 62%
+    background: radial-gradient(
+      ellipse 70% 62% at 50% 50%,
+      rgba(255, 255, 255, 0.18) 0%,
+      rgba(255, 255, 255, 0.07) 38%,
+      transparent 70%
     );
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-    opacity: 0;
-    transform: translateX(-22%);
+    opacity: 0.6;
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    .hero__brand::after {
-      animation: brand-sheen 11s var(--ease-soft) infinite;
+    .hero__brand-aura {
+      animation: brand-aura 12s var(--ease-drift) infinite;
     }
   }
 
-  /* Один проезд блика за период, с долгой паузой в покое — не мигает. */
-  @keyframes brand-sheen {
+  /* Непрерывное «дыхание» света: маятниковый дрейф вбок + мягкая пульсация
+     яркости и масштаба. Кривая --ease-drift (синусоида) делает движение без
+     рывков; на стыке цикла 0%/100% значения совпадают, поэтому шва нет. */
+  @keyframes brand-aura {
     0%,
-    72%,
     100% {
-      opacity: 0;
-      transform: translateX(-22%);
+      opacity: 0.45;
+      transform: translateX(-7%) scale(0.96);
     }
-    78% {
-      opacity: 0.55;
-    }
-    92% {
-      opacity: 0.55;
-    }
-    98% {
-      opacity: 0;
-      transform: translateX(22%);
+    50% {
+      opacity: 0.9;
+      transform: translateX(7%) scale(1.05);
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .hero__brand::after {
+    .hero__brand-aura {
       animation: none;
-      opacity: 0;
+      opacity: 0.6;
+      transform: none;
     }
   }
 
