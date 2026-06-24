@@ -14,8 +14,8 @@
     "en": "A music platform that writes the lyrics for you."
   },
   "description": {
-    "ru": "Музыкальный сервис без рекламы, выросший в экосистему из четырёх репозиториев. Залил трек в Telegram - и он зазвучал у всех, с адаптивным стримингом и текстом, который проявляется построчно сам. Под капотом ASR-каскад на GPU, дедупликация по содержимому и разделение на открытый клиент и закрытое ядро политик.",
-    "en": "An ad-free music service that grew into a four-repository ecosystem. Drop a track into Telegram and it plays for everyone, with adaptive streaming and lyrics that surface line by line on their own. Underneath: a GPU ASR cascade, content-based dedup, and a split between an open client and a closed policy core."
+    "ru": "Музыкальный сервис без рекламы, выросший в экосистему из четырёх репозиториев. Загрузил трек в плеере - и он зазвучал у всех, с адаптивным стримингом и текстом, который проявляется построчно сам. Вход - через Telegram, под капотом ASR-каскад на GPU, дедупликация по содержимому и разделение на открытый клиент и закрытое ядро политик.",
+    "en": "An ad-free music service that grew into a four-repository ecosystem. Upload a track in the player and it plays for everyone, with adaptive streaming and lyrics that surface line by line on their own. Telegram is the way in; underneath sit a GPU ASR cascade, content-based dedup, and a split between an open client and a closed policy core."
   },
   "stack": [
     "Python 3.12",
@@ -52,8 +52,8 @@
       "repo": "DotSoundBot",
       "role": "telegram-ui",
       "description": {
-        "ru": "Тонкий клиент Telegram: загрузка треков, inline-поиск, лайки, вход в Mini App. Вся логика - в ядре.",
-        "en": "A thin Telegram client: track uploads, inline search, likes, Mini App entry. All logic stays in the core."
+        "ru": "Тонкий клиент Telegram: вход в Mini App, inline-поиск, лайки и подборки, уведомления о входах. Вся логика - в ядре.",
+        "en": "A thin Telegram client: Mini App entry, inline search, likes and mixes, sign-in alerts. All logic stays in the core."
       }
     },
     {
@@ -94,10 +94,10 @@
   ],
   "overview": {
     "ru": [
-      "Музыкальный сервис без рекламы с точкой входа прямо в Telegram: залил трек в бота - и он зазвучал у всех, с адаптивным стримингом и текстом, который проявляется построчно сам. Всё тяжёлое - ASR, разделение вокала, рекомендации - считает отдельный GPU-воркер, поэтому Backend остаётся быстрым."
+      "Музыкальный сервис без рекламы с точкой входа через Telegram: открыл плеер, загрузил трек - и он зазвучал у всех, с адаптивным стримингом и текстом, который проявляется построчно сам. Всё тяжёлое - ASR, разделение вокала, рекомендации - считает отдельный GPU-воркер, поэтому Backend остаётся быстрым."
     ],
     "en": [
-      "An ad-free music service whose entry point is Telegram itself: drop a track into the bot and it plays for everyone, with adaptive streaming and lyrics that surface line by line on their own. Everything heavy - ASR, vocal separation, recommendations - runs on a separate GPU worker, so the Backend stays fast."
+      "An ad-free music service whose way in is Telegram: open the player, upload a track and it plays for everyone, with adaptive streaming and lyrics that surface line by line on their own. Everything heavy - ASR, vocal separation, recommendations - runs on a separate GPU worker, so the Backend stays fast."
     ]
   },
   "metrics": [
@@ -168,18 +168,18 @@
   "clusters": [{ "x": 700, "y": 95, "width": 200, "height": 380, "label": "Data plane" }],
   "capabilities": [
     {
-      "icon": "telegram",
+      "icon": "code",
       "title": {
-        "ru": "Загрузка в один тап",
-        "en": "One-tap upload"
+        "ru": "Загрузка прямо в плеере",
+        "en": "Upload right in the player"
       },
       "description": {
-        "ru": "Трек заливается прямо в чат с ботом. Ни отдельной формы, ни регистрации, ни приложения для установки.",
-        "en": "A track uploads right in the bot chat. No separate form, no sign-up, no app to install."
+        "ru": "Трек заливается из самого веб-плеера: устойчивая докачка кусками, проверка дублей ещё до отправки, своя обложка и видео. Ни отдельной формы, ни приложения для установки.",
+        "en": "A track uploads straight from the web player: resilient chunked upload, a duplicate check before you even send, your own cover and video. No separate form, no app to install."
       },
       "detail": {
-        "ru": "Сервер берёт SHA-256 от содержимого: повторная заливка того же трека не создаёт копию, а добавляет ссылку (ref_count++). Один файл - на всех.",
-        "en": "The server hashes the content with SHA-256: re-uploading the same track adds a reference (ref_count++) instead of a copy. One file for everyone."
+        "ru": "Загрузка идёт частями (S3 multipart) и переживает обрыв связи и перезагрузку вкладки - очередь хранится в IndexedDB и сама возобновляет докачку. Сервер берёт SHA-256 от содержимого: повторная заливка того же трека не создаёт копию, а добавляет ссылку (ref_count++). Один файл - на всех.",
+        "en": "The upload runs in chunks (S3 multipart) and survives a dropped connection or a tab reload - the queue lives in IndexedDB and resumes on its own. The server hashes the content with SHA-256: re-uploading the same track adds a reference (ref_count++) instead of a copy. One file for everyone."
       }
     },
     {
@@ -230,6 +230,66 @@
     {
       "icon": "rocket",
       "title": {
+        "ru": "Личные подборки и радио",
+        "en": "Personal mixes and radio"
+      },
+      "description": {
+        "ru": "Daily Mix, Weekly Mix, жанровые подборки и бесконечное радио от любого трека - лента подстраивается под то, что слушаешь.",
+        "en": "Daily Mix, Weekly Mix, genre sets and endless radio from any seed track - the feed adapts to what you actually play."
+      },
+      "detail": {
+        "ru": "Похожие треки и артисты считаются по аудио-эмбеддингам на воркере, а правила ранжирования и политика выдачи живут в закрытом ядре. Радио стартует от трека-затравки и тянет ближайших соседей по вектору.",
+        "en": "Similar tracks and artists come from audio embeddings on the worker, while the ranking rules and delivery policy live in the closed core. Radio starts from a seed track and pulls its nearest neighbors by vector."
+      }
+    },
+    {
+      "icon": "user",
+      "title": {
+        "ru": "Совместные плейлисты",
+        "en": "Collaborative playlists"
+      },
+      "description": {
+        "ru": "Плейлисты с совместным редактированием и обложкой-коллажем, которая собирается сама из обложек добавленных треков.",
+        "en": "Playlists you can edit together, with a collage cover that assembles itself from the tracks inside."
+      },
+      "detail": {
+        "ru": "Несколько соавторов ведут один плейлист; обложка пересобирается из обложек треков. CRUD и совместный доступ - на бэкенде, без отдельного приложения.",
+        "en": "Several collaborators keep one playlist; the cover rebuilds from the tracks' artwork. CRUD and shared access live on the backend, with no separate app."
+      }
+    },
+    {
+      "icon": "telegram",
+      "title": {
+        "ru": "Telegram как точка входа",
+        "en": "Telegram as the way in"
+      },
+      "description": {
+        "ru": "Тонкий бот: вход в плеер одним тапом, inline-поиск треков в любом чате, лайки и подборки прямо в Telegram. Туда же приходят уведомления о входах и готовности задач.",
+        "en": "A thin bot: one-tap entry to the player, inline track search in any chat, likes and mixes right inside Telegram. Sign-in and job-ready alerts land there too."
+      },
+      "detail": {
+        "ru": "Бот ничего не решает сам: читает сообщение и дёргает единый Backend-клиент - вся логика в ядре. Inline-режим отдаёт треки с кнопками play и like прямо в переписку.",
+        "en": "The bot decides nothing on its own: it reads the message and calls a single Backend client - all logic stays in the core. Inline mode drops tracks with play and like buttons straight into the chat."
+      }
+    },
+    {
+      "icon": "code",
+      "title": {
+        "ru": "Импорт из источников",
+        "en": "Import from sources"
+      },
+      "description": {
+        "ru": "Импорт из SoundCloud, YouTube, Bandcamp и Spotify: каталог наполняется без ручной заливки.",
+        "en": "Import from SoundCloud, YouTube, Bandcamp and Spotify: the catalog fills without manual uploads."
+      },
+      "detail": {
+        "ru": "Задача soundcloud_rpc тянет аудио из SoundCloud, YouTube и Bandcamp через yt-dlp; Spotify подключается привязкой аккаунта по OAuth. Каталог растёт без ручной заливки.",
+        "en": "A soundcloud_rpc job pulls audio from SoundCloud, YouTube and Bandcamp via yt-dlp; Spotify connects by linking an account over OAuth. The catalog grows without manual uploads."
+      }
+    },
+    {
+      "icon": "rocket",
+      "title": {
         "ru": "GPU-офлоад по HMAC",
         "en": "HMAC GPU offload"
       },
@@ -243,18 +303,18 @@
       }
     },
     {
-      "icon": "code",
+      "icon": "dot",
       "title": {
-        "ru": "Импорт из источников",
-        "en": "Import from sources"
+        "ru": "Модерация и закон",
+        "en": "Moderation and compliance"
       },
       "description": {
-        "ru": "Загрузка из SoundCloud, YouTube и Bandcamp через yt-dlp: каталог наполняется без ручной заливки.",
-        "en": "Import from SoundCloud, YouTube, and Bandcamp via yt-dlp: the catalog fills without manual uploads."
+        "ru": "Жалобы на треки, авто-скрытие по порогу и админ-модерация. Часть соц-функций (чаты, комментарии) сознательно отключена под требования к ОРИ по 149-ФЗ.",
+        "en": "Track complaints, auto-hide past a threshold, and admin moderation. Some social features (chats, comments) are deliberately switched off to meet Russia's 149-FZ information-intermediary rules."
       },
       "detail": {
-        "ru": "Задача soundcloud_rpc тянет треки из SoundCloud, YouTube и Bandcamp через yt-dlp и синхронизирует их - каталог растёт без ручной заливки.",
-        "en": "A soundcloud_rpc job pulls tracks from SoundCloud, YouTube and Bandcamp via yt-dlp and syncs them - the catalog grows without manual uploads."
+        "ru": "Жалобы копятся на трек и при достижении порога скрывают его автоматически до решения модератора. Отключённые функции остаются в коде с пометкой и не подключены к маршрутам - включить можно, когда позволит регуляторика.",
+        "en": "Complaints accumulate on a track and auto-hide it past a threshold until a moderator rules. The disabled features stay in the code, flagged and unrouted - ready to switch on when regulation allows."
       }
     }
   ],
