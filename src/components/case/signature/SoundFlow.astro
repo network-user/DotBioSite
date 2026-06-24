@@ -1,27 +1,19 @@
 ---
 /**
- * SoundFlow.astro - сигнатурная визуализация .звук (DotSound), флагман.
+ * SoundFlow.astro — сигнатурная визуализация .звук (DotSound), флагман.
  *
- * Формат: конкретный иллюстрированный объяснитель ПОЛЬЗОВАТЕЛЬСКОГО FLOW.
- * Слева селектор из 6 шагов, справа панель, где заголовок + описание стоят
- * рядом со своей живой интерактивной мини-схемой. Монохром, белый приоритет;
- * акцент проекта - только единичная подсветка.
+ * Формат: интерактивный обзор ВОЗМОЖНОСТЕЙ ПЛАТФОРМЫ (не пользовательский flow).
+ * Слева селектор из 7 доменов «что внутри» (по README DotSoundBackend), справа —
+ * заголовок, описание и живая мини-схема. Монохром, акцент — единичная подсветка.
  *
- * Шаги: Вход (Telegram / email magic link) -> Вкус (настройка рекомендаций,
- * 128d) -> Импорт (SoundCloud/YouTube/Bandcamp) -> Слушать (HLS + лирика в
- * такт) -> Загрузка (дедуп SHA-256, один blob) -> Воркер (все 17 типов задач:
- * часть скрыта, кнопка раскрывает остальные, тап по задаче даёт описание).
+ * Домены: Хранение (chunked + ClamAV + SHA-256 dedup) → Транскод (FFmpeg → HLS,
+ * waveform, snippet) → Воспроизведение (адаптивный HLS + синхро-лирика) → Импорт
+ * (yt-dlp, очередь) → Рекомендации (128d, миксы, радио) → Поиск (Elasticsearch
+ * SAYT, транслит RU↔LAT) → Воркер (HMAC pull, 17 типов задач + ASR).
  *
  * Движение: только transform/opacity, конечные CSS-анимации (нет вечного rAF).
- * Все setTimeout идут через трекер later() и гасятся clearTimers() при смене
- * шага / уходе из вьюпорта / visibilitychange(hidden) / pagehide. Всё гейтится
- * IntersectionObserver (.sf.is-inview). При prefers-reduced-motion - финальное
- * статичное читаемое состояние, интеракции работают.
- *
- * Факты сверены по репозиториям DotSound*: Telegram Mini App поверх сессии;
- * рекомендации - башня слушателя 128d; импорт через yt-dlp (soundcloud_rpc);
- * адаптивный HLS, лирика Demucs(--two-stems=vocals)+faster-whisper; дедуп по
- * SHA-256 (один blob, ref_count++); 17 типов задач воркера (worker/handlers).
+ * setTimeout через later(), очистка при смене вкладки / offscreen / pagehide.
+ * IntersectionObserver (.sf.is-inview). prefers-reduced-motion → статичный кадр.
  */
 import type { Locale } from "../../../lib/i18n";
 
@@ -34,111 +26,128 @@ type Bi = { ru: string; en: string };
 const t = (b: Bi): string => b[locale];
 
 const intro: Bi = {
-  ru: "Путь слушателя в .звук - шаг за шагом. Выберите шаг слева: справа появится его живая схема и описание. Тыкайте кнопки внутри схем - они показывают, как это работает на самом деле.",
-  en: "A listener's path through .звук - step by step. Pick a step on the left: its live diagram and description appear on the right. Press the buttons inside each diagram - they show how it actually works.",
+  ru: "Не путь пользователя, а карта возможностей .звук — по блоку «что внутри» бэкенда. Выберите домен слева: справа живая схема и краткое описание сильной стороны. Тыкайте кнопки внутри — они показывают механику под капотом.",
+  en: "Not a user journey but a map of what .звук can do — drawn from the backend's “what's inside” section. Pick a domain on the left: a live diagram and a short pitch appear on the right. Press the buttons inside to see the mechanics underneath.",
 };
 
-type Step = { id: string; label: Bi; tag: Bi; title: Bi; desc: Bi };
-const steps: Step[] = [
+type Pillar = { id: string; label: Bi; tag: Bi; title: Bi; desc: Bi };
+const pillars: Pillar[] = [
   {
-    id: "signin",
-    label: { ru: "Вход", en: "Sign in" },
-    tag: { ru: "Telegram · magic link", en: "Telegram · magic link" },
-    title: { ru: "Вход без пароля", en: "Passwordless sign-in" },
+    id: "storage",
+    label: { ru: "Хранение", en: "Storage" },
+    tag: { ru: "SHA-256 · MinIO", en: "SHA-256 · MinIO" },
+    title: { ru: "Загрузка и content-addressed storage", en: "Upload and content-addressed storage" },
     desc: {
-      ru: "Два способа войти без пароля. Telegram - в один тап: Mini App открывается поверх уже существующей сессии Telegram. Или по почте: приходит magic link - одноразовая ссылка с коротким сроком жизни, по которой вы сразу внутри.",
-      en: "Two passwordless ways in. Telegram - one tap: the Mini App opens over your existing Telegram session. Or by email: a magic link arrives - a one-time, short-lived link that signs you straight in.",
+      ru: "Chunked-загрузка (resumable, S3 multipart) с MIME-валидацией и ClamAV-сканом. Контент адресуется по SHA-256: одинаковый трек хранится один раз, повторная заливка лишь увеличивает ref_count. Пользовательские квоты, MinIO с дедупликацией.",
+      en: "Chunked upload (resumable, S3 multipart) with MIME validation and a ClamAV scan. Content is addressed by SHA-256: an identical track is stored once, a re-upload only bumps ref_count. Per-user quotas, MinIO with deduplication.",
     },
   },
   {
-    id: "taste",
-    label: { ru: "Вкус", en: "Taste" },
-    tag: { ru: "рекомендации · 128d", en: "recommendations · 128d" },
-    title: { ru: "Настройка рекомендаций", en: "Set up recommendations" },
+    id: "pipeline",
+    label: { ru: "Транскод", en: "Transcode" },
+    tag: { ru: "FFmpeg · HLS", en: "FFmpeg · HLS" },
+    title: { ru: "Транскодинг и деривативы", en: "Transcoding and derivatives" },
     desc: {
-      ru: "Отметьте, что любите - жанры и настроения. Из выбора собирается ваша «башня» из 128 чисел (128d): вектор вкуса, по близости которого к векторам треков и подбирается лента «для вас». Чем больше отмечено, тем точнее старт.",
-      en: "Mark what you like - genres and moods. Your choices build your 128-number 'tower' (128d): a taste vector whose closeness to track vectors drives your 'for you' feed. The more you mark, the sharper the start.",
+      ru: "FFmpeg строит progressive MP3 и адаптивный HLS (две дорожки), нормализует громкость. На каждый трек — waveform (200 столбцов), сниппет-превью и процедурная обложка. UGC-воспроизведение нормализуется по запросу.",
+      en: "FFmpeg builds progressive MP3 and adaptive HLS (two renditions) and normalizes loudness. Per track: a 200-bar waveform, a preview snippet, and a procedural cover. UGC playback is normalized on demand.",
+    },
+  },
+  {
+    id: "listen",
+    label: { ru: "Стриминг", en: "Streaming" },
+    tag: { ru: "HLS · лирика", en: "HLS · lyrics" },
+    title: { ru: "Воспроизведение и синхро-лирика", en: "Playback and synced lyrics" },
+    desc: {
+      ru: "Presigned URL, range-стриминг, HLS с adaptive bitrate (hls.js). Лирика всплывает построчно в такт: каскад с audio-based fallback, Demucs (--two-stems=vocals) + faster-whisper. Prefetch следующих треков, egress-пул для стороннего аудио.",
+      en: "Presigned URLs, range streaming, HLS with adaptive bitrate (hls.js). Lyrics surface line by line in sync: a cascade with audio-based fallback, Demucs (--two-stems=vocals) + faster-whisper. Prefetch of next tracks, egress pool for third-party audio.",
     },
   },
   {
     id: "import",
     label: { ru: "Импорт", en: "Import" },
-    tag: { ru: "SoundCloud · YouTube · Bandcamp", en: "SoundCloud · YouTube · Bandcamp" },
-    title: { ru: "Импорт треков из источников", en: "Import tracks from sources" },
+    tag: { ru: "yt-dlp · очередь", en: "yt-dlp · queue" },
+    title: { ru: "Импорт из внешних источников", en: "Import from external sources" },
     desc: {
-      ru: "Подтяните музыку из SoundCloud, YouTube или Bandcamp - ссылкой или целым каталогом артиста. Под капотом задача soundcloud_rpc тянет треки через yt-dlp и синхронизирует их в ваш каталог, без ручной заливки по одному.",
-      en: "Pull music from SoundCloud, YouTube or Bandcamp - by link or a whole artist catalog. Under the hood a soundcloud_rpc job fetches tracks via yt-dlp and syncs them into your library, with no manual one-by-one upload.",
+      ru: "Импорт треков, плейлистов и лайков из SoundCloud, YouTube, Bandcamp — по ссылке или каталогом. Очередь с диспетчером и лимитами (глобально / на пользователя), backfill артистов, in-app уведомления RU/EN.",
+      en: "Import tracks, playlists, and likes from SoundCloud, YouTube, Bandcamp — by link or whole catalog. A queued dispatcher with global and per-user limits, artist backfill, in-app notifications in RU/EN.",
     },
   },
   {
-    id: "listen",
-    label: { ru: "Слушать", en: "Listen" },
-    tag: { ru: "HLS · лирика", en: "HLS · lyrics" },
-    title: { ru: "Прослушивание с лирикой", en: "Listening with lyrics" },
+    id: "discover",
+    label: { ru: "Рекомендации", en: "Discover" },
+    tag: { ru: "128d · миксы", en: "128d · mixes" },
+    title: { ru: "Персональная лента и миксы", en: "Personal feed and mixes" },
     desc: {
-      ru: "Трек играет адаптивным HLS - качество подстраивается под сеть. Лирика всплывает сама, строчка за строчкой в такт: Demucs (--two-stems=vocals) снимает вокал, faster-whisper его расшифровывает, а выравнивание ставит тайм-код каждой строке.",
-      en: "A track plays as adaptive HLS - quality adapts to the network. Lyrics surface on their own, line by line in time: Demucs (--two-stems=vocals) lifts the vocals, faster-whisper transcribes them, and alignment timestamps each line.",
+      ru: "Главный экран (8–10 секций): Daily / Weekly Mix, жанровые миксы, «Выбор пользователей», радио (seed-first), похожие треки. Скоринг в приватном ядре; прогрев кеша и телеметрия impressions ↔ listen для обратной связи.",
+      en: "Home screen (8–10 sections): Daily / Weekly Mix, genre mixes, community picks, radio (seed-first), similar tracks. Scoring lives in the private core; cache warm-up and impressions ↔ listen telemetry for feedback.",
     },
   },
   {
-    id: "upload",
-    label: { ru: "Загрузка", en: "Upload" },
-    tag: { ru: "дедуп · авто-лирика", en: "dedup · auto-lyrics" },
-    title: { ru: "Загрузка своего трека", en: "Upload your own track" },
+    id: "search",
+    label: { ru: "Поиск", en: "Search" },
+    tag: { ru: "Elasticsearch · SAYT", en: "Elasticsearch · SAYT" },
+    title: { ru: "Полнотекстовый поиск", en: "Full-text search" },
     desc: {
-      ru: "Кидаете файл прямо в чат с ботом. Сервер берёт SHA-256 от содержимого - это и ключ дедупа, и часть пути в хранилище: одинаковый трек хранится один раз, повторная заливка лишь увеличивает ref_count. Дальше воркер сам делает лирику, и трек в каталоге.",
-      en: "You drop a file right into the bot chat. The server hashes the content with SHA-256 - both the dedup key and part of the storage path: an identical track is stored once, a re-upload only bumps ref_count. Then the worker makes lyrics itself, and the track lands in the catalog.",
+      ru: "Elasticsearch 8: полнотекст по трекам и артистам, автодополнение (SAYT), транслитерация RU↔LAT, fuzzy. Индексируются метаданные и распознанная лирика — трек находится по строчке из песни. Фоновая индексация и drain счётчиков из Redis.",
+      en: "Elasticsearch 8: full-text over tracks and artists, search-as-you-type (SAYT), RU↔LAT transliteration, fuzzy matching. Metadata and recognized lyrics are indexed — find a track by a line from the song. Background indexing and Redis play-count drain.",
     },
   },
   {
     id: "worker",
     label: { ru: "Воркер", en: "Worker" },
-    tag: { ru: "17 типов задач", en: "17 job types" },
-    title: { ru: "Что воркер делает с треком", en: "What the worker does with a track" },
+    tag: { ru: "HMAC pull · GPU", en: "HMAC pull · GPU" },
+    title: { ru: "Compute-воркер без открытых портов", en: "Compute worker with no open ports" },
     desc: {
-      ru: "Тяжёлое считает отдельный GPU-воркер без открытых портов. Из одной очереди он тянет 17 типов задач - от эмбеддингов и похожих треков до транскода в HLS, волны, превью и импорта. Плюс отдельный ASR-конвейер (Demucs + faster-whisper) для лирики. Тапните задачу - покажу, что она делает.",
-      en: "Heavy work runs on a separate GPU worker with no open ports. From one queue it pulls 17 job types - from embeddings and similar tracks to HLS transcoding, waveform, snippet and import. Plus a dedicated ASR pipeline (Demucs + faster-whisper) for lyrics. Tap a job to see what it does.",
+      ru: "Pull-based протокол (claim / heartbeat / progress / result) с HMAC, IP-allowlist и одноразовыми токенами на скачивание аудио. 17 типов задач в одной очереди + ASR-конвейер (Demucs + faster-whisper). Лизы, детектор аномалий, авто-suspend.",
+      en: "Pull-based protocol (claim / heartbeat / progress / result) with HMAC, IP allowlist, and one-time audio download tokens. 17 job types in one queue plus an ASR pipeline (Demucs + faster-whisper). Leases, anomaly detection, auto-suspend.",
     },
   },
 ];
 
 // ---------- ДАННЫЕ ИЛЛЮСТРАЦИЙ ----------
 
-// (1) Вход
-const signin = {
-  tg: { ru: "Telegram", en: "Telegram" },
-  email: { ru: "Почта", en: "Email" },
-  tgBtn: { ru: "Открыть в Telegram", en: "Open in Telegram" },
-  tgDone: { ru: "вошли через сессию Telegram - один тап, без пароля", en: "signed in via the Telegram session - one tap, no password" },
-  emailPh: { ru: "you@example.com", en: "you@example.com" },
-  send: { ru: "Отправить magic link", en: "Send magic link" },
-  link: { ru: "magic link: одноразовый · ~15 мин · без пароля", en: "magic link: one-time · ~15 min · no password" },
-  open: { ru: "Перейти по ссылке", en: "Open the link" },
-  emailDone: { ru: "вошли по magic link - ссылка погашена", en: "signed in by magic link - link burned" },
-  idle: { ru: "выберите способ входа", en: "choose how to sign in" },
+// (1) Хранение
+const storage = {
+  file: { ru: "track.flac", en: "track.flac" },
+  scan: { ru: "ClamAV · чисто", en: "ClamAV · clean" },
+  hashCap: { ru: "SHA-256 содержимого", en: "content SHA-256" },
+  blobCap: { ru: "один blob в MinIO", en: "single MinIO blob" },
+  send: { ru: "Залить трек", en: "Upload track" },
+  again: { ru: "Тот же файл снова", en: "Same file again" },
+  steps: { ru: "MIME → ClamAV → дедуп → ref_count", en: "MIME → ClamAV → dedup → ref_count" },
+  sameNote: { ru: "тот же хэш → ref_count++, новый blob НЕ создаётся", en: "same hash → ref_count++, no new blob created" },
 };
 
-// (2) Вкус
-const tasteChips: Bi[] = [
-  { ru: "электроника", en: "electronic" },
-  { ru: "эмбиент", en: "ambient" },
-  { ru: "инди", en: "indie" },
-  { ru: "хип-хоп", en: "hip-hop" },
-  { ru: "джаз", en: "jazz" },
-  { ru: "рок", en: "rock" },
-  { ru: "lo-fi", en: "lo-fi" },
-  { ru: "классика", en: "classical" },
-  { ru: "поп", en: "pop" },
+// (2) Транскод
+const pipeline = {
+  go: { ru: "Прогнать пайплайн", en: "Run pipeline" },
+  raw: { ru: "исходник", en: "source" },
+  ffmpeg: { ru: "FFmpeg", en: "FFmpeg" },
+  mp3: { ru: "MP3 progressive", en: "MP3 progressive" },
+  hls: { ru: "HLS · 2 дорожки", en: "HLS · 2 renditions" },
+  wave: { ru: "waveform · 200", en: "waveform · 200" },
+  snippet: { ru: "snippet preview", en: "snippet preview" },
+  cover: { ru: "обложка", en: "cover art" },
+  done: { ru: "деривативы готовы — immutable сегменты", en: "derivatives ready — immutable segments" },
+};
+
+// (3) Стриминг
+const listen = {
+  title: { ru: "Держит зал", en: "Holds the Room" },
+  artist: { ru: "Невод", en: "Seine" },
+  play: { ru: "Играть", en: "Play" },
+  pause: { ru: "Пауза", en: "Pause" },
+  hls: { ru: "HLS · авто-качество", en: "HLS · adaptive" },
+  lyrCap: { ru: "лирика всплывает в такт", en: "lyrics surface on the beat" },
+};
+const lyricLines: { tc: string; ru: string; en: string }[] = [
+  { tc: "0:00", ru: "свет гаснет, зал затих", en: "lights go down, the room is still" },
+  { tc: "0:06", ru: "первый удар держит зал", en: "the first beat holds the room" },
+  { tc: "0:12", ru: "голос ведёт сквозь шум", en: "a voice cuts through the noise" },
+  { tc: "0:18", ru: "и мы снова на ногах", en: "and we're on our feet again" },
 ];
-const taste = {
-  cap: { ru: "отметьте, что любите", en: "mark what you like" },
-  towerCap: { ru: "ваша башня · 128d", en: "your tower · 128d" },
-  pick: { ru: "выбрано", en: "selected" },
-  ready: { ru: "подбор настроен - лента «для вас» готова", en: "tuned - your 'for you' feed is ready" },
-  need: { ru: "отметьте хотя бы 3", en: "mark at least 3" },
-};
 
-// (3) Импорт
+// (4) Импорт
 const sources: { id: string; name: Bi }[] = [
   { id: "sc", name: { ru: "SoundCloud", en: "SoundCloud" } },
   { id: "yt", name: { ru: "YouTube", en: "YouTube" } },
@@ -157,35 +166,60 @@ const importTracks: Bi[] = [
   { ru: "Серый асфальт", en: "Grey Asphalt" },
 ];
 
-// (4) Слушать
-const listen = {
-  title: { ru: "Держит зал", en: "Holds the Room" },
-  artist: { ru: "Невод", en: "Seine" },
-  play: { ru: "Играть", en: "Play" },
-  pause: { ru: "Пауза", en: "Pause" },
-  hls: { ru: "HLS · авто-качество", en: "HLS · adaptive" },
-  lyrCap: { ru: "лирика всплывает в такт", en: "lyrics surface on the beat" },
+// (5) Рекомендации
+const tasteChips: Bi[] = [
+  { ru: "электроника", en: "electronic" },
+  { ru: "эмбиент", en: "ambient" },
+  { ru: "инди", en: "indie" },
+  { ru: "хип-хоп", en: "hip-hop" },
+  { ru: "джаз", en: "jazz" },
+  { ru: "рок", en: "rock" },
+  { ru: "lo-fi", en: "lo-fi" },
+  { ru: "поп", en: "pop" },
+];
+const discover = {
+  cap: { ru: "отметьте жанры — соберётся 128d-вектор", en: "mark genres — builds a 128d vector" },
+  towerCap: { ru: "вектор вкуса · 128d", en: "taste vector · 128d" },
+  pick: { ru: "выбрано", en: "selected" },
+  feedCap: { ru: "секции главного экрана", en: "home screen sections" },
+  need: { ru: "отметьте хотя бы 2 — появятся секции ленты", en: "mark at least 2 — feed sections appear" },
+  ready: { ru: "лента прогрета — impressions ↔ listen", en: "feed warmed — impressions ↔ listen" },
 };
-const lyricLines: { tc: string; ru: string; en: string }[] = [
-  { tc: "0:00", ru: "свет гаснет, зал затих", en: "lights go down, the room is still" },
-  { tc: "0:06", ru: "первый удар держит зал", en: "the first beat holds the room" },
-  { tc: "0:12", ru: "голос ведёт сквозь шум", en: "a voice cuts through the noise" },
-  { tc: "0:18", ru: "и мы снова на ногах", en: "and we're on our feet again" },
+const feedSections: { id: string; label: Bi; note: Bi }[] = [
+  { id: "daily", label: { ru: "Daily Mix", en: "Daily Mix" }, note: { ru: "ежедневный микс", en: "daily blend" } },
+  { id: "weekly", label: { ru: "Weekly Mix", en: "Weekly Mix" }, note: { ru: "недельный микс", en: "weekly blend" } },
+  { id: "foryou", label: { ru: "Для вас", en: "For you" }, note: { ru: "персональная лента", en: "personal feed" } },
+  { id: "genre", label: { ru: "Жанровый микс", en: "Genre mix" }, note: { ru: "по выбранным жанрам", en: "from picked genres" } },
+  { id: "radio", label: { ru: "Радио", en: "Radio" }, note: { ru: "seed-first", en: "seed-first" } },
+  { id: "similar", label: { ru: "Похожие", en: "Similar" }, note: { ru: "по эмбеддингу", en: "by embedding" } },
 ];
 
-// (5) Загрузка
-const upload = {
-  file: { ru: "my-track.mp3", en: "my-track.mp3" },
-  chat: { ru: "чат с ботом", en: "bot chat" },
-  send: { ru: "Залить в бота", en: "Upload to the bot" },
-  again: { ru: "Залить тот же файл снова", en: "Upload the same file again" },
-  hashCap: { ru: "SHA-256 содержимого", en: "content SHA-256" },
-  blobCap: { ru: "один blob", en: "single blob" },
-  steps: { ru: "дедуп → авто-лирика → в каталоге", en: "dedup → auto-lyrics → in the catalog" },
-  sameNote: { ru: "тот же хэш → ref_count++, новый blob НЕ создаётся", en: "same hash → ref_count++, no new blob created" },
+// (6) Поиск
+const searchT = {
+  cap: { ru: "SAYT · search-as-you-type", en: "SAYT · search-as-you-type" },
+  placeholder: { ru: "кин…", en: "kino…" },
+  translit: { ru: "RU↔LAT транслит", en: "RU↔LAT translit" },
+  fuzzy: { ru: "fuzzy · по лирике тоже", en: "fuzzy · lyrics too" },
 };
+const searchHits: { title: Bi; sub: Bi; via: Bi }[] = [
+  {
+    title: { ru: "Группа крови", en: "Gruppa krovi" },
+    sub: { ru: "Kino · 1988", en: "Kino · 1988" },
+    via: { ru: "метаданные", en: "metadata" },
+  },
+  {
+    title: { ru: "Кино", en: "Kino" },
+    sub: { ru: "Арбенина · лирика", en: "Arbenina · lyrics" },
+    via: { ru: "распознанный текст", en: "recognized lyrics" },
+  },
+  {
+    title: { ru: "Kino", en: "Kino" },
+    sub: { ru: "артист · fuzzy match", en: "artist · fuzzy match" },
+    via: { ru: "транслит кин → kino", en: "translit кин → kino" },
+  },
+];
 
-// (6) Воркер - 17 типов задач (worker/handlers) + краткие описания
+// (7) Воркер
 type Job = { key: string; desc: Bi };
 const jobs: Job[] = [
   { key: "audio_embedding", desc: { ru: "эмбеддинг трека: вектор из 128 чисел для похожести и рекомендаций.", en: "track embedding: a 128-number vector for similarity and recommendations." } },
@@ -221,14 +255,20 @@ const nav = {
 };
 ---
 
-<section class="sf" data-sf aria-label={t({ ru: "Путь слушателя в .звук", en: "A listener's path through DotSound" })}>
+<section class="sf" data-sf aria-label={t({ ru: "Возможности платформы .звук", en: "DotSound platform capabilities" })}>
   <p class="sf__intro">{t(intro)}</p>
 
+  <ul class="sf__statline" role="list" aria-hidden="true">
+    <li class="sf__stat"><b>~30</b> {t({ ru: "доменов API", en: "API domains" })}</li>
+    <li class="sf__stat"><b>~25</b> {t({ ru: "Taskiq-воркеров", en: "Taskiq workers" })}</li>
+    <li class="sf__stat"><b>121</b> {t({ ru: "миграция", en: "migration" })}</li>
+    <li class="sf__stat sf__stat--wide"><b>250</b> {t({ ru: "тест-файлов · 95% branch coverage", en: "test files · 95% branch coverage" })}</li>
+  </ul>
+
   <div class="sf__layout">
-    <!-- ===================== СЕЛЕКТОР ШАГОВ ===================== -->
-    <div class="sf__nav" role="tablist" aria-label={t({ ru: "Шаги", en: "Steps" })}>
+    <div class="sf__nav" role="tablist" aria-label={t({ ru: "Домены", en: "Domains" })}>
       {
-        steps.map((s, i) => (
+        pillars.map((s, i) => (
           <button
             class="sf__tab"
             type="button"
@@ -253,60 +293,107 @@ const nav = {
     <!-- ===================== ДЕТАЛЬНАЯ ПАНЕЛЬ ===================== -->
     <div class="sf__panel" id="sf-panel" role="tabpanel" aria-live="polite">
       <header class="sf__head">
-        <h3 class="sf__title" data-sf-title>{t(steps[0]!.title)}</h3>
-        <p class="sf__desc body-sm" data-sf-desc>{t(steps[0]!.desc)}</p>
+        <h3 class="sf__title" data-sf-title>{t(pillars[0]!.title)}</h3>
+        <p class="sf__desc body-sm" data-sf-desc>{t(pillars[0]!.desc)}</p>
       </header>
 
       <div class="sf__stage" data-sf-stage>
-        <!-- ----------------- (1) ВХОД ----------------- -->
-        <div class="sf__viz sf__viz--signin is-active" data-sf-viz="signin">
-          <div class="sf__si-methods" role="group" aria-label={t({ ru: "Способ входа", en: "Sign-in method" })}>
-            <button class="sf__seg is-on" type="button" data-si-method="tg" aria-pressed="true">{t(signin.tg)}</button>
-            <button class="sf__seg" type="button" data-si-method="email" aria-pressed="false">{t(signin.email)}</button>
-          </div>
-
-          <div class="sf__si-pane" data-si-pane="tg">
-            <button class="sf__act sf__si-tg" type="button" data-si-tg>
-              <span class="sf__si-tg-ico" aria-hidden="true">✈</span>
-              <span>{t(signin.tgBtn)}</span>
-            </button>
-          </div>
-
-          <div class="sf__si-pane" data-si-pane="email" hidden>
-            <div class="sf__si-field">
-              <input class="sf__si-input mono" type="email" value="you@dotsound.app" data-si-input aria-label={t(signin.email)} placeholder={t(signin.emailPh)} autocomplete="off" />
-              <button class="sf__act" type="button" data-si-send>{t(signin.send)}</button>
+        <!-- ----------------- (1) ХРАНЕНИЕ ----------------- -->
+        <div class="sf__viz sf__viz--storage is-active" data-sf-viz="storage">
+          <div class="sf__up-flow">
+            <div class="sf__card" data-st-card>
+              <span class="sf__card-ico" aria-hidden="true">♪</span>
+              <span class="sf__card-name mono">{t(storage.file)}</span>
             </div>
-            <div class="sf__si-link" data-si-link hidden>
-              <code class="sf__si-token mono">{t(signin.link)}</code>
-              <button class="sf__act sf__act--ghost" type="button" data-si-open>{t(signin.open)}</button>
+            <span class="sf__arrow" aria-hidden="true"></span>
+            <div class="sf__dd-col">
+              <span class="sf__cap caption">{t(storage.scan)}</span>
+              <span class="sf__cap caption">{t(storage.hashCap)}</span>
+              <code class="sf__hash mono"><span class="sf__hash-pre">sha256:</span><span data-st-hash>a1f9…7e3c</span></code>
+              <code class="sf__path mono" data-st-path>blobs/a1/a1f9…7e3c</code>
+            </div>
+            <span class="sf__arrow" aria-hidden="true"></span>
+            <div class="sf__blob" data-st-blob>
+              <span class="sf__blob-cap caption">{t(storage.blobCap)}</span>
+              <span class="sf__blob-glyph mono" aria-hidden="true">▢</span>
+              <span class="sf__refcount mono">ref_count: <b data-st-ref>1</b></span>
             </div>
           </div>
-
-          <p class="sf__viz-note mono" data-si-note>{t(signin.idle)}</p>
+          <p class="sf__up-steps mono" data-st-steps>{t(storage.steps)}</p>
+          <div class="sf__viz-controls">
+            <button class="sf__act" type="button" data-st-go>{t(storage.send)}</button>
+            <button class="sf__act sf__act--ghost" type="button" data-st-again disabled>{t(storage.again)}</button>
+            <span class="sf__viz-note mono" data-st-note></span>
+          </div>
         </div>
 
-        <!-- ----------------- (2) ВКУС ----------------- -->
-        <div class="sf__viz sf__viz--taste" data-sf-viz="taste" hidden>
-          <span class="sf__cap caption">{t(taste.cap)}</span>
-          <div class="sf__ta-chips" data-ta-chips>
-            {
-              tasteChips.map((c, i) => (
-                <button class="sf__chip" type="button" data-ta-chip={i} aria-pressed="false">
-                  {t(c)}
-                </button>
-              ))
-            }
+        <!-- ----------------- (2) ТРАНСКОД ----------------- -->
+        <div class="sf__viz sf__viz--pipeline" data-sf-viz="pipeline" hidden>
+          <div class="sf__pl-flow">
+            <div class="sf__pl-node" data-pl-node="raw">
+              <span class="sf__pl-ico mono" aria-hidden="true">♪</span>
+              <span class="sf__pl-label">{t(pipeline.raw)}</span>
+            </div>
+            <span class="sf__arrow" aria-hidden="true"></span>
+            <div class="sf__pl-node sf__pl-node--core" data-pl-node="ffmpeg">
+              <span class="sf__pl-ico mono" aria-hidden="true">⚙</span>
+              <span class="sf__pl-label">{t(pipeline.ffmpeg)}</span>
+            </div>
+            <span class="sf__arrow" aria-hidden="true"></span>
+            <div class="sf__pl-out">
+              {
+                (
+                  [
+                    ["mp3", pipeline.mp3],
+                    ["hls", pipeline.hls],
+                    ["wave", pipeline.wave],
+                    ["snippet", pipeline.snippet],
+                    ["cover", pipeline.cover],
+                  ] as const
+                ).map(([id, label]) => (
+                  <div class="sf__pl-chip" data-pl-out={id}>
+                    <span class="mono">{t(label)}</span>
+                  </div>
+                ))
+              }
+            </div>
           </div>
-          <div class="sf__ta-tower">
-            <span class="sf__cap caption">{t(taste.towerCap)}</span>
-            <div class="sf__ta-meter" aria-hidden="true"><span class="sf__ta-fill" data-ta-fill></span></div>
-            <span class="sf__ta-count mono" data-ta-count>0 {t(taste.pick)}</span>
+          <div class="sf__viz-controls">
+            <button class="sf__act" type="button" data-pl-go>{t(pipeline.go)}</button>
+            <span class="sf__viz-note mono" data-pl-note></span>
           </div>
-          <p class="sf__viz-note mono" data-ta-note>{t(taste.need)}</p>
         </div>
 
-        <!-- ----------------- (3) ИМПОРТ ----------------- -->
+        <!-- ----------------- (3) СТРИМИНГ ----------------- -->
+        <div class="sf__viz sf__viz--listen" data-sf-viz="listen" hidden>
+          <div class="sf__ls-card">
+            <span class="sf__ls-cover" aria-hidden="true">♪</span>
+            <div class="sf__ls-meta">
+              <span class="sf__ls-title">{t(listen.title)}</span>
+              <span class="sf__ls-artist">{t(listen.artist)}</span>
+            </div>
+            <span class="sf__ls-hls mono" aria-hidden="true">{t(listen.hls)}</span>
+          </div>
+          <div class="sf__ls-bar" data-ls-bar aria-hidden="true"><span class="sf__ls-fill" data-ls-fill></span></div>
+          <div class="sf__ls-lyr" data-ls-stage data-ls-state="idle">
+            <span class="sf__cap caption">{t(listen.lyrCap)}</span>
+            <ol class="sf__ly-lines" data-ls-lines>
+              {
+                lyricLines.map((l, i) => (
+                  <li class="sf__ly-line" data-ls-line={i}>
+                    <span class="sf__ly-tc mono" aria-hidden="true">{l.tc}</span>
+                    <span class="sf__ly-text">{locale === "en" ? l.en : l.ru}</span>
+                  </li>
+                ))
+              }
+            </ol>
+          </div>
+          <div class="sf__viz-controls">
+            <button class="sf__act" type="button" data-ls-play aria-pressed="false">{t(listen.play)}</button>
+          </div>
+        </div>
+
+        <!-- ----------------- (4) ИМПОРТ ----------------- -->
         <div class="sf__viz sf__viz--import" data-sf-viz="import" hidden>
           <div class="sf__im-sources" role="group" aria-label={t({ ru: "Источник", en: "Source" })}>
             {
@@ -338,64 +425,59 @@ const nav = {
           <p class="sf__viz-note mono" data-im-note>{t(importT.done)}</p>
         </div>
 
-        <!-- ----------------- (4) СЛУШАТЬ ----------------- -->
-        <div class="sf__viz sf__viz--listen" data-sf-viz="listen" hidden>
-          <div class="sf__ls-card">
-            <span class="sf__ls-cover" aria-hidden="true">♪</span>
-            <div class="sf__ls-meta">
-              <span class="sf__ls-title">{t(listen.title)}</span>
-              <span class="sf__ls-artist">{t(listen.artist)}</span>
-            </div>
-            <span class="sf__ls-hls mono" aria-hidden="true">{t(listen.hls)}</span>
+        <!-- ----------------- (5) РЕКОМЕНДАЦИИ ----------------- -->
+        <div class="sf__viz sf__viz--discover" data-sf-viz="discover" hidden>
+          <span class="sf__cap caption">{t(discover.cap)}</span>
+          <div class="sf__ta-chips" data-dc-chips>
+            {
+              tasteChips.map((c, i) => (
+                <button class="sf__chip" type="button" data-dc-chip={i} aria-pressed="false">
+                  {t(c)}
+                </button>
+              ))
+            }
           </div>
-          <div class="sf__ls-bar" data-ls-bar aria-hidden="true"><span class="sf__ls-fill" data-ls-fill></span></div>
-          <div class="sf__ls-lyr" data-ls-stage data-ls-state="idle">
-            <span class="sf__cap caption">{t(listen.lyrCap)}</span>
-            <ol class="sf__ly-lines" data-ls-lines>
-              {
-                lyricLines.map((l, i) => (
-                  <li class="sf__ly-line" data-ls-line={i}>
-                    <span class="sf__ly-tc mono" aria-hidden="true">{l.tc}</span>
-                    <span class="sf__ly-text">{locale === "en" ? l.en : l.ru}</span>
-                  </li>
-                ))
-              }
-            </ol>
+          <div class="sf__ta-tower">
+            <span class="sf__cap caption">{t(discover.towerCap)}</span>
+            <div class="sf__ta-meter" aria-hidden="true"><span class="sf__ta-fill" data-dc-fill></span></div>
+            <span class="sf__ta-count mono" data-dc-count>0 {t(discover.pick)}</span>
           </div>
-          <div class="sf__viz-controls">
-            <button class="sf__act" type="button" data-ls-play aria-pressed="false">{t(listen.play)}</button>
+          <span class="sf__cap caption">{t(discover.feedCap)}</span>
+          <div class="sf__dc-feed" data-dc-feed>
+            {
+              feedSections.map((sec, i) => (
+                <button class="sf__dc-card" type="button" data-dc-sec={i} data-note={t(sec.note)} aria-pressed="false" hidden>
+                  <span class="sf__dc-label">{t(sec.label)}</span>
+                  <span class="sf__dc-note mono">{t(sec.note)}</span>
+                </button>
+              ))
+            }
           </div>
+          <p class="sf__viz-note mono" data-dc-note>{t(discover.need)}</p>
         </div>
 
-        <!-- ----------------- (5) ЗАГРУЗКА ----------------- -->
-        <div class="sf__viz sf__viz--upload" data-sf-viz="upload" hidden>
-          <div class="sf__up-flow">
-            <div class="sf__card" data-up-card>
-              <span class="sf__card-ico" aria-hidden="true">♪</span>
-              <span class="sf__card-name mono">{t(upload.file)}</span>
-            </div>
-            <span class="sf__arrow" aria-hidden="true"></span>
-            <div class="sf__dd-col">
-              <span class="sf__cap caption">{t(upload.hashCap)}</span>
-              <code class="sf__hash mono"><span class="sf__hash-pre">sha256:</span><span data-up-hash>a1f9…7e3c</span></code>
-              <code class="sf__path mono" data-up-path>blobs/a1/a1f9…7e3c.ts</code>
-            </div>
-            <span class="sf__arrow" aria-hidden="true"></span>
-            <div class="sf__blob" data-up-blob>
-              <span class="sf__blob-cap caption">{t(upload.blobCap)}</span>
-              <span class="sf__blob-glyph mono" aria-hidden="true">▢</span>
-              <span class="sf__refcount mono">ref_count: <b data-up-ref>1</b></span>
-            </div>
+        <!-- ----------------- (6) ПОИСК ----------------- -->
+        <div class="sf__viz sf__viz--search" data-sf-viz="search" hidden>
+          <span class="sf__cap caption">{t(searchT.cap)}</span>
+          <div class="sf__sr-field">
+            <input class="sf__si-input mono" type="search" value={locale === "en" ? "kino" : "кин"} data-sr-input aria-label={t(searchT.cap)} autocomplete="off" />
+            <button class="sf__chip is-on" type="button" data-sr-translit aria-pressed="true">{t(searchT.translit)}</button>
           </div>
-          <p class="sf__up-steps mono" data-up-steps>{t(upload.steps)}</p>
-          <div class="sf__viz-controls">
-            <button class="sf__act" type="button" data-up-go>{t(upload.send)}</button>
-            <button class="sf__act sf__act--ghost" type="button" data-up-again disabled>{t(upload.again)}</button>
-            <span class="sf__viz-note mono" data-up-note></span>
-          </div>
+          <span class="sf__sr-fuzzy mono">{t(searchT.fuzzy)}</span>
+          <ul class="sf__sr-hits" data-sr-hits>
+            {
+              searchHits.map((h, i) => (
+                <li class="sf__sr-row" data-sr-row={i} hidden>
+                  <span class="sf__sr-title">{t(h.title)}</span>
+                  <span class="sf__sr-sub">{t(h.sub)}</span>
+                  <span class="sf__sr-via mono">{t(h.via)}</span>
+                </li>
+              ))
+            }
+          </ul>
         </div>
 
-        <!-- ----------------- (6) ВОРКЕР ----------------- -->
+        <!-- ----------------- (7) ВОРКЕР ----------------- -->
         <div class="sf__viz sf__viz--worker" data-sf-viz="worker" hidden>
           <div class="sf__wk-head">
             <span class="sf__cap caption">{t(worker.cap)}</span>
@@ -432,7 +514,7 @@ const nav = {
       <span aria-hidden="true">←</span> <span>{t(nav.prev)}</span>
     </button>
     <ol class="sf__dots" aria-hidden="true">
-      {steps.map((_, i) => <li class="sf__dot" data-sf-dot={i}></li>)}
+      {pillars.map((_, i) => <li class="sf__dot" data-sf-dot={i}></li>)}
     </ol>
     <button class="sf__pg-btn sf__pg-btn--next" type="button" data-sf-next>
       <span>{t(nav.next)}</span> <span aria-hidden="true">→</span>
@@ -457,6 +539,28 @@ const nav = {
     line-height: var(--lh-normal);
     color: var(--text-secondary);
     max-width: 68ch;
+  }
+
+  .sf__statline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2) var(--sp-4);
+  }
+  .sf__stat {
+    font-size: var(--fs-13);
+    color: var(--text-muted);
+  }
+  .sf__stat b {
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-semibold);
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .sf__stat--wide {
+    flex: 1 1 220px;
   }
 
   .sf__layout {
@@ -989,7 +1093,7 @@ const nav = {
     border-radius: var(--r-sm);
     background: var(--surface-2);
   }
-  .sf.is-inview .sf__viz--upload.is-active .sf__card[data-up-card] {
+  .sf.is-inview .sf__viz--storage.is-active .sf__card[data-st-card] {
     animation: sf-drop var(--dur-slow) var(--ease-soft) both;
   }
   @keyframes sf-drop {
@@ -1130,6 +1234,173 @@ const nav = {
     line-height: var(--lh-normal);
   }
 
+  /* (2) Транскод */
+  .sf__pl-flow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+  }
+  .sf__pl-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-1);
+    flex: none;
+    min-width: 72px;
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    opacity: 0.45;
+    transition:
+      opacity var(--dur-med) var(--ease-standard),
+      border-color var(--dur-med) var(--ease-standard),
+      transform var(--dur-med) var(--ease-soft);
+  }
+  .sf__pl-node.is-on {
+    opacity: 1;
+    border-color: var(--sf-hot-line);
+    transform: translate3d(0, -2px, 0);
+  }
+  .sf__pl-node--core.is-on {
+    background: var(--sf-hot-soft);
+  }
+  .sf__pl-ico {
+    font-size: var(--fs-20);
+    color: var(--text);
+    line-height: 1;
+  }
+  .sf__pl-label {
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
+    text-align: center;
+  }
+  .sf__pl-out {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    flex: 1 1 200px;
+  }
+  .sf__pl-chip {
+    padding: var(--sp-2) var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-pill);
+    background: var(--surface-2);
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+    opacity: 0.35;
+    transition:
+      opacity var(--dur-med) var(--ease-standard),
+      border-color var(--dur-med) var(--ease-standard),
+      color var(--dur-med) var(--ease-standard);
+  }
+  .sf__pl-chip.is-on {
+    opacity: 1;
+    color: var(--text);
+    border-color: var(--sf-hot-line);
+    background: var(--sf-hot-soft);
+  }
+
+  /* (5) Рекомендации */
+  .sf__dc-feed {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: var(--sp-2);
+    min-height: 4.5em;
+  }
+  .sf__dc-card {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    text-align: left;
+    cursor: pointer;
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+    transition:
+      opacity var(--dur-med) var(--ease-standard),
+      transform var(--dur-med) var(--ease-soft),
+      border-color var(--dur-fast) var(--ease-standard);
+  }
+  .sf__dc-card:not([hidden]) {
+    opacity: 1;
+    transform: none;
+  }
+  .sf__dc-card.is-on {
+    border-color: var(--sf-hot-line);
+    background: var(--sf-hot-soft);
+  }
+  .sf__dc-label {
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-semibold);
+    font-size: var(--fs-13);
+    color: var(--text);
+  }
+  .sf__dc-note {
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+  }
+
+  /* (6) Поиск */
+  .sf__sr-field {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    align-items: center;
+  }
+  .sf__sr-fuzzy {
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
+  .sf__sr-hits {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+    min-height: 6em;
+  }
+  .sf__sr-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-xs);
+    background: var(--surface);
+    opacity: 0;
+    transform: translate3d(-6px, 0, 0);
+    transition:
+      opacity var(--dur-med) var(--ease-standard),
+      transform var(--dur-med) var(--ease-soft);
+  }
+  .sf__sr-row:not([hidden]) {
+    opacity: 1;
+    transform: none;
+  }
+  .sf__sr-title {
+    font-size: var(--fs-14);
+    color: var(--text);
+    grid-column: 1;
+  }
+  .sf__sr-sub {
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+    grid-column: 1;
+  }
+  .sf__sr-via {
+    font-size: var(--fs-11);
+    color: var(--sf-hot);
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+  }
+
   /* пейджер-презентация */
   .sf__pager {
     display: flex;
@@ -1232,7 +1503,7 @@ const nav = {
   /* reduced-motion */
   @media (prefers-reduced-motion: reduce) {
     .sf__viz.is-active,
-    .sf__card[data-up-card],
+    .sf__card[data-st-card],
     .sf__viz--listen.is-playing .sf__ls-fill {
       animation: none !important;
     }
@@ -1243,7 +1514,9 @@ const nav = {
       transition: none;
     }
     .sf__ly-line,
-    .sf__im-row {
+    .sf__im-row,
+    .sf__dc-card,
+    .sf__sr-row {
       transition: none;
     }
   }
@@ -1251,11 +1524,9 @@ const nav = {
 
 <script>
   /**
-   * Объяснитель пользовательского flow .звук. Селектор табов + одна сцена с
-   * шестью иллюстрациями (видна активная). Нет вечного rAF: автоплей ведут
-   * CSS-анимации + setTimeout через трекер later(), который ОЧИЩАЕТСЯ за кадром
-   * / на скрытой вкладке / при pagehide. Всё гейтится IntersectionObserver. При
-   * prefers-reduced-motion - финальное статичное состояние, интеракции работают.
+   * Интерактивный обзор возможностей .звук (не user flow). Селектор доменов +
+   * живая схема на каждый. setTimeout через later(), IntersectionObserver,
+   * prefers-reduced-motion → статичный кадр.
    */
   (() => {
     const root = document.querySelector<HTMLElement>("[data-sf]");
@@ -1275,51 +1546,59 @@ const nav = {
     type Copy = { id: string; title: string; desc: string };
     const copy: Copy[] = [
       {
-        id: "signin",
-        title: tr("Вход без пароля", "Passwordless sign-in"),
+        id: "storage",
+        title: tr("Загрузка и content-addressed storage", "Upload and content-addressed storage"),
         desc: tr(
-          "Два способа войти без пароля. Telegram - в один тап: Mini App открывается поверх уже существующей сессии Telegram. Или по почте: приходит magic link - одноразовая ссылка с коротким сроком жизни, по которой вы сразу внутри.",
-          "Two passwordless ways in. Telegram - one tap: the Mini App opens over your existing Telegram session. Or by email: a magic link arrives - a one-time, short-lived link that signs you straight in.",
+          "Chunked-загрузка (resumable, S3 multipart) с MIME-валидацией и ClamAV-сканом. Контент адресуется по SHA-256: одинаковый трек хранится один раз, повторная заливка лишь увеличивает ref_count. Пользовательские квоты, MinIO с дедупликацией.",
+          "Chunked upload (resumable, S3 multipart) with MIME validation and a ClamAV scan. Content is addressed by SHA-256: an identical track is stored once, a re-upload only bumps ref_count. Per-user quotas, MinIO with deduplication.",
         ),
       },
       {
-        id: "taste",
-        title: tr("Настройка рекомендаций", "Set up recommendations"),
+        id: "pipeline",
+        title: tr("Транскодинг и деривативы", "Transcoding and derivatives"),
         desc: tr(
-          "Отметьте, что любите - жанры и настроения. Из выбора собирается ваша «башня» из 128 чисел (128d): вектор вкуса, по близости которого к векторам треков и подбирается лента «для вас». Чем больше отмечено, тем точнее старт.",
-          "Mark what you like - genres and moods. Your choices build your 128-number 'tower' (128d): a taste vector whose closeness to track vectors drives your 'for you' feed. The more you mark, the sharper the start.",
-        ),
-      },
-      {
-        id: "import",
-        title: tr("Импорт треков из источников", "Import tracks from sources"),
-        desc: tr(
-          "Подтяните музыку из SoundCloud, YouTube или Bandcamp - ссылкой или целым каталогом артиста. Под капотом задача soundcloud_rpc тянет треки через yt-dlp и синхронизирует их в ваш каталог, без ручной заливки по одному.",
-          "Pull music from SoundCloud, YouTube or Bandcamp - by link or a whole artist catalog. Under the hood a soundcloud_rpc job fetches tracks via yt-dlp and syncs them into your library, with no manual one-by-one upload.",
+          "FFmpeg строит progressive MP3 и адаптивный HLS (две дорожки), нормализует громкость. На каждый трек — waveform (200 столбцов), сниппет-превью и процедурная обложка.",
+          "FFmpeg builds progressive MP3 and adaptive HLS (two renditions) and normalizes loudness. Per track: a 200-bar waveform, a preview snippet, and a procedural cover.",
         ),
       },
       {
         id: "listen",
-        title: tr("Прослушивание с лирикой", "Listening with lyrics"),
+        title: tr("Воспроизведение и синхро-лирика", "Playback and synced lyrics"),
         desc: tr(
-          "Трек играет адаптивным HLS - качество подстраивается под сеть. Лирика всплывает сама, строчка за строчкой в такт: Demucs (--two-stems=vocals) снимает вокал, faster-whisper его расшифровывает, а выравнивание ставит тайм-код каждой строке.",
-          "A track plays as adaptive HLS - quality adapts to the network. Lyrics surface on their own, line by line in time: Demucs (--two-stems=vocals) lifts the vocals, faster-whisper transcribes them, and alignment timestamps each line.",
+          "Presigned URL, range-стриминг, HLS с adaptive bitrate (hls.js). Лирика всплывает построчно в такт: Demucs (--two-stems=vocals) + faster-whisper. Prefetch следующих треков.",
+          "Presigned URLs, range streaming, HLS with adaptive bitrate (hls.js). Lyrics surface line by line in sync: Demucs (--two-stems=vocals) + faster-whisper. Prefetch of next tracks.",
         ),
       },
       {
-        id: "upload",
-        title: tr("Загрузка своего трека", "Upload your own track"),
+        id: "import",
+        title: tr("Импорт из внешних источников", "Import from external sources"),
         desc: tr(
-          "Кидаете файл прямо в чат с ботом. Сервер берёт SHA-256 от содержимого - это и ключ дедупа, и часть пути в хранилище: одинаковый трек хранится один раз, повторная заливка лишь увеличивает ref_count. Дальше воркер сам делает лирику, и трек в каталоге.",
-          "You drop a file right into the bot chat. The server hashes the content with SHA-256 - both the dedup key and part of the storage path: an identical track is stored once, a re-upload only bumps ref_count. Then the worker makes lyrics itself, and the track lands in the catalog.",
+          "Импорт треков из SoundCloud, YouTube, Bandcamp — по ссылке или каталогом. Очередь с диспетчером и лимитами, backfill артистов, in-app уведомления RU/EN.",
+          "Import tracks from SoundCloud, YouTube, Bandcamp — by link or catalog. A queued dispatcher with limits, artist backfill, in-app notifications in RU/EN.",
+        ),
+      },
+      {
+        id: "discover",
+        title: tr("Персональная лента и миксы", "Personal feed and mixes"),
+        desc: tr(
+          "Главный экран (8–10 секций): Daily / Weekly Mix, жанровые миксы, радио (seed-first), похожие треки. Скоринг в приватном ядре; телеметрия impressions ↔ listen.",
+          "Home screen (8–10 sections): Daily / Weekly Mix, genre mixes, radio (seed-first), similar tracks. Scoring in the private core; impressions ↔ listen telemetry.",
+        ),
+      },
+      {
+        id: "search",
+        title: tr("Полнотекстовый поиск", "Full-text search"),
+        desc: tr(
+          "Elasticsearch 8: полнотекст, SAYT, транслитерация RU↔LAT, fuzzy. Индексируются метаданные и распознанная лирика — трек находится по строчке из песни.",
+          "Elasticsearch 8: full-text, SAYT, RU↔LAT transliteration, fuzzy. Metadata and recognized lyrics are indexed — find a track by a line from the song.",
         ),
       },
       {
         id: "worker",
-        title: tr("Что воркер делает с треком", "What the worker does with a track"),
+        title: tr("Compute-воркер без открытых портов", "Compute worker with no open ports"),
         desc: tr(
-          "Тяжёлое считает отдельный GPU-воркер без открытых портов. Из одной очереди он тянет 17 типов задач - от эмбеддингов и похожих треков до транскода в HLS, волны, превью и импорта. Плюс отдельный ASR-конвейер (Demucs + faster-whisper) для лирики. Тапните задачу - покажу, что она делает.",
-          "Heavy work runs on a separate GPU worker with no open ports. From one queue it pulls 17 job types - from embeddings and similar tracks to HLS transcoding, waveform, snippet and import. Plus a dedicated ASR pipeline (Demucs + faster-whisper) for lyrics. Tap a job to see what it does.",
+          "Pull-based протокол с HMAC и одноразовыми токенами. 17 типов задач в одной очереди + ASR-конвейер (Demucs + faster-whisper). Тапните задачу — покажу, что она делает.",
+          "Pull-based protocol with HMAC and one-time tokens. 17 job types in one queue plus an ASR pipeline (Demucs + faster-whisper). Tap a job to see what it does.",
         ),
       },
     ];
@@ -1343,131 +1622,70 @@ const nav = {
     };
     const D = (ms: number): number => (reduced ? 0 : ms);
 
-    // ---- акцентный цвет (для конфети) ----
-    const probe = document.createElement("span");
-    probe.style.cssText = "color:var(--project-accent);position:absolute;opacity:0";
-    root.appendChild(probe);
-    const accent = getComputedStyle(probe).color || "rgb(150,150,170)";
-    probe.remove();
+    // ============ (1) ХРАНЕНИЕ ============
+    const stRef = root.querySelector<HTMLElement>("[data-st-ref]");
+    const stBlob = root.querySelector<HTMLElement>("[data-st-blob]");
+    const stSteps = root.querySelector<HTMLElement>("[data-st-steps]");
+    const stGo = root.querySelector<HTMLButtonElement>("[data-st-go]");
+    const stAgain = root.querySelector<HTMLButtonElement>("[data-st-again]");
+    const stNote = root.querySelector<HTMLElement>("[data-st-note]");
+    let stRc = 1;
 
-    // ---- фуллскрин-конфети: одноразовый, чистится сам ----
-    const confetti = (): void => {
-      if (reduced) return;
-      const cv = document.createElement("canvas");
-      cv.setAttribute("aria-hidden", "true");
-      cv.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:80";
-      const cc = cv.getContext("2d");
-      if (!cc) return;
-      document.body.appendChild(cv);
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      cv.width = Math.round(vw * dpr);
-      cv.height = Math.round(vh * dpr);
-      cc.scale(dpr, dpr);
-      const palette = [accent, "#ffffff", "#d8dbe6", "#aab0bd"];
-      type Cf = { x: number; y: number; vx: number; vy: number; rot: number; vr: number; s: number; c: string };
-      const cfs: Cf[] = Array.from({ length: 150 }, (_, i) => ({
-        x: vw / 2 + (Math.random() - 0.5) * vw * 0.55,
-        y: vh * 0.28 + (Math.random() - 0.5) * 70,
-        vx: (Math.random() - 0.5) * 9,
-        vy: Math.random() * -11 - 4,
-        rot: Math.random() * Math.PI,
-        vr: (Math.random() - 0.5) * 0.4,
-        s: 5 + Math.random() * 6,
-        c: palette[i % palette.length] ?? "#ffffff",
-      }));
-      let frame = 0;
-      const tick = (): void => {
-        frame += 1;
-        cc.clearRect(0, 0, vw, vh);
-        for (const p of cfs) {
-          p.vy += 0.34;
-          p.vx *= 0.99;
-          p.x += p.vx;
-          p.y += p.vy;
-          p.rot += p.vr;
-          cc.save();
-          cc.translate(p.x, p.y);
-          cc.rotate(p.rot);
-          cc.globalAlpha = Math.max(0, 1 - frame / 150);
-          cc.fillStyle = p.c;
-          cc.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6);
-          cc.restore();
-        }
-        if (frame < 150) requestAnimationFrame(tick);
-        else cv.remove();
-      };
-      requestAnimationFrame(tick);
+    const stRun = (): void => {
+      clearTimers();
+      if (stGo) stGo.disabled = true;
+      if (stSteps) stSteps.classList.remove("is-on");
+      if (stNote) stNote.textContent = "";
+      later(() => {
+        if (stSteps) stSteps.classList.add("is-on");
+        if (stAgain) stAgain.disabled = false;
+        if (stGo) stGo.disabled = false;
+      }, D(700));
     };
-
-    // ============ (1) ВХОД ============
-    const siNote = root.querySelector<HTMLElement>("[data-si-note]");
-    const siPanes = Array.from(root.querySelectorAll<HTMLElement>("[data-si-pane]"));
-    const siMethodBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-si-method]"));
-    const siTg = root.querySelector<HTMLButtonElement>("[data-si-tg]");
-    const siSend = root.querySelector<HTMLButtonElement>("[data-si-send]");
-    const siLink = root.querySelector<HTMLElement>("[data-si-link]");
-    const siOpen = root.querySelector<HTMLButtonElement>("[data-si-open]");
-
-    const setNote = (el: HTMLElement | null, txt: string): void => {
-      if (el) el.textContent = txt;
-    };
-
-    siMethodBtns.forEach((b) => {
-      b.addEventListener("click", () => {
-        const m = b.dataset.siMethod ?? "tg";
-        siMethodBtns.forEach((x) => {
-          const on = x === b;
-          x.classList.toggle("is-on", on);
-          x.setAttribute("aria-pressed", on ? "true" : "false");
-        });
-        siPanes.forEach((p) => {
-          p.hidden = p.dataset.siPane !== m;
-        });
-        setNote(siNote, tr("выберите способ входа", "choose how to sign in"));
-      });
-    });
-    siTg?.addEventListener("click", () => {
-      setNote(siNote, tr("вошли через сессию Telegram - один тап, без пароля", "signed in via the Telegram session - one tap, no password"));
-      confetti();
-    });
-    siSend?.addEventListener("click", () => {
-      if (siLink) siLink.hidden = false;
-      setNote(siNote, tr("magic link отправлен на почту", "magic link sent to your email"));
-    });
-    siOpen?.addEventListener("click", () => {
-      setNote(siNote, tr("вошли по magic link - ссылка погашена", "signed in by magic link - link burned"));
-      confetti();
-    });
-
-    // ============ (2) ВКУС ============
-    const taChips = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-ta-chip]"));
-    const taFill = root.querySelector<HTMLElement>("[data-ta-fill]");
-    const taCount = root.querySelector<HTMLElement>("[data-ta-count]");
-    const taNote = root.querySelector<HTMLElement>("[data-ta-note]");
-    let taSel = 0;
-
-    const taSync = (): void => {
-      if (taFill) taFill.style.transform = `scaleX(${Math.min(1, taSel / 6).toFixed(3)})`;
-      if (taCount) taCount.textContent = `${taSel} ${tr("выбрано", "selected")}`;
-      if (taNote) {
-        taNote.textContent =
-          taSel >= 3
-            ? tr("подбор настроен - лента «для вас» готова", "tuned - your 'for you' feed is ready")
-            : tr("отметьте хотя бы 3", "mark at least 3");
+    const stBump = (): void => {
+      stRc += 1;
+      if (stRef) stRef.textContent = String(stRc);
+      if (stBlob) {
+        stBlob.classList.add("is-bump");
+        later(() => stBlob.classList.remove("is-bump"), D(220));
+      }
+      if (stNote) {
+        stNote.textContent = tr(
+          "тот же хэш → ref_count++, новый blob НЕ создаётся",
+          "same hash → ref_count++, no new blob created",
+        );
       }
     };
-    taChips.forEach((c) => {
-      c.addEventListener("click", () => {
-        const on = c.getAttribute("aria-pressed") === "true";
-        c.setAttribute("aria-pressed", on ? "false" : "true");
-        c.classList.toggle("is-on", !on);
-        taSel += on ? -1 : 1;
-        if (taSel < 0) taSel = 0;
-        taSync();
+    stGo?.addEventListener("click", stRun);
+    stAgain?.addEventListener("click", stBump);
+
+    // ============ (2) ТРАНСКОД ============
+    const plNodes = Array.from(root.querySelectorAll<HTMLElement>("[data-pl-node]"));
+    const plOuts = Array.from(root.querySelectorAll<HTMLElement>("[data-pl-out]"));
+    const plGo = root.querySelector<HTMLButtonElement>("[data-pl-go]");
+    const plNote = root.querySelector<HTMLElement>("[data-pl-note]");
+
+    const runPipeline = (): void => {
+      clearTimers();
+      plNodes.forEach((n) => n.classList.remove("is-on"));
+      plOuts.forEach((o) => o.classList.remove("is-on"));
+      if (plGo) plGo.disabled = true;
+      if (plNote) plNote.textContent = "";
+      const seq = [...plNodes, ...plOuts];
+      seq.forEach((el, i) => {
+        later(() => el.classList.add("is-on"), D(280) * (i + 1));
       });
-    });
+      later(() => {
+        if (plNote) {
+          plNote.textContent = tr(
+            "деривативы готовы — immutable сегменты",
+            "derivatives ready — immutable segments",
+          );
+        }
+        if (plGo) plGo.disabled = false;
+      }, D(280) * (seq.length + 1));
+    };
+    plGo?.addEventListener("click", runPipeline);
 
     // ============ (3) ИМПОРТ ============
     const imSrcBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-im-src]"));
@@ -1535,39 +1753,78 @@ const nav = {
       else lsStart();
     });
 
-    // ============ (5) ЗАГРУЗКА ============
-    const upRef = root.querySelector<HTMLElement>("[data-up-ref]");
-    const upBlob = root.querySelector<HTMLElement>("[data-up-blob]");
-    const upSteps = root.querySelector<HTMLElement>("[data-up-steps]");
-    const upGo = root.querySelector<HTMLButtonElement>("[data-up-go]");
-    const upAgain = root.querySelector<HTMLButtonElement>("[data-up-again]");
-    const upNote = root.querySelector<HTMLElement>("[data-up-note]");
-    let upRc = 1;
+    // ============ (5) РЕКОМЕНДАЦИИ ============
+    const dcChips = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-dc-chip]"));
+    const dcFill = root.querySelector<HTMLElement>("[data-dc-fill]");
+    const dcCount = root.querySelector<HTMLElement>("[data-dc-count]");
+    const dcNote = root.querySelector<HTMLElement>("[data-dc-note]");
+    const dcCards = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-dc-sec]"));
+    let dcSel = 0;
 
-    const upRun = (): void => {
-      clearTimers();
-      if (upGo) upGo.disabled = true;
-      if (upSteps) upSteps.classList.remove("is-on");
-      if (upNote) upNote.textContent = "";
-      later(() => {
-        if (upSteps) upSteps.classList.add("is-on");
-        if (upAgain) upAgain.disabled = false;
-        if (upGo) upGo.disabled = false;
-      }, D(700));
-    };
-    const upBump = (): void => {
-      upRc += 1;
-      if (upRef) upRef.textContent = String(upRc);
-      if (upBlob) {
-        upBlob.classList.add("is-bump");
-        later(() => upBlob.classList.remove("is-bump"), D(220));
+    const dcSync = (): void => {
+      if (dcFill) dcFill.style.transform = `scaleX(${Math.min(1, dcSel / 5).toFixed(3)})`;
+      if (dcCount) dcCount.textContent = `${dcSel} ${tr("выбрано", "selected")}`;
+      const showFeed = dcSel >= 2;
+      dcCards.forEach((card, i) => {
+        card.hidden = !showFeed;
+        if (!showFeed) card.classList.remove("is-on");
+        else later(() => {
+          card.hidden = false;
+        }, D(120) * i);
+      });
+      if (dcNote) {
+        dcNote.textContent = showFeed
+          ? tr("лента прогрета — impressions ↔ listen", "feed warmed — impressions ↔ listen")
+          : tr("отметьте хотя бы 2 — появятся секции ленты", "mark at least 2 — feed sections appear");
       }
-      if (upNote) upNote.textContent = tr("тот же хэш → ref_count++, новый blob НЕ создаётся", "same hash → ref_count++, no new blob created");
     };
-    upGo?.addEventListener("click", upRun);
-    upAgain?.addEventListener("click", upBump);
+    dcChips.forEach((c) => {
+      c.addEventListener("click", () => {
+        const on = c.getAttribute("aria-pressed") === "true";
+        c.setAttribute("aria-pressed", on ? "false" : "true");
+        c.classList.toggle("is-on", !on);
+        dcSel += on ? -1 : 1;
+        if (dcSel < 0) dcSel = 0;
+        dcSync();
+      });
+    });
+    dcCards.forEach((card) => {
+      card.addEventListener("click", () => {
+        dcCards.forEach((x) => {
+          x.classList.remove("is-on");
+          x.setAttribute("aria-pressed", "false");
+        });
+        card.classList.add("is-on");
+        card.setAttribute("aria-pressed", "true");
+      });
+    });
 
-    // ============ (6) ВОРКЕР ============
+    // ============ (6) ПОИСК ============
+    const srInput = root.querySelector<HTMLInputElement>("[data-sr-input]");
+    const srRows = Array.from(root.querySelectorAll<HTMLElement>("[data-sr-row]"));
+    const srTranslit = root.querySelector<HTMLButtonElement>("[data-sr-translit]");
+
+    const runSearch = (): void => {
+      clearTimers();
+      srRows.forEach((r) => {
+        r.hidden = true;
+      });
+      srRows.forEach((r, i) => {
+        later(() => {
+          r.hidden = false;
+        }, D(180) * (i + 1));
+      });
+    };
+    srInput?.addEventListener("input", runSearch);
+    srInput?.addEventListener("focus", runSearch);
+    srTranslit?.addEventListener("click", () => {
+      const on = srTranslit.getAttribute("aria-pressed") === "true";
+      srTranslit.setAttribute("aria-pressed", on ? "false" : "true");
+      srTranslit.classList.toggle("is-on", !on);
+      runSearch();
+    });
+
+    // ============ (7) ВОРКЕР ============
     const wkJobs = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-wk-job]"));
     const wkMore = root.querySelector<HTMLButtonElement>("[data-wk-more]");
     const wkDesc = root.querySelector<HTMLElement>("[data-wk-desc]");
@@ -1599,15 +1856,25 @@ const nav = {
 
     // ============ Автоплей при показе шага ============
     const autoplay = (id: string): void => {
-      if (id === "import") {
+      if (id === "storage") {
+        if (reduced && stSteps) stSteps.classList.add("is-on");
+        else if (!reduced) later(() => stGo?.click(), D(250));
+      } else if (id === "pipeline") {
+        if (reduced) {
+          plNodes.forEach((n) => n.classList.add("is-on"));
+          plOuts.forEach((o) => o.classList.add("is-on"));
+        } else runPipeline();
+      } else if (id === "import") {
         if (reduced) imRows.forEach((r) => r.classList.add("is-in"));
         else runImport();
       } else if (id === "listen") {
         if (reduced) lsLines.forEach((l) => l.classList.add("is-in"));
         else lsStart();
-      } else if (id === "upload") {
-        if (reduced && upSteps) upSteps.classList.add("is-on");
-        else if (!reduced) later(() => upGo?.click(), D(250));
+      } else if (id === "search") {
+        if (reduced) srRows.forEach((r) => {
+          r.hidden = false;
+        });
+        else runSearch();
       }
     };
 
@@ -1624,7 +1891,7 @@ const nav = {
         tab.tabIndex = on ? 0 : -1;
         if (on && focus) tab.focus();
       });
-      const id = tabs[idx]?.dataset.id ?? "signin";
+      const id = tabs[idx]?.dataset.id ?? "storage";
       vizEls.forEach((v) => {
         const on = v.dataset.sfViz === id;
         v.hidden = !on;
@@ -1683,7 +1950,7 @@ const nav = {
               clearTimers();
               lsStop();
             } else {
-              autoplay(tabs[current]?.dataset.id ?? "signin");
+              autoplay(tabs[current]?.dataset.id ?? "storage");
             }
           }
         },
