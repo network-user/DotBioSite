@@ -9,12 +9,28 @@ interface Props {
 const { locale } = Astro.props;
 const t = useTranslations(locale);
 
-type StackIcon = "stack" | "code" | "rocket" | "spark" | "telegram" | "link";
+type StackIcon =
+  | "stack"
+  | "code"
+  | "rocket"
+  | "spark"
+  | "telegram"
+  | "link"
+  | "database"
+  | "shield"
+  | "activity";
 
 interface StackGroup {
   id: string;
   icon: StackIcon;
   items: ReadonlyArray<string>;
+  /**
+   * Сколько первых чипов — «ядро» группы, которое видно всегда (только для
+   * primary-групп). Остальные чипы и непоказанные группы целиком раскрываются
+   * по кнопке. Порядок в `items` подобран так, что ядро — самое узнаваемое и
+   * весомое; нишевое уходит в хвост.
+   */
+  core?: number;
 }
 
 /**
@@ -26,35 +42,84 @@ const groups: ReadonlyArray<StackGroup> = [
   {
     id: "backend",
     icon: "stack",
+    core: 7,
     items: [
       "Python 3.12",
       "FastAPI",
-      "Django / DRF",
-      "Litestar",
       "NestJS 10",
+      "Django / DRF",
       "SQLAlchemy 2",
       "Pydantic",
-      "Celery",
       "asyncio",
-      "PostgreSQL 16",
-      "Redis",
-      "Elasticsearch",
-      "MinIO / S3",
+      "Celery",
+      "Taskiq",
+      "Alembic",
+      "httpx",
+      "aiohttp",
+      "Starlette",
+      "Uvicorn",
+      "Litestar",
+      "pydantic-settings",
+      "aiohttp-socks",
+      "APScheduler",
     ],
   },
   {
     id: "frontend",
     icon: "code",
+    core: 7,
     items: [
       "TypeScript",
-      "JavaScript",
       "React 18",
       "Astro 4",
-      "Bootstrap",
       "Vite 5",
       "Tailwind",
+      "Pyodide (WASM)",
+      "Zod",
       "TanStack Router",
+      "Monaco editor",
+      "Framer Motion",
+      "MDX",
+      "Radix UI",
+      "Shiki",
+      "TanStack Virtual",
+      "Web Workers",
+      "i18next",
+      "JavaScript",
+      "Bootstrap",
       "Jinja2",
+    ],
+  },
+  {
+    id: "ml",
+    icon: "spark",
+    core: 7,
+    items: [
+      "PyTorch",
+      "faster-whisper",
+      "Demucs",
+      "Claude Code",
+      "Cursor",
+      "Codex",
+      "Antigravity",
+      "ComfyUI",
+      "YOLO",
+      "n8n",
+      "Pandas",
+    ],
+  },
+  {
+    id: "data",
+    icon: "database",
+    items: [
+      "PostgreSQL 16",
+      "Redis",
+      "Elasticsearch 8",
+      "MinIO / S3",
+      "SQLite",
+      "asyncpg",
+      "psycopg 3",
+      "IndexedDB / Dexie",
     ],
   },
   {
@@ -62,30 +127,35 @@ const groups: ReadonlyArray<StackGroup> = [
     icon: "rocket",
     items: [
       "Docker",
-      "GitLab CI/CD",
+      "Docker Compose",
       "GitHub Actions",
+      "GitLab CI/CD",
       "ArgoCD",
       "Nginx",
       "Cloudflare Pages",
-      "Pytest",
-      "pnpm",
       "VPS",
+      "Poetry",
+      "pnpm",
+      "Turborepo",
+      "Pytest",
+      "Vitest",
+      "testcontainers",
+      "mypy",
+      "Ruff",
+      "ESLint",
+      "Prettier",
+      "FFmpeg",
     ],
   },
   {
-    id: "ml",
-    icon: "spark",
-    items: [
-      "PyTorch",
-      "YOLO",
-      "ComfyUI",
-      "faster-whisper",
-      "Demucs",
-      "n8n",
-      "Pandas",
-      "BYOK LLMs",
-      "Pyodide",
-    ],
+    id: "observability",
+    icon: "activity",
+    items: ["Prometheus", "OpenTelemetry", "Grafana", "Loki", "Tempo", "Sentry", "structlog"],
+  },
+  {
+    id: "security",
+    icon: "shield",
+    items: ["JWT", "TOTP / 2FA", "argon2id", "bcrypt", "HMAC", "Fernet", "AES backups", "ClamAV"],
   },
   {
     id: "mobile",
@@ -98,6 +168,29 @@ const groups: ReadonlyArray<StackGroup> = [
     items: ["Web3.py", "Solidity", "Truffle / Hardhat", "Ethereum"],
   },
 ];
+
+/**
+ * Свёрнуто видно только ядро трёх primary-групп (Backend / Frontend / AI · ML):
+ * сразу читается фокус, без свалки чипов. По кнопке-счётчику раскрывается весь
+ * арсенал — хвосты primary-групп дорисовываются в тех же карточках, плюс
+ * появляются остальные группы. Механика — чистый CSS (checkbox + `~`): без JS,
+ * без мигания при загрузке, доступно с клавиатуры.
+ */
+const PRIMARY_COUNT = 3;
+
+/** Для каждой группы: индекс, флаг primary и размер видимого ядра. */
+const layout = groups.map((g, i) => {
+  const isPrimary = i < PRIMARY_COUNT;
+  const coreCount = isPrimary ? (g.core ?? g.items.length) : g.items.length;
+  return { group: g, isPrimary, coreCount };
+});
+
+/** Сколько чипов спрятано в свёрнутом виде — это число выносим на кнопку. */
+const hiddenCount = layout.reduce(
+  (sum, { group, isPrimary, coreCount }) =>
+    sum + (isPrimary ? Math.max(0, group.items.length - coreCount) : group.items.length),
+  0,
+);
 ---
 
 <section class="section stack" id="stack" aria-labelledby="stack-title">
@@ -109,35 +202,49 @@ const groups: ReadonlyArray<StackGroup> = [
       lede={t("stack.lede")}
     />
 
-    <div class="stack__grid" data-stack-grid>
+    <input type="checkbox" id="stack-expand" class="stack__expand" aria-controls="stack-grid" />
+
+    <div class="stack__grid" id="stack-grid" data-stack-grid>
       {
-        groups.map((g, i) => {
-          const label = t(`stack.categories.${g.id}`);
+        layout.map(({ group, isPrimary, coreCount }, i) => {
+          const label = t(`stack.categories.${group.id}`);
           const delay = String(i * 80);
+          const cardClass = `stack__group glass glass--hover${isPrimary ? "" : " stack__group--extra"}`;
           return (
             <article
-              class="stack__group glass glass--hover"
+              class={cardClass}
               data-stack-card
               data-warp
-              data-reveal
-              data-reveal-delay={delay}
+              data-reveal={isPrimary ? true : undefined}
+              data-reveal-delay={isPrimary ? delay : undefined}
             >
               <span class="stack__sheen" aria-hidden="true" />
               <span class="stack__bar" aria-hidden="true" />
               <header class="stack__group-header">
-                <Icon name={g.icon} size={20} class="stack__icon" />
+                <Icon name={group.icon} size={20} class="stack__icon" />
                 <p class="caption">{label}</p>
               </header>
               <ul class="stack__chips">
-                {g.items.map((it) => (
-                  <li class="stack__chip">{it}</li>
-                ))}
+                {group.items.map((it, j) => {
+                  const extra = isPrimary && j >= coreCount;
+                  return <li class={`stack__chip${extra ? " stack__chip--extra" : ""}`}>{it}</li>;
+                })}
               </ul>
             </article>
           );
         })
       }
     </div>
+
+    <label class="stack__more-toggle" for="stack-expand" data-warp>
+      <span class="stack__more-text stack__more-text--show">
+        {t("stack.morePrefix")}
+        {hiddenCount}
+        {t("stack.moreSuffix")}
+      </span>
+      <span class="stack__more-text stack__more-text--hide">{t("stack.less")}</span>
+      <Icon name="chevron-right" size={16} class="stack__more-chevron" />
+    </label>
   </div>
 </section>
 
@@ -308,6 +415,103 @@ const groups: ReadonlyArray<StackGroup> = [
     transform: translateY(-2px);
   }
 
+  /* Disclosure: свёрнуто видно только ядро primary-групп. Раскрытие — чистый
+     CSS через скрытый чекбокс + общий комбинатор `~`: без JS, без FOUC,
+     фокус с клавиатуры сохранён. Хвосты ядра и доп.группы помечены `--extra`. */
+  .stack__expand {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .stack__chip--extra,
+  .stack__group--extra {
+    display: none;
+  }
+
+  .stack__expand:checked ~ .stack__grid .stack__chip--extra {
+    display: block;
+  }
+
+  .stack__expand:checked ~ .stack__grid .stack__group--extra {
+    display: flex;
+  }
+
+  .stack__expand:checked ~ .stack__grid .stack__chip--extra,
+  .stack__expand:checked ~ .stack__grid .stack__group--extra {
+    animation: stack-more-in var(--dur-slow) var(--ease-soft);
+  }
+
+  .stack__more-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-2);
+    width: fit-content;
+    margin: var(--sp-5) auto 0;
+    padding: var(--sp-2) var(--sp-5);
+    border-radius: var(--r-pill);
+    border: var(--bw-thin) solid var(--border);
+    background: var(--surface);
+    color: var(--text-secondary);
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-snug);
+    cursor: pointer;
+    transition:
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard);
+  }
+
+  .stack__more-toggle:hover {
+    color: var(--text);
+    border-color: var(--border-hover);
+  }
+
+  .stack__expand:focus-visible ~ .stack__more-toggle {
+    outline: var(--bw-thin) solid var(--border-hover);
+    outline-offset: 2px;
+  }
+
+  .stack__more-text--hide {
+    display: none;
+  }
+
+  .stack__expand:checked ~ .stack__more-toggle .stack__more-text--show {
+    display: none;
+  }
+
+  .stack__expand:checked ~ .stack__more-toggle .stack__more-text--hide {
+    display: inline;
+  }
+
+  .stack__more-chevron {
+    color: var(--text-muted);
+    transition: transform var(--dur-fast) var(--ease-soft);
+  }
+
+  .stack__expand:checked ~ .stack__more-toggle .stack__more-chevron {
+    transform: rotate(90deg);
+  }
+
+  @keyframes stack-more-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     /* Kill all ambient/pointer motion: no sweep, no drift, no sheen, no chip lift. */
     .stack__bar,
@@ -329,6 +533,15 @@ const groups: ReadonlyArray<StackGroup> = [
 
     .stack__chip:hover {
       transform: none;
+    }
+
+    .stack__more-chevron {
+      transition: none;
+    }
+
+    .stack__expand:checked ~ .stack__grid .stack__chip--extra,
+    .stack__expand:checked ~ .stack__grid .stack__group--extra {
+      animation: none;
     }
   }
 

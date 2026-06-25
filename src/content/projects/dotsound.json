@@ -10,12 +10,12 @@
     "en": ".sound"
   },
   "tagline": {
-    "ru": "Музыкальная платформа, которая сама пишет текст песни.",
-    "en": "A music platform that writes the lyrics for you."
+    "ru": "Вся музыка в одном месте.",
+    "en": "All your music in one place."
   },
   "description": {
-    "ru": "Музыкальный сервис без рекламы, выросший в экосистему из четырёх репозиториев. Загрузил трек в плеере - и он зазвучал у всех, с адаптивным стримингом и текстом, который проявляется построчно сам. Вход - через Telegram, под капотом ASR-каскад на GPU, дедупликация по содержимому и разделение на открытый клиент и закрытое ядро политик.",
-    "en": "An ad-free music service that grew into a four-repository ecosystem. Upload a track in the player and it plays for everyone, with adaptive streaming and lyrics that surface line by line on their own. Telegram is the way in; underneath sit a GPU ASR cascade, content-based dedup, and a split between an open client and a closed policy core."
+    "ru": "Музыкальный сервис без рекламы, где весь твой звук собирается в одном месте. Загружай свои треки или подключай любимые стриминговые платформы. Музыка играет плавно, слова песни появляются сами в такт, а умные подборки подстраиваются под твой вкус и настроение.",
+    "en": "An ad-free music service where all your sound lives in one place. Upload your own tracks or connect your favorite streaming platforms. Music plays smoothly, song lyrics appear in sync on their own, and smart mixes adapt to your taste and mood."
   },
   "stack": [
     "Python 3.12",
@@ -94,36 +94,66 @@
   ],
   "overview": {
     "ru": [
-      "Музыкальный сервис без рекламы с точкой входа через Telegram: открыл плеер, загрузил трек - и он зазвучал у всех, с адаптивным стримингом и текстом, который проявляется построчно сам. Всё тяжёлое - ASR, разделение вокала, рекомендации - считает отдельный GPU-воркер, поэтому Backend остаётся быстрым."
+      "Загружай свои треки или подтягивай музыку из VK, SoundCloud, Spotify, YouTube и Яндекс Музыки - всё в одном плеере без рекламы. Точка входа - Telegram: открыл, нашёл, послушал. Лирика появляется построчно сама, подборки подстраиваются под вкус, а тяжёлое - ASR, разделение вокала, эмбеддинги - считает отдельный GPU-воркер."
     ],
     "en": [
-      "An ad-free music service whose way in is Telegram: open the player, upload a track and it plays for everyone, with adaptive streaming and lyrics that surface line by line on their own. Everything heavy - ASR, vocal separation, recommendations - runs on a separate GPU worker, so the Backend stays fast."
+      "Upload your own tracks or pull music from VK, SoundCloud, Spotify, YouTube and Yandex Music - all in one ad-free player. Entry is Telegram: open, search, listen. Lyrics surface line by line on their own, mixes adapt to your taste, and everything heavy - ASR, vocal separation, embeddings - runs on a separate GPU worker."
     ]
   },
   "metrics": [
     {
-      "value": "340k+",
+      "value": "~3",
+      "unit": "месяца",
+      "span": 5,
       "label": {
-        "ru": "строк в 3 открытых репозиториях",
-        "en": "lines across 3 open repositories"
+        "ru": "от первого коммита до рабочего продукта",
+        "en": "from first commit to a working product"
       }
     },
     {
-      "value": "540",
+      "value": "395",
+      "unit": "k+",
+      "span": 4,
+      "label": {
+        "ru": "строк кода в четырёх репозиториях",
+        "en": "lines of code across four repositories"
+      }
+    },
+    {
+      "value": "974",
+      "span": 3,
+      "label": {
+        "ru": "коммитов в четырёх репозиториях",
+        "en": "commits across four repositories"
+      }
+    },
+    {
+      "value": "543",
+      "span": 3,
       "label": {
         "ru": "API-эндпоинтов в бэкенде",
         "en": "API endpoints in the backend"
       }
     },
     {
+      "value": "2.2k",
+      "span": 3,
+      "label": {
+        "ru": "автотестов в трёх сервисах",
+        "en": "automated tests across three services"
+      }
+    },
+    {
       "value": "17",
+      "span": 3,
       "label": {
         "ru": "типов GPU-задач в воркере",
         "en": "GPU job types in the worker"
       }
     },
     {
-      "value": "121",
+      "value": "120",
+      "span": 3,
       "label": {
         "ru": "миграций базы данных",
         "en": "database migrations"
@@ -141,8 +171,8 @@
   "architectureNodes": [
     {
       "id": "bot",
-      "angle": 300,
-      "radius": 215,
+      "col": 0,
+      "row": 0,
       "label": "Telegram Bot",
       "icon": "telegram",
       "width": 170,
@@ -153,8 +183,8 @@
     },
     {
       "id": "miniapp",
-      "angle": 250,
-      "radius": 215,
+      "col": 0,
+      "row": 1,
       "label": "Mini App",
       "icon": "globe",
       "width": 160,
@@ -165,8 +195,8 @@
     },
     {
       "id": "core",
-      "angle": 0,
-      "radius": 200,
+      "col": 1,
+      "row": 1,
       "label": "Closed core",
       "icon": "code",
       "width": 175,
@@ -177,7 +207,8 @@
     },
     {
       "id": "backend",
-      "radius": 0,
+      "col": 1,
+      "row": 0,
       "label": "Backend Hub",
       "icon": "stack",
       "width": 195,
@@ -189,8 +220,8 @@
     },
     {
       "id": "worker",
-      "angle": 205,
-      "radius": 210,
+      "col": 0,
+      "row": 2,
       "label": "ComputeWorker",
       "icon": "rocket",
       "width": 185,
@@ -201,20 +232,20 @@
     },
     {
       "id": "pg",
-      "angle": 80,
-      "radius": 262,
+      "col": 2,
+      "row": 0,
       "label": "PostgreSQL 16",
       "icon": "dot",
       "width": 175,
       "desc": {
-        "ru": "Метаданные, пользователи, плейлисты; ~70 моделей, 121 миграция",
-        "en": "Metadata, users, playlists; ~70 models, 121 migrations"
+        "ru": "Метаданные, пользователи, плейлисты; ~70 моделей, 120 миграций",
+        "en": "Metadata, users, playlists; ~70 models, 120 migrations"
       }
     },
     {
       "id": "redis",
-      "angle": 100,
-      "radius": 262,
+      "col": 2,
+      "row": 1,
       "label": "Redis 7",
       "icon": "dot",
       "width": 150,
@@ -225,8 +256,8 @@
     },
     {
       "id": "es",
-      "angle": 60,
-      "radius": 258,
+      "col": 2,
+      "row": 2,
       "label": "Elasticsearch 8",
       "icon": "dot",
       "width": 185,
@@ -237,8 +268,8 @@
     },
     {
       "id": "minio",
-      "angle": 120,
-      "radius": 258,
+      "col": 2,
+      "row": 3,
       "label": "MinIO · S3",
       "icon": "dot",
       "width": 160,
@@ -414,12 +445,12 @@
         "en": "Import from sources"
       },
       "description": {
-        "ru": "Импорт из SoundCloud, YouTube, Bandcamp и Spotify: каталог наполняется без ручной заливки.",
-        "en": "Import from SoundCloud, YouTube, Bandcamp and Spotify: the catalog fills without manual uploads."
+        "ru": "Загружай свои треки прямо из плеера или импортируй из SoundCloud, YouTube, VK, Яндекс Музыки и Spotify - каталог наполняется без лишних шагов.",
+        "en": "Upload your own tracks right from the player or import from SoundCloud, YouTube, VK, Yandex Music and Spotify - the catalog fills without extra steps."
       },
       "detail": {
-        "ru": "Задача soundcloud_rpc тянет аудио из SoundCloud, YouTube и Bandcamp через yt-dlp; Spotify подключается привязкой аккаунта по OAuth. Каталог растёт без ручной заливки.",
-        "en": "A soundcloud_rpc job pulls audio from SoundCloud, YouTube and Bandcamp via yt-dlp; Spotify connects by linking an account over OAuth. The catalog grows without manual uploads."
+        "ru": "Личные треки заливаются из веб-плеера кусками (S3 multipart). Импорт внешних источников - SoundCloud, YouTube и VK через yt-dlp; Spotify и Яндекс Музыка подключаются привязкой аккаунта по OAuth. Каталог растёт без ручной заливки.",
+        "en": "Personal tracks upload from the web player in chunks (S3 multipart). External sources - SoundCloud, YouTube and VK via yt-dlp; Spotify and Yandex Music connect by linking an account over OAuth. The catalog grows without manual uploads."
       }
     },
     {
@@ -457,12 +488,12 @@
     {
       "date": "27 Mar 2026",
       "title": {
-        "ru": "Backend + Bot: старт двух репозиториев",
-        "en": "Backend + Bot: two repositories start"
+        "ru": "Старт проекта: первый коммит",
+        "en": "Project start: the first commit"
       },
       "description": {
-        "ru": "FastAPI, PostgreSQL 16, React 18 Mini App, Telegram-вход; SHA-256-дедупликация не даёт треку храниться дважды.",
-        "en": "FastAPI, PostgreSQL 16, React 18 Mini App, Telegram auth; SHA-256 dedup ensures a track is never stored twice."
+        "ru": "27 марта 2026, 12:13 - первый коммит. За день поднята первая версия в двух репозиториях (Backend + Bot): FastAPI, PostgreSQL 16, React 18 Mini App, Telegram-вход; SHA-256-дедупликация не даёт треку храниться дважды.",
+        "en": "27 March 2026, 12:13 - the first commit. A first version stood up in a day across two repositories (Backend + Bot): FastAPI, PostgreSQL 16, React 18 Mini App, Telegram auth; SHA-256 dedup ensures a track is never stored twice."
       }
     },
     {
@@ -477,47 +508,91 @@
       }
     },
     {
-      "date": "22 Apr 2026",
+      "date": "12 Apr 2026",
       "title": {
-        "ru": "ComputeWorker: третий репозиторий",
-        "en": "ComputeWorker: third repository"
+        "ru": "PrivateCore: закрытое ядро",
+        "en": "PrivateCore: the closed core"
       },
       "description": {
-        "ru": "GPU-воркер на Demucs + faster-whisper: вокал снимается, лирика расшифровывается и синхронизируется построчно.",
-        "en": "GPU worker on Demucs + faster-whisper: vocals separated, lyrics transcribed and synced line by line."
+        "ru": "Бизнес-правила, политика выдачи и security-константы вынесены в отдельный закрытый репозиторий PrivateCore - четвёртый в экосистеме. Открытый клиент ходит в него по internal-token со scoped JWT; тогда же - passwordless-вход (Magic Link) и TOTP-2FA.",
+        "en": "Business rules, ranking policy and security constants move into a separate closed repository, PrivateCore - the fourth in the ecosystem. The open client talks to it via an internal-token scoped JWT; passwordless sign-in (Magic Link) and TOTP 2FA arrive alongside."
+      }
+    },
+    {
+      "date": "22 Apr 2026",
+      "title": {
+        "ru": "ComputeWorker: GPU-воркер",
+        "en": "ComputeWorker: the GPU worker"
+      },
+      "description": {
+        "ru": "Третий открытый репозиторий: GPU-воркер на Demucs + faster-whisper. Вокал снимается, лирика расшифровывается и синхронизируется построчно.",
+        "en": "The third open repository: a GPU worker on Demucs + faster-whisper. Vocals separated, lyrics transcribed and synced line by line."
       }
     },
     {
       "date": "24 Apr 2026",
       "title": {
-        "ru": "Elasticsearch и импорт",
-        "en": "Elasticsearch and import"
+        "ru": "Поиск, импорт и хранилище по содержимому",
+        "en": "Search, import and content storage"
       },
       "description": {
-        "ru": "Полнотекстовый поиск по трекам и лирике; импорт из SoundCloud, Spotify, YouTube и VK без ручной заливки.",
-        "en": "Full-text search over tracks and lyrics; import from SoundCloud, Spotify, YouTube, and VK without manual uploads."
+        "ru": "Полнотекстовый Elasticsearch по трекам и лирике; импорт из SoundCloud, Spotify, YouTube и VK; аудио хранится по SHA-256 с ref-count - один файл на всех.",
+        "en": "Full-text Elasticsearch over tracks and lyrics; import from SoundCloud, Spotify, YouTube and VK; audio stored by SHA-256 with ref-count - one file for everyone."
       }
     },
     {
-      "date": "6 May 2026",
+      "date": "26 Apr 2026",
       "title": {
-        "ru": "Рекомендации и iOS-редизайн",
-        "en": "Recommendations and iOS redesign"
+        "ru": "Рекомендации и радио",
+        "en": "Recommendations and radio"
       },
       "description": {
-        "ru": "Daily/Weekly Mix, аудио-эмбеддинги, совместные плейлисты, motion-примитивы, Dynamic Island.",
-        "en": "Daily/Weekly Mix, audio embeddings, collaborative playlists, motion primitives, and Dynamic Island."
+        "ru": "Аудио-эмбеддинги на воркере, Daily/Weekly Mix, бесконечное радио от трека-затравки и совместные плейлисты; правила ранжирования живут в закрытом ядре PrivateCore.",
+        "en": "Audio embeddings on the worker, Daily/Weekly Mix, endless radio from a seed track, and collaborative playlists; ranking rules live in the closed PrivateCore."
       }
     },
     {
-      "date": "11 May 2026",
+      "date": "7 May 2026",
+      "title": {
+        "ru": "iOS-редизайн интерфейса",
+        "en": "iOS interface redesign"
+      },
+      "description": {
+        "ru": "Motion-примитивы, Dynamic Island и эстетика Apple Music; gapless-кроссфейд между треками и караоке-синхронизация лирики.",
+        "en": "Motion primitives, Dynamic Island and an Apple Music aesthetic; gapless crossfade between tracks and karaoke-synced lyrics."
+      }
+    },
+    {
+      "date": "10 May 2026",
+      "title": {
+        "ru": "Право и модерация",
+        "en": "Law and moderation"
+      },
+      "description": {
+        "ru": "Приведение под 152/149/242/436-ФЗ, текстовая цензура лирики и описаний, авто-скрытие треков по жалобам и анти-абьюз.",
+        "en": "Alignment with Russia's 152/149/242/436-FZ, text censorship of lyrics and descriptions, auto-hide of reported tracks, and anti-abuse."
+      }
+    },
+    {
+      "date": "17 May 2026",
       "title": {
         "ru": "Офлайн и прод-хардинг",
         "en": "Offline and production hardening"
       },
       "description": {
-        "ru": "Автокеш, предзагрузка очереди, Prometheus, SSH-деплой, gitleaks CI, Tor-пул анти-абьюза.",
-        "en": "Auto-cache, queue prefetch, Prometheus, SSH deploy, gitleaks CI, and a Tor pool for anti-abuse."
+        "ru": "Полный офлайн-режим с автокешем и предзагрузкой, выделенный egress-пул стриминга с Tor-цепочками, ClamAV-скан загрузок, диспетчер фоновых задач, Prometheus + OpenTelemetry и SSH-деплой.",
+        "en": "Full offline mode with auto-cache and prefetch, a dedicated streaming egress pool with Tor circuits, ClamAV scanning on upload, a background-job dispatcher, Prometheus + OpenTelemetry and SSH deploy."
+      }
+    },
+    {
+      "date": "Jun 2026",
+      "title": {
+        "ru": "Сейчас: source-available и стабилизация",
+        "en": "Now: source-available and stabilization"
+      },
+      "description": {
+        "ru": "Три открытых репозитория экосистемы выложены как source-available showcase с лицензиями, gitleaks в CI и документацией в стандарте DotCore; PrivateCore остаётся закрытым. Новых модулей нет - идёт точечная доводка качества лирики и рекомендаций.",
+        "en": "The three open repositories ship as a source-available showcase with licenses, gitleaks in CI and DotCore-standard docs; PrivateCore stays closed. No new modules - just targeted tuning of lyrics and recommendation quality."
       }
     }
   ]

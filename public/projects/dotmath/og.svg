@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="t d">
-  <title id="t">DotSchet — .счёт</title>
+  <title id="t">DotMath — .счёт</title>
   <desc id="d">Mental-arithmetic trainer with a fair, deterministic daily.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
@@ -29,7 +29,7 @@
     </g>
   </svg>
   <text x="94" y="392" font-family="Inter, Arial, sans-serif" font-size="116" font-weight="800" fill="#f3f3f1" letter-spacing="-3">.счёт</text>
-  <text x="100" y="452" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700" fill="#f3f3f1">DotSchet</text>
+  <text x="100" y="452" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700" fill="#f3f3f1">DotMath</text>
   <text x="100" y="496" font-family="Inter, Arial, sans-serif" font-size="26" fill="#a6a7ab">Mental-math trainer with a fair daily</text>
   <text x="96" y="566" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="600" fill="#5a5c63">.ядро · DotCore</text>
 </svg>

@@ -113,8 +113,8 @@
   "architectureNodes": [
     {
       "id": "telegram",
-      "angle": 270,
-      "radius": 185,
+      "col": 0,
+      "row": 0,
       "label": "Telegram",
       "icon": "telegram",
       "width": 150,
@@ -125,7 +125,8 @@
     },
     {
       "id": "bot",
-      "radius": 0,
+      "col": 1,
+      "row": 0,
       "label": "aiogram bot",
       "icon": "stack",
       "width": 185,
@@ -137,8 +138,8 @@
     },
     {
       "id": "worker",
-      "angle": 215,
-      "radius": 215,
+      "col": 0,
+      "row": 1,
       "label": "taskiq worker",
       "icon": "rocket",
       "width": 180,
@@ -149,8 +150,8 @@
     },
     {
       "id": "opcontrol",
-      "angle": 250,
-      "radius": 235,
+      "col": 1,
+      "row": 1,
       "label": "operational ctrl",
       "icon": "code",
       "width": 205,
@@ -161,8 +162,8 @@
     },
     {
       "id": "redis",
-      "angle": 95,
-      "radius": 255,
+      "col": 2,
+      "row": 0,
       "label": "Redis · FSM",
       "icon": "dot",
       "width": 170,
@@ -173,8 +174,8 @@
     },
     {
       "id": "pg",
-      "angle": 125,
-      "radius": 255,
+      "col": 2,
+      "row": 1,
       "label": "PostgreSQL 16",
       "icon": "dot",
       "width": 180,
@@ -185,8 +186,8 @@
     },
     {
       "id": "minio",
-      "angle": 65,
-      "radius": 250,
+      "col": 2,
+      "row": 2,
       "label": "MinIO · S3",
       "icon": "dot",
       "width": 170,

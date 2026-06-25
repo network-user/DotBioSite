@@ -6,6 +6,9 @@
  * пункт — точка слева + текст справа. Используется внутри case-study;
  * отличается от глобального Timeline на главной более компактным размером и
  * отсутствием обводящего glass-блока.
+ *
+ * Раскрывающаяся: при длинной истории первые `collapseAfter` точек видны, а
+ * остальные скрыты до клика по кнопке-тогглу (по умолчанию свёрнуто).
  */
 
 import type { ProjectTimelineEntry } from "../../lib/projects";
@@ -15,29 +18,117 @@ interface Props {
   items: ReadonlyArray<ProjectTimelineEntry>;
   locale: Locale;
   class?: string;
+  collapseAfter?: number;
+  moreLabel?: string;
+  lessLabel?: string;
 }
 
-const { items, locale, class: className = "" } = Astro.props;
+const {
+  items,
+  locale,
+  class: className = "",
+  collapseAfter = 4,
+  moreLabel = "show more",
+  lessLabel = "collapse",
+} = Astro.props;
+
+const collapsible = items.length > collapseAfter;
+const hiddenCount = collapsible ? items.length - collapseAfter : 0;
 ---
 
-<ol class:list={["case-timeline", className]}>
+<div class="case-timeline-wrap" data-timeline-collapsible={collapsible ? "" : null}>
+  <ol class:list={["case-timeline", className]}>
+    {
+      items.map((item, i) => {
+        const extra = collapsible && i >= collapseAfter;
+        return (
+          <li
+            class:list={["case-timeline__item", extra && "case-timeline__item--extra"]}
+            data-timeline-extra={extra ? "" : null}
+            hidden={extra}
+            data-reveal={extra ? null : ""}
+            data-reveal-delay={extra ? null : i * 80}
+            style={extra ? `--extra-i:${i - collapseAfter}` : undefined}
+          >
+            <span class="case-timeline__bullet" aria-hidden="true" />
+            <p class="case-timeline__date tabular">{item.date}</p>
+            <div class="case-timeline__body">
+              <h3 class="case-timeline__title">{item.title[locale]}</h3>
+              {item.description && (
+                <p class="case-timeline__desc body-sm">{item.description[locale]}</p>
+              )}
+            </div>
+          </li>
+        );
+      })
+    }
+  </ol>
+
   {
-    items.map((item, i) => (
-      <li class="case-timeline__item" data-reveal data-reveal-delay={i * 80}>
-        <span class="case-timeline__bullet" aria-hidden="true" />
-        <p class="case-timeline__date tabular">{item.date}</p>
-        <div class="case-timeline__body">
-          <h3 class="case-timeline__title">{item.title[locale]}</h3>
-          {item.description && (
-            <p class="case-timeline__desc body-sm">{item.description[locale]}</p>
-          )}
-        </div>
-      </li>
-    ))
+    collapsible && (
+      <button
+        type="button"
+        class="case-timeline__toggle"
+        data-timeline-toggle
+        aria-expanded="false"
+      >
+        <span class="case-timeline__toggle-text" data-label-more>
+          {moreLabel} · {hiddenCount}
+        </span>
+        <span class="case-timeline__toggle-text" data-label-less hidden>
+          {lessLabel}
+        </span>
+        <svg
+          class="case-timeline__chevron"
+          viewBox="0 0 16 16"
+          width="13"
+          height="13"
+          aria-hidden="true"
+        >
+          <path
+            d="M4 6l4 4 4-4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+    )
   }
-</ol>
+</div>
+
+<script>
+  // Раскрывающаяся хронология: первые N точек видны, остальные скрыты до клика.
+  // Скрытые пункты остаются под наблюдением reveal-обсервера (BaseLayout) —
+  // при показе они доезжают своей scroll-reveal анимацией.
+  document.querySelectorAll<HTMLElement>("[data-timeline-collapsible]").forEach((wrap) => {
+    const toggle = wrap.querySelector<HTMLButtonElement>("[data-timeline-toggle]");
+    if (!toggle) return;
+    const extras = wrap.querySelectorAll<HTMLElement>("[data-timeline-extra]");
+    const labelMore = toggle.querySelector<HTMLElement>("[data-label-more]");
+    const labelLess = toggle.querySelector<HTMLElement>("[data-label-less]");
+
+    toggle.addEventListener("click", () => {
+      const next = toggle.getAttribute("aria-expanded") !== "true";
+      toggle.setAttribute("aria-expanded", String(next));
+      extras.forEach((el) => {
+        el.hidden = !next;
+      });
+      if (labelMore) labelMore.hidden = next;
+      if (labelLess) labelLess.hidden = !next;
+    });
+  });
+</script>
 
 <style>
+  .case-timeline-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+  }
+
   .case-timeline {
     position: relative;
     display: flex;
@@ -67,6 +158,36 @@ const { items, locale, class: className = "" } = Astro.props;
     display: grid;
     grid-template-columns: 1fr;
     gap: var(--sp-2);
+  }
+
+  /* Скрытые точки реально прячем: класс .case-timeline__item с display:grid
+     перебивает UA-правило [hidden]{display:none}, поэтому возвращаем его явно. */
+  .case-timeline__item[hidden] {
+    display: none;
+  }
+
+  /* Доп. точки не участвуют в общем scroll-reveal (иначе остались бы opacity:0
+     без .is-visible при раскрытии) — у них своя анимация появления по клику. */
+  .case-timeline__item--extra {
+    animation: case-timeline-in var(--dur-slow) var(--ease-soft) both;
+    animation-delay: calc(var(--extra-i, 0) * 60ms);
+  }
+
+  @keyframes case-timeline-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .case-timeline__item--extra {
+      animation: none;
+    }
   }
 
   .case-timeline__bullet {
@@ -100,5 +221,42 @@ const { items, locale, class: className = "" } = Astro.props;
 
   .case-timeline__desc {
     color: var(--text-secondary);
+  }
+
+  /* Кнопка-тоггл выровнена под текстовую колонку точек. */
+  .case-timeline__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    align-self: flex-start;
+    margin-inline-start: var(--sp-7);
+    padding: var(--sp-2) var(--sp-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill, 999px);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-12);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition:
+      color var(--dur-fast, 0.15s) ease,
+      border-color var(--dur-fast, 0.15s) ease,
+      background var(--dur-fast, 0.15s) ease;
+  }
+
+  .case-timeline__toggle:hover {
+    color: var(--text);
+    border-color: var(--border-hover);
+    background: var(--surface, transparent);
+  }
+
+  .case-timeline__chevron {
+    transition: transform var(--dur-fast, 0.15s) ease;
+  }
+
+  .case-timeline__toggle[aria-expanded="true"] .case-timeline__chevron {
+    transform: rotate(180deg);
   }
 </style>

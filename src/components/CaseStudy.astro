@@ -39,6 +39,9 @@ const accent = p.accent ?? "var(--accent)";
 const overviewParas = p.overview ? p.overview[locale] : [desc];
 
 const hasMetrics = p.metrics && p.metrics.length > 0;
+// Если у метрик заданы `span` — секция «масштаб» рендерится фиксированной
+// 12-колоночной сеткой с явными ширинами плиток (иначе — авто-сетка + лид).
+const metricsSpanned = !!(p.metrics && p.metrics.some((m) => typeof m.span === "number"));
 const hasStackGroups =
   p.stackGroups && Object.values(p.stackGroups).some((arr) => arr && arr.length > 0);
 const hasArchitecture = p.architectureNodes && p.architectureNodes.length > 0;
@@ -53,7 +56,7 @@ const SIGNATURE_SLUGS = new Set([
   "dotlearn",
   "dotagents",
   "dotworkbot",
-  "dotschet",
+  "dotmath",
   "dottraceip",
 ]);
 const hasSignature = SIGNATURE_SLUGS.has(p.slug);
@@ -88,7 +91,7 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
         </div>
 
         <div class="case__glyph" data-reveal aria-hidden="true">
-          <ProjectGlyph slug={p.slug} />
+          <ProjectGlyph slug={p.slug} breathe />
         </div>
         <h1
           class="case__brand display-xl"
@@ -186,6 +189,7 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
                 </svg>
               </span>
             </button>
+            <span class="case__cover-sheen" aria-hidden="true" />
           </figure>
         )
       }
@@ -226,17 +230,25 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
             <h2 class="eyebrow">{t("case.metrics")}</h2>
             <p class="case__h-lede subtitle">{t("case.metricsLede")}</p>
           </header>
-          <div class="case__metrics case__scale" data-scale>
+          <div
+            class:list={[
+              "case__metrics",
+              "case__scale",
+              metricsSpanned && "case__metrics--spanned",
+            ]}
+            data-scale
+          >
             {p.metrics!.map((m, i) => {
               const vlen = m.value.length;
               const numClass =
                 vlen >= 7 ? "case__metric-num--xs" : vlen >= 5 ? "case__metric-num--sm" : "";
+              const style = metricsSpanned ? `--i:${i}; --span:${m.span ?? 3}` : `--i:${i}`;
               return (
                 <div
-                  class:list={["case__metric", i === 0 && "case__metric--lead"]}
+                  class:list={["case__metric", !metricsSpanned && i === 0 && "case__metric--lead"]}
                   data-reveal
                   data-reveal-delay={i * 60}
-                  style={`--i:${i}`}
+                  style={style}
                 >
                   <span class:list={["metric", numClass]}>
                     <span class="case__metric-val" data-countup>
@@ -320,7 +332,13 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
             <h2 class="eyebrow">{t("case.timeline")}</h2>
             <p class="case__h-lede subtitle">{t("case.timelineLede")}</p>
           </header>
-          <CaseTimeline items={p.timeline!} locale={locale} />
+          <CaseTimeline
+            items={p.timeline!}
+            locale={locale}
+            collapseAfter={4}
+            moreLabel={t("case.timelineMore")}
+            lessLabel={t("case.timelineLess")}
+          />
         </section>
       )
     }
@@ -536,7 +554,6 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
     width: clamp(40px, 7vw, 60px);
     color: var(--project-accent);
     margin-block-start: var(--sp-4);
-    filter: drop-shadow(0 4px 16px color-mix(in srgb, var(--project-accent) 30%, transparent));
   }
 
   .case__brand {
@@ -549,6 +566,26 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
+  }
+
+  /* Дыхание заголовка: только яркость — «живой свет» на буквах, без геометрии.
+     Старт отложен (animation-delay) до конца reveal; кадр 0% = финал reveal
+     (opacity:1) → стыковка без рывка. Амплитуда крошечная, цикл медленный. */
+  @keyframes case-brand-breathe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.92;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .case__brand {
+      animation: case-brand-breathe 7s var(--ease-drift) infinite;
+      animation-delay: 1.1s;
+    }
   }
 
   .case__name {
@@ -610,6 +647,40 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
       transparent 30%,
       color-mix(in srgb, var(--project-accent) 12%, transparent) 100%
     );
+  }
+
+  /* Медленный свет по «стеклу»: узкая диагональная светлая полоса раз в цикл
+     проезжает по обложке и надолго замирает за кадром. Только transform
+     (composited); overflow:hidden у фигуры обрезает полосу. Отдельный <span>,
+     а не ::before — псевдоэлементы заняты .glass (top-shine / bottom-edge). */
+  .case__cover-sheen {
+    position: absolute;
+    inset: -25% -12%;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(
+      105deg,
+      transparent 43%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 57%
+    );
+    transform: translateX(-135%);
+  }
+
+  @keyframes case-cover-sheen {
+    0% {
+      transform: translateX(-135%);
+    }
+    22%,
+    100% {
+      transform: translateX(135%);
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .case__cover-sheen {
+      animation: case-cover-sheen 9s var(--ease-standard) infinite;
+    }
   }
 
   /* Кнопка-обёртка обложки: весь блок кликабелен */
@@ -821,6 +892,23 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
     gap: var(--sp-4);
   }
 
+  /* Спан-режим «масштаба»: фиксированная 12-колоночная сетка с явными ширинами
+     плиток (--span). Мобайл — ровные 2 колонки, спаны не применяются.
+     Повышенная специфичность перебивает базовую авто-сетку при любом порядке. */
+  .case__metrics.case__metrics--spanned {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 720px) {
+    .case__metrics.case__metrics--spanned {
+      grid-template-columns: repeat(12, 1fr);
+    }
+
+    .case__metrics--spanned .case__metric {
+      grid-column: span var(--span, 3);
+    }
+  }
+
   .case__metric {
     position: relative;
     display: flex;
@@ -841,12 +929,13 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
     min-width: 0;
   }
 
-  /* Accent tick at the top-left corner — the data-point marker. */
+  /* Accent tick centered at the top edge — the data-point marker. */
   .case__metric::before {
     content: "";
     position: absolute;
     inset-block-start: 0;
-    inset-inline-start: var(--sp-5);
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
     width: 26px;
     height: 2px;
     border-radius: 0 0 var(--r-pill) var(--r-pill);
@@ -868,9 +957,12 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
     font-size: var(--fs-22);
   }
 
-  /* «Масштаб»: ведущая метрика крупнее, у каждой плитки снизу растёт акцент-бар. */
+  /* «Масштаб»: число — герой плитки, центрируем по обеим осям; снизу акцент-бар. */
   .case__scale .case__metric {
-    justify-content: space-between;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: var(--sp-3);
   }
 
   .case__metric-bar {

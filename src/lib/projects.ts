@@ -50,6 +50,10 @@ export interface ProjectMetric {
   value: string;
   unit?: string;
   label: { ru: string; en: string };
+  /** Ширина плитки в 12-колоночной сетке (≥720px). Если хотя бы у одной метрики
+   *  задан `span`, секция «масштаб» переключается на фиксированную сетку из 12
+   *  колонок с явными ширинами; иначе - авто-сетка с одной ведущей плиткой. */
+  span?: number;
 }
 
 /** Compact proof points rendered on project cards. */
@@ -189,7 +193,7 @@ const modules = import.meta.glob<{ default: Project }>("../content/projects/*.js
 const FEATURED_ORDER: ReadonlyArray<string> = [
   "dotsound", // .звук — флагман, featured-карточка
   "dotlearn", // .учёба — new, full-stack TS платформа
-  "dotschet", // .счёт — тренажёр устного счёта
+  "dotmath", // .счёт — тренажёр устного счёта
   "dotagents", // .агенты
   "dotworkbot", // .работа
   "dottraceip", // .след — async CLI для массового анализа IP

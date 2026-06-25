@@ -11,13 +11,16 @@
 interface Props {
   slug: string;
   class?: string;
+  /** Включает тонкое idle-«дыхание» глифа (кейс-страница). По умолчанию выключено. */
+  breathe?: boolean;
 }
 
-const { slug, class: className = "" } = Astro.props;
+const { slug, class: className = "", breathe = false } = Astro.props;
 ---
 
 <svg
-  class:list={["project-glyph", className]}
+  class:list={["project-glyph", breathe && "project-glyph--breathe", className]}
+  data-slug={slug}
   viewBox="0 0 48 48"
   fill="none"
   stroke="currentColor"
@@ -38,7 +41,7 @@ const { slug, class: className = "" } = Astro.props;
     )
   }
   {
-    slug === "dotschet" && (
+    slug === "dotmath" && (
       <g>
         <path d="M13 7 V19 M7 13 H19" />
         <path d="M29 13 H41" />
@@ -56,6 +59,7 @@ const { slug, class: className = "" } = Astro.props;
         <path d="M18 17 v-3 a3 3 0 0 1 3-3 h6 a3 3 0 0 1 3 3 v3" />
         <path d="M7 27 h34" />
         <path d="M24 25 v4" />
+        {breathe && <path class="wb-spark" d="M7 27 h34" />}
       </g>
     )
   }
@@ -76,6 +80,7 @@ const { slug, class: className = "" } = Astro.props;
         <path d="M24 24 L37 13" />
         <circle cx="24" cy="24" r="2.6" fill="currentColor" stroke="none" />
         <circle cx="37" cy="13" r="3" fill="currentColor" stroke="none" />
+        {breathe && <path class="tr-spark" d="M24 24 L37 13" />}
       </g>
     )
   }
@@ -96,8 +101,10 @@ const { slug, class: className = "" } = Astro.props;
       <g>
         <path d="M5 19 L24 10 L43 19 L24 28 Z" />
         <path d="M13 22.5 V31 q11 6 22 0 V22.5" />
-        <path d="M43 19 V29" />
-        <circle cx="43" cy="31.5" r="1.6" fill="currentColor" stroke="none" />
+        <g class="dl-tassel">
+          <path d="M43 19 V29" />
+          <circle cx="43" cy="31.5" r="1.6" fill="currentColor" stroke="none" />
+        </g>
       </g>
     )
   }
@@ -108,5 +115,235 @@ const { slug, class: className = "" } = Astro.props;
     display: block;
     width: 100%;
     height: auto;
+  }
+
+  /* =========================================================================
+   * Idle-«дыхание» глифа — включается пропом `breathe` (кейс-страница).
+   *
+   * Принцип: ФОРМА СТОИТ НА МЕСТЕ. Никакого scale готовой иконки. Живёт только
+   * свет + один осмысленный жест по сути проекта. Все жесты медленные, с долгими
+   * паузами, малой амплитудой:
+   *   .звук     — световая волна бежит по столбикам эквалайзера (opacity)
+   *   .счёт     — подсветка обходит операторы по кругу (идёт счёт)
+   *   .работа   — световой импульс пробегает по рабочему разделителю
+   *   .агенты   — курсор командной строки мягко мигает
+   *   .след     — импульс сигнала бежит к найденной точке, точка вспыхивает
+   *   экосистема — ядро дышит светом, узлы опрашиваются по кругу
+   *   .учёба    — кисточка диплома качается маятником от точки крепления (43,19)
+   *
+   * Под reduced-motion отключено (вся секция под no-preference); за экраном
+   * гасится глобальным `.anim-paused` (IntersectionObserver в BaseLayout).
+   * Световые клон-линии (.tr-spark / .wb-spark) рендерятся только при breathe.
+   * ========================================================================= */
+  @media (prefers-reduced-motion: no-preference) {
+    /* ---- .звук — световая волна по столбикам эквалайзера ---- */
+    @keyframes glyph-sound-wave {
+      0%,
+      100% {
+        opacity: 0.5;
+      }
+      18% {
+        opacity: 1;
+      }
+      46% {
+        opacity: 0.5;
+      }
+    }
+    .project-glyph--breathe[data-slug="dotsound"] rect {
+      animation: glyph-sound-wave 2.4s var(--ease-drift) infinite;
+    }
+    .project-glyph--breathe[data-slug="dotsound"] rect:nth-of-type(1) {
+      animation-delay: 0s;
+    }
+    .project-glyph--breathe[data-slug="dotsound"] rect:nth-of-type(2) {
+      animation-delay: 0.16s;
+    }
+    .project-glyph--breathe[data-slug="dotsound"] rect:nth-of-type(3) {
+      animation-delay: 0.32s;
+    }
+    .project-glyph--breathe[data-slug="dotsound"] rect:nth-of-type(4) {
+      animation-delay: 0.48s;
+    }
+    .project-glyph--breathe[data-slug="dotsound"] rect:nth-of-type(5) {
+      animation-delay: 0.64s;
+    }
+
+    /* ---- .счёт — подсветка обходит операторы по кругу ---- */
+    @keyframes glyph-op-pulse {
+      0%,
+      100% {
+        opacity: 0.6;
+      }
+      12% {
+        opacity: 1;
+      }
+      40% {
+        opacity: 0.6;
+      }
+    }
+    .project-glyph--breathe[data-slug="dotmath"] path,
+    .project-glyph--breathe[data-slug="dotmath"] circle {
+      animation: glyph-op-pulse 4s var(--ease-drift) infinite;
+    }
+    .project-glyph--breathe[data-slug="dotmath"] path:nth-of-type(1) {
+      animation-delay: 0s;
+    }
+    .project-glyph--breathe[data-slug="dotmath"] path:nth-of-type(2),
+    .project-glyph--breathe[data-slug="dotmath"] circle:nth-of-type(1) {
+      animation-delay: 1s;
+    }
+    .project-glyph--breathe[data-slug="dotmath"] path:nth-of-type(3) {
+      animation-delay: 2s;
+    }
+    .project-glyph--breathe[data-slug="dotmath"] path:nth-of-type(4),
+    .project-glyph--breathe[data-slug="dotmath"] circle:nth-of-type(2) {
+      animation-delay: 3s;
+    }
+
+    /* ---- .работа — световой импульс по рабочему разделителю ---- */
+    .project-glyph--breathe[data-slug="dotworkbot"] .wb-spark {
+      stroke: rgba(255, 255, 255, 0.92);
+      stroke-dasharray: 2 80;
+      animation: glyph-work-flow 4.2s var(--ease-standard) infinite;
+    }
+    @keyframes glyph-work-flow {
+      0%,
+      6% {
+        stroke-dashoffset: 0;
+        opacity: 0;
+      }
+      16% {
+        opacity: 1;
+      }
+      46% {
+        stroke-dashoffset: -34;
+        opacity: 1;
+      }
+      54%,
+      100% {
+        stroke-dashoffset: -34;
+        opacity: 0;
+      }
+    }
+
+    /* ---- .агенты — мягко мигающий курсор командной строки ---- */
+    @keyframes glyph-caret {
+      0%,
+      42% {
+        opacity: 1;
+      }
+      58%,
+      74% {
+        opacity: 0.1;
+      }
+      90%,
+      100% {
+        opacity: 1;
+      }
+    }
+    .project-glyph--breathe[data-slug="dotagents"] path:nth-of-type(2) {
+      animation: glyph-caret 1.5s var(--ease-standard) infinite;
+    }
+
+    /* ---- .след — импульс сигнала бежит к найденной точке, точка вспыхивает ---- */
+    .project-glyph--breathe[data-slug="dottraceip"] .tr-spark {
+      stroke: rgba(255, 255, 255, 0.95);
+      stroke-dasharray: 2 60;
+      animation: glyph-trace-travel 3.2s var(--ease-standard) infinite;
+    }
+    @keyframes glyph-trace-travel {
+      0%,
+      8% {
+        stroke-dashoffset: 0;
+        opacity: 0;
+      }
+      18% {
+        opacity: 1;
+      }
+      50% {
+        stroke-dashoffset: -17;
+        opacity: 1;
+      }
+      58%,
+      100% {
+        stroke-dashoffset: -17;
+        opacity: 0;
+      }
+    }
+    .project-glyph--breathe[data-slug="dottraceip"] circle:nth-of-type(2) {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: glyph-trace-found 3.2s var(--ease-standard) infinite;
+    }
+    @keyframes glyph-trace-found {
+      0%,
+      48% {
+        transform: scale(1);
+      }
+      56% {
+        transform: scale(1.5);
+      }
+      70%,
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    /* ---- экосистема — ядро дышит светом, узлы опрашиваются по кругу ---- */
+    @keyframes glyph-core {
+      0%,
+      100% {
+        opacity: 0.82;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+    @keyframes glyph-node {
+      0%,
+      100% {
+        opacity: 0.5;
+      }
+      14% {
+        opacity: 1;
+      }
+      40% {
+        opacity: 0.5;
+      }
+    }
+    .project-glyph--breathe[data-slug="dotcore-skills"] rect {
+      animation: glyph-core 4s var(--ease-drift) infinite;
+    }
+    .project-glyph--breathe[data-slug="dotcore-skills"] circle {
+      animation: glyph-node 3.2s var(--ease-drift) infinite;
+    }
+    .project-glyph--breathe[data-slug="dotcore-skills"] circle:nth-of-type(1) {
+      animation-delay: 0s;
+    }
+    .project-glyph--breathe[data-slug="dotcore-skills"] circle:nth-of-type(2) {
+      animation-delay: 0.8s;
+    }
+    .project-glyph--breathe[data-slug="dotcore-skills"] circle:nth-of-type(4) {
+      animation-delay: 1.6s;
+    }
+    .project-glyph--breathe[data-slug="dotcore-skills"] circle:nth-of-type(3) {
+      animation-delay: 2.4s;
+    }
+
+    /* ---- .учёба — кисточка качается маятником от точки крепления ---- */
+    @keyframes glyph-tassel-swing {
+      0%,
+      100% {
+        transform: rotate(4.5deg);
+      }
+      50% {
+        transform: rotate(-4.5deg);
+      }
+    }
+    .project-glyph--breathe[data-slug="dotlearn"] .dl-tassel {
+      transform-box: view-box;
+      transform-origin: 43px 19px;
+      animation: glyph-tassel-swing 3.6s var(--ease-drift) infinite;
+    }
   }
 </style>

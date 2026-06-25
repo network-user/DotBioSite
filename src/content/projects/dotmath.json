@@ -1,9 +1,9 @@
 {
-  "id": "dotschet",
-  "slug": "dotschet",
+  "id": "dotmath",
+  "slug": "dotmath",
   "name": {
-    "ru": "DotSchet",
-    "en": "DotSchet"
+    "ru": "DotMath",
+    "en": "DotMath"
   },
   "brand": {
     "ru": ".счёт",
@@ -33,12 +33,12 @@
   "year": 2026,
   "repos": [
     {
-      "name": "DotSchet",
+      "name": "DotMath",
       "role": "telegram-bot"
     }
   ],
-  "cover": "/projects/dotschet/cover.svg",
-  "ogImage": "/projects/dotschet/og.svg",
+  "cover": "/projects/dotmath/cover.svg",
+  "ogImage": "/projects/dotmath/og.svg",
   "accent": "var(--accent-schet)",
   "highlights": [
     {
@@ -111,8 +111,8 @@
   "architectureNodes": [
     {
       "id": "reminders",
-      "angle": 300,
-      "radius": 235,
+      "col": 0,
+      "row": 1,
       "label": "Reminders",
       "icon": "spark",
       "width": 165,
@@ -123,8 +123,8 @@
     },
     {
       "id": "tg",
-      "angle": 270,
-      "radius": 195,
+      "col": 0,
+      "row": 0,
       "label": "Telegram API",
       "icon": "telegram",
       "width": 175,
@@ -135,8 +135,8 @@
     },
     {
       "id": "backups",
-      "angle": 145,
-      "radius": 250,
+      "col": 2,
+      "row": 2,
       "label": "Backups",
       "icon": "rocket",
       "width": 160,
@@ -147,8 +147,8 @@
     },
     {
       "id": "generator",
-      "angle": 0,
-      "radius": 195,
+      "col": 2,
+      "row": 0,
       "label": "Problem gen",
       "icon": "code",
       "width": 170,
@@ -159,8 +159,9 @@
     },
     {
       "id": "bot",
-      "radius": 0,
-      "label": "DotSchet bot",
+      "col": 1,
+      "row": 0,
+      "label": "DotMath bot",
       "icon": "stack",
       "width": 185,
       "emphasis": "strong",
@@ -171,8 +172,8 @@
     },
     {
       "id": "leaderboard",
-      "angle": 195,
-      "radius": 205,
+      "col": 2,
+      "row": 1,
       "label": "Scoring · top",
       "icon": "code",
       "width": 180,
@@ -183,8 +184,8 @@
     },
     {
       "id": "redis",
-      "angle": 60,
-      "radius": 250,
+      "col": 3,
+      "row": 0,
       "label": "Redis · FSM",
       "icon": "dot",
       "width": 170,
@@ -195,8 +196,8 @@
     },
     {
       "id": "pg",
-      "angle": 120,
-      "radius": 250,
+      "col": 3,
+      "row": 1,
       "label": "PostgreSQL 16",
       "icon": "dot",
       "width": 180,

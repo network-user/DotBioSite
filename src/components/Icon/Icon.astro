@@ -30,7 +30,10 @@ type IconName =
   | "globe"
   | "chevron-right"
   | "dot"
-  | "link";
+  | "link"
+  | "database"
+  | "shield"
+  | "activity";
 
 interface Props {
   name: IconName;
@@ -204,6 +207,24 @@ const hidden = ariaLabel ? "false" : "true";
     )
   }
   {name === "dot" && <circle cx="12" cy="12" r="3" fill="currentColor" stroke="none" />}
+  {
+    name === "database" && (
+      <>
+        <ellipse cx="12" cy="5" rx="8" ry="3" />
+        <path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5" />
+        <path d="M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6" />
+      </>
+    )
+  }
+  {
+    name === "shield" && (
+      <>
+        <path d="M12 3 4 6v5c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-3z" />
+        <polyline points="9 12 11 14 15 10" />
+      </>
+    )
+  }
+  {name === "activity" && <polyline points="3 12 7 12 10 5 14 19 17 12 21 12" />}
   {
     name === "link" && (
       <>
