@@ -90,7 +90,7 @@ const pillars: Pillar[] = [
   },
   {
     id: "discover",
-    label: { ru: "Лента", en: "Feed" },
+    label: { ru: "Рекомендации", en: "Discover" },
     tag: { ru: "под твой вкус · миксы", en: "by taste · mixes" },
     title: { ru: "Персональная лента и миксы", en: "Personal feed and mixes" },
     pitch: { ru: "Лента собирается под твой вкус.", en: "The feed assembles around your taste." },
@@ -134,18 +134,18 @@ const pillars: Pillar[] = [
 // (1) Хранение
 const storage = {
   file: { ru: "red weather.flac", en: "red weather.flac" },
-  scan: { ru: "антивирус · чисто", en: "antivirus · clean" },
-  hashCap: { ru: "цифровой отпечаток", en: "digital fingerprint" },
-  blobCap: { ru: "хранилище", en: "storage" },
   send: { ru: "Залить трек", en: "Upload track" },
   again: { ru: "Залить тот же файл", en: "Same file again" },
-  steps: {
-    ru: "тип файла → антивирус → отпечаток → поиск дублей → сохранение",
-    en: "file type → antivirus → fingerprint → dedup → save",
-  },
-  sameNote: {
-    ru: "файл уже есть - новый не создаётся, счётчик +1",
-    en: "file already exists — no new copy, counter +1",
+  stepScan: { ru: "Проверка", en: "Scan" },
+  noteScan: { ru: "антивирус · формат", en: "antivirus · format" },
+  stepHash: { ru: "Отпечаток", en: "Fingerprint" },
+  noteHash: { ru: "уникальный ID файла", en: "unique file ID" },
+  stepSave: { ru: "Хранилище", en: "Storage" },
+  noteSave: { ru: "сохранён", en: "saved" },
+  noteDup: { ru: "уже есть", en: "already exists" },
+  dupNote: {
+    ru: "файл уже есть - новый не создаётся",
+    en: "file already exists — no new copy",
   },
 };
 
@@ -526,28 +526,27 @@ const nav = {
       <div class="sf__stage" data-sf-stage>
         <!-- ----------------- (1) ХРАНЕНИЕ ----------------- -->
         <div class="sf__viz sf__viz--storage is-active" data-sf-viz="storage">
-          <div class="sf__up-flow">
-            <div class="sf__card" data-st-card>
-              <span class="sf__card-ico" aria-hidden="true">♪</span>
-              <span class="sf__card-name mono">{t(storage.file)}</span>
+          <div class="sf__st-file" data-st-card>
+            <span class="sf__st-file-ico" aria-hidden="true">♪</span>
+            <span class="sf__st-file-name mono">{t(storage.file)}</span>
+          </div>
+          <div class="sf__st-steps">
+            <div class="sf__st-step" data-st-step="0">
+              <span class="sf__st-step-label">{t(storage.stepScan)}</span>
+              <span class="sf__st-step-note mono">{t(storage.noteScan)}</span>
             </div>
             <span class="sf__arrow" aria-hidden="true"></span>
-            <div class="sf__dd-col">
-              <span class="sf__cap caption">{t(storage.scan)}</span>
-              <span class="sf__cap caption">{t(storage.hashCap)}</span>
-              <code class="sf__hash mono"
-                ><span class="sf__hash-pre">sha256:</span><span data-st-hash>a1f9…7e3c</span></code
-              >
-              <code class="sf__path mono" data-st-path>blobs/a1/a1f9…7e3c</code>
+            <div class="sf__st-step" data-st-step="1">
+              <span class="sf__st-step-label">{t(storage.stepHash)}</span>
+              <span class="sf__st-step-note mono">{t(storage.noteHash)}</span>
             </div>
             <span class="sf__arrow" aria-hidden="true"></span>
-            <div class="sf__blob" data-st-blob>
-              <span class="sf__blob-cap caption">{t(storage.blobCap)}</span>
-              <span class="sf__blob-glyph mono" aria-hidden="true">▢</span>
-              <span class="sf__refcount mono">ref_count: <b data-st-ref>1</b></span>
+            <div class="sf__st-step sf__st-step--save" data-st-step="2">
+              <span class="sf__st-step-label">{t(storage.stepSave)}</span>
+              <span class="sf__st-step-note mono" data-st-save-note></span>
+              <span class="sf__st-refcount" data-st-refcount hidden>×<b data-st-ref>1</b></span>
             </div>
           </div>
-          <p class="sf__up-steps mono" data-st-steps>{t(storage.steps)}</p>
           <div class="sf__viz-controls">
             <button class="sf__act" type="button" data-st-go>{t(storage.send)}</button>
             <button class="sf__act sf__act--ghost" type="button" data-st-again disabled
@@ -1439,27 +1438,18 @@ const nav = {
     line-height: var(--lh-snug);
   }
 
-  /* (5) Загрузка */
-  .sf__up-flow {
-    display: flex;
-    align-items: stretch;
-    flex-wrap: wrap;
-    gap: var(--sp-3);
-  }
-  .sf__card {
-    display: flex;
-    flex-direction: column;
+  /* (1) Загрузка */
+  .sf__st-file {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
     gap: var(--sp-2);
-    flex: none;
-    width: 96px;
-    padding: var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
     border: var(--bw-thin) solid var(--border-hover);
     border-radius: var(--r-sm);
     background: var(--surface-2);
+    align-self: flex-start;
   }
-  .sf.is-inview .sf__viz--storage.is-active .sf__card[data-st-card] {
+  .sf.is-inview .sf__viz--storage.is-active .sf__st-file[data-st-card] {
     animation: sf-drop var(--dur-slow) var(--ease-soft) both;
   }
   @keyframes sf-drop {
@@ -1472,77 +1462,74 @@ const nav = {
       transform: none;
     }
   }
-  .sf__card-ico {
-    font-size: var(--fs-24);
+  .sf__st-file-ico {
+    font-size: var(--fs-20);
     color: var(--text);
     line-height: 1;
   }
-  .sf__card-name {
-    font-size: var(--fs-12);
+  .sf__st-file-name {
+    font-size: var(--fs-13);
     color: var(--text-secondary);
   }
-  .sf__dd-col {
+  .sf__st-steps {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    flex: 1 1 200px;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sp-3);
   }
-  .sf__hash,
-  .sf__path {
-    font-size: var(--fs-12);
-    color: var(--text);
-    overflow-wrap: anywhere;
-  }
-  .sf__hash-pre {
-    color: var(--text-faint);
-  }
-  .sf__path {
-    color: var(--text-secondary);
-  }
-  .sf__blob {
+  .sf__st-step {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
     gap: var(--sp-1);
-    flex: none;
-    width: 116px;
+    flex: 1 1 80px;
     padding: var(--sp-3);
-    border: var(--bw-thin) solid var(--sf-hot-line);
+    border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-sm);
     background: var(--surface);
-    transition: transform var(--dur-med) var(--ease-spring);
+    text-align: center;
+    opacity: 0.35;
+    transition:
+      opacity var(--dur-med) var(--ease-standard),
+      border-color var(--dur-med) var(--ease-standard),
+      background-color var(--dur-med) var(--ease-standard),
+      transform var(--dur-med) var(--ease-soft);
   }
-  .sf__blob.is-bump {
-    transform: scale(1.05);
+  .sf__st-step.is-on {
+    opacity: 1;
+    border-color: var(--sf-hot-line);
+    transform: translate3d(0, -2px, 0);
   }
-  .sf__blob-cap {
+  .sf__st-step--save.is-on {
+    background: var(--sf-hot-soft);
+  }
+  .sf__st-step.is-dup {
+    opacity: 1;
+    border-color: var(--sf-line);
+    background: var(--sf-soft);
+    transform: none;
+  }
+  .sf__st-step-label {
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-semibold);
+    font-size: var(--fs-14);
+    color: var(--text);
+  }
+  .sf__st-step-note {
+    font-size: var(--fs-11);
     color: var(--text-muted);
   }
-  .sf__blob-glyph {
-    font-size: var(--fs-28);
-    color: var(--sf-hot);
-    line-height: 1;
-  }
-  .sf__refcount {
+  .sf__st-refcount {
+    margin-top: 2px;
     font-size: var(--fs-12);
-    color: var(--text-secondary);
-  }
-  .sf__refcount b {
     color: var(--sf-hot);
-    font-size: var(--fs-15);
     font-variant-numeric: tabular-nums;
   }
-  .sf__up-steps {
-    font-size: var(--fs-12);
-    color: var(--text-muted);
-    opacity: 0.4;
-    transition: opacity var(--dur-med) var(--ease-standard);
+  .sf__st-refcount[hidden] {
+    display: none;
   }
-  .sf__up-steps.is-on {
-    opacity: 1;
-    color: var(--text-secondary);
+  .sf__st-refcount b {
+    font-size: var(--fs-15);
   }
 
   /* (6) Воркер */
@@ -2278,7 +2265,7 @@ const nav = {
     }
   }
   @media (max-width: 460px) {
-    .sf__up-flow {
+    .sf__st-steps {
       flex-direction: column;
       align-items: stretch;
     }
@@ -2286,16 +2273,12 @@ const nav = {
       transform: rotate(90deg);
       align-self: center;
     }
-    .sf__card,
-    .sf__blob {
-      width: 100%;
-    }
   }
 
   /* reduced-motion */
   @media (prefers-reduced-motion: reduce) {
     .sf__viz.is-active,
-    .sf__card[data-st-card],
+    .sf__st-file[data-st-card],
     .sf__viz--listen.is-playing .sf__ls-fill,
     .sf__viz--listen.is-playing .sf__ls-eq span {
       animation: none !important;
@@ -2390,39 +2373,54 @@ const nav = {
     const D = (ms: number): number => (reduced ? 0 : ms);
 
     // ============ (1) ХРАНЕНИЕ ============
+    const stStepEls = Array.from(root.querySelectorAll<HTMLElement>("[data-st-step]"));
+    const stSaveNote = root.querySelector<HTMLElement>("[data-st-save-note]");
+    const stRefcount = root.querySelector<HTMLElement>("[data-st-refcount]");
     const stRef = root.querySelector<HTMLElement>("[data-st-ref]");
-    const stBlob = root.querySelector<HTMLElement>("[data-st-blob]");
-    const stSteps = root.querySelector<HTMLElement>("[data-st-steps]");
     const stGo = root.querySelector<HTMLButtonElement>("[data-st-go]");
     const stAgain = root.querySelector<HTMLButtonElement>("[data-st-again]");
     const stNote = root.querySelector<HTMLElement>("[data-st-note]");
-    let stRc = 1;
+    let stRc = 0;
 
     const stRun = (): void => {
       clearTimers();
+      stStepEls.forEach((s) => s.classList.remove("is-on", "is-dup"));
       if (stGo) { stGo.disabled = true; stGo.textContent = tr("загружаем…", "uploading…"); }
-      if (stSteps) stSteps.classList.remove("is-on");
       if (stNote) stNote.textContent = "";
-      later(() => {
-        if (stSteps) stSteps.classList.add("is-on");
-        if (stAgain) stAgain.disabled = false;
-        if (stGo) { stGo.disabled = false; stGo.textContent = tr("Залить трек", "Upload track"); }
-        if (stNote) stNote.textContent = tr("сохранено", "saved");
-      }, D(700));
+      stStepEls.forEach((s, i) => {
+        later(() => s.classList.add("is-on"), D(350) * (i + 1));
+      });
+      later(
+        () => {
+          stRc += 1;
+          if (stAgain) stAgain.disabled = false;
+          if (stGo) { stGo.disabled = false; stGo.textContent = tr("Залить трек", "Upload track"); }
+          if (stSaveNote) stSaveNote.textContent = tr("сохранён", "saved");
+          if (stRefcount) stRefcount.hidden = false;
+          if (stRef) stRef.textContent = String(stRc);
+        },
+        D(350) * (stStepEls.length + 1),
+      );
     };
     const stBump = (): void => {
-      stRc += 1;
-      if (stRef) stRef.textContent = String(stRc);
-      if (stBlob) {
-        stBlob.classList.add("is-bump");
-        later(() => stBlob.classList.remove("is-bump"), D(220));
-      }
-      if (stNote) {
-        stNote.textContent = tr(
-          "файл уже есть - новый не создаётся, счётчик +1",
-          "file already exists — no new copy, counter +1",
+      clearTimers();
+      stStepEls.forEach((s) => s.classList.remove("is-on", "is-dup"));
+      if (stNote) stNote.textContent = "";
+      stStepEls.forEach((s, i) => {
+        later(
+          () => s.classList.add(i < stStepEls.length - 1 ? "is-on" : "is-dup"),
+          D(300) * (i + 1),
         );
-      }
+      });
+      later(
+        () => {
+          stRc += 1;
+          if (stSaveNote) stSaveNote.textContent = tr("уже есть", "already exists");
+          if (stRef) stRef.textContent = String(stRc);
+          if (stNote) stNote.textContent = tr("файл уже есть - новый не создаётся", "file already exists — no new copy");
+        },
+        D(300) * (stStepEls.length + 1),
+      );
     };
     stGo?.addEventListener("click", stRun);
     stAgain?.addEventListener("click", stBump);
@@ -2747,8 +2745,8 @@ const nav = {
     // ============ Автоплей при показе шага ============
     const autoplay = (id: string): void => {
       if (id === "storage") {
-        if (reduced && stSteps) stSteps.classList.add("is-on");
-        else if (!reduced) later(() => stGo?.click(), D(250));
+        if (reduced) stStepEls.forEach((s) => s.classList.add("is-on"));
+        else later(() => stGo?.click(), D(250));
       } else if (id === "pipeline") {
         if (reduced) {
           plNodes.forEach((n) => n.classList.add("is-on"));
