@@ -81,6 +81,7 @@ const briefOptions = hasEmail
               type="button"
               class="contact__channel contact__channel--email contact-email glass glass--hover"
               data-channel
+              data-touch-live
               data-e={emailB64}
               data-subject={t("contact.subjectGeneral")}
               data-body={t("contact.emailBody")}
@@ -100,6 +101,7 @@ const briefOptions = hasEmail
               type="button"
               class="contact__channel contact__channel--copy contact-email glass glass--hover"
               data-channel
+              data-touch-live
               data-e={emailB64}
               data-mode="copy"
               data-copied-label={t("contact.copied")}
@@ -131,6 +133,7 @@ const briefOptions = hasEmail
             rel="noopener noreferrer me"
             class="contact__channel glass glass--hover"
             data-channel
+            data-touch-live
             aria-label={t(`contact.${s.id}`)}
             data-reveal
             data-reveal-delay={(i + 1) * 80}
@@ -451,6 +454,23 @@ const briefOptions = hasEmail
   @media (pointer: coarse) {
     .contact__channel-glow {
       display: none;
+    }
+  }
+
+  /* Тач-эквивалент hover (ОТДЕЛЬНАЯ мобильная реализация). Обводку каналов даёт
+     общий хук .glass--hover.is-touch-active/:active (glass.css); здесь — запуск
+     sweep-полосы email-кнопки при попадании в центр вьюпорта и tap-отклик
+     brief-кнопок (на desktop их ведёт :hover). desktop (hover: hover) не видит. */
+  @media (hover: none) {
+    .contact__channel--email.is-touch-active .contact__channel-ring {
+      transform: translateX(100%);
+    }
+
+    .contact__brief-action:active,
+    .contact__brief-action.is-tapped {
+      color: var(--text);
+      border-color: var(--border-hover);
+      background: var(--surface-2);
     }
   }
 

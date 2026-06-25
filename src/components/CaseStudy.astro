@@ -210,11 +210,11 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
       hasSignature && (
         <section class="case__section case__section--bleed" data-reveal>
           <header class="case__h">
-            <h2 class="eyebrow">{locale === "ru" ? "Потрогай вживую" : "Try it live"}</h2>
+            <h2 class="eyebrow">{locale === "ru" ? "Платформа изнутри" : "Under the hood"}</h2>
             <p class="case__h-lede subtitle">
               {locale === "ru"
-                ? "Интерактивный срез продукта - поиграй с ним прямо здесь."
-                : "An interactive slice of the product - play with it right here."}
+                ? "Интерактивный разбор ключевых механик. Выбери домен - увидишь, как всё работает изнутри."
+                : "An interactive breakdown of the core mechanics. Pick a domain to see how it works inside."}
             </p>
           </header>
           <ProjectSignature slug={p.slug} locale={locale} />
@@ -354,7 +354,7 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
             {p.repos.map((r) => {
               const rUrl = repoUrl(r);
               return (
-                <li class="case__repo glass glass--hover">
+                <li class="case__repo glass glass--hover" data-touch-live>
                   <div class="case__repo-head">
                     <Icon name="code" size={18} />
                     <span class="case__repo-name display">{r.name}</span>
@@ -561,6 +561,7 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
     line-height: var(--lh-display-xl);
     letter-spacing: var(--ls-display-xl);
     margin-block-start: var(--sp-3);
+    white-space: nowrap;
     background: linear-gradient(180deg, var(--text) 0%, var(--text-secondary) 130%);
     -webkit-background-clip: text;
     background-clip: text;
@@ -781,6 +782,9 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
     cursor: grab;
     user-select: none;
     -webkit-user-select: none;
+    /* На тач: жесты pan/zoom (double-tap, drag) обрабатывает JS — гасим нативные
+       жесты браузера на самой сцене, чтобы они не конфликтовали с перетаскиванием. */
+    touch-action: none;
   }
 
   .case-lightbox__stage:active {
@@ -1157,7 +1161,7 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
 
   @media (min-width: 1200px) {
     .case__brand {
-      font-size: 180px;
+      font-size: clamp(120px, 11vw, 160px);
     }
 
     .case__tagline {
@@ -1169,6 +1173,15 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
     .case__actions {
       display: grid;
       grid-template-columns: 1fr;
+    }
+  }
+
+  /* Тач-устройства: подсказка лайтбокса говорит про «колесо мыши / drag» — на
+     телефоне это неверно. Жесты там очевидны (double-tap — зум, перетаскивание,
+     ✕/тап-вне — закрыть), поэтому подсказку скрываем. Закрытие крестиком видно. */
+  @media (pointer: coarse) {
+    .case-lightbox__hint {
+      display: none;
     }
   }
 </style>

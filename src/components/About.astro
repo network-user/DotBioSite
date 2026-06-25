@@ -14,6 +14,22 @@ const name = authorName(locale);
 const bio = authorBio(locale);
 const photo = config.PUBLIC_AUTHOR_PHOTO;
 const monogram = authorMonogram(locale);
+
+const ledeRaw = bio || t("about.lede");
+const ledeLines = ledeRaw.split("\n").filter(Boolean);
+
+const github = socials.find((s) => s.id === "github");
+const telegram = socials.find((s) => s.id === "telegram");
+const portraitContacts: {
+  id: "github" | "mail" | "telegram";
+  href: string | null;
+  label: string;
+  external: boolean;
+}[] = [
+  { id: "github", href: github?.url ?? null, label: "GitHub", external: true },
+  { id: "mail", href: "#contact", label: locale === "ru" ? "Почта" : "Email", external: false },
+  { id: "telegram", href: telegram?.url ?? null, label: "Telegram", external: true },
+];
 ---
 
 <section class="section about" id="about" aria-labelledby="about-title">
@@ -22,7 +38,6 @@ const monogram = authorMonogram(locale);
       id="about-title"
       kicker={t("about.kicker")}
       title={t("about.title")}
-      lede={t("about.lede")}
     />
 
     <div class="about__grid">
@@ -39,11 +54,36 @@ const monogram = authorMonogram(locale);
           }
           <span class="about__sheen" aria-hidden="true"></span>
         </div>
+
       </div>
 
       <div class="about__content" data-reveal data-reveal-delay="120">
         <p class="about__name display">{name}</p>
-        {bio && <p class="about__bio body">{bio}</p>}
+
+        <blockquote class="about__bio about__bio--lede">
+          {ledeLines.map((line) => <span>{line}</span>)}
+        </blockquote>
+
+        <div class="about__portrait-contacts">
+          {portraitContacts.map((c) =>
+            c.href ? (
+              <a
+                href={c.href}
+                class="about__portrait-link"
+                aria-label={c.label}
+                {...(c.external ? { target: "_blank", rel: "noopener noreferrer me" } : {})}
+              >
+                <Icon name={c.id} size={16} />
+                <span>{c.label}</span>
+              </a>
+            ) : (
+              <span class="about__portrait-link about__portrait-link--empty" aria-label={c.label}>
+                <Icon name={c.id} size={16} />
+                <span>{c.label}</span>
+              </span>
+            )
+          )}
+        </div>
 
         {
           socials.length > 0 && (
@@ -72,6 +112,12 @@ const monogram = authorMonogram(locale);
 </section>
 
 <style>
+  /* Заголовок секции — строго одна строка, масштабируется с вьюпортом */
+  :global(#about .section-header__title) {
+    white-space: nowrap;
+    font-size: clamp(18px, 5.5vw, 56px);
+  }
+
   .about__grid {
     display: grid;
     gap: var(--sp-5);
@@ -155,6 +201,44 @@ const monogram = authorMonogram(locale);
     }
   }
 
+  .about__portrait-contacts {
+    display: flex;
+    gap: var(--sp-2);
+    flex-wrap: wrap;
+  }
+
+  .about__portrait-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-4);
+    min-height: 36px;
+    border-radius: var(--r-pill);
+    border: var(--bw-thin) solid var(--border);
+    color: var(--text-secondary);
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    transition:
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard);
+  }
+
+  a.about__portrait-link:hover {
+    color: var(--text);
+    border-color: var(--border-hover);
+    background: var(--surface-2);
+    opacity: 1;
+  }
+
+  .about__portrait-link--empty {
+    color: var(--text-faint);
+    border-color: var(--border);
+    border-style: dashed;
+    cursor: default;
+    opacity: 0.5;
+  }
+
   .about__content {
     display: flex;
     flex-direction: column;
@@ -172,6 +256,40 @@ const monogram = authorMonogram(locale);
     max-width: 60ch;
     font-size: var(--fs-16);
     line-height: var(--lh-normal);
+  }
+
+  .about__bio--lede {
+    position: relative;
+    margin: 0;
+    padding-inline-start: var(--sp-5);
+    border: none;
+    color: var(--text);
+    font-size: var(--fs-18);
+    font-weight: var(--fw-medium);
+    font-style: normal;
+    line-height: var(--lh-tight);
+  }
+
+  .about__bio--lede::before {
+    content: "\201C";
+    position: absolute;
+    inset-inline-start: 0;
+    top: -0.15em;
+    font-size: 2.8em;
+    line-height: 1;
+    color: var(--accent);
+    font-family: Georgia, "Times New Roman", serif;
+    opacity: 0.7;
+  }
+
+  .about__bio--lede span {
+    display: block;
+  }
+
+  .about__bio--lede span + span {
+    margin-block-start: var(--sp-1);
+    color: var(--text-secondary);
+    font-weight: var(--fw-regular);
   }
 
   .about__socials {
@@ -323,6 +441,20 @@ const monogram = authorMonogram(locale);
     .about__social-item {
       opacity: 1;
       transform: none;
+    }
+  }
+
+  /* Тач-отклик пилюль-ссылок: на desktop их ведёт :hover (+shimmer), на тач —
+     мгновенная реакция на касание и кратко-живущая вспышка .is-tapped. Отдельная
+     мобильная реализация; desktop (hover: hover) этого не видит. */
+  @media (hover: none) {
+    a.about__portrait-link:active,
+    a.about__portrait-link.is-tapped,
+    .about__social:active,
+    .about__social.is-tapped {
+      color: var(--text);
+      border-color: var(--border-hover);
+      background: var(--surface-2);
     }
   }
 </style>

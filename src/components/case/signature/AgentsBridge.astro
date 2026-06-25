@@ -1432,6 +1432,100 @@ const modes: { id: string; hint: Bi }[] = [
     }
   }
 
+  /* ============================ Мобильная раскладка (≤ 719px) ============================ */
+  /* Все правки ниже — ТОЛЬКО мобильные; десктоп (container ≥ 680px) НЕ затрагиваем. */
+  @media (max-width: 719px) {
+    /* --- Вводный текст: уменьшаем, чтобы не давил на узком экране --- */
+    .ab__intro {
+      font-size: var(--fs-14);
+    }
+
+    /* --- Диспетчерская: уже mobile-first (grid 1fr), но фиксируем padding --- */
+    .ab__room {
+      padding: var(--sp-3);
+      gap: var(--sp-3);
+    }
+
+    /* --- IDE-хром: badge с длинным текстом скрываем на совсем узких,
+         tab обрезается ellipsis (уже есть), lights оставляем --- */
+    .ab-ide__badge {
+      display: none;
+    }
+
+    /* --- Loopback-провод: вместо горизонтальной линии делаем компактный
+         вертикальный разделитель высотой 32px; убираем nowrap на подписях --- */
+    .ab-link {
+      height: 32px;
+      justify-content: center;
+    }
+    .ab-link__rail {
+      /* горизонтальный рельс оставляем, но укорачиваем зазоры */
+      left: 16%;
+      right: 16%;
+    }
+    /* подписи с nowrap дают скролл — разрешаем перенос и центрируем */
+    .ab-link__cap {
+      white-space: normal;
+      text-align: center;
+      max-width: 45%;
+    }
+    .ab-link__cap--top {
+      font-size: var(--fs-10);
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .ab-link__cap--bot {
+      display: none; /* long-poll подпись скрываем — экономим место */
+    }
+
+    /* --- Телефон: на всю ширину, без лишнего max-width --- */
+    .ab-phone {
+      max-width: 100%;
+    }
+
+    /* --- Сегментный свитч: три колонки остаются, но shrink до min-width 0
+         и hint скрываем чтобы влезли в 360px --- */
+    .ab-seg {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .ab-seg__btn {
+      padding: var(--sp-2) var(--sp-2);
+      min-height: 44px;
+      align-items: center; /* центрируем по горизонтали на мобильном */
+    }
+    .ab-seg__hint {
+      display: none; /* hint убираем — не влезает в 360px / 3 колонки */
+    }
+    .ab-seg__id {
+      font-size: var(--fs-13);
+    }
+
+    /* --- Кнопки Allow / Deny: уже grid 1fr 1fr, но увеличим min-height --- */
+    .ab-tg {
+      min-height: 44px;
+      font-size: var(--fs-13);
+    }
+
+    /* --- Печать: кнопки на мобильном растягиваем на всю ширину --- */
+    .ab-seal__btns {
+      flex-direction: column;
+      gap: var(--sp-2);
+    }
+    .ab-seal__btn {
+      width: 100%;
+      min-height: 44px;
+    }
+    .ab-seal__btn--reset {
+      margin-left: 0;
+    }
+
+    /* --- Инвариант: уменьшаем шрифт --- */
+    .ab__invariant {
+      font-size: var(--fs-14);
+    }
+  }
+
   /* ============================ Reduced motion ============================ */
   @media (prefers-reduced-motion: reduce) {
     .ab.is-inview .ab-ide,

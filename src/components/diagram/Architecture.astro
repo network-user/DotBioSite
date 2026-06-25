@@ -11,9 +11,9 @@
  *     вход → хаб → хранилища.
  *   • Legacy — явные координаты центра `x/y` (если нет ни `angle`, ни `col`).
  *
- * Рёбра идут прямой спицей от края капсулы к краю капсулы (контрольные точки
- * лежат на луче центр→центр), поэтому наконечник смотрит точно в центр цели —
- * см. ArchEdge.astro.
+ * Рёбра привязаны ОРТОГОНАЛЬНО (см. `ports`): выходят/входят через середину
+ * ближайшей грани капсулы перпендикулярно ей, наконечник упирается в середину
+ * стороны блока, а между портами идёт мягкой S-дугой — см. ArchEdge.astro.
  *
  * Кластер задаётся списком `members` — рамка считается как их общий bounding
  * box плюс отступ, поэтому всегда аккуратно обнимает свои узлы.
@@ -29,9 +29,12 @@ import type { Locale } from "../../lib/i18n";
 import ArchNode from "./ArchNode.astro";
 import ArchEdge from "./ArchEdge.astro";
 import ArchCluster from "./ArchCluster.astro";
+import ArchGlyph from "./ArchGlyph.astro";
 
 type IconKey = "code" | "stack" | "rocket" | "spark" | "telegram" | "globe" | "user" | "dot";
 type EdgeKind = "sync" | "async" | "data";
+/** Грань капсулы: top / bottom / left / right. */
+type Side = "t" | "b" | "l" | "r";
 
 interface NodeInput {
   id: string;
@@ -57,6 +60,10 @@ interface EdgeInput {
   kind?: EdgeKind;
   label?: string;
   bend?: number;
+  /** Принудительная грань выхода/входа (иначе выбирается авто по осям). Нужно
+   *  рёбрам-перескокам, которым авто-грань мешала бы обойти соседний блок. */
+  fromSide?: Side;
+  toSide?: Side;
   oneway?: boolean;
 }
 
@@ -166,18 +173,52 @@ nodes.forEach((n) => {
   });
 });
 
+interface Port {
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  fromDir: { x: number; y: number };
+  toDir: { x: number; y: number };
+}
+
+/** Точка-порт на середине грани `side` капсулы и внешняя нормаль этой грани. */
+function facePort(n: Resolved, side: Side): { p: { x: number; y: number }; d: { x: number; y: number } } {
+  switch (side) {
+    case "r":
+      return { p: { x: n.x + n.hw, y: n.y }, d: { x: 1, y: 0 } };
+    case "l":
+      return { p: { x: n.x - n.hw, y: n.y }, d: { x: -1, y: 0 } };
+    case "b":
+      return { p: { x: n.x, y: n.y + n.hh }, d: { x: 0, y: 1 } };
+    case "t":
+      return { p: { x: n.x, y: n.y - n.hh }, d: { x: 0, y: -1 } };
+  }
+}
+
 /**
- * Вычисляет точку выхода ребра из капсулы: пересечение луча `(cx,cy) → (tx,ty)`
- * с прямоугольной рамкой капсулы (с округлыми концами — упрощаем до rect).
+ * Порты ребра — ОРТОГОНАЛЬНАЯ привязка. Ребро выходит из середины одной грани
+ * капсулы-источника и входит в середину грани-цели СТРОГО ПЕРПЕНДИКУЛЯРНО ей,
+ * а не вдоль косого луча центр→центр. Грань выбирается по доминирующей оси
+ * разноса центров: горизонтальный разнос больше → лево/право, иначе → верх/низ;
+ * `fromSide`/`toSide` принудительно перекрывают этот выбор (для рёбер-перескоков).
+ * `fromDir`/`toDir` — единичные касательные на концах: `fromDir` = внешняя нормаль
+ * грани выхода, `toDir` = направление ВНУТРЬ цели. По ним ArchEdge строит кривую,
+ * поэтому наконечник упирается ровно в СЕРЕДИНУ стороны блока, без «протыкания угла».
  */
-function edgeAnchor(a: Resolved, b: Resolved): { x: number; y: number } {
+function ports(a: Resolved, b: Resolved, fromSide?: Side, toSide?: Side): Port {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
-  if (dx === 0 && dy === 0) return { x: a.x, y: a.y };
-  const absDx = Math.abs(dx);
-  const absDy = Math.abs(dy);
-  const scale = Math.min(a.hw / Math.max(absDx, 0.001), a.hh / Math.max(absDy, 0.001));
-  return { x: a.x + dx * scale, y: a.y + dy * scale };
+  let aSide: Side;
+  let bSide: Side;
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    aSide = dx >= 0 ? "r" : "l";
+    bSide = dx >= 0 ? "l" : "r";
+  } else {
+    aSide = dy >= 0 ? "b" : "t";
+    bSide = dy >= 0 ? "t" : "b";
+  }
+  const A = facePort(a, fromSide ?? aSide);
+  const B = facePort(b, toSide ?? bSide);
+  return { from: A.p, to: B.p, fromDir: A.d, toDir: { x: -B.d.x, y: -B.d.y } };
 }
 
 const edgeData = edges
@@ -185,20 +226,10 @@ const edgeData = edges
     const a = resolved.get(e.from);
     const b = resolved.get(e.to);
     if (!a || !b) return null;
-    const from = edgeAnchor(a, b);
-    const to = edgeAnchor(b, a);
-    return { ...e, fromId: e.from, toId: e.to, from, to };
+    const { from, to, fromDir, toDir } = ports(a, b, e.fromSide, e.toSide);
+    return { ...e, fromId: e.from, toId: e.to, from, to, fromDir, toDir };
   })
-  .filter(
-    (
-      e,
-    ): e is EdgeInput & {
-      fromId: string;
-      toId: string;
-      from: { x: number; y: number };
-      to: { x: number; y: number };
-    } => e !== null,
-  );
+  .filter((e): e is NonNullable<typeof e> => e !== null);
 
 // Кластер по members → общий bounding box узлов + отступ. Иначе legacy x/y/w/h.
 const CLUSTER_PAD = 22;
@@ -248,6 +279,57 @@ const nodeData = nodes.map((n) => ({
 }));
 
 const hasCaption = hint.length > 0 && nodeData.some((n) => n.desc.length > 0);
+
+/* ---------------------------------------------------------------------------
+ * Мобильная вертикальная раскладка — ОТДЕЛЬНАЯ реализация для узких экранов.
+ *
+ * SVG с фиксированным холстом 960×540 на телефоне приходится скроллить вбок;
+ * вместо этого на мобильных рендерим тот же граф как вертикальный поток
+ * (HTML, не SVG): узлы в порядке слоёв (col → row), сгруппированы в «стадии»
+ * со стрелками вниз, связи каждого узла вынесены в подписи-чипы под капсулой,
+ * пояснение раскрывается тапом прямо под узлом. Помещается в ширину телефона,
+ * без бокового скролла. Десктопный SVG этим не затрагивается — обе версии
+ * переключаются media-запросом и в DOM-дереве доступности активна лишь видимая.
+ * ------------------------------------------------------------------------- */
+const labelById = new Map(nodes.map((n) => [n.id, n.label] as const));
+
+// Исходящие связи узла → чипы (куда, каким каналом, с какой подписью).
+const edgesByFrom = new Map<
+  string,
+  { toLabel: string; kind: EdgeKind; label?: string }[]
+>();
+for (const e of edges) {
+  const toLabel = labelById.get(e.to);
+  if (!toLabel) continue;
+  const arr = edgesByFrom.get(e.from) ?? [];
+  arr.push({ toLabel, kind: e.kind ?? "sync", label: e.label });
+  edgesByFrom.set(e.from, arr);
+}
+
+// Узлы по порядку слоёв (col → row → исходный индекс), сгруппированы по колонке.
+type FlowItem = { node: NodeInput; desc: string };
+const flowSorted = nodes
+  .map((node, i) => ({ node, i, desc: node.desc ? (node.desc[locale] ?? node.desc.ru) : "" }))
+  .sort((a, b) => {
+    const ca = a.node.col ?? 0;
+    const cb = b.node.col ?? 0;
+    if (ca !== cb) return ca - cb;
+    const ra = a.node.row ?? 0;
+    const rb = b.node.row ?? 0;
+    if (ra !== rb) return ra - rb;
+    return a.i - b.i;
+  });
+
+const flowStages: { col: number; items: FlowItem[] }[] = [];
+for (const { node, desc } of flowSorted) {
+  const col = node.col ?? 0;
+  let stage = flowStages.find((s) => s.col === col);
+  if (!stage) {
+    stage = { col, items: [] };
+    flowStages.push(stage);
+  }
+  stage.items.push({ node, desc });
+}
 ---
 
 <figure class:list={["architecture-fig", className]}>
@@ -278,6 +360,8 @@ const hasCaption = hint.length > 0 && nodeData.some((n) => n.desc.length > 0);
           <ArchEdge
             from={e.from}
             to={e.to}
+            fromDir={e.fromDir}
+            toDir={e.toDir}
             fromId={e.fromId}
             toId={e.toId}
             kind={e.kind}
@@ -313,6 +397,84 @@ const hasCaption = hint.length > 0 && nodeData.some((n) => n.desc.length > 0);
         ))
       }
     </svg>
+  </div>
+
+  <div class="architecture__flow" data-arch-flow>
+    {
+      flowStages.map((stage, si) => (
+        <div class="archflow__stage">
+          {stage.items.map(({ node: n, desc }) => {
+            const out = edgesByFrom.get(n.id) ?? [];
+            return (
+              <div class="archflow__item">
+                {desc ? (
+                  <button
+                    type="button"
+                    class:list={[
+                      "archflow__node",
+                      "glass",
+                      "glass--hover",
+                      n.emphasis === "strong" && "archflow__node--strong",
+                    ]}
+                    data-archflow-node
+                    aria-expanded="false"
+                    aria-label={`${n.label}: ${desc}`}
+                  >
+                    <span class="archflow__node-main">
+                      <ArchGlyph icon={n.icon} class="archflow__icon" />
+                      <span class="archflow__label">{n.label}</span>
+                    </span>
+                    <span class="archflow__caret" aria-hidden="true">
+                      <svg viewBox="0 0 12 12" width="12" height="12" fill="none">
+                        <path d="M3 5l3 3 3-3" />
+                      </svg>
+                    </span>
+                  </button>
+                ) : (
+                  <div
+                    class:list={[
+                      "archflow__node",
+                      "glass",
+                      n.emphasis === "strong" && "archflow__node--strong",
+                    ]}
+                  >
+                    <span class="archflow__node-main">
+                      <ArchGlyph icon={n.icon} class="archflow__icon" />
+                      <span class="archflow__label">{n.label}</span>
+                    </span>
+                  </div>
+                )}
+                {desc && (
+                  <div class="archflow__desc">
+                    <p class="archflow__desc-text">{desc}</p>
+                  </div>
+                )}
+                {out.length > 0 && (
+                  <ul class="archflow__edges">
+                    {out.map((e) => (
+                      <li class:list={["archflow__edge", `archflow__edge--${e.kind}`]}>
+                        <span class="archflow__edge-arrow" aria-hidden="true">
+                          →
+                        </span>
+                        <span class="archflow__edge-to">{e.toLabel}</span>
+                        {e.label && <span class="archflow__edge-kind">{e.label}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
+          {si < flowStages.length - 1 && (
+            <div class="archflow__down" aria-hidden="true">
+              <svg viewBox="0 0 12 26" width="12" height="26" fill="none">
+                <path d="M6 1v19m0 0 4.5-4.5M6 20l-4.5-4.5" />
+              </svg>
+            </div>
+          )}
+        </div>
+      ))
+    }
   </div>
 
   {
@@ -355,9 +517,23 @@ const hasCaption = hint.length > 0 && nodeData.some((n) => n.desc.length > 0);
     color: var(--text);
   }
 
+  /* --- Переключение: desktop SVG ↔ mobile вертикальный flow ---
+     На узких экранах SVG (фикс. холст 960×540) прячем целиком и показываем
+     HTML-поток; на десктопе наоборот. Подпись-caption нужна только SVG-версии
+     (там клик уходит в неё) — на мобильном пояснение раскрывается inline. */
+  .architecture__flow {
+    display: none;
+  }
+
   @media (max-width: 719px) {
-    .architecture {
-      min-width: 640px;
+    .architecture__viewport {
+      display: none;
+    }
+    .architecture__flow {
+      display: block;
+    }
+    .architecture__caption {
+      display: none;
     }
   }
 
@@ -475,6 +651,165 @@ const hasCaption = hint.length > 0 && nodeData.some((n) => n.desc.length > 0);
   .architecture__caption-text {
     color: var(--text-secondary);
   }
+
+  /* ======================================================================
+   * Мобильный вертикальный flow (виден только на узких экранах, см. toggle).
+   * ==================================================================== */
+  .architecture__flow {
+    display: none;
+    flex-direction: column;
+    gap: var(--sp-5);
+  }
+
+  .archflow__stage {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+  }
+
+  .archflow__item {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Капсула узла: glass даёт фон/обводку, здесь — раскладка и тап-таргет. */
+  .archflow__node {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    width: 100%;
+    min-height: var(--tap-min);
+    padding: var(--sp-3) var(--sp-4);
+    text-align: left;
+    color: var(--text);
+  }
+
+  .archflow__node--strong {
+    border-color: color-mix(in srgb, var(--project-accent) 52%, var(--glass-edge-bright));
+    background-color: var(--glass-tint-3);
+  }
+
+  .archflow__node-main {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    min-width: 0;
+  }
+
+  .archflow__label {
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-15);
+    font-weight: var(--fw-semibold);
+    letter-spacing: var(--ls-snug);
+    line-height: var(--lh-snug);
+  }
+
+  .archflow__node--strong :global(.arch-glyph) {
+    stroke: color-mix(in srgb, var(--project-accent) 72%, var(--text));
+  }
+
+  .archflow__caret {
+    display: flex;
+    flex: none;
+    color: var(--text-muted);
+    transition: transform var(--dur-fast) var(--ease-standard);
+  }
+  .archflow__caret svg {
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .archflow__node[aria-expanded="true"] .archflow__caret {
+    transform: rotate(180deg);
+  }
+
+  /* Раскрытие пояснения тапом — grid-rows 0fr→1fr (как в Capabilities). */
+  .archflow__desc {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--dur-med) var(--ease-standard);
+  }
+  .archflow__node[aria-expanded="true"] + .archflow__desc {
+    grid-template-rows: 1fr;
+  }
+  .archflow__desc > * {
+    overflow: hidden;
+    min-height: 0;
+  }
+  .archflow__desc-text {
+    padding: var(--sp-2) var(--sp-2) 0;
+    font-size: var(--fs-13);
+    line-height: var(--lh-normal);
+    color: var(--text-secondary);
+  }
+
+  /* Исходящие связи узла — компактные чипы со стрелкой, цвет по типу канала. */
+  .archflow__edges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    margin-top: var(--sp-2);
+    padding-inline: var(--sp-1);
+  }
+  .archflow__edge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-1);
+    padding: 3px var(--sp-2);
+    border: var(--bw-thin) solid var(--glass-edge);
+    border-radius: var(--r-pill);
+    background: var(--glass-tint-1);
+    font-size: var(--fs-11);
+    color: var(--text-secondary);
+  }
+  .archflow__edge-arrow {
+    color: var(--text-muted);
+    font-weight: var(--fw-semibold);
+  }
+  .archflow__edge-to {
+    font-weight: var(--fw-medium);
+    color: var(--text);
+  }
+  .archflow__edge-kind {
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-10);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .archflow__edge--sync .archflow__edge-arrow {
+    color: color-mix(in srgb, var(--text-secondary) 55%, var(--project-accent));
+  }
+  .archflow__edge--async {
+    border-style: dashed;
+    border-color: color-mix(in srgb, var(--project-accent) 30%, var(--glass-edge));
+  }
+  .archflow__edge--async .archflow__edge-arrow {
+    color: color-mix(in srgb, var(--project-accent) 70%, var(--text-secondary));
+  }
+  .archflow__edge--data {
+    border-style: dotted;
+  }
+  .archflow__edge--data .archflow__edge-arrow {
+    color: var(--text-muted);
+  }
+
+  /* Стрелка-разделитель между стадиями (col → col). */
+  .archflow__down {
+    display: flex;
+    justify-content: center;
+    padding-block: var(--sp-1);
+    color: var(--text-muted);
+    opacity: 0.65;
+  }
+  .archflow__down svg {
+    stroke: currentColor;
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
 </style>
 
 <script>
@@ -550,6 +885,29 @@ const hasCaption = hint.length > 0 && nodeData.some((n) => n.desc.length > 0);
       fig.addEventListener("focusout", (ev) => {
         const next = (ev as FocusEvent).relatedTarget as Node | null;
         if (next === null || !fig.contains(next)) clear();
+      });
+    });
+  })();
+</script>
+
+<script>
+  /**
+   * Мобильный flow: тап по капсуле раскрывает пояснение прямо под ней
+   * (grid-rows-аккордеон по aria-expanded). Single-open — открытие одного узла
+   * закрывает остальные в той же диаграмме. Отдельно от desktop-caption: на
+   * мобильном видим только flow, на desktop — только SVG. Чистый class/attr-toggle.
+   */
+  (() => {
+    const flows = Array.from(document.querySelectorAll<HTMLElement>("[data-arch-flow]"));
+    flows.forEach((flow) => {
+      const nodes = Array.from(flow.querySelectorAll<HTMLButtonElement>("[data-archflow-node]"));
+      if (nodes.length === 0) return;
+      nodes.forEach((node) => {
+        node.addEventListener("click", () => {
+          const willOpen = node.getAttribute("aria-expanded") !== "true";
+          for (const other of nodes) other.setAttribute("aria-expanded", "false");
+          node.setAttribute("aria-expanded", willOpen ? "true" : "false");
+        });
       });
     });
   })();

@@ -317,7 +317,10 @@ const subtitle = t("hero.subtitle");
   .hero__brand {
     position: relative;
     font-family: var(--font-stack-display);
-    font-size: 56px;
+    /* Плавный мобильный/планшетный масштаб вместо ступеней 52→72: на любой
+       ширине до десктопа бренд тянется без скачков и не переполняет узкий экран.
+       Десктопные кегли (≥768) задаются ступенями ниже. */
+    font-size: clamp(2.5rem, 11vw, 4.5rem);
     letter-spacing: var(--ls-display-xl);
     line-height: var(--lh-display-xl);
     margin: 0;
@@ -436,10 +439,6 @@ const subtitle = t("hero.subtitle");
       padding-block: var(--sp-10) var(--sp-8);
     }
 
-    .hero__brand {
-      font-size: 52px;
-    }
-
     .hero__tagline {
       font-size: var(--fs-22);
     }
@@ -450,10 +449,6 @@ const subtitle = t("hero.subtitle");
   }
 
   @media (min-width: 480px) {
-    .hero__brand {
-      font-size: 72px;
-    }
-
     .hero__tagline {
       max-width: 22ch;
     }

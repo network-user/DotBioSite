@@ -227,12 +227,16 @@
     {
       "from": "bot",
       "to": "pg",
-      "kind": "data"
+      "kind": "data",
+      "fromSide": "b",
+      "bend": -35
     },
     {
       "from": "bot",
       "to": "redis",
-      "kind": "data"
+      "kind": "data",
+      "fromSide": "t",
+      "bend": 35
     },
     {
       "from": "leaderboard",

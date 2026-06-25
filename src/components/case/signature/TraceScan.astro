@@ -1161,27 +1161,89 @@ const ui = {
 
   /* ====================== Адаптив ====================== */
   @media (max-width: 760px) {
+    /* Тело: поток + rack в одну колонку */
     .ts__body {
       grid-template-columns: minmax(0, 1fr);
-    }
-
-    .ts__exports {
-      margin-left: 0;
     }
 
     .ts__stream {
       height: 184px;
     }
+
+    /* Контрольная панель: вся ширина, перенос элементов */
+    .ts__controls {
+      padding: var(--sp-3);
+      gap: var(--sp-2);
+    }
+
+    /* Break-proxy: тач-таргет */
+    .ts__break {
+      min-height: var(--tap-min);
+    }
+
+    /* Экспорт-чипы: убираем прижатие вправо, горизонтальная лента с прокруткой */
+    .ts__exports {
+      margin-left: 0;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      max-width: 100%;
+      /* скрываем полосу прокрутки визуально, но оставляем прокрутку */
+      scrollbar-width: none;
+    }
+
+    .ts__exports::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Таблица: горизонтальная прокрутка внутри обёртки,
+       чтобы компонент не раздувал страницу вбок */
+    .ts__results {
+      padding-left: var(--sp-3);
+      padding-right: var(--sp-3);
+    }
+
+    .ts__table {
+      /* Снимаем overflow:hidden с контейнера чтобы добавить горизонтальный скролл */
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Строки таблицы: фиксируем минимальную ширину для читаемости,
+       скролл идёт внутри .ts__table */
+    .ts__trow {
+      min-width: 480px;
+    }
+
+    /* Шрифты ячеек читаемые */
+    .ts__td {
+      font-size: var(--fs-12);
+    }
+
+    /* Строка-приглашение: команда переносится, Run-кнопка на всю строку не уезжает */
+    .ts__prompt {
+      gap: var(--sp-2);
+      padding: var(--sp-3);
+    }
+
+    /* Тайтлбар: семафор не обрезается */
+    .ts__bar {
+      padding: var(--sp-2) var(--sp-3);
+    }
   }
 
   @media (max-width: 460px) {
+    /* Ноды: одна колонка */
     .ts__probes {
       grid-template-columns: minmax(0, 1fr);
     }
 
+    /* Таблица: на очень узких экранах убираем min-width,
+       скрываем второстепенные колонки вместо прокрутки */
     .ts__trow {
       grid-template-columns: 1.6fr 0.9fr 0.7fr;
       gap: var(--sp-1) var(--sp-2);
+      min-width: 0;
     }
 
     /* на узком экране прячем «страна» и «сеть», оставляя IP / ASN / abuse */
@@ -1192,8 +1254,39 @@ const ui = {
       display: none;
     }
 
+    /* Пул прокси: слишком широкий для узкого экрана, скрываем */
     .ts__pool {
       display: none;
+    }
+
+    /* Контрольная панель: стек вместо ленты */
+    .ts__controls {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    /* Break-proxy и toggle: на всю ширину */
+    .ts__break,
+    .ts__toggle {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    /* Экспорты: снова разрешаем перенос (колонок немного — влезут) */
+    .ts__exports {
+      flex-wrap: wrap;
+      overflow-x: visible;
+      width: 100%;
+    }
+
+    /* Строка-приглашение: Run-кнопка на всю строку */
+    .ts__run {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .ts__prompt {
+      padding: var(--sp-2) var(--sp-3);
     }
   }
 

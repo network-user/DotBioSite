@@ -1248,25 +1248,132 @@ const ui = {
 
   /* ════════════════ Responsive ════════════════ */
   @media (max-width: 760px) {
+    /* верстак — одна колонка */
     .lf__bench {
       grid-template-columns: 1fr;
     }
+
+    /* «в Web Worker» переносится на отдельную строку */
     .lf-ide__worker {
       flex-basis: 100%;
       margin-left: 0;
+    }
+
+    /* вкладки рантайма: заполняют ширину, тач-таргет явный */
+    .lf-ide__runtimes {
+      gap: var(--sp-2);
+      padding-bottom: 0;
+    }
+
+    .lf-ide__runtime {
+      flex: 1 1 auto;
+      min-height: 44px;
+    }
+
+    /* редактор: код не вылезает за компонент, внутри блока прокрутка */
+    .lf-ide__editor {
+      margin: 0 var(--sp-3);
+      /* горизонтальный скролл внутри блока кода — допустим */
+      overflow-x: auto;
+    }
+
+    .lf-ide__code {
+      /* минимальный читаемый размер на мобильном */
+      font-size: max(12px, var(--fs-12));
+    }
+
+    .lf-ide__gutter {
+      font-size: max(12px, var(--fs-12));
+    }
+
+    /* варианты решения: растягиваются равномерно */
+    .lf-ide__variants {
+      gap: var(--sp-2);
+    }
+
+    .lf-ide__variant {
+      flex: 1 1 auto;
+      min-height: 44px;
+      text-align: center;
+    }
+
+    /* строка Run: кнопка на всю ширину, статус под ней */
+    .lf-ide__run {
+      flex-wrap: wrap;
+      gap: var(--sp-2);
+    }
+
+    .lf-ide__runbtn {
+      flex: 1 1 100%;
+      min-height: 44px;
+      justify-content: center;
+    }
+
+    .lf-ide__status {
+      flex-basis: 100%;
+    }
+
+    /* панель результата: таблица прокручивается внутри */
+    .lf-ide__table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      /* не даём таблице раздувать компонент */
+      max-width: 100%;
+    }
+
+    /* кузница: промпт-чип занимает всю ширину */
+    .lf-forge__chip {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    /* кнопка Forge — на всю ширину */
+    .lf-forge__btn {
+      width: 100%;
+      min-height: 44px;
+    }
+
+    /* gate и toggle — на всю ширину на мобильном */
+    .lf-forge__gate {
+      align-self: stretch;
+      max-width: 100%;
+    }
+
+    .lf-forge__toggle {
+      align-self: stretch;
+      min-height: 44px;
+      text-align: center;
+    }
+
+    /* BYOK кнопка — на всю ширину */
+    .lf-forge__byok {
+      align-self: stretch;
+      min-height: 44px;
+    }
+
+    /* PR-чип тоже растягивается */
+    .lf-forge__pr {
+      align-self: stretch;
+      justify-content: center;
     }
   }
 
   @media (max-width: 400px) {
     .lf-ide__editor {
-      margin: 0 var(--sp-3);
+      margin: 0 var(--sp-2);
     }
+
     .lf-ide__runtimes,
     .lf-ide__variants,
     .lf-ide__run,
     .lf-ide__result {
       padding-left: var(--sp-3);
       padding-right: var(--sp-3);
+    }
+
+    /* на очень узких — варианты в колонку, если не влезают */
+    .lf-ide__variant {
+      flex-basis: 100%;
     }
   }
 

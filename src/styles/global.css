@@ -460,6 +460,27 @@ ol {
   }
 }
 
+/* Тач-отклик кнопок: на desktop его даёт :hover, на тач — мгновенная реакция на
+   палец (:active) плюс кратко-живущая «вспышка» .is-tapped (см. BaseLayout).
+   Только (hover: none) — desktop не затрагиваем. */
+@media (hover: none) {
+  .cta--primary:active,
+  .cta--primary.is-tapped {
+    background: var(--accent-active);
+    border-color: var(--accent-active);
+  }
+
+  .cta--ghost:active,
+  .cta--ghost.is-tapped {
+    background: var(--surface-2);
+    border-color: var(--border-hover);
+  }
+
+  .cta:active {
+    transform: scale(0.985);
+  }
+}
+
 /* =============================================================================
  * Cross-page View Transitions (Astro 4 honors @view-transition on supported browsers;
  * gracefully no-ops on Firefox/Safari <18 etc.)

@@ -1029,11 +1029,6 @@ const bundle = {
     gap: var(--sp-2);
     margin-bottom: var(--sp-3);
   }
-  @container (max-width: 380px) {
-    .sd__days {
-      gap: var(--sp-1);
-    }
-  }
   .sd__day {
     position: relative;
     min-height: var(--tap-min);
@@ -1184,19 +1179,151 @@ const bundle = {
     }
   }
 
-  /* ------------------------ Мобайл ------------------------ */
-  @container (max-width: 460px) {
+  /* ------------------------ Мобайл (≤719px) ------------------------ */
+  /*
+   * Все правки только в этом блоке — десктопная раскладка (≥720px) не тронута.
+   * Брейкпоинт совпадает с переходом грида: container < 720px = 1 колонка.
+   */
+  @container (max-width: 719px) {
+    /* Консоль: меньше внутренних отступов, чтобы контент не давил в стены */
+    .sd__console {
+      padding: var(--sp-4) var(--sp-3);
+      gap: var(--sp-2);
+    }
+
+    /* Операции: 2 колонки (уже по умолчанию), но тап-таргет явно ≥44px */
+    .sd__op {
+      min-height: 44px;
+      padding: var(--sp-2) var(--sp-2);
+    }
+
+    /* Уровни: растягиваем на всю ширину, по одному в строку чтобы метаинфо не обрезалась */
+    .sd__levels {
+      flex-direction: column;
+    }
+    .sd__level {
+      flex: none;
+      width: 100%;
+      min-width: 0;
+      min-height: 44px;
+      padding: var(--sp-2) var(--sp-3);
+    }
+
+    /* Игровое поле: чуть меньше gap */
+    .sd__play {
+      padding: var(--sp-3);
+      gap: var(--sp-2);
+    }
+
+    /* Выражение: крупный, читаемый */
+    .sd__expr {
+      font-size: var(--fs-28);
+    }
+    .sd__ph {
+      font-size: var(--fs-28);
+    }
+
+    /* Варианты ответа: 2 колонки, тап-таргет ≥44px, шрифт крупнее */
+    .sd__choices {
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--sp-2);
+    }
+    .sd__choice {
+      min-height: 44px;
+      padding: var(--sp-2) var(--sp-1);
+    }
+    .sd__choice-val {
+      font-size: var(--fs-18, var(--fs-17));
+    }
+
+    /* Футер тренажёра: счёт и кнопки переносятся */
+    .sd__console-foot {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--sp-2);
+    }
+    .sd__ctl {
+      width: 100%;
+    }
+
+    /* Кнопки Прогон/Заново: тап-таргет 44px, тянутся на ширину */
+    .sd__btn {
+      min-height: 44px;
+      flex: 1;
+      padding: var(--sp-2) var(--sp-3);
+    }
+
+    /* Срезы табло: кнопки тянутся равномерно */
+    .sd__modes {
+      gap: var(--sp-1);
+    }
+    .sd__mode {
+      min-height: 44px;
+      flex: 1;
+      text-align: center;
+    }
+
+    /* Строка табло: убираем бар (мало места), чуть компактнее */
     .sd__row {
       grid-template-columns: 18px 14px 1fr auto;
+      padding: var(--sp-1) var(--sp-2);
     }
     .sd__bar {
       display: none;
     }
-    .sd__console {
-      padding: var(--sp-4);
+
+    /* Серия дней: 7 ячеек на узком — минимальный gap */
+    .sd__days {
+      gap: var(--sp-1);
     }
-    .sd__expr {
-      font-size: var(--fs-28);
+    .sd__day {
+      min-height: 44px;
+    }
+
+    /* «Сегодня»-подпись под ячейкой: немного поднять, чтобы не обрезалась */
+    .sd__day-today {
+      font-size: 9px;
+      bottom: -14px;
+    }
+
+    /* Легенда серии: колонкой, чтобы не давила по ширине */
+    .sd__streak-foot {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--sp-2);
+      margin-top: var(--sp-2);
+    }
+    .sd__legend {
+      flex-direction: column;
+      gap: var(--sp-1);
+    }
+    .sd__leg {
+      font-size: var(--fs-12);
+    }
+
+    /* Intro: убираем max-width, пусть занимает всю ширину */
+    .sd__intro {
+      max-width: 100%;
+      font-size: var(--fs-14, var(--fs-16));
+    }
+  }
+
+  /* Совсем узко (≤380px): ещё плотнее */
+  @container (max-width: 380px) {
+    .sd__days {
+      gap: var(--sp-1);
+    }
+    .sd__console {
+      padding: var(--sp-3) var(--sp-2);
+    }
+    .sd__modes {
+      flex-wrap: wrap;
+    }
+    .sd__mode {
+      flex: none;
+      min-height: 44px;
+      padding: var(--sp-1) var(--sp-2);
+      font-size: var(--fs-12);
     }
   }
 

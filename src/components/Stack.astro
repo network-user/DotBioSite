@@ -202,38 +202,68 @@ const hiddenCount = layout.reduce(
       lede={t("stack.lede")}
     />
 
-    <input type="checkbox" id="stack-expand" class="stack__expand" aria-controls="stack-grid" />
+    <input type="checkbox" id="stack-expand" class="stack__expand" aria-controls="stack-grid stack-extras" />
 
     <div class="stack__grid" id="stack-grid" data-stack-grid>
       {
-        layout.map(({ group, isPrimary, coreCount }, i) => {
-          const label = t(`stack.categories.${group.id}`);
-          const delay = String(i * 80);
-          const cardClass = `stack__group glass glass--hover${isPrimary ? "" : " stack__group--extra"}`;
-          return (
-            <article
-              class={cardClass}
-              data-stack-card
-              data-warp
-              data-reveal={isPrimary ? true : undefined}
-              data-reveal-delay={isPrimary ? delay : undefined}
-            >
-              <span class="stack__sheen" aria-hidden="true" />
-              <span class="stack__bar" aria-hidden="true" />
-              <header class="stack__group-header">
-                <Icon name={group.icon} size={20} class="stack__icon" />
-                <p class="caption">{label}</p>
-              </header>
-              <ul class="stack__chips">
-                {group.items.map((it, j) => {
-                  const extra = isPrimary && j >= coreCount;
-                  return <li class={`stack__chip${extra ? " stack__chip--extra" : ""}`}>{it}</li>;
-                })}
-              </ul>
-            </article>
-          );
-        })
+        layout
+          .filter(({ isPrimary }) => isPrimary)
+          .map(({ group, coreCount }, i) => {
+            const label = t(`stack.categories.${group.id}`);
+            const delay = String(i * 80);
+            return (
+              <article
+                class="stack__group glass glass--hover"
+                data-stack-card
+                data-warp
+                data-touch-live
+                data-reveal
+                data-reveal-delay={delay}
+              >
+                <span class="stack__sheen" aria-hidden="true" />
+                <span class="stack__bar" aria-hidden="true" />
+                <header class="stack__group-header">
+                  <Icon name={group.icon} size={20} class="stack__icon" />
+                  <p class="caption">{label}</p>
+                </header>
+                <ul class="stack__chips">
+                  {group.items.map((it, j) => {
+                    const extra = j >= coreCount;
+                    return <li class={`stack__chip${extra ? " stack__chip--extra" : ""}`}>{it}</li>;
+                  })}
+                </ul>
+              </article>
+            );
+          })
       }
+    </div>
+
+    {/* height:0 + overflow:visible — карточки плавают ниже секции, не сдвигая Projects */}
+    <div class="stack__extras-wrap" id="stack-extras">
+      <div class="stack__extras-grid">
+        {
+          layout
+            .filter(({ isPrimary }) => !isPrimary)
+            .map(({ group }) => {
+              const label = t(`stack.categories.${group.id}`);
+              return (
+                <article class="stack__group stack__group--extra glass" data-stack-card data-warp>
+                  <span class="stack__sheen" aria-hidden="true" />
+                  <span class="stack__bar" aria-hidden="true" />
+                  <header class="stack__group-header">
+                    <Icon name={group.icon} size={20} class="stack__icon" />
+                    <p class="caption">{label}</p>
+                  </header>
+                  <ul class="stack__chips">
+                    {group.items.map((it) => (
+                      <li class="stack__chip">{it}</li>
+                    ))}
+                  </ul>
+                </article>
+              );
+            })
+        }
+      </div>
     </div>
 
     <label class="stack__more-toggle" for="stack-expand" data-warp>
@@ -431,22 +461,71 @@ const hiddenCount = layout.reduce(
     white-space: nowrap;
   }
 
-  .stack__chip--extra,
-  .stack__group--extra {
+  /* Extra chips inside primary cards: hidden until expanded */
+  .stack__chip--extra {
     display: none;
   }
 
+  /* Extra group cards wrapper: height 0 so it doesn't push down the Projects
+     section. overflow: visible lets ghost card outlines float below into the
+     next section as an overlay. z-index: 1 keeps them above the next section's
+     content (which has no explicit z-index). */
+  .stack__extras-wrap {
+    height: 0;
+    overflow: visible;
+    position: relative;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .stack__extras-grid {
+    display: grid;
+    gap: var(--sp-4);
+    grid-template-columns: 1fr;
+    margin-top: var(--sp-4);
+  }
+
+  /* Ghost extra cards: visible border from .glass, transparent fill, no content */
+  .stack__group--extra {
+    background-color: transparent;
+    pointer-events: none;
+  }
+
+  .stack__group--extra::before {
+    opacity: 0;
+  }
+
+  .stack__group--extra .stack__group-header,
+  .stack__group--extra .stack__chips {
+    opacity: 0;
+  }
+
+  /* Expanded: extras-wrap takes natural height (pushes Projects down),
+     cards animate in with content */
   .stack__expand:checked ~ .stack__grid .stack__chip--extra {
     display: block;
-  }
-
-  .stack__expand:checked ~ .stack__grid .stack__group--extra {
-    display: flex;
-  }
-
-  .stack__expand:checked ~ .stack__grid .stack__chip--extra,
-  .stack__expand:checked ~ .stack__grid .stack__group--extra {
     animation: stack-more-in var(--dur-slow) var(--ease-soft);
+  }
+
+  .stack__expand:checked ~ .stack__extras-wrap {
+    height: auto;
+    pointer-events: auto;
+    z-index: auto;
+  }
+
+  .stack__expand:checked ~ .stack__extras-wrap .stack__group--extra {
+    background-color: var(--glass-tint-frost);
+    pointer-events: auto;
+    animation: stack-more-in var(--dur-slow) var(--ease-soft);
+  }
+
+  .stack__expand:checked ~ .stack__extras-wrap .stack__group--extra::before {
+    opacity: 0.9;
+  }
+
+  .stack__expand:checked ~ .stack__extras-wrap .stack__group--extra .stack__group-header,
+  .stack__expand:checked ~ .stack__extras-wrap .stack__group--extra .stack__chips {
+    opacity: 1;
   }
 
   .stack__more-toggle {
@@ -540,7 +619,9 @@ const hiddenCount = layout.reduce(
     }
 
     .stack__expand:checked ~ .stack__grid .stack__chip--extra,
-    .stack__expand:checked ~ .stack__grid .stack__group--extra {
+    .stack__expand:checked ~ .stack__extras-wrap .stack__group--extra,
+    .stack__expand:checked ~ .stack__extras-wrap .stack__group--extra .stack__group-header,
+    .stack__expand:checked ~ .stack__extras-wrap .stack__group--extra .stack__chips {
       animation: none;
     }
   }
@@ -559,8 +640,19 @@ const hiddenCount = layout.reduce(
     }
   }
 
+  /* Тач-эквивалент hover: обводку даёт общий хук .glass--hover.is-touch-active
+     (glass.css), а здесь — запуск sweep-полосы, когда карточка попадает в центр
+     вьюпорта при прокрутке (на desktop её запускает :hover). Отдельная мобильная
+     реализация; desktop (hover: hover) этого правила не видит. */
+  @media (hover: none) {
+    .stack__group.is-touch-active .stack__bar {
+      transform: translateX(100%);
+    }
+  }
+
   @media (min-width: 720px) {
-    .stack__grid {
+    .stack__grid,
+    .stack__extras-grid {
       grid-template-columns: repeat(2, 1fr);
     }
 
@@ -570,7 +662,8 @@ const hiddenCount = layout.reduce(
   }
 
   @media (min-width: 1100px) {
-    .stack__grid {
+    .stack__grid,
+    .stack__extras-grid {
       grid-template-columns: repeat(3, 1fr);
     }
   }

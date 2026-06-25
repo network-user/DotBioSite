@@ -1288,23 +1288,95 @@ const DAY_END = 24;
 
   /* ── Узкие экраны ────────────────────────────────────────────────── */
   @container (max-width: 620px) {
+    /* Шапка — одна колонка: часы сверху, аватар снизу */
     .ws__head {
       grid-template-columns: minmax(0, 1fr);
     }
+
+    /* Дорожки — стопкой; пустые не резервируют место */
     .ws__lanes {
       grid-template-columns: minmax(0, 1fr);
     }
     .ws__lane {
       min-height: auto;
     }
+
+    /* Панель и движок: меньший паддинг чтобы контент не упирался в края */
+    .ws__board,
+    .ws__engine {
+      padding: var(--sp-4);
+    }
+
+    /* Слайдер — всегда на полную ширину */
+    .ws__scrub-input {
+      width: 100%;
+    }
+
+    /* Кнопки развилки: растянуть на всю строку, тач-таргет ≥44px */
+    .ws__branch-btn {
+      flex: 1 1 auto;
+      min-width: 0;
+      min-height: var(--tap-min);
+      text-align: center;
+      justify-content: center;
+    }
+
+    /* Redis-ключ и строка лок/тик — переносятся, не раздувают ширину */
+    .ws__lock-key {
+      flex-wrap: wrap;
+      word-break: break-all;
+    }
+    .ws__lock-cmd {
+      word-break: break-all;
+      overflow-wrap: anywhere;
+    }
+
+    /* Строка лок: оба элемента переносятся */
+    .ws__lock {
+      flex-wrap: wrap;
+    }
+
+    /* Журнал: немного меньше высота, чтобы не занимал весь экран */
+    .ws__log {
+      height: 108px;
+    }
   }
 
   @container (max-width: 420px) {
+    /* Кнопка +1ч не уходит вправо — остаётся в потоке */
     .ws__advance {
       margin-left: 0;
     }
+
+    /* Время: чуть меньше на очень узких */
     .ws__clock-time {
       font-size: var(--fs-24);
+    }
+
+    /* Ряд часов: переносимся, чтобы кнопка +1ч не сжимала цифры */
+    .ws__clock-row {
+      flex-wrap: wrap;
+      gap: var(--sp-2);
+    }
+
+    /* Кнопка +1ч — во всю ширину на самых узких */
+    .ws__advance {
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* Имя реплики: разрешаем перенос */
+    .ws__rep-name {
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    /* Теги реплик: переносятся на новую строку если не умещаются */
+    .ws__rep {
+      flex-wrap: wrap;
+    }
+    .ws__rep-tag {
+      flex-shrink: 0;
     }
   }
 

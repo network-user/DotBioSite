@@ -510,6 +510,64 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
         groups.forEach((cards, root) => setupRoot(root, cards));
       })();
     </script>
+
+    <script>
+      // === Мобильный интерактив: «оживление» при скролле + отклик на тап ===
+      // На тач-устройствах нет курсора, поэтому весь desktop-слой (cursor-ring,
+      // frame-warp, tilt/sheen — все под pointer:fine) выключен. Это ОТДЕЛЬНАЯ
+      // реализация для тача, она не пересекается с desktop-эффектами.
+      //
+      //   1. Scroll-driven: пока карточка [data-touch-live] находится в центре
+      //      вьюпорта — на неё вешается .is-touch-active (CSS-эквивалент hover:
+      //      подсветка обводки, верхний блик, лёгкий подъём). По мере прокрутки
+      //      карточки оживают по очереди — страница «дышит» без действий.
+      //   2. Tap-отклик даёт CSS :active под (hover: none) — мгновенная реакция
+      //      на касание. Здесь же добавляем кратко-живущий .is-tapped, чтобы
+      //      «вспышка» читалась и после отпускания пальца (а не только пока зажат).
+      //
+      // Всё гасится при prefers-reduced-motion и не запускается на desktop.
+      (() => {
+        const fine = window.matchMedia("(pointer: fine)").matches;
+        const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (fine || !("IntersectionObserver" in window)) return;
+
+        const live = Array.from(document.querySelectorAll<HTMLElement>("[data-touch-live]"));
+
+        // (1) Центр-вьюпорта активация. rootMargin сжимает зону срабатывания до
+        // центральной полосы экрана: карточка «горит», лишь пока её центр рядом с
+        // центром вьюпорта. Под reduced-motion активацию-по-скроллу не включаем
+        // (это движение) — остаётся только tap-отклик ниже.
+        if (live.length && !reduced) {
+          const io = new IntersectionObserver(
+            (entries) => {
+              for (const e of entries) {
+                e.target.classList.toggle("is-touch-active", e.isIntersecting);
+              }
+            },
+            { rootMargin: "-42% 0px -42% 0px", threshold: 0 },
+          );
+          live.forEach((el) => io.observe(el));
+        }
+
+        // (2) Tap-вспышка: короткий .is-tapped на касании. Делегируем один
+        // слушатель на документ; цель — ближайший интерактив-контейнер.
+        const TAP = "[data-touch-live],.glass--hover,.cta,[role='button'],button,a";
+        document.addEventListener(
+          "pointerdown",
+          (ev) => {
+            const t = (ev.target as HTMLElement | null)?.closest<HTMLElement>(TAP);
+            if (!t) return;
+            t.classList.add("is-tapped");
+            const off = () => {
+              window.setTimeout(() => t.classList.remove("is-tapped"), 220);
+            };
+            t.addEventListener("pointerup", off, { once: true, passive: true });
+            t.addEventListener("pointercancel", off, { once: true, passive: true });
+          },
+          { passive: true },
+        );
+      })();
+    </script>
   </body>
 </html>
 

@@ -39,6 +39,7 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
   data-reveal
   data-reveal-delay={index * 80}
   data-tilt
+  data-touch-live
   aria-labelledby={`project-${p.slug}-title`}
   style={`--project-accent: ${accent}; --anim-delay: ${animDelay};`}
 >
@@ -707,6 +708,35 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
 
     .project-card:hover .project-card__logo {
       transform: none;
+    }
+  }
+
+  /* Тач-эквивалент hover (ОТДЕЛЬНАЯ мобильная реализация). На desktop обводку и
+     glow проявляет курсор (:hover) и tilt; на тач курсора нет, поэтому:
+       • .is-touch-active — карточка в центре вьюпорта (scroll-driven, JS в
+         BaseLayout): подсвечиваем обводку, glow и чуть приподнимаем логотип —
+         карточки «оживают» по очереди при прокрутке.
+       • :active — мгновенный отклик на касание.
+     (hover: none) гарантирует, что desktop (hover: hover) это не видит. */
+  @media (hover: none) {
+    .project-card.is-touch-active {
+      border-color: var(--glass-edge-bright);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        0 24px 60px rgba(0, 0, 0, 0.5),
+        0 0 0 1px color-mix(in srgb, var(--project-accent) 22%, transparent);
+    }
+
+    .project-card.is-touch-active::after {
+      opacity: 1;
+    }
+
+    .project-card.is-touch-active .project-card__logo {
+      transform: scale(1.03);
+    }
+
+    .project-card:active {
+      border-color: var(--glass-edge-bright);
     }
   }
 </style>

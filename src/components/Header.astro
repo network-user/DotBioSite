@@ -352,6 +352,22 @@ const initialHash = Astro.url.hash.replace("#", "");
       display: none;
     }
   }
+
+  /* Тач-отклик: на desktop фидбэк даёт :hover, на тач — :active при касании
+     (nav-ссылки в мобильном меню, переключатель языка, кнопка-гамбургер).
+     Отдельная мобильная реализация; desktop (hover: hover) этого не видит. */
+  @media (hover: none) {
+    .header__nav-link:active {
+      color: var(--text);
+      background: color-mix(in srgb, var(--surface) 82%, transparent);
+    }
+
+    .header__menu:active,
+    :global(.lang-toggle:active) {
+      border-color: var(--border-hover);
+      background: var(--surface-2);
+    }
+  }
 </style>
 
 <script>

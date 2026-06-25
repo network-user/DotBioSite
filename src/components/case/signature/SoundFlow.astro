@@ -26,8 +26,8 @@ type Bi = { ru: string; en: string };
 const t = (b: Bi): string => b[locale];
 
 const intro: Bi = {
-  ru: "Семь вещей, которые умеет платформа. Выберите слева - справа появится объяснение и живая демка. Кнопки внутри показывают, как всё устроено. Примеры из реального каталога.",
-  en: "Seven things the platform can do. Pick one on the left - an explanation and a live demo appear on the right. The buttons inside show how it works. Examples are from the real catalog.",
+  ru: "Семь архитектурных доменов платформы. Выбери слева - справа раскроется механика и интерактивная схема с реальными примерами.",
+  en: "Seven architectural domains of the platform. Pick one on the left - the mechanics and an interactive diagram with real examples open on the right.",
 };
 
 type Pillar = { id: string; label: Bi; tag: Bi; title: Bi; pitch: Bi; desc: Bi };
@@ -201,7 +201,7 @@ const sources: { id: string; name: Bi; url: string; direct?: boolean; tracks: Im
     name: { ru: "SoundCloud", en: "SoundCloud" },
     url: "soundcloud.com/kaiangel",
     tracks: [
-      { title: "LIPSTICK", artist: "Kai Angel", dur: "2:47" },
+      { title: "LIPSTICK", artist: "Kai Angel ft. 9mice", dur: "2:47" },
       { title: "JUMP!", artist: "Kai Angel", dur: "3:12" },
       { title: "DANCE LIKE U IN PAIN", artist: "Kai Angel", dur: "1:27" },
       { title: "SLAYERR", artist: "Kai Angel", dur: "1:55" },
@@ -214,7 +214,7 @@ const sources: { id: string; name: Bi; url: string; direct?: boolean; tracks: Im
     url: "open.spotify.com/artist/kaiangel",
     tracks: [
       { title: "welcome to forever", artist: "Kai Angel", dur: "2:48" },
-      { title: "LIPSTICK", artist: "Kai Angel", dur: "2:47" },
+      { title: "LIPSTICK", artist: "Kai Angel ft. 9mice", dur: "2:47" },
       { title: "KYLIE", artist: "Kai Angel", dur: "3:05" },
       { title: "damage", artist: "Kai Angel", dur: "3:41" },
       { title: "SLAYERR", artist: "Kai Angel", dur: "1:55" },
@@ -223,7 +223,7 @@ const sources: { id: string; name: Bi; url: string; direct?: boolean; tracks: Im
   {
     id: "ya",
     name: { ru: "Yandex Music", en: "Yandex Music" },
-    url: "music.yandex.ru/users/kaiangel/playlists/3",
+    url: "music.yandex.ru/playlists/a3k8f2d9",
     tracks: [
       { title: "Потерялся в мае", artist: "мистер модератор", dur: "3:22" },
       { title: "BAZA", artist: "SQWOZ BAB", dur: "2:34" },
@@ -253,7 +253,7 @@ const sources: { id: string; name: Bi; url: string; direct?: boolean; tracks: Im
       { title: "JUMP! (live)", artist: "Kai Angel", dur: "4:18" },
       { title: "DANCE LIKE U IN PAIN (clip)", artist: "Kai Angel", dur: "1:27" },
       { title: "SLAYERR (mv)", artist: "Kai Angel", dur: "1:55" },
-      { title: "LIPSTICK (clip)", artist: "Kai Angel", dur: "2:47" },
+      { title: "LIPSTICK (clip)", artist: "Kai Angel ft. 9mice", dur: "2:47" },
     ],
   },
   {
@@ -276,8 +276,8 @@ const importT = {
     en: "a track, playlist, or artist-catalog link",
   },
   directCap: {
-    ru: "ничего вставлять не нужно — забираем прямо из профиля",
-    en: "nothing to paste — we pull straight from the profile",
+    ru: "импорт прямо из профиля, ссылка не нужна",
+    en: "importing straight from the profile, no link needed",
   },
   go: { ru: "Импортировать", en: "Import" },
   pulling: { ru: "загружаем…", en: "fetching…" },
@@ -298,7 +298,7 @@ const tasteChips: Bi[] = [
 const swipeTracks: { title: string; artist: string; genre: Bi }[] = [
   { title: "welcome to forever", artist: "Kai Angel", genre: { ru: "cloud rap", en: "cloud rap" } },
   { title: "red weather", artist: "ONDA ANDAR", genre: { ru: "drift", en: "drift" } },
-  { title: "LIPSTICK", artist: "Kai Angel", genre: { ru: "rage", en: "rage" } },
+  { title: "LIPSTICK", artist: "Kai Angel ft. 9mice", genre: { ru: "rage", en: "rage" } },
 ];
 const discover = {
   step1label: { ru: "Жанры", en: "Genres" },
@@ -1539,7 +1539,7 @@ const nav = {
     transform-origin: left center;
   }
   .sf__viz--listen.is-playing .sf__ls-fill {
-    animation: sf-fill 12s linear forwards;
+    animation: sf-fill 8s linear forwards;
   }
   @keyframes sf-fill {
     to {
@@ -2269,7 +2269,7 @@ const nav = {
     transform-origin: bottom center;
   }
   .sf__viz--listen.is-playing .sf__ls-eq span {
-    animation: sf-eq 0.9s var(--ease-drift) infinite alternate;
+    animation: sf-eq 0.6s var(--ease-drift) infinite alternate;
   }
   .sf__ls-eq span:nth-child(1) {
     animation-delay: -0.2s;
@@ -2398,21 +2398,156 @@ const nav = {
 
   /* адаптив */
   @media (max-width: 760px) {
+    /* --- раскладка: одна колонка, табы сверху --- */
     .sf__layout {
       grid-template-columns: minmax(0, 1fr);
     }
+
+    /* --- горизонтальная лента табов с прокруткой --- */
     .sf__nav {
       flex-direction: row;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      gap: var(--sp-2);
+      /* скрываем полосу прокрутки визуально, но оставляем функционал */
+      scrollbar-width: none;
     }
+    .sf__nav::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* каждый таб — компактная карточка фиксированной ширины, не сжимается */
     .sf__tab {
-      flex: 1 1 140px;
+      flex: 0 0 auto;
+      width: 120px;
+      min-height: 44px;
+      padding: var(--sp-2) var(--sp-3);
     }
+
+    /* тег под лейблом — всегда виден на мобиле, без hover */
+    .sf__tab-tag {
+      max-height: 3em;
+      opacity: 1;
+    }
+
+    /* панель на всю ширину, меньше внутренних отступов */
     .sf__panel {
-      padding: var(--sp-4);
+      width: 100%;
+      max-width: 100%;
+      padding: var(--sp-3);
+    }
+
+    /* заголовок чуть меньше на узких */
+    .sf__title {
+      font-size: var(--fs-18);
+    }
+
+    /* --- stage (область визуализации) --- */
+    .sf__stage {
+      padding: var(--sp-3);
+    }
+
+    /* --- flow транскода: вертикально на узких --- */
+    .sf__pl-flow {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .sf__pl-node {
+      min-width: 0;
+      width: 100%;
+    }
+    /* стрелки в потоке транскода — поворот на вертикаль */
+    .sf__pl-flow > .sf__arrow {
+      transform: rotate(90deg);
+      align-self: center;
+    }
+    .sf__pl-out {
+      flex: 1 1 auto;
+    }
+
+    /* --- список треков импорта: убираем жёсткий nowrap --- */
+    .sf__im-name,
+    .sf__im-artist {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    /* --- поле ввода импорта/поиска: на всю ширину --- */
+    .sf__si-field {
+      flex-direction: column;
+    }
+    .sf__si-input,
+    .sf__im-handle {
+      flex: 1 1 auto;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    /* --- чипы источников импорта: прокрутка горизонтально --- */
+    .sf__im-sources {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .sf__im-sources::-webkit-scrollbar {
+      display: none;
+    }
+    .sf__im-sources .sf__chip {
+      flex: 0 0 auto;
+    }
+
+    /* --- строки импорта: убираем фиксированные авто-столбцы --- */
+    .sf__im-row {
+      grid-template-columns: auto 1fr auto;
+    }
+    /* ok-метка скрываем (убираем 4-й столбец) - показываем только на широких */
+    .sf__im-ok {
+      display: none;
+    }
+
+    /* --- строки поиска: перенос --- */
+    .sf__sr-row {
+      grid-template-columns: 1fr;
+      gap: 2px;
+    }
+    .sf__sr-via {
+      grid-column: 1;
+      grid-row: auto;
+    }
+
+    /* --- рекомендации: кнопки like/skip на всю ширину ряда --- */
+    .sf__dc-track {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .sf__dc-tr-info {
+      flex: 1 1 auto;
+    }
+    .sf__dc-tr-btns {
+      flex: none;
+      width: 100%;
+      justify-content: stretch;
+    }
+    .sf__dc-tr-btn {
+      flex: 1 1 0;
+    }
+
+    /* --- статбар: текст чуть меньше, перенос нормальный --- */
+    .sf__stat--wide {
+      flex: 1 1 100%;
+    }
+
+    /* --- пейджер: уменьшаем отступы --- */
+    .sf__pg-btn {
+      padding: var(--sp-2) var(--sp-3);
+      font-size: var(--fs-13);
     }
   }
+
   @media (max-width: 460px) {
+    /* --- на очень узких: стрелки хранения вертикально --- */
     .sf__st-steps {
       flex-direction: column;
       align-items: stretch;
@@ -2420,6 +2555,36 @@ const nav = {
     .sf__arrow {
       transform: rotate(90deg);
       align-self: center;
+    }
+
+    /* --- таб ещё компактнее --- */
+    .sf__tab {
+      width: 100px;
+      padding: var(--sp-2);
+    }
+    .sf__tab-label {
+      font-size: var(--fs-13);
+    }
+    .sf__tab-tag {
+      font-size: var(--fs-11);
+    }
+
+    /* --- intro и pitch не мельче 13px --- */
+    .sf__intro {
+      font-size: var(--fs-14);
+    }
+    .sf__pitch {
+      font-size: var(--fs-15);
+    }
+
+    /* --- ленту рекомендаций: 2 колонки вместо auto-fill --- */
+    .sf__dc-feed {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* --- waveform-скруббер: thumb чуть крупнее для тача --- */
+    .sf__wave-seek::-webkit-slider-thumb {
+      width: 12px;
     }
   }
 
@@ -2638,14 +2803,11 @@ const nav = {
         const direct = b.dataset.imDirect === "true";
         if (direct) {
           if (imInput) imInput.hidden = true;
-          if (imHandle) {
-            imHandle.hidden = false;
-            imHandle.textContent = url;
-          }
+          if (imHandle) imHandle.hidden = true;
           if (imCap)
             imCap.textContent = tr(
-              "ничего вставлять не нужно — забираем прямо из профиля",
-              "nothing to paste — we pull straight from the profile",
+              "импорт прямо из профиля, ссылка не нужна",
+              "importing straight from the profile, no link needed",
             );
         } else {
           if (imInput) {
@@ -2675,8 +2837,13 @@ const nav = {
         } catch {
           /* invalid JSON in data-im-tracks */
         }
+        clearTimers();
         imRows.forEach((r) => r.classList.remove("is-in"));
         if (imNote) imNote.textContent = "";
+        if (imGo) {
+          imGo.disabled = false;
+          imGo.textContent = tr("Импортировать", "Import");
+        }
       });
     });
     const runImport = (): void => {
@@ -2714,7 +2881,7 @@ const nav = {
     const lsLines = Array.from(root.querySelectorAll<HTMLElement>("[data-ls-line]"));
     const lsPlay = root.querySelector<HTMLButtonElement>("[data-ls-play]");
     const TRACK_LEN = 168; // 2:48 — для подписи текущего времени
-    const PLAY_DUR = 20; // секунд на полный проход в демо
+    const PLAY_DUR = 13; // секунд на полный проход в демо
     let lsRaf = 0;
     let lsTs = 0;
     let lsP0 = 0;
