@@ -98,13 +98,6 @@
         "ru": "типов упражнений · 2 рантайма в браузере",
         "en": "exercise types · 2 in-browser runtimes"
       }
-    },
-    {
-      "value": "BYOK",
-      "label": {
-        "ru": "AI-ключи остаются в браузере",
-        "en": "AI keys stay in the browser"
-      }
     }
   ],
   "stackGroups": {
@@ -113,7 +106,7 @@
     "data": ["IndexedDB / Dexie", "Zod contracts", "MDX + Shiki", "Elasticsearch"],
     "infra": ["pnpm workspaces", "Turborepo", "Docker Compose", "GitHub Actions CI"],
     "client": ["sql.js (WASM)", "Pyodide (WASM)", "Monaco editor", "Web Workers"],
-    "ml": ["lesson-forge skill", "BYOK: OpenAI / Anthropic / Ollama / OpenRouter", "ts-fsrs (SRS)"]
+    "ml": ["lesson-forge skill", "ts-fsrs (SRS)"]
   },
   "architectureNodes": [
     {
@@ -168,7 +161,7 @@
     {
       "id": "engine",
       "col": 2,
-      "row": 3,
+      "row": 2,
       "label": "lesson-engine",
       "icon": "code",
       "width": 185,
@@ -180,7 +173,7 @@
     {
       "id": "sandbox",
       "col": 2,
-      "row": 4,
+      "row": 3,
       "label": "sql.js + Pyodide",
       "icon": "rocket",
       "width": 195,
@@ -202,21 +195,9 @@
       }
     },
     {
-      "id": "ai",
-      "col": 2,
-      "row": 1,
-      "label": "BYOK providers",
-      "icon": "globe",
-      "width": 190,
-      "desc": {
-        "ru": "BYOK-ключи в браузере: OpenAI, Anthropic, Ollama",
-        "en": "BYOK keys in the browser: OpenAI, Anthropic, Ollama"
-      }
-    },
-    {
       "id": "api",
       "col": 2,
-      "row": 2,
+      "row": 1,
       "label": "NestJS API · opt",
       "icon": "stack",
       "width": 195,
@@ -269,12 +250,6 @@
       "to": "idb",
       "kind": "data",
       "label": "progress"
-    },
-    {
-      "from": "web",
-      "to": "ai",
-      "kind": "sync",
-      "label": "BYOK"
     },
     {
       "from": "web",
@@ -332,17 +307,6 @@
       "description": {
         "ru": "Плеер открывается на localhost без бэкенда, аккаунтов и интернета. Прогресс в IndexedDB, GitHub-style heatmap и FSRS-повторения.",
         "en": "The player opens on localhost with no backend, accounts, or internet. Progress in IndexedDB, a GitHub-style heatmap, and FSRS reviews."
-      }
-    },
-    {
-      "icon": "stack",
-      "title": {
-        "ru": "BYOK AI",
-        "en": "BYOK AI"
-      },
-      "description": {
-        "ru": "Ключи OpenAI, Anthropic, Ollama и OpenRouter хранятся в браузере и никогда не уходят на сервер. Connection-тест в один клик.",
-        "en": "Keys for OpenAI, Anthropic, Ollama, and OpenRouter live in the browser and never reach a server. One-click connection test."
       }
     },
     {
