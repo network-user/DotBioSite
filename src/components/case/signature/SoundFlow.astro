@@ -194,17 +194,18 @@ const WAVE: number[] = Array.from({ length: 56 }, (_, i) => {
 });
 
 // (4) Импорт
-const sources: { id: string; name: Bi; url: string; tracks: Bi[] }[] = [
+type ImportTrack = { title: string; artist: string; dur: string };
+const sources: { id: string; name: Bi; url: string; direct?: boolean; tracks: ImportTrack[] }[] = [
   {
     id: "sc",
     name: { ru: "SoundCloud", en: "SoundCloud" },
     url: "soundcloud.com/kaiangel",
     tracks: [
-      { ru: "LIPSTICK", en: "LIPSTICK" },
-      { ru: "JUMP!", en: "JUMP!" },
-      { ru: "welcome to forever", en: "welcome to forever" },
-      { ru: "KYLIE", en: "KYLIE" },
-      { ru: "SHOW OFF", en: "SHOW OFF" },
+      { title: "LIPSTICK", artist: "Kai Angel", dur: "2:47" },
+      { title: "JUMP!", artist: "Kai Angel", dur: "3:12" },
+      { title: "DANCE LIKE U IN PAIN", artist: "Kai Angel", dur: "1:27" },
+      { title: "SLAYERR", artist: "Kai Angel", dur: "1:55" },
+      { title: "welcome to forever", artist: "Kai Angel", dur: "2:48" },
     ],
   },
   {
@@ -212,35 +213,35 @@ const sources: { id: string; name: Bi; url: string; tracks: Bi[] }[] = [
     name: { ru: "Spotify", en: "Spotify" },
     url: "open.spotify.com/artist/kaiangel",
     tracks: [
-      { ru: "welcome to forever", en: "welcome to forever" },
-      { ru: "LIPSTICK", en: "LIPSTICK" },
-      { ru: "KYLIE", en: "KYLIE" },
-      { ru: "damage", en: "damage" },
-      { ru: "JUMP!", en: "JUMP!" },
+      { title: "welcome to forever", artist: "Kai Angel", dur: "2:48" },
+      { title: "LIPSTICK", artist: "Kai Angel", dur: "2:47" },
+      { title: "KYLIE", artist: "Kai Angel", dur: "3:05" },
+      { title: "damage", artist: "Kai Angel", dur: "3:41" },
+      { title: "SLAYERR", artist: "Kai Angel", dur: "1:55" },
     ],
   },
   {
     id: "ya",
     name: { ru: "Yandex Music", en: "Yandex Music" },
-    url: "music.yandex.ru/artist/12345",
+    url: "music.yandex.ru/users/kaiangel/playlists/3",
     tracks: [
-      { ru: "KYLIE", en: "KYLIE" },
-      { ru: "SHOW OFF", en: "SHOW OFF" },
-      { ru: "welcome to forever", en: "welcome to forever" },
-      { ru: "LIPSTICK", en: "LIPSTICK" },
-      { ru: "red weather", en: "red weather" },
+      { title: "Потерялся в мае", artist: "мистер модератор", dur: "3:22" },
+      { title: "BAZA", artist: "SQWOZ BAB", dur: "2:34" },
+      { title: "За тебя", artist: "Магомед Дзыбов", dur: "2:51" },
+      { title: "welcome to forever", artist: "Kai Angel", dur: "2:48" },
+      { title: "red weather", artist: "ONDA ANDAR", dur: "2:55" },
     ],
   },
   {
     id: "vk",
     name: { ru: "VK", en: "VK" },
-    url: "vk.com/music/artist/kaiangel",
+    url: "vk.com/music/playlist/-2000345_345",
     tracks: [
-      { ru: "JUMP!", en: "JUMP!" },
-      { ru: "KYLIE", en: "KYLIE" },
-      { ru: "LIPSTICK", en: "LIPSTICK" },
-      { ru: "damage", en: "damage" },
-      { ru: "SHOW OFF", en: "SHOW OFF" },
+      { title: "BAZA", artist: "SQWOZ BAB", dur: "2:34" },
+      { title: "Цветы", artist: "тёмный принц", dur: "1:38" },
+      { title: "DANCE LIKE U IN PAIN", artist: "Kai Angel", dur: "1:27" },
+      { title: "damage", artist: "Kai Angel", dur: "3:41" },
+      { title: "За тебя", artist: "Магомед Дзыбов", dur: "2:51" },
     ],
   },
   {
@@ -248,23 +249,24 @@ const sources: { id: string; name: Bi; url: string; tracks: Bi[] }[] = [
     name: { ru: "YouTube", en: "YouTube" },
     url: "youtube.com/@kaiangel",
     tracks: [
-      { ru: "welcome to forever (official)", en: "welcome to forever (official)" },
-      { ru: "JUMP! (live)", en: "JUMP! (live)" },
-      { ru: "KYLIE", en: "KYLIE" },
-      { ru: "LIPSTICK (clip)", en: "LIPSTICK (clip)" },
-      { ru: "SHOW OFF (mv)", en: "SHOW OFF (mv)" },
+      { title: "welcome to forever (official)", artist: "Kai Angel", dur: "2:48" },
+      { title: "JUMP! (live)", artist: "Kai Angel", dur: "4:18" },
+      { title: "DANCE LIKE U IN PAIN (clip)", artist: "Kai Angel", dur: "1:27" },
+      { title: "SLAYERR (mv)", artist: "Kai Angel", dur: "1:55" },
+      { title: "LIPSTICK (clip)", artist: "Kai Angel", dur: "2:47" },
     ],
   },
   {
     id: "tg",
     name: { ru: "Telegram", en: "Telegram" },
-    url: "t.me/kaiangel_music",
+    url: "@kaiangel_music",
+    direct: true,
     tracks: [
-      { ru: "damage", en: "damage" },
-      { ru: "red weather", en: "red weather" },
-      { ru: "KYLIE", en: "KYLIE" },
-      { ru: "welcome to forever", en: "welcome to forever" },
-      { ru: "JUMP!", en: "JUMP!" },
+      { title: "damage", artist: "Kai Angel", dur: "3:41" },
+      { title: "Потерялся в мае", artist: "мистер модератор", dur: "3:22" },
+      { title: "Цветы", artist: "тёмный принц", dur: "1:38" },
+      { title: "SLAYERR", artist: "Kai Angel", dur: "1:55" },
+      { title: "red weather", artist: "ONDA ANDAR", dur: "2:55" },
     ],
   },
 ];
@@ -272,6 +274,10 @@ const importT = {
   linkCap: {
     ru: "ссылка на трек, плейлист или каталог артиста",
     en: "a track, playlist, or artist-catalog link",
+  },
+  directCap: {
+    ru: "ничего вставлять не нужно — забираем прямо из профиля",
+    en: "nothing to paste — we pull straight from the profile",
   },
   go: { ru: "Импортировать", en: "Import" },
   pulling: { ru: "загружаем…", en: "fetching…" },
@@ -720,7 +726,8 @@ const nav = {
                   type="button"
                   data-im-src={s.id}
                   data-im-url={s.url}
-                  data-im-tracks={JSON.stringify(s.tracks.map((tr) => t(tr)))}
+                  data-im-direct={s.direct ? "true" : "false"}
+                  data-im-tracks={JSON.stringify(s.tracks)}
                   aria-pressed={i === 0 ? "true" : "false"}
                 >
                   {t(s.name)}
@@ -729,7 +736,7 @@ const nav = {
             }
           </div>
           <div class="sf__im-field">
-            <span class="sf__cap caption">{t(importT.linkCap)}</span>
+            <span class="sf__cap caption" data-im-cap>{t(importT.linkCap)}</span>
             <div class="sf__si-field">
               <input
                 class="sf__si-input mono"
@@ -739,6 +746,7 @@ const nav = {
                 aria-label={t(importT.linkCap)}
                 autocomplete="off"
               />
+              <span class="sf__im-handle mono" data-im-handle hidden>@kaiangel_music</span>
               <button class="sf__act" type="button" data-im-go>{t(importT.go)}</button>
             </div>
           </div>
@@ -747,7 +755,11 @@ const nav = {
               sources[0]!.tracks.map((tr, i) => (
                 <li class="sf__im-row" data-im-row={i}>
                   <span class="sf__im-dot" aria-hidden="true" />
-                  <span class="sf__im-name" data-im-track-name>{t(tr)}</span>
+                  <span class="sf__im-info">
+                    <span class="sf__im-name" data-im-track-name>{tr.title}</span>
+                    <span class="sf__im-artist" data-im-track-artist>{tr.artist}</span>
+                  </span>
+                  <span class="sf__im-dur mono" data-im-track-dur>{tr.dur}</span>
                   <span class="sf__im-ok mono" aria-hidden="true">
                     ok
                   </span>
@@ -1286,6 +1298,28 @@ const nav = {
     outline-offset: 1px;
     border-color: var(--sf-hot-line);
   }
+  .sf__im-handle {
+    flex: 1 1 180px;
+    min-width: 0;
+    min-height: var(--tap-min);
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
+    border: var(--bw-thin) solid var(--sf-hot-line);
+    border-radius: var(--r-sm);
+    background: var(--sf-hot-soft);
+    color: var(--sf-hot);
+    font-size: var(--fs-13);
+  }
+  .sf__im-handle::before {
+    content: "✈";
+    font-size: var(--fs-14);
+  }
+  .sf__im-handle[hidden],
+  .sf__si-input[hidden] {
+    display: none;
+  }
   .sf__si-link {
     display: flex;
     align-items: center;
@@ -1359,7 +1393,7 @@ const nav = {
   }
   .sf__im-row {
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr auto auto;
     align-items: center;
     gap: var(--sp-3);
     padding: var(--sp-2) var(--sp-3);
@@ -1368,6 +1402,33 @@ const nav = {
     background: var(--surface);
     opacity: 0;
     transform: translate3d(-8px, 0, 0);
+  }
+  .sf__im-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+  .sf__im-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--fs-15);
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .sf__im-artist {
+    font-size: var(--fs-12);
+    color: var(--text-2);
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sf__im-dur {
+    font-size: var(--fs-12);
+    color: var(--text-2);
+    white-space: nowrap;
   }
   .sf__im-row.is-in {
     opacity: 1;
@@ -2517,7 +2578,11 @@ const nav = {
     const imSrcBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-im-src]"));
     const imRows = Array.from(root.querySelectorAll<HTMLElement>("[data-im-row]"));
     const imTrackNames = Array.from(root.querySelectorAll<HTMLElement>("[data-im-track-name]"));
+    const imTrackArtists = Array.from(root.querySelectorAll<HTMLElement>("[data-im-track-artist]"));
+    const imTrackDurs = Array.from(root.querySelectorAll<HTMLElement>("[data-im-track-dur]"));
     const imInput = root.querySelector<HTMLInputElement>("[data-im-input]");
+    const imHandle = root.querySelector<HTMLElement>("[data-im-handle]");
+    const imCap = root.querySelector<HTMLElement>("[data-im-cap]");
     const imGo = root.querySelector<HTMLButtonElement>("[data-im-go]");
     const imNote = root.querySelector<HTMLElement>("[data-im-note]");
 
@@ -2528,13 +2593,23 @@ const nav = {
           x.classList.toggle("is-on", on);
           x.setAttribute("aria-pressed", on ? "true" : "false");
         });
-        if (imInput) imInput.value = b.dataset.imUrl ?? "";
+        const url = b.dataset.imUrl ?? "";
+        const direct = b.dataset.imDirect === "true";
+        if (direct) {
+          if (imInput) imInput.hidden = true;
+          if (imHandle) { imHandle.hidden = false; imHandle.textContent = url; }
+          if (imCap) imCap.textContent = tr("ничего вставлять не нужно — забираем прямо из профиля", "nothing to paste — we pull straight from the profile");
+        } else {
+          if (imInput) { imInput.hidden = false; imInput.value = url; }
+          if (imHandle) imHandle.hidden = true;
+          if (imCap) imCap.textContent = tr("ссылка на трек, плейлист или каталог артиста", "a track, playlist, or artist-catalog link");
+        }
         try {
-          const tracks: string[] = JSON.parse(b.dataset.imTracks ?? "[]");
-          imTrackNames.forEach((el, i) => {
-            el.textContent = tracks[i] ?? "";
-          });
-        } catch {}
+          const tracks: { title: string; artist: string; dur: string }[] = JSON.parse(b.dataset.imTracks ?? "[]");
+          imTrackNames.forEach((el, i) => { el.textContent = tracks[i]?.title ?? ""; });
+          imTrackArtists.forEach((el, i) => { el.textContent = tracks[i]?.artist ?? ""; });
+          imTrackDurs.forEach((el, i) => { el.textContent = tracks[i]?.dur ?? ""; });
+        } catch { /* invalid JSON in data-im-tracks */ }
         imRows.forEach((r) => r.classList.remove("is-in"));
         if (imNote) imNote.textContent = "";
       });
@@ -2666,10 +2741,8 @@ const nav = {
 
     let dcGenreSel = 0;
     let dcRated = 0;
-    let dcCurrentStep = 0;
 
     const dcGoToStep = (step: number): void => {
-      dcCurrentStep = step;
       dcPanes.forEach((p, i) => {
         const on = i === step;
         p.hidden = !on;
@@ -2689,7 +2762,6 @@ const nav = {
     const dcResetDiscover = (): void => {
       dcGenreSel = 0;
       dcRated = 0;
-      dcCurrentStep = 0;
       dcChips.forEach((c) => {
         c.setAttribute("aria-pressed", "false");
         c.classList.remove("is-on");
