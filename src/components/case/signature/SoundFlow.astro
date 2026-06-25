@@ -26,105 +26,105 @@ type Bi = { ru: string; en: string };
 const t = (b: Bi): string => b[locale];
 
 const intro: Bi = {
-  ru: "Не путь пользователя, а карта возможностей .звук - семь доменов из бэкенда. Выберите слева: справа короткий питч и живая мини-схема, а кнопка «подробнее» раскрывает детали. Жмите кнопки внутри - они показывают механику под капотом. Примеры - на реальном каталоге сцены.",
-  en: 'Not a user journey but a map of what .sound can do - seven domains from the backend. Pick one on the left: a short pitch and a live mini-diagram appear on the right, and "more" unfolds the detail. Press the buttons inside to see the mechanics underneath. Examples use a real catalog from the scene.',
+  ru: "Семь вещей, которые умеет платформа. Выберите слева - справа появится объяснение и живая демка. Кнопки внутри показывают, как всё устроено. Примеры из реального каталога.",
+  en: "Seven things the platform can do. Pick one on the left - an explanation and a live demo appear on the right. The buttons inside show how it works. Examples are from the real catalog.",
 };
 
 type Pillar = { id: string; label: Bi; tag: Bi; title: Bi; pitch: Bi; desc: Bi };
 const pillars: Pillar[] = [
   {
     id: "storage",
-    label: { ru: "Хранение", en: "Storage" },
-    tag: { ru: "SHA-256 · MinIO", en: "SHA-256 · MinIO" },
-    title: { ru: "Загрузка и дедуп по содержимому", en: "Upload and content dedup" },
+    label: { ru: "Загрузка", en: "Upload" },
+    tag: { ru: "без дублей · антивирус", en: "no dupes · antivirus" },
+    title: { ru: "Загрузка треков", en: "Track upload" },
     pitch: {
       ru: "Трек заходит в систему один раз - и навсегда.",
       en: "A track enters the system once - and for good.",
     },
     desc: {
-      ru: "Chunked-загрузка (resumable, S3 multipart) с MIME-валидацией и сканом ClamAV. Контент адресуется по SHA-256: одинаковый трек хранится один раз, повторная заливка лишь увеличивает ref_count. Двухслойный дедуп: предчек по компаунд-хэшу на клиенте и потоковый SHA-256 на сервере, общий на всех пользователей.",
-      en: "Chunked upload (resumable, S3 multipart) with MIME validation and a ClamAV scan. Content is addressed by SHA-256: an identical track is stored once, a re-upload only bumps ref_count. Two-layer dedup: a client compound-hash pre-check and a server streaming SHA-256, shared across all users.",
+      ru: "При загрузке файл проверяется на вирусы и получает уникальный цифровой отпечаток. Если такой трек уже есть в базе - он не дублируется, вместо этого прибавляется счётчик. Один файл в хранилище, сколько бы людей его ни заливали.",
+      en: "On upload the file is scanned for viruses and gets a unique digital fingerprint. If that track is already in the database it isn't duplicated — the reference count goes up instead. One file in storage no matter how many people upload it.",
     },
   },
   {
     id: "pipeline",
-    label: { ru: "Транскод", en: "Transcode" },
-    tag: { ru: "FFmpeg · HLS", en: "FFmpeg · HLS" },
-    title: { ru: "Транскод и деривативы", en: "Transcode and derivatives" },
+    label: { ru: "Обработка", en: "Processing" },
+    tag: { ru: "все форматы · форма волны", en: "all formats · waveform" },
+    title: { ru: "Обработка после загрузки", en: "Post-upload processing" },
     pitch: {
       ru: "Из одного файла собирается весь плеер.",
       en: "One file becomes the whole player.",
     },
     desc: {
-      ru: "FFmpeg строит progressive MP3 и адаптивный HLS (две дорожки) и нормализует громкость. На каждый трек - waveform на 200 столбцов, сниппет-превью и процедурная обложка. Сегменты адресуются по хэшу и кешируются как immutable.",
-      en: "FFmpeg builds progressive MP3 and adaptive HLS (two renditions) and normalizes loudness. Per track: a 200-bar waveform, a preview snippet, and a procedural cover. Segments are addressed by hash and cached immutable.",
+      ru: "Из исходного файла автоматически создаётся всё нужное для плеера: поток с адаптивным качеством, форма волны, короткий превью и обложка. Всё готовится однажды и хранится в неизменном виде.",
+      en: "From the source file everything the player needs is generated automatically: an adaptive-quality stream, a waveform, a preview snippet, and cover art. Prepared once, stored immutably.",
     },
   },
   {
     id: "listen",
-    label: { ru: "Стриминг", en: "Streaming" },
-    tag: { ru: "HLS · лирика", en: "HLS · lyrics" },
-    title: { ru: "Воспроизведение и синхро-лирика", en: "Playback and synced lyrics" },
+    label: { ru: "Плеер", en: "Player" },
+    tag: { ru: "авто-качество · тексты в такт", en: "adaptive · synced lyrics" },
+    title: { ru: "Плеер с синхронизированными текстами", en: "Player with synced lyrics" },
     pitch: {
       ru: "Поток подстраивается, текст всплывает в такт.",
       en: "The stream adapts, lyrics surface on the beat.",
     },
     desc: {
-      ru: "Presigned-ссылки, range-стриминг, HLS с адаптивным битрейтом (hls.js). Лирика всплывает построчно: на воркере Demucs (htdemucs, --two-stems=vocals) снимает вокал, faster-whisper large-v3 расшифровывает, stable-ts выравнивает тайм-коды по строкам. Каталожный текст пересобирается по этим тайм-кодам, следующие треки префетчатся.",
-      en: "Presigned URLs, range streaming, HLS with adaptive bitrate (hls.js). Lyrics surface line by line: on the worker Demucs (htdemucs, --two-stems=vocals) lifts the vocals, faster-whisper large-v3 transcribes, stable-ts aligns per-line timecodes. The reference text is re-anchored to those timecodes, and next tracks are prefetched.",
+      ru: "Качество потока автоматически подстраивается под скорость интернета. Тексты песен появляются строчка за строчкой в нужный момент: нейросеть отделяет голос от инструментов, распознаёт слова и выравнивает их по времени. Следующие треки загружаются заранее.",
+      en: "Stream quality adapts automatically to the connection speed. Lyrics appear line by line at exactly the right moment: a neural network separates vocals from instruments, transcribes the words, and aligns them in time. The next tracks are prefetched.",
     },
   },
   {
     id: "import",
     label: { ru: "Импорт", en: "Import" },
-    tag: { ru: "7 источников · очередь", en: "7 sources · queue" },
+    tag: { ru: "SoundCloud, Spotify и ещё 5", en: "SoundCloud, Spotify and 5 more" },
     title: { ru: "Импорт из внешних источников", en: "Import from external sources" },
     pitch: {
       ru: "Чужой каталог переезжает по одной ссылке.",
       en: "A whole catalog moves in by one link.",
     },
     desc: {
-      ru: "Импорт треков, плейлистов и целых каталогов из SoundCloud, Spotify, Yandex Music, VK, Bandcamp, YouTube и Telegram - по ссылке или аккаунтом. Очередь с диспетчером и лимитами (глобально и на пользователя), backfill артистов, проверка играбельности и in-app уведомления RU/EN. На каждую ссылку - SSRF-защита.",
-      en: "Import tracks, playlists, and whole catalogs from SoundCloud, Spotify, Yandex Music, VK, Bandcamp, YouTube, and Telegram - by link or by account. A queued dispatcher with global and per-user limits, artist backfill, playability checks, and in-app notifications in RU/EN. Every URL is SSRF-guarded.",
+      ru: "Достаточно вставить ссылку - платформа скачает трек, плейлист или весь каталог артиста. Поддерживаются SoundCloud, Spotify, Yandex Music, VK, Bandcamp, YouTube и Telegram. Каждая ссылка проверяется на безопасность, прогресс виден в реальном времени.",
+      en: "Just paste a link — the platform downloads the track, playlist, or an artist's entire catalog. Supported: SoundCloud, Spotify, Yandex Music, VK, Bandcamp, YouTube, and Telegram. Every URL is safety-checked, progress is shown in real time.",
     },
   },
   {
     id: "discover",
-    label: { ru: "Рекомендации", en: "Discover" },
-    tag: { ru: "128d · миксы", en: "128d · mixes" },
+    label: { ru: "Лента", en: "Feed" },
+    tag: { ru: "под твой вкус · миксы", en: "by taste · mixes" },
     title: { ru: "Персональная лента и миксы", en: "Personal feed and mixes" },
     pitch: { ru: "Лента собирается под твой вкус.", en: "The feed assembles around your taste." },
     desc: {
-      ru: "Главный экран из секций: «Продолжить слушать», «Для вас», «Новые релизы», «Выбор пользователей», «Любимые исполнители». Рядом - Daily Mix, жанровые миксы, радио (seed-first), похожие треки и «Забытые сокровища». Скоринг живёт в закрытом ядре; кеш прогревается, телеметрия impressions ↔ listen замыкает обратную связь.",
-      en: "A home screen of sections: Continue listening, For you, New releases, Community picks, Favorite artists. Alongside: Daily Mix, genre mixes, radio (seed-first), similar tracks, and Forgotten Treasures. Scoring lives in the closed core; the cache is warmed and impressions ↔ listen telemetry closes the loop.",
+      ru: "Главный экран собирается под каждого: «Продолжить слушать», «Для вас», «Новые релизы», Daily Mix, жанровые миксы, радио и «Забытые сокровища». Алгоритм улучшается с каждым прослушиванием - смотрит что слушают до конца, а что пропускают.",
+      en: "The home screen is personal: Continue listening, For you, New releases, Daily Mix, genre mixes, radio, and Forgotten Treasures. The algorithm improves with every listen — it tracks what people finish and what they skip.",
     },
   },
   {
     id: "search",
     label: { ru: "Поиск", en: "Search" },
-    tag: { ru: "Elasticsearch · SAYT", en: "Elasticsearch · SAYT" },
+    tag: { ru: "с первой буквы · с опечатками", en: "as-you-type · fuzzy" },
     title: { ru: "Поиск по трекам и артистам", en: "Search over tracks and artists" },
     pitch: {
       ru: "Находит по названию и артисту, даже с опечаткой.",
       en: "Finds by title and artist, even misspelled.",
     },
     desc: {
-      ru: "Elasticsearch 8: полнотекст по трекам и артистам, автодополнение (SAYT, search-as-you-type), транслитерация RU↔LAT на индексации и в запросе, fuzzy-сопоставление. При равном score выше тот, что чаще слушают. Если ES выключен - SQL-фолбэк.",
-      en: "Elasticsearch 8: full-text over tracks and artists, search-as-you-type (SAYT), RU↔LAT transliteration at index and query time, fuzzy matching. On a score tie, the more-played track wins. If ES is off, a SQL fallback kicks in.",
+      ru: "Результаты появляются сразу во время набора. Можно писать русскими буквами и найти артиста с английским именем - и наоборот. Работает даже с опечатками, популярные треки поднимаются выше.",
+      en: "Results appear as you type. Type in Russian and find an artist with an English name — and vice versa. Works even with typos; more-played tracks rank higher.",
     },
   },
   {
     id: "worker",
-    label: { ru: "Воркер", en: "Worker" },
-    tag: { ru: "HMAC pull · GPU", en: "HMAC pull · GPU" },
-    title: { ru: "Compute-воркер без открытых портов", en: "Compute worker with no open ports" },
+    label: { ru: "Задачи", en: "Jobs" },
+    tag: { ru: "GPU · 17 типов задач", en: "GPU · 17 job types" },
+    title: { ru: "Фоновые вычисления", en: "Background compute" },
     pitch: {
-      ru: "Тяжёлый счёт уезжает на GPU без открытых портов.",
-      en: "Heavy compute moves to GPU with no open ports.",
+      ru: "Тяжёлые задачи уходят на отдельный сервер с GPU.",
+      en: "Heavy compute moves to a separate GPU server.",
     },
     desc: {
-      ru: "Pull-протокол (claim / heartbeat / progress / result) с HMAC-подписью, IP-allowlist и одноразовыми токенами на скачивание аудио (OTT: 5 минут, под один IP). 17 типов задач в одной очереди плюс ASR-конвейер. Лизы и дедлайны, бэк-офф ретраев, авто-suspend при злоупотреблении; пауза и отмена задач приходят прямо в heartbeat.",
-      en: "A pull protocol (claim / heartbeat / progress / result) with HMAC signing, an IP allowlist, and one-time audio download tokens (OTT: 5 min, IP-pinned). 17 job types in one queue plus an ASR pipeline. Leases and deadlines, retry back-off, auto-suspend on abuse; pause and per-job cancel ride in the heartbeat.",
+      ru: "Всё ресурсоёмкое - распознавание речи, анализ аудио, поиск похожих треков - выполняется на отдельном сервере с видеокартой. Сервер сам запрашивает задачи и не торчит в интернете - это безопаснее. Поддерживает паузу и отмену прямо в процессе.",
+      en: "Everything heavy — speech recognition, audio analysis, finding similar tracks — runs on a separate GPU server. The server pulls its own tasks and doesn't expose ports to the internet, which is safer. Pause and per-job cancel are supported mid-run.",
     },
   },
 ];
@@ -134,34 +134,34 @@ const pillars: Pillar[] = [
 // (1) Хранение
 const storage = {
   file: { ru: "red weather.flac", en: "red weather.flac" },
-  scan: { ru: "ClamAV · чисто", en: "ClamAV · clean" },
-  hashCap: { ru: "SHA-256 содержимого", en: "content SHA-256" },
-  blobCap: { ru: "один blob в MinIO", en: "single MinIO blob" },
+  scan: { ru: "антивирус · чисто", en: "antivirus · clean" },
+  hashCap: { ru: "цифровой отпечаток", en: "digital fingerprint" },
+  blobCap: { ru: "хранилище", en: "storage" },
   send: { ru: "Залить трек", en: "Upload track" },
-  again: { ru: "Тот же файл снова", en: "Same file again" },
+  again: { ru: "Залить тот же файл", en: "Same file again" },
   steps: {
-    ru: "MIME → ClamAV → SHA-256 → дедуп → ref_count",
-    en: "MIME → ClamAV → SHA-256 → dedup → ref_count",
+    ru: "тип файла → антивирус → отпечаток → поиск дублей → сохранение",
+    en: "file type → antivirus → fingerprint → dedup → save",
   },
   sameNote: {
-    ru: "тот же хэш → ref_count++, новый blob НЕ создаётся",
-    en: "same hash → ref_count++, no new blob created",
+    ru: "файл уже есть - новый не создаётся, счётчик +1",
+    en: "file already exists — no new copy, counter +1",
   },
 };
 
 // (2) Транскод
 const pipeline = {
-  go: { ru: "Прогнать пайплайн", en: "Run pipeline" },
+  go: { ru: "Обработать файл", en: "Process file" },
   raw: { ru: "исходник", en: "source" },
-  ffmpeg: { ru: "FFmpeg", en: "FFmpeg" },
-  mp3: { ru: "MP3 progressive", en: "MP3 progressive" },
-  hls: { ru: "HLS · 2 дорожки", en: "HLS · 2 renditions" },
-  wave: { ru: "waveform · 200", en: "waveform · 200" },
-  snippet: { ru: "snippet preview", en: "snippet preview" },
+  ffmpeg: { ru: "обработчик", en: "processor" },
+  mp3: { ru: "MP3", en: "MP3" },
+  hls: { ru: "поток · 2 качества", en: "stream · 2 quality" },
+  wave: { ru: "форма волны", en: "waveform" },
+  snippet: { ru: "превью", en: "preview" },
   cover: { ru: "обложка", en: "cover art" },
   done: {
-    ru: "деривативы готовы — immutable сегменты",
-    en: "derivatives ready — immutable segments",
+    ru: "все форматы готовы",
+    en: "all formats ready",
   },
 };
 
@@ -174,8 +174,8 @@ const listen = {
   pause: { ru: "Пауза", en: "Pause" },
   replay: { ru: "Заново", en: "Replay" },
   seek: { ru: "Перемотка трека", en: "Seek track" },
-  hls: { ru: "HLS · авто-качество", en: "HLS · adaptive" },
-  lyrCap: { ru: "лирика всплывает в такт", en: "lyrics surface on the beat" },
+  hls: { ru: "авто-качество", en: "adaptive" },
+  lyrCap: { ru: "тексты появляются в нужный момент", en: "lyrics appear on cue" },
 };
 // Реальные строки трека (в оригинале двуязычные). tc — демо-тайм-код от прогресса,
 // at — порог прогресса 0..1, на котором строка становится активной.
@@ -207,8 +207,8 @@ const importT = {
     en: "a track, playlist, or artist-catalog link",
   },
   go: { ru: "Импортировать", en: "Import" },
-  pulling: { ru: "тянем каталог…", en: "pulling the catalog…" },
-  done: { ru: "синхронизировано в каталог", en: "synced into the catalog" },
+  pulling: { ru: "загружаем…", en: "fetching…" },
+  done: { ru: "добавлено в каталог", en: "added to the catalog" },
 };
 const importTracks: Bi[] = [
   { ru: "LIPSTICK", en: "LIPSTICK" },
@@ -229,27 +229,33 @@ const tasteChips: Bi[] = [
   { ru: "drift", en: "drift" },
   { ru: "alt", en: "alt" },
 ];
+const swipeTracks: { title: string; artist: string; genre: Bi }[] = [
+  { title: "welcome to forever", artist: "Kai Angel", genre: { ru: "cloud rap", en: "cloud rap" } },
+  { title: "red weather", artist: "ONDA ANDAR", genre: { ru: "drift", en: "drift" } },
+  { title: "LIPSTICK", artist: "Kai Angel", genre: { ru: "rage", en: "rage" } },
+];
 const discover = {
-  cap: { ru: "отметьте жанры - соберётся 128d-вектор", en: "mark genres - builds a 128d vector" },
-  towerCap: { ru: "вектор вкуса · 128d", en: "taste vector · 128d" },
-  pick: { ru: "выбрано", en: "selected" },
+  step1label: { ru: "Жанры", en: "Genres" },
+  step2label: { ru: "Треки", en: "Tracks" },
+  step3label: { ru: "Лента", en: "Feed" },
+  step1cap: { ru: "выберите любимые жанры", en: "pick your favorite genres" },
+  step2cap: { ru: "оцените несколько треков - нравится или нет", en: "rate a few tracks — like or not" },
+  step3cap: { ru: "лента собрана", en: "feed is ready" },
+  next: { ru: "Далее →", en: "Next →" },
+  done: { ru: "Готово →", en: "Done →" },
+  need1: { ru: "выберите хотя бы 2 жанра", en: "pick at least 2 genres" },
+  need2: { ru: "оцените хотя бы 2 трека", en: "rate at least 2 tracks" },
+  like: { ru: "♥ нравится", en: "♥ like" },
+  skip: { ru: "✕ не моё", en: "✕ skip" },
+  maturity: { ru: "тёплый старт", en: "warm start" },
+  matNote: { ru: "лента улучшается с каждым прослушиванием", en: "feed improves with every listen" },
   feedCap: { ru: "секции главного экрана", en: "home screen sections" },
-  need: {
-    ru: "отметьте хотя бы 2 - появятся секции ленты",
-    en: "mark at least 2 - feed sections appear",
-  },
-  ready: { ru: "лента прогрета - impressions ↔ listen", en: "feed warmed - impressions ↔ listen" },
 };
 const feedSections: { id: string; label: Bi; note: Bi }[] = [
   {
-    id: "continue",
-    label: { ru: "Продолжить слушать", en: "Continue" },
-    note: { ru: "не дослушано", en: "unfinished" },
-  },
-  {
     id: "foryou",
     label: { ru: "Для вас", en: "For you" },
-    note: { ru: "по вкусам", en: "by taste" },
+    note: { ru: "по вкусу", en: "by taste" },
   },
   {
     id: "new",
@@ -257,28 +263,33 @@ const feedSections: { id: string; label: Bi; note: Bi }[] = [
     note: { ru: "свежее", en: "fresh" },
   },
   {
+    id: "popular",
+    label: { ru: "Популярное", en: "Popular" },
+    note: { ru: "горячее", en: "trending" },
+  },
+  {
     id: "daily",
     label: { ru: "Daily Mix", en: "Daily Mix" },
     note: { ru: "ежедневный", en: "daily" },
   },
   {
-    id: "radio",
-    label: { ru: "Радио", en: "Radio" },
-    note: { ru: "seed-first", en: "seed-first" },
+    id: "artists",
+    label: { ru: "Любимые исполнители", en: "Favorite artists" },
+    note: { ru: "из подписок", en: "from follows" },
   },
   {
-    id: "picks",
-    label: { ru: "Выбор пользователей", en: "Community picks" },
-    note: { ru: "за неделю", en: "this week" },
+    id: "continue",
+    label: { ru: "Продолжить слушать", en: "Continue listening" },
+    note: { ru: "не дослушано", en: "unfinished" },
   },
 ];
 
 // (6) Поиск
 const searchT = {
-  cap: { ru: "SAYT · search-as-you-type", en: "SAYT · search-as-you-type" },
+  cap: { ru: "поиск с первой буквы", en: "search as you type" },
   placeholder: { ru: "онда…", en: "onda…" },
-  translit: { ru: "RU↔LAT транслит", en: "RU↔LAT translit" },
-  fuzzy: { ru: "fuzzy · ранг по прослушиваниям", en: "fuzzy · ranked by plays" },
+  translit: { ru: "RU↔LAT", en: "RU↔LAT" },
+  fuzzy: { ru: "с опечатками · популярные выше", en: "fuzzy · popular first" },
 };
 const searchHits: { title: Bi; sub: Bi; via: Bi }[] = [
   {
@@ -304,36 +315,36 @@ const jobs: Job[] = [
   {
     key: "audio_embedding",
     desc: {
-      ru: "эмбеддинг трека: вектор из 128 чисел для похожести и рекомендаций.",
-      en: "track embedding: a 128-number vector for similarity and recommendations.",
+      ru: "создаёт цифровой профиль трека - нужен для поиска похожей музыки.",
+      en: "creates a digital profile of the track — used to find similar music.",
     },
   },
   {
     key: "track_audio_features",
     desc: {
-      ru: "аудио-фичи трека: темп, тональность, энергия.",
-      en: "track audio features: tempo, key, energy.",
+      ru: "определяет темп, тональность и энергетику трека.",
+      en: "detects the track's tempo, key, and energy.",
     },
   },
   {
     key: "track_similarity",
     desc: {
-      ru: "ближайшие треки по вектору эмбеддинга.",
-      en: "nearest tracks by the embedding vector.",
+      ru: "находит похожие треки по цифровому профилю.",
+      en: "finds similar tracks by digital profile.",
     },
   },
   {
     key: "artist_similarity",
     desc: {
-      ru: "похожие артисты по агрегированным фичам.",
-      en: "similar artists by aggregated features.",
+      ru: "находит похожих артистов.",
+      en: "finds similar artists.",
     },
   },
   {
     key: "track_transcoding",
     desc: {
-      ru: "транскод трека в адаптивные HLS-сегменты.",
-      en: "transcode the track into adaptive HLS segments.",
+      ru: "конвертирует трек в форматы для потоковой передачи.",
+      en: "converts the track into formats for streaming.",
     },
   },
   {
@@ -342,48 +353,48 @@ const jobs: Job[] = [
   },
   {
     key: "track_snippet",
-    desc: { ru: "короткий превью-сэмпл трека.", en: "a short preview snippet of the track." },
+    desc: { ru: "создаёт короткий превью трека.", en: "creates a short preview of the track." },
   },
   {
     key: "track_cover_processing",
     desc: {
-      ru: "обложка: ресайз и извлечение палитры.",
-      en: "cover art: resize and palette extraction.",
+      ru: "подготавливает обложку: размер и цветовая палитра.",
+      en: "prepares the cover art: resizes and extracts the color palette.",
     },
   },
   {
     key: "catalog_normalize",
     desc: {
-      ru: "нормализует и чистит метаданные каталога.",
+      ru: "приводит в порядок метаданные каталога.",
       en: "normalizes and cleans catalog metadata.",
     },
   },
   {
     key: "artist_features_update",
     desc: {
-      ru: "пересчитывает агрегированные фичи артиста.",
-      en: "recomputes an artist's aggregated features.",
+      ru: "обновляет музыкальный профиль артиста.",
+      en: "updates the artist's music profile.",
     },
   },
   {
     key: "artist_enrichment",
     desc: {
-      ru: "обогащает профиль артиста доп. данными.",
+      ru: "дополняет профиль артиста дополнительными данными.",
       en: "enriches an artist's profile with extra data.",
     },
   },
   {
     key: "track_info_fetch",
     desc: {
-      ru: "дотягивает метаданные трека из источника.",
-      en: "fetches a track's metadata from the source.",
+      ru: "подтягивает недостающие данные о треке из источника.",
+      en: "fetches missing track data from the source.",
     },
   },
   {
     key: "soundcloud_rpc",
     desc: {
-      ru: "импорт и синхронизация с SoundCloud через yt-dlp.",
-      en: "import and sync with SoundCloud via yt-dlp.",
+      ru: "импорт и синхронизация с SoundCloud.",
+      en: "import and sync with SoundCloud.",
     },
   },
   {
@@ -403,27 +414,27 @@ const jobs: Job[] = [
   {
     key: "sc_artist_similar_station_sync",
     desc: {
-      ru: "синхронизирует станцию «похожее» артиста из SoundCloud.",
-      en: "syncs an artist's 'similar' station from SoundCloud.",
+      ru: "синхронизирует список похожих артистов из SoundCloud.",
+      en: "syncs an artist's similar station from SoundCloud.",
     },
   },
   {
     key: "external_import_scan",
     desc: {
-      ru: "сканирует внешние источники на новые треки для импорта.",
+      ru: "проверяет внешние источники на появление новых треков.",
       en: "scans external sources for new tracks to import.",
     },
   },
 ];
 const VISIBLE_JOBS = 8;
 const worker = {
-  cap: { ru: "из одной очереди · 17 типов", en: "from one queue · 17 types" },
+  cap: { ru: "17 типов задач · одна очередь", en: "17 job types · one queue" },
   more: { ru: "Показать все", en: "Show all" },
   hide: { ru: "Свернуть", en: "Collapse" },
-  pick: { ru: "тапните задачу - покажу, что она делает", en: "tap a job - I'll show what it does" },
+  pick: { ru: "нажмите на задачу - покажу что она делает", en: "tap a job - I'll show what it does" },
   asr: {
-    ru: "+ ASR-конвейер: Demucs --two-stems=vocals → faster-whisper large-v3 → stable-ts",
-    en: "+ ASR pipeline: Demucs --two-stems=vocals → faster-whisper large-v3 → stable-ts",
+    ru: "+ распознавание речи: разделение голоса → расшифровка → выравнивание по времени",
+    en: "+ speech recognition: vocal separation → transcription → time alignment",
   },
 };
 
@@ -688,42 +699,98 @@ const nav = {
 
         <!-- ----------------- (5) РЕКОМЕНДАЦИИ ----------------- -->
         <div class="sf__viz sf__viz--discover" data-sf-viz="discover" hidden>
-          <span class="sf__cap caption">{t(discover.cap)}</span>
-          <div class="sf__ta-chips" data-dc-chips>
-            {
-              tasteChips.map((c, i) => (
-                <button class="sf__chip" type="button" data-dc-chip={i} aria-pressed="false">
-                  {t(c)}
-                </button>
-              ))
-            }
+          <div class="sf__dc-steps" aria-hidden="true">
+            <span class="sf__dc-step is-on" data-dc-si="0">
+              <span class="sf__dc-step-n mono">01</span>
+              <span class="sf__dc-step-l">{t(discover.step1label)}</span>
+            </span>
+            <span class="sf__dc-sep" aria-hidden="true"></span>
+            <span class="sf__dc-step" data-dc-si="1">
+              <span class="sf__dc-step-n mono">02</span>
+              <span class="sf__dc-step-l">{t(discover.step2label)}</span>
+            </span>
+            <span class="sf__dc-sep" aria-hidden="true"></span>
+            <span class="sf__dc-step" data-dc-si="2">
+              <span class="sf__dc-step-n mono">03</span>
+              <span class="sf__dc-step-l">{t(discover.step3label)}</span>
+            </span>
           </div>
-          <div class="sf__ta-tower">
-            <span class="sf__cap caption">{t(discover.towerCap)}</span>
-            <div class="sf__ta-meter" aria-hidden="true">
-              <span class="sf__ta-fill" data-dc-fill></span>
+
+          <div class="sf__dc-pane" data-dc-pane="0">
+            <span class="sf__cap caption">{t(discover.step1cap)}</span>
+            <div class="sf__ta-chips" data-dc-chips>
+              {
+                tasteChips.map((c, i) => (
+                  <button class="sf__chip" type="button" data-dc-chip={i} aria-pressed="false">
+                    {t(c)}
+                  </button>
+                ))
+              }
             </div>
-            <span class="sf__ta-count mono" data-dc-count>0 {t(discover.pick)}</span>
+            <div class="sf__viz-controls">
+              <button class="sf__act" type="button" data-dc-next1 disabled>{t(discover.next)}</button>
+              <span class="sf__viz-note mono" data-dc-note1>{t(discover.need1)}</span>
+            </div>
           </div>
-          <span class="sf__cap caption">{t(discover.feedCap)}</span>
-          <div class="sf__dc-feed" data-dc-feed>
-            {
-              feedSections.map((sec, i) => (
-                <button
-                  class="sf__dc-card"
-                  type="button"
-                  data-dc-sec={i}
-                  data-note={t(sec.note)}
-                  aria-pressed="false"
-                  hidden
-                >
-                  <span class="sf__dc-label">{t(sec.label)}</span>
-                  <span class="sf__dc-note mono">{t(sec.note)}</span>
-                </button>
-              ))
-            }
+
+          <div class="sf__dc-pane" data-dc-pane="1" hidden>
+            <span class="sf__cap caption">{t(discover.step2cap)}</span>
+            <div class="sf__dc-swipe" data-dc-swipe>
+              {
+                swipeTracks.map((tr, i) => (
+                  <div class="sf__dc-track" data-dc-track={i}>
+                    <div class="sf__dc-tr-info">
+                      <span class="sf__dc-tr-ico" aria-hidden="true">♪</span>
+                      <div class="sf__dc-tr-meta">
+                        <span class="sf__dc-tr-title">{tr.title}</span>
+                        <span class="sf__dc-tr-artist">
+                          {tr.artist} · <span class="mono">{t(tr.genre)}</span>
+                        </span>
+                      </div>
+                    </div>
+                    <div class="sf__dc-tr-btns">
+                      <button
+                        class="sf__dc-tr-btn sf__dc-tr-btn--like"
+                        type="button"
+                        data-dc-like={i}
+                        aria-label={t(discover.like)}
+                        aria-pressed="false"
+                      >{t(discover.like)}</button>
+                      <button
+                        class="sf__dc-tr-btn sf__dc-tr-btn--skip"
+                        type="button"
+                        data-dc-skip={i}
+                        aria-label={t(discover.skip)}
+                        aria-pressed="false"
+                      >{t(discover.skip)}</button>
+                    </div>
+                  </div>
+                ))
+              }
+            </div>
+            <div class="sf__viz-controls">
+              <button class="sf__act" type="button" data-dc-next2 disabled>{t(discover.done)}</button>
+              <span class="sf__viz-note mono" data-dc-note2>{t(discover.need2)}</span>
+            </div>
           </div>
-          <p class="sf__viz-note mono" data-dc-note>{t(discover.need)}</p>
+
+          <div class="sf__dc-pane" data-dc-pane="2" hidden>
+            <div class="sf__dc-maturity" data-dc-mat>
+              <span class="sf__dc-mat-badge mono">{t(discover.maturity)}</span>
+              <span class="sf__cap caption">{t(discover.matNote)}</span>
+            </div>
+            <span class="sf__cap caption">{t(discover.feedCap)}</span>
+            <div class="sf__dc-feed" data-dc-feed>
+              {
+                feedSections.map((sec, i) => (
+                  <div class="sf__dc-card" data-dc-sec={i} hidden>
+                    <span class="sf__dc-label">{t(sec.label)}</span>
+                    <span class="sf__dc-note mono">{t(sec.note)}</span>
+                  </div>
+                ))
+              }
+            </div>
+          </div>
         </div>
 
         <!-- ----------------- (6) ПОИСК ----------------- -->
@@ -1601,7 +1668,176 @@ const nav = {
     background: var(--sf-hot-soft);
   }
 
-  /* (5) Рекомендации */
+  /* (5) Рекомендации — 3-step onboarding */
+  .sf__dc-steps {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    flex-wrap: wrap;
+  }
+  .sf__dc-step {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    font-size: var(--fs-13);
+    color: var(--text-faint);
+  }
+  .sf__dc-step.is-on {
+    color: var(--text);
+  }
+  .sf__dc-step.is-done {
+    color: var(--sf-hot);
+  }
+  .sf__dc-step-n {
+    font-size: var(--fs-11);
+  }
+  .sf__dc-step-l {
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-medium);
+  }
+  .sf__dc-sep {
+    flex: 1 1 12px;
+    height: 0;
+    border-top: var(--bw-thin) dashed var(--border);
+    min-width: 12px;
+    max-width: 32px;
+  }
+  .sf__dc-pane {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+  }
+  .sf__dc-pane[hidden] {
+    display: none;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .sf__dc-pane.is-entering {
+      animation: sf-fade var(--dur-med) var(--ease-soft) both;
+    }
+  }
+
+  /* swipe tracks */
+  .sf__dc-swipe {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+  .sf__dc-track {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    transition:
+      border-color var(--dur-fast) var(--ease-standard),
+      opacity var(--dur-med) var(--ease-standard);
+  }
+  .sf__dc-track.is-rated {
+    opacity: 0.5;
+  }
+  .sf__dc-track.is-liked {
+    border-color: var(--sf-hot-line);
+    background: var(--sf-hot-soft);
+    opacity: 1;
+  }
+  .sf__dc-tr-info {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .sf__dc-tr-ico {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--r-xs);
+    background: var(--surface-2);
+    border: var(--bw-thin) solid var(--border);
+    font-size: var(--fs-16);
+    color: var(--text);
+  }
+  .sf__dc-tr-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 1px;
+  }
+  .sf__dc-tr-title {
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-medium);
+    font-size: var(--fs-13);
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sf__dc-tr-artist {
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+  }
+  .sf__dc-tr-btns {
+    display: flex;
+    gap: var(--sp-2);
+    flex: none;
+  }
+  .sf__dc-tr-btn {
+    min-height: var(--tap-min);
+    padding: var(--sp-1) var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-pill);
+    background: var(--surface);
+    font-size: var(--fs-13);
+    cursor: pointer;
+    transition:
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard),
+      color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-soft);
+  }
+  .sf__dc-tr-btn:active {
+    transform: scale(0.94);
+  }
+  .sf__dc-tr-btn--like {
+    color: var(--sf-hot);
+    border-color: var(--sf-hot-line);
+  }
+  .sf__dc-tr-btn--like:hover,
+  .sf__dc-tr-btn--like[aria-pressed="true"] {
+    background: var(--sf-hot-soft);
+  }
+  .sf__dc-tr-btn--skip {
+    color: var(--text-muted);
+  }
+  .sf__dc-tr-btn--skip:hover,
+  .sf__dc-tr-btn--skip[aria-pressed="true"] {
+    border-color: var(--border-hover);
+    color: var(--text);
+  }
+
+  /* maturity badge */
+  .sf__dc-maturity {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    flex-wrap: wrap;
+  }
+  .sf__dc-mat-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--sp-1) var(--sp-3);
+    border: var(--bw-thin) solid var(--sf-hot-line);
+    border-radius: var(--r-pill);
+    background: var(--sf-hot-soft);
+    font-size: var(--fs-12);
+    color: var(--sf-hot);
+  }
+
   .sf__dc-feed {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -1616,22 +1852,15 @@ const nav = {
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-sm);
     background: var(--surface);
-    text-align: left;
-    cursor: pointer;
     opacity: 0;
     transform: translate3d(0, 6px, 0);
     transition:
       opacity var(--dur-med) var(--ease-standard),
-      transform var(--dur-med) var(--ease-soft),
-      border-color var(--dur-fast) var(--ease-standard);
+      transform var(--dur-med) var(--ease-soft);
   }
   .sf__dc-card:not([hidden]) {
     opacity: 1;
     transform: none;
-  }
-  .sf__dc-card.is-on {
-    border-color: var(--sf-hot-line);
-    background: var(--sf-hot-soft);
   }
   .sf__dc-label {
     font-family: var(--font-stack-display);
@@ -2083,6 +2312,7 @@ const nav = {
     .sf__ly-line,
     .sf__im-row,
     .sf__dc-card,
+    .sf__dc-track,
     .sf__sr-row {
       transition: none;
     }
@@ -2170,13 +2400,14 @@ const nav = {
 
     const stRun = (): void => {
       clearTimers();
-      if (stGo) stGo.disabled = true;
+      if (stGo) { stGo.disabled = true; stGo.textContent = tr("загружаем…", "uploading…"); }
       if (stSteps) stSteps.classList.remove("is-on");
       if (stNote) stNote.textContent = "";
       later(() => {
         if (stSteps) stSteps.classList.add("is-on");
         if (stAgain) stAgain.disabled = false;
-        if (stGo) stGo.disabled = false;
+        if (stGo) { stGo.disabled = false; stGo.textContent = tr("Залить трек", "Upload track"); }
+        if (stNote) stNote.textContent = tr("сохранено", "saved");
       }, D(700));
     };
     const stBump = (): void => {
@@ -2188,8 +2419,8 @@ const nav = {
       }
       if (stNote) {
         stNote.textContent = tr(
-          "тот же хэш → ref_count++, новый blob НЕ создаётся",
-          "same hash → ref_count++, no new blob created",
+          "файл уже есть - новый не создаётся, счётчик +1",
+          "file already exists — no new copy, counter +1",
         );
       }
     };
@@ -2206,7 +2437,7 @@ const nav = {
       clearTimers();
       plNodes.forEach((n) => n.classList.remove("is-on"));
       plOuts.forEach((o) => o.classList.remove("is-on"));
-      if (plGo) plGo.disabled = true;
+      if (plGo) { plGo.disabled = true; plGo.textContent = tr("обрабатываем…", "processing…"); }
       if (plNote) plNote.textContent = "";
       const seq = [...plNodes, ...plOuts];
       seq.forEach((el, i) => {
@@ -2214,13 +2445,8 @@ const nav = {
       });
       later(
         () => {
-          if (plNote) {
-            plNote.textContent = tr(
-              "деривативы готовы — immutable сегменты",
-              "derivatives ready — immutable segments",
-            );
-          }
-          if (plGo) plGo.disabled = false;
+          if (plNote) plNote.textContent = tr("все форматы готовы", "all formats ready");
+          if (plGo) { plGo.disabled = false; plGo.textContent = tr("Обработать файл", "Process file"); }
         },
         D(280) * (seq.length + 1),
       );
@@ -2245,16 +2471,15 @@ const nav = {
     const runImport = (): void => {
       clearTimers();
       imRows.forEach((r) => r.classList.remove("is-in"));
-      if (imGo) imGo.disabled = true;
-      if (imNote) imNote.textContent = tr("тянем через yt-dlp…", "fetching via yt-dlp…");
+      if (imGo) { imGo.disabled = true; imGo.textContent = tr("загружаем…", "fetching…"); }
+      if (imNote) imNote.textContent = "";
       imRows.forEach((r, i) => {
         later(() => r.classList.add("is-in"), D(260) * (i + 1));
       });
       later(
         () => {
-          if (imNote)
-            imNote.textContent = tr("синхронизировано в каталог", "synced into the catalog");
-          if (imGo) imGo.disabled = false;
+          if (imNote) imNote.textContent = tr("добавлено в каталог", "added to the catalog");
+          if (imGo) { imGo.disabled = false; imGo.textContent = tr("Импортировать", "Import"); }
         },
         D(260) * (imRows.length + 1),
       );
@@ -2356,58 +2581,105 @@ const nav = {
       lsApply(p);
     });
 
-    // ============ (5) РЕКОМЕНДАЦИИ ============
+    // ============ (5) РЕКОМЕНДАЦИИ — 3-step onboarding ============
     const dcChips = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-dc-chip]"));
-    const dcFill = root.querySelector<HTMLElement>("[data-dc-fill]");
-    const dcCount = root.querySelector<HTMLElement>("[data-dc-count]");
-    const dcNote = root.querySelector<HTMLElement>("[data-dc-note]");
-    const dcCards = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-dc-sec]"));
-    let dcSel = 0;
+    const dcNext1 = root.querySelector<HTMLButtonElement>("[data-dc-next1]");
+    const dcNote1 = root.querySelector<HTMLElement>("[data-dc-note1]");
+    const dcNext2 = root.querySelector<HTMLButtonElement>("[data-dc-next2]");
+    const dcNote2 = root.querySelector<HTMLElement>("[data-dc-note2]");
+    const dcCards = Array.from(root.querySelectorAll<HTMLElement>("[data-dc-sec]"));
+    const dcLikeBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-dc-like]"));
+    const dcSkipBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-dc-skip]"));
+    const dcStepIndicators = Array.from(root.querySelectorAll<HTMLElement>("[data-dc-si]"));
+    const dcPanes = Array.from(root.querySelectorAll<HTMLElement>("[data-dc-pane]"));
 
-    const dcSync = (): void => {
-      if (dcFill) dcFill.style.transform = `scaleX(${Math.min(1, dcSel / 5).toFixed(3)})`;
-      if (dcCount) dcCount.textContent = `${dcSel} ${tr("выбрано", "selected")}`;
-      const showFeed = dcSel >= 2;
-      dcCards.forEach((card, i) => {
-        card.hidden = !showFeed;
-        if (!showFeed) card.classList.remove("is-on");
-        else
-          later(
-            () => {
-              card.hidden = false;
-            },
-            D(120) * i,
-          );
+    let dcGenreSel = 0;
+    let dcRated = 0;
+    let dcCurrentStep = 0;
+
+    const dcGoToStep = (step: number): void => {
+      dcCurrentStep = step;
+      dcPanes.forEach((p, i) => {
+        const on = i === step;
+        p.hidden = !on;
+        if (on) p.classList.add("is-entering");
       });
-      if (dcNote) {
-        dcNote.textContent = showFeed
-          ? tr("лента прогрета — impressions ↔ listen", "feed warmed — impressions ↔ listen")
-          : tr(
-              "отметьте хотя бы 2 — появятся секции ленты",
-              "mark at least 2 — feed sections appear",
-            );
+      dcStepIndicators.forEach((s, i) => {
+        s.classList.toggle("is-on", i === step);
+        s.classList.toggle("is-done", i < step);
+      });
+      if (step === 2) {
+        dcCards.forEach((card, i) => {
+          later(() => { card.hidden = false; }, D(150) * (i + 1));
+        });
       }
     };
+
+    const dcResetDiscover = (): void => {
+      dcGenreSel = 0;
+      dcRated = 0;
+      dcCurrentStep = 0;
+      dcChips.forEach((c) => {
+        c.setAttribute("aria-pressed", "false");
+        c.classList.remove("is-on");
+      });
+      dcLikeBtns.forEach((b) => b.setAttribute("aria-pressed", "false"));
+      dcSkipBtns.forEach((b) => b.setAttribute("aria-pressed", "false"));
+      Array.from(root.querySelectorAll<HTMLElement>("[data-dc-track]")).forEach((t) => {
+        t.classList.remove("is-rated", "is-liked");
+      });
+      dcCards.forEach((c) => { c.hidden = true; });
+      if (dcNext1) dcNext1.disabled = true;
+      if (dcNext2) dcNext2.disabled = true;
+      if (dcNote1) dcNote1.textContent = tr("выберите хотя бы 2 жанра", "pick at least 2 genres");
+      if (dcNote2) dcNote2.textContent = tr("оцените хотя бы 2 трека", "rate at least 2 tracks");
+      dcGoToStep(0);
+    };
+
     dcChips.forEach((c) => {
       c.addEventListener("click", () => {
         const on = c.getAttribute("aria-pressed") === "true";
         c.setAttribute("aria-pressed", on ? "false" : "true");
         c.classList.toggle("is-on", !on);
-        dcSel += on ? -1 : 1;
-        if (dcSel < 0) dcSel = 0;
-        dcSync();
+        dcGenreSel += on ? -1 : 1;
+        if (dcGenreSel < 0) dcGenreSel = 0;
+        if (dcNext1) dcNext1.disabled = dcGenreSel < 2;
+        if (dcNote1) {
+          dcNote1.textContent = dcGenreSel >= 2
+            ? tr(`${dcGenreSel} жанра — можно идти дальше`, `${dcGenreSel} genres — ready to continue`)
+            : tr("выберите хотя бы 2 жанра", "pick at least 2 genres");
+        }
       });
     });
-    dcCards.forEach((card) => {
-      card.addEventListener("click", () => {
-        dcCards.forEach((x) => {
-          x.classList.remove("is-on");
-          x.setAttribute("aria-pressed", "false");
-        });
-        card.classList.add("is-on");
-        card.setAttribute("aria-pressed", "true");
-      });
+
+    dcNext1?.addEventListener("click", () => dcGoToStep(1));
+
+    const dcRateTrack = (idx: number, liked: boolean): void => {
+      const track = root.querySelector<HTMLElement>(`[data-dc-track="${idx}"]`);
+      const likeBtn = root.querySelector<HTMLButtonElement>(`[data-dc-like="${idx}"]`);
+      const skipBtn = root.querySelector<HTMLButtonElement>(`[data-dc-skip="${idx}"]`);
+      if (!track || likeBtn?.getAttribute("aria-pressed") === "true" || skipBtn?.getAttribute("aria-pressed") === "true") return;
+      track.classList.add("is-rated");
+      if (liked) track.classList.add("is-liked");
+      likeBtn?.setAttribute("aria-pressed", liked ? "true" : "false");
+      skipBtn?.setAttribute("aria-pressed", liked ? "false" : "true");
+      dcRated += 1;
+      if (dcNext2) dcNext2.disabled = dcRated < 2;
+      if (dcNote2) {
+        dcNote2.textContent = dcRated >= 2
+          ? tr("вкус собран — смотрите что получилось", "taste collected — see the result")
+          : tr("оцените хотя бы 2 трека", "rate at least 2 tracks");
+      }
+    };
+
+    dcLikeBtns.forEach((b) => {
+      b.addEventListener("click", () => dcRateTrack(Number(b.dataset.dcLike), true));
     });
+    dcSkipBtns.forEach((b) => {
+      b.addEventListener("click", () => dcRateTrack(Number(b.dataset.dcSkip), false));
+    });
+
+    dcNext2?.addEventListener("click", () => dcGoToStep(2));
 
     // ============ (6) ПОИСК ============
     const srInput = root.querySelector<HTMLInputElement>("[data-sr-input]");
@@ -2494,6 +2766,8 @@ const nav = {
             r.hidden = false;
           });
         else runSearch();
+      } else if (id === "discover") {
+        dcResetDiscover();
       }
     };
 
