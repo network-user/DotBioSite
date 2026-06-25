@@ -337,14 +337,25 @@
   ],
   "timeline": [
     {
-      "date": "Apr 2026",
+      "date": "19 Apr 2026",
       "title": {
         "ru": "Stage 1: safety bridge",
         "en": "Stage 1: safety bridge"
       },
       "description": {
-        "ru": "Хуки, live-статус, approvals, режимы, auth и audit-log.",
-        "en": "Hooks, live status, approvals, modes, auth, and an audit log."
+        "ru": "Хуки Cursor/Claude Code, live-статус, approve/deny, режимы, passcode-auth, audit-log.",
+        "en": "Cursor/Claude Code hooks, live status, approve/deny, modes, passcode auth, and an audit log."
+      }
+    },
+    {
+      "date": "29 Apr 2026",
+      "title": {
+        "ru": "Сессии и approvals UI",
+        "en": "Sessions and approvals UI"
+      },
+      "description": {
+        "ru": "Управление сессиями агентов из Telegram, Claude Code transcript sync, SSE push, approval UI в Mini App.",
+        "en": "Agent session management from Telegram, Claude Code transcript sync, SSE push, and an approval UI in the Mini App."
       }
     },
     {

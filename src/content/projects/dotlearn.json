@@ -323,25 +323,36 @@
   ],
   "timeline": [
     {
-      "date": "Jun 2026",
+      "date": "9 Jun 2026",
       "title": {
         "ru": "Local-first плеер",
         "en": "Local-first player"
       },
       "description": {
-        "ru": "Шесть типов упражнений, sql.js и Pyodide в Web Workers, Monaco, прогресс в IndexedDB с heatmap и FSRS.",
-        "en": "Six exercise types, sql.js and Pyodide in Web Workers, Monaco, IndexedDB progress with a heatmap and FSRS."
+        "ru": "6 типов упражнений, sql.js и Pyodide в Web Workers, Monaco, FSRS-повторения, TOTP-админка, i18n RU/EN.",
+        "en": "6 exercise types, sql.js and Pyodide in Web Workers, Monaco, FSRS reviews, TOTP admin, and RU/EN i18n."
       }
     },
     {
-      "date": "Jun 2026",
+      "date": "16 Jun 2026",
       "title": {
-        "ru": "Контракт, контент и сообщество",
-        "en": "Contract, content, and community"
+        "ru": "Контент и flashcards",
+        "en": "Content and flashcards"
       },
       "description": {
-        "ru": "Скилл lesson-forge и Zod-контракт, 22 темы в каталоге, NestJS-бэкенд с заявками и защищённой админкой, Docker self-hosting.",
-        "en": "The lesson-forge skill and Zod contract, 22 topics in the catalog, a NestJS backend with submissions and a hardened admin, and Docker self-hosting."
+        "ru": "28 тем на RU+EN, flashcard-деки, lesson-forge + Zod-контракт, vitest-тесты, NestJS-бэкенд с заявками.",
+        "en": "28 bilingual RU/EN topics, flashcard decks, lesson-forge with Zod contract, vitest tests, and a NestJS backend for submissions."
+      }
+    },
+    {
+      "date": "24 Jun 2026",
+      "title": {
+        "ru": "Прод-хардинг",
+        "en": "Production hardening"
+      },
+      "description": {
+        "ru": "Sandbox-фиксы для Pyodide, CSP, pre-launch security hardening, CI gates (i18n, bundle, coverage, a11y).",
+        "en": "Pyodide sandbox fixes, CSP, pre-launch security hardening, and CI gates for i18n, bundle, coverage, and a11y."
       }
     }
   ]

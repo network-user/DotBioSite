@@ -113,8 +113,8 @@
   "architectureNodes": [
     {
       "id": "telegram",
-      "col": 0,
-      "row": 0,
+      "angle": 270,
+      "radius": 185,
       "label": "Telegram",
       "icon": "telegram",
       "width": 150,
@@ -125,8 +125,7 @@
     },
     {
       "id": "bot",
-      "col": 1,
-      "row": 0,
+      "radius": 0,
       "label": "aiogram bot",
       "icon": "stack",
       "width": 185,
@@ -138,8 +137,8 @@
     },
     {
       "id": "worker",
-      "col": 1,
-      "row": 2,
+      "angle": 215,
+      "radius": 215,
       "label": "taskiq worker",
       "icon": "rocket",
       "width": 180,
@@ -150,8 +149,8 @@
     },
     {
       "id": "opcontrol",
-      "col": 1,
-      "row": 1,
+      "angle": 250,
+      "radius": 235,
       "label": "operational ctrl",
       "icon": "code",
       "width": 205,
@@ -162,8 +161,8 @@
     },
     {
       "id": "redis",
-      "col": 2,
-      "row": 1,
+      "angle": 95,
+      "radius": 255,
       "label": "Redis · FSM",
       "icon": "dot",
       "width": 170,
@@ -174,8 +173,8 @@
     },
     {
       "id": "pg",
-      "col": 2,
-      "row": 0,
+      "angle": 125,
+      "radius": 255,
       "label": "PostgreSQL 16",
       "icon": "dot",
       "width": 180,
@@ -186,8 +185,8 @@
     },
     {
       "id": "minio",
-      "col": 2,
-      "row": 2,
+      "angle": 65,
+      "radius": 250,
       "label": "MinIO · S3",
       "icon": "dot",
       "width": 170,
@@ -318,25 +317,25 @@
   ],
   "timeline": [
     {
-      "date": "Nov 2025",
+      "date": "6 May 2026",
       "title": {
-        "ru": "Старт DotWorkBot",
-        "en": "DotWorkBot kickoff"
+        "ru": "Старт и MVP",
+        "en": "Start and MVP"
       },
       "description": {
-        "ru": "Проектирование ролей работник/работодатель/админ, модели заказов и FSM-регистрации.",
-        "en": "Designing worker/employer/admin roles, the order model, and FSM registration."
+        "ru": "Роли работник/работодатель/админ, мульти-слотовые заказы, taskiq-воркер, MinIO, рейтинги, рассылки — всё ядро в первый день.",
+        "en": "Worker/employer/admin roles, multi-slot orders, taskiq worker, MinIO, ratings, and broadcasts — the full core on day one."
       }
     },
     {
-      "date": "May 2026",
+      "date": "7 May 2026",
       "title": {
-        "ru": "MVP и эксплуатация",
-        "en": "MVP and operations"
+        "ru": "Прод и бэкапы",
+        "en": "Production and backups"
       },
       "description": {
-        "ru": "PostgreSQL-модель, заказы и мульти-слотовые смены, taskiq-контроль, шифрованные бэкапы и авто-деплой на VPS.",
-        "en": "PostgreSQL model, orders and multi-slot shifts, taskiq control, encrypted backups, and VPS auto-deploy."
+        "ru": "Deploy pipeline на VPS с health-rollback, AES-зашифрованные бэкапы pg_dump + MinIO-зеркало.",
+        "en": "VPS deploy pipeline with health rollback and AES-encrypted backups of pg_dump and the MinIO bucket mirror."
       }
     }
   ]

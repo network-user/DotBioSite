@@ -111,8 +111,8 @@
   "architectureNodes": [
     {
       "id": "reminders",
-      "col": 0,
-      "row": 0,
+      "angle": 300,
+      "radius": 235,
       "label": "Reminders",
       "icon": "spark",
       "width": 165,
@@ -123,8 +123,8 @@
     },
     {
       "id": "tg",
-      "col": 0,
-      "row": 1,
+      "angle": 270,
+      "radius": 195,
       "label": "Telegram API",
       "icon": "telegram",
       "width": 175,
@@ -135,8 +135,8 @@
     },
     {
       "id": "backups",
-      "col": 2,
-      "row": 2,
+      "angle": 145,
+      "radius": 250,
       "label": "Backups",
       "icon": "rocket",
       "width": 160,
@@ -147,8 +147,8 @@
     },
     {
       "id": "generator",
-      "col": 1,
-      "row": 0,
+      "angle": 0,
+      "radius": 195,
       "label": "Problem gen",
       "icon": "code",
       "width": 170,
@@ -159,8 +159,7 @@
     },
     {
       "id": "bot",
-      "col": 1,
-      "row": 1,
+      "radius": 0,
       "label": "DotSchet bot",
       "icon": "stack",
       "width": 185,
@@ -172,8 +171,8 @@
     },
     {
       "id": "leaderboard",
-      "col": 1,
-      "row": 2,
+      "angle": 195,
+      "radius": 205,
       "label": "Scoring · top",
       "icon": "code",
       "width": 180,
@@ -184,8 +183,8 @@
     },
     {
       "id": "redis",
-      "col": 2,
-      "row": 0,
+      "angle": 60,
+      "radius": 250,
       "label": "Redis · FSM",
       "icon": "dot",
       "width": 170,
@@ -196,8 +195,8 @@
     },
     {
       "id": "pg",
-      "col": 2,
-      "row": 1,
+      "angle": 120,
+      "radius": 250,
       "label": "PostgreSQL 16",
       "icon": "dot",
       "width": 180,
@@ -306,25 +305,36 @@
   ],
   "timeline": [
     {
-      "date": "Dec 2025",
+      "date": "14 Feb 2026",
       "title": {
-        "ru": "Старт DotSchet",
-        "en": "DotSchet kickoff"
+        "ru": "Старт .счёта",
+        "en": ".schet kickoff"
       },
       "description": {
-        "ru": "MVP: семь типов операций, три уровня, профиль и базовая локализация ru/en.",
-        "en": "MVP: seven operation types, three levels, a profile, and basic ru/en localization."
+        "ru": "MVP: 7 операций × 3 уровня, напоминания (APScheduler), рейтинг, режим «Напиши ответ сам».",
+        "en": "MVP: 7 operations × 3 levels, reminders via APScheduler, leaderboard, and type-the-answer mode."
       }
     },
     {
-      "date": "May 2026",
+      "date": "4 Mar 2026",
+      "title": {
+        "ru": "Админ-панель и рейтинг",
+        "en": "Admin panel and leaderboard"
+      },
+      "description": {
+        "ru": "Панель администратора, приватность рейтинга с pagination, pg_dump-бэкапы.",
+        "en": "Admin panel, leaderboard privacy with pagination, and pg_dump backups."
+      }
+    },
+    {
+      "date": "13 May 2026",
       "title": {
         "ru": "PostgreSQL и прод-обвязка",
         "en": "PostgreSQL and production wiring"
       },
       "description": {
-        "ru": "Миграция SQLite → PostgreSQL, Redis FSM, Docker и CI, pg_dump-бэкапы и покрытие тестами на testcontainers.",
-        "en": "SQLite → PostgreSQL migration, Redis FSM, Docker and CI, pg_dump backups, and test coverage on testcontainers."
+        "ru": "SQLite → PostgreSQL, Redis FSM, Docker, CI, daily challenge, UX-рефактор на CallbackData.",
+        "en": "SQLite → PostgreSQL migration, Redis FSM, Docker and CI, daily challenge, and CallbackData UX refactor."
       }
     }
   ]

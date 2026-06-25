@@ -156,15 +156,36 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
             data-reveal
             data-reveal-delay="180"
           >
-            <img
-              src={p.cover}
-              alt=""
-              class="case__hero-cover"
-              width="1600"
-              height="900"
-              decoding="async"
-              fetchpriority="high"
-            />
+            <button
+              class="case__cover-btn"
+              data-lightbox-src={p.cover}
+              data-lightbox-title={name}
+              aria-label={`${name} — открыть обложку`}
+              type="button"
+            >
+              <img
+                src={p.cover}
+                alt=""
+                class="case__hero-cover"
+                width="1600"
+                height="900"
+                decoding="async"
+                fetchpriority="high"
+              />
+              <span class="case__cover-zoom" aria-hidden="true">
+                <svg
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                >
+                  <circle cx="9" cy="9" r="6" />
+                  <path d="M15 15 L19 19" />
+                  <path d="M7 9 H11 M9 7 V11" />
+                </svg>
+              </span>
+            </button>
           </figure>
         )
       }
@@ -398,6 +419,25 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
   </div>
 </article>
 
+<!-- Лайтбокс для обложки проекта -->
+<div
+  class="case-lightbox"
+  id="case-lightbox"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Просмотр обложки"
+  hidden
+>
+  <div class="case-lightbox__backdrop" id="case-lightbox-backdrop"></div>
+  <div class="case-lightbox__stage" id="case-lightbox-stage">
+    <img class="case-lightbox__img" id="case-lightbox-img" src="" alt="" />
+  </div>
+  <button class="case-lightbox__close" id="case-lightbox-close" aria-label="Закрыть">✕</button>
+  <p class="case-lightbox__hint">
+    Колесо мыши — зум · Drag — перемещение · Дабл-клик — сброс · ESC — закрыть
+  </p>
+</div>
+
 <style>
   .case__hero {
     position: relative;
@@ -563,6 +603,7 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
     position: absolute;
     inset: 0;
     pointer-events: none;
+    z-index: 1;
     background: linear-gradient(
       135deg,
       rgba(255, 255, 255, 0.12),
@@ -571,10 +612,169 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
     );
   }
 
+  /* Кнопка-обёртка обложки: весь блок кликабелен */
+  .case__cover-btn {
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    background: none;
+    border: none;
+    cursor: zoom-in;
+    position: relative;
+  }
+
   .case__hero-cover {
+    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform var(--dur-slow) var(--ease-standard);
+  }
+
+  .case__cover-btn:hover .case__hero-cover,
+  .case__cover-btn:focus-visible .case__hero-cover {
+    transform: scale(1.025);
+  }
+
+  /* Иконка «увеличить» поверх обложки */
+  .case__cover-zoom {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.7);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    transition:
+      opacity var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-standard);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .case__cover-zoom svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .case__cover-btn:hover .case__cover-zoom,
+  .case__cover-btn:focus-visible .case__cover-zoom {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  /* ===== Лайтбокс ===== */
+  .case-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+  }
+
+  .case-lightbox[data-open] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .case-lightbox__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(4, 4, 6, 0.97);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    cursor: zoom-out;
+  }
+
+  .case-lightbox__stage {
+    position: relative;
+    z-index: 1;
+    width: min(92vw, 160vh);
+    aspect-ratio: 16 / 9;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 40px 120px rgba(0, 0, 0, 0.8);
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .case-lightbox__stage:active {
+    cursor: grabbing;
+  }
+
+  .case-lightbox__img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transform-origin: center center;
+    /* плавность только для сброса, не для каждого wheel-шага */
+    will-change: transform;
+    pointer-events: none;
+  }
+
+  /* Кнопка закрытия */
+  .case-lightbox__close {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 2;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(20, 20, 24, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition:
+      background 0.15s,
+      color 0.15s,
+      transform 0.15s;
+  }
+
+  .case-lightbox__close:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    transform: scale(1.08);
+  }
+
+  /* Подсказка снизу */
+  .case-lightbox__hint {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 2;
+    transition: opacity 0.3s;
+  }
+
+  .case-lightbox[data-open] .case-lightbox__hint {
+    opacity: 1;
   }
 
   .case__body {
@@ -891,6 +1091,131 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
    * prefers-reduced-motion → значение остаётся финальным, анимация не стартует.
    * Без JS значение и так в DOM (SSR), поэтому деградация полная.
    */
+  /* ===== Лайтбокс обложки ===== */
+  (() => {
+    const lb = document.getElementById("case-lightbox") as HTMLElement | null;
+    const stage = document.getElementById("case-lightbox-stage") as HTMLElement | null;
+    const img = document.getElementById("case-lightbox-img") as HTMLImageElement | null;
+    const closeBtn = document.getElementById("case-lightbox-close") as HTMLButtonElement | null;
+    const backdrop = document.getElementById("case-lightbox-backdrop") as HTMLElement | null;
+    if (!lb || !stage || !img || !closeBtn || !backdrop) return;
+
+    let scale = 1,
+      tx = 0,
+      ty = 0;
+    const MIN = 0.5,
+      MAX = 6;
+
+    function applyTransform(animated = false) {
+      img!.style.transition = animated ? "transform 0.25s ease" : "none";
+      img!.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
+    }
+
+    function reset(animated = true) {
+      scale = 1;
+      tx = 0;
+      ty = 0;
+      applyTransform(animated);
+    }
+
+    function openLightbox(src: string, title: string) {
+      img!.src = src;
+      img!.alt = title;
+      reset(false);
+      lb!.removeAttribute("hidden");
+      requestAnimationFrame(() => lb!.setAttribute("data-open", ""));
+      document.body.style.overflow = "hidden";
+      closeBtn!.focus();
+    }
+
+    function closeLightbox() {
+      lb!.removeAttribute("data-open");
+      document.body.style.overflow = "";
+      setTimeout(() => lb!.setAttribute("hidden", ""), 240);
+    }
+
+    /* Триггеры открытия */
+    document.querySelectorAll<HTMLButtonElement>("[data-lightbox-src]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const src = btn.dataset.lightboxSrc ?? "";
+        const title = btn.dataset.lightboxTitle ?? "";
+        if (src) openLightbox(src, title);
+      });
+    });
+
+    closeBtn.addEventListener("click", closeLightbox);
+    backdrop.addEventListener("click", closeLightbox);
+
+    document.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (e.key === "Escape" && lb!.hasAttribute("data-open")) closeLightbox();
+    });
+
+    /* Zoom с колеса (cursor-aware) */
+    stage.addEventListener(
+      "wheel",
+      (e: WheelEvent) => {
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? 1.12 : 0.88;
+        const newScale = Math.max(MIN, Math.min(MAX, scale * factor));
+        const rect = stage.getBoundingClientRect();
+        const cx = e.clientX - rect.left - rect.width / 2;
+        const cy = e.clientY - rect.top - rect.height / 2;
+        const ratio = newScale / scale;
+        tx = cx + (tx - cx) * ratio;
+        ty = cy + (ty - cy) * ratio;
+        scale = newScale;
+        applyTransform(false);
+      },
+      { passive: false },
+    );
+
+    /* Drag (pan) */
+    let dragging = false,
+      px = 0,
+      py = 0,
+      startTx = 0,
+      startTy = 0;
+
+    stage.addEventListener("pointerdown", (e: PointerEvent) => {
+      if (scale <= 1) return;
+      dragging = true;
+      px = e.clientX;
+      py = e.clientY;
+      startTx = tx;
+      startTy = ty;
+      stage.setPointerCapture(e.pointerId);
+    });
+
+    stage.addEventListener("pointermove", (e: PointerEvent) => {
+      if (!dragging) return;
+      tx = startTx + (e.clientX - px);
+      ty = startTy + (e.clientY - py);
+      applyTransform(false);
+    });
+
+    stage.addEventListener("pointerup", () => {
+      dragging = false;
+    });
+
+    /* Двойной клик — сброс или zoom x2 */
+    stage.addEventListener("dblclick", (e: MouseEvent) => {
+      if (scale > 1) {
+        reset(true);
+      } else {
+        const rect = stage.getBoundingClientRect();
+        const cx = e.clientX - rect.left - rect.width / 2;
+        const cy = e.clientY - rect.top - rect.height / 2;
+        const newScale = Math.min(MAX, 2.5);
+        const ratio = newScale / scale;
+        tx = cx + (tx - cx) * ratio;
+        ty = cy + (ty - cy) * ratio;
+        scale = newScale;
+        applyTransform(true);
+      }
+    });
+  })();
+
+  /* ===== Count-up метрик ===== */
   (() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const nodes = Array.from(document.querySelectorAll<HTMLElement>("[data-countup]"));

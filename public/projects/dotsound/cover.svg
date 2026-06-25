@@ -1,48 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="t d">
-  <title id="t">DotSound — .звук</title>
-  <desc id="d">Ad-free music platform with auto-lyrics on GPU.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="DotSound Backend">
+  <title>DotSound Backend</title>
+  <style>
+    @keyframes breathe { 0%,100%{opacity:.85} 50%{opacity:1} }
+    @keyframes pulse   { 0%,100%{opacity:.72} 50%{opacity:1} }
+    @keyframes glow    { 0%,100%{opacity:.58} 50%{opacity:1} }
+    .br { animation: breathe 4.5s ease-in-out infinite }
+    .pu { animation: pulse   3.5s ease-in-out infinite }
+    .gl { animation: glow    6.5s ease-in-out infinite }
+    @media (prefers-reduced-motion:reduce) { .br,.pu,.gl { animation:none } }
+  </style>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0a0b0d"/>
+    <linearGradient id="ds-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0"   stop-color="#0a0b0d"/>
       <stop offset="0.5" stop-color="#14161a"/>
-      <stop offset="1" stop-color="#0b0c0e"/>
+      <stop offset="1"   stop-color="#0b0c0e"/>
     </linearGradient>
-    <radialGradient id="glow" cx="70%" cy="20%" r="62%">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.14"/>
+    <radialGradient id="ds-glow" cx="70%" cy="20%" r="62%">
+      <stop offset="0"   stop-color="#ffffff" stop-opacity="0.14"/>
       <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.04"/>
-      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1"   stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+    <radialGradient id="ds-halo" cx="50%" cy="50%" r="50%">
       <stop offset="0" stop-color="#ffffff" stop-opacity="0.1"/>
       <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
   </defs>
-  <rect width="1600" height="900" fill="url(#bg)"/>
-  <rect width="1600" height="900" fill="url(#glow)"/>
+  <rect width="1600" height="900" fill="url(#ds-bg)"/>
+  <rect width="1600" height="900" fill="url(#ds-glow)"/>
   <g opacity="0.045" stroke="#ffffff" stroke-width="1">
     <path d="M0 225 H1600 M0 450 H1600 M0 675 H1600 M400 0 V900 M800 0 V900 M1200 0 V900"/>
   </g>
-  <circle cx="1180" cy="460" r="330" fill="url(#halo)"/>
+  <circle cx="1180" cy="460" r="330" fill="url(#ds-halo)" class="gl"/>
   <svg x="965" y="245" width="430" height="430" viewBox="0 0 48 48">
-    <g opacity="0.1" fill="#ffffff">
-      <rect x="3" y="18" width="5" height="12" rx="2.5"/>
-      <rect x="12" y="11" width="5" height="26" rx="2.5"/>
-      <rect x="21.5" y="4" width="5" height="40" rx="2.5"/>
-      <rect x="31" y="13" width="5" height="22" rx="2.5"/>
-      <rect x="40" y="19" width="5" height="10" rx="2.5"/>
+    <g opacity="0.1" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 28 V22 M16 32 V16 M24 35 V13 M32 32 V16 M40 28 V22"/>
     </g>
   </svg>
-  <svg x="140" y="118" width="86" height="86" viewBox="0 0 48 48">
-    <g fill="#f3f3f1">
-      <rect x="3" y="18" width="5" height="12" rx="2.5"/>
-      <rect x="12" y="11" width="5" height="26" rx="2.5"/>
-      <rect x="21.5" y="4" width="5" height="40" rx="2.5"/>
-      <rect x="31" y="13" width="5" height="22" rx="2.5"/>
-      <rect x="40" y="19" width="5" height="10" rx="2.5"/>
+  <svg x="140" y="118" width="86" height="86" viewBox="0 0 48 48" class="pu">
+    <g fill="none" stroke="#f3f3f1" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 28 V22 M16 32 V16 M24 35 V13 M32 32 V16 M40 28 V22"/>
     </g>
   </svg>
-  <text x="138" y="408" font-family="Inter, Arial, sans-serif" font-size="132" font-weight="800" fill="#f3f3f1" letter-spacing="-3">.звук</text>
-  <text x="146" y="470" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700" fill="#f3f3f1">DotSound</text>
-  <text x="146" y="516" font-family="Inter, Arial, sans-serif" font-size="26" fill="#a6a7ab">Ad-free music platform · auto-lyrics on GPU</text>
-  <text x="140" y="822" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="600" fill="#5a5c63">.ядро · DotCore</text>
+  <text x="138" y="408" font-family="Inter, Arial, sans-serif" font-size="132" font-weight="800" fill="#f3f3f1" letter-spacing="-3" class="br">.звук</text>
+  <text x="146" y="470" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700" fill="#f3f3f1">DotSound Backend</text>
+  <text x="146" y="516" font-family="Inter, Arial, sans-serif" font-size="26" fill="#a6a7ab">API музыкальной платформы: стриминг, UGC, рекомендации</text>
 </svg>

@@ -36,7 +36,7 @@
   ],
   "category": "platform",
   "status": "active",
-  "year": 2025,
+  "year": 2026,
   "repos": [
     {
       "name": "Backend",
@@ -141,8 +141,8 @@
   "architectureNodes": [
     {
       "id": "bot",
-      "col": 0,
-      "row": 0,
+      "angle": 300,
+      "radius": 215,
       "label": "Telegram Bot",
       "icon": "telegram",
       "width": 170,
@@ -153,8 +153,8 @@
     },
     {
       "id": "miniapp",
-      "col": 0,
-      "row": 1,
+      "angle": 250,
+      "radius": 215,
       "label": "Mini App",
       "icon": "globe",
       "width": 160,
@@ -165,8 +165,8 @@
     },
     {
       "id": "core",
-      "col": 2,
-      "row": 0,
+      "angle": 0,
+      "radius": 200,
       "label": "Closed core",
       "icon": "code",
       "width": 175,
@@ -177,8 +177,7 @@
     },
     {
       "id": "backend",
-      "col": 1,
-      "row": 0,
+      "radius": 0,
       "label": "Backend Hub",
       "icon": "stack",
       "width": 195,
@@ -190,8 +189,8 @@
     },
     {
       "id": "worker",
-      "col": 0,
-      "row": 2,
+      "angle": 205,
+      "radius": 210,
       "label": "ComputeWorker",
       "icon": "rocket",
       "width": 185,
@@ -202,8 +201,8 @@
     },
     {
       "id": "pg",
-      "col": 2,
-      "row": 1,
+      "angle": 80,
+      "radius": 262,
       "label": "PostgreSQL 16",
       "icon": "dot",
       "width": 175,
@@ -214,8 +213,8 @@
     },
     {
       "id": "redis",
-      "col": 2,
-      "row": 2,
+      "angle": 100,
+      "radius": 262,
       "label": "Redis 7",
       "icon": "dot",
       "width": 150,
@@ -226,8 +225,8 @@
     },
     {
       "id": "es",
-      "col": 2,
-      "row": 3,
+      "angle": 60,
+      "radius": 258,
       "label": "Elasticsearch 8",
       "icon": "dot",
       "width": 185,
@@ -238,8 +237,8 @@
     },
     {
       "id": "minio",
-      "col": 2,
-      "row": 4,
+      "angle": 120,
+      "radius": 258,
       "label": "MinIO · S3",
       "icon": "dot",
       "width": 160,
@@ -456,36 +455,69 @@
   ],
   "timeline": [
     {
-      "date": "Sep 2025",
+      "date": "27 Mar 2026",
       "title": {
-        "ru": "Старт DotSound",
-        "en": "DotSound kickoff"
+        "ru": "Backend + Bot: старт двух репозиториев",
+        "en": "Backend + Bot: two repositories start"
       },
       "description": {
-        "ru": "Первая версия Backend + Bot, базовая загрузка и каталог треков.",
-        "en": "First version of Backend + Bot, basic uploads and a track catalog."
+        "ru": "FastAPI, PostgreSQL 16, React 18 Mini App, Telegram-вход; SHA-256-дедупликация не даёт треку храниться дважды.",
+        "en": "FastAPI, PostgreSQL 16, React 18 Mini App, Telegram auth; SHA-256 dedup ensures a track is never stored twice."
       }
     },
     {
-      "date": "Mar 2026",
+      "date": "31 Mar 2026",
       "title": {
-        "ru": "Ядро и Mini App",
-        "en": "Core and Mini App"
+        "ru": "Адаптивный HLS-стриминг",
+        "en": "Adaptive HLS streaming"
       },
       "description": {
-        "ru": "FastAPI-бэкенд, PostgreSQL и Elasticsearch, React 18 Mini App, дедупликация по SHA-256.",
-        "en": "FastAPI backend, PostgreSQL and Elasticsearch, a React 18 Mini App, and SHA-256 dedup."
+        "ru": "Двухбитрейтный HLS (128k/64k) поверх content-addressed хранилища: сегменты кешируются как immutable.",
+        "en": "Dual-bitrate HLS (128k/64k) over content-addressed storage: segments cached as immutable."
       }
     },
     {
-      "date": "May 2026",
+      "date": "22 Apr 2026",
       "title": {
-        "ru": "ASR-каскад и HLS",
-        "en": "ASR cascade and HLS"
+        "ru": "ComputeWorker: третий репозиторий",
+        "en": "ComputeWorker: third repository"
       },
       "description": {
-        "ru": "ComputeWorker на faster-whisper + Demucs, content-addressed storage и HLS-стриминг.",
-        "en": "ComputeWorker on faster-whisper + Demucs, content-addressed storage, and HLS streaming."
+        "ru": "GPU-воркер на Demucs + faster-whisper: вокал снимается, лирика расшифровывается и синхронизируется построчно.",
+        "en": "GPU worker on Demucs + faster-whisper: vocals separated, lyrics transcribed and synced line by line."
+      }
+    },
+    {
+      "date": "24 Apr 2026",
+      "title": {
+        "ru": "Elasticsearch и импорт",
+        "en": "Elasticsearch and import"
+      },
+      "description": {
+        "ru": "Полнотекстовый поиск по трекам и лирике; импорт из SoundCloud, Spotify, YouTube и VK без ручной заливки.",
+        "en": "Full-text search over tracks and lyrics; import from SoundCloud, Spotify, YouTube, and VK without manual uploads."
+      }
+    },
+    {
+      "date": "6 May 2026",
+      "title": {
+        "ru": "Рекомендации и iOS-редизайн",
+        "en": "Recommendations and iOS redesign"
+      },
+      "description": {
+        "ru": "Daily/Weekly Mix, аудио-эмбеддинги, совместные плейлисты, motion-примитивы, Dynamic Island.",
+        "en": "Daily/Weekly Mix, audio embeddings, collaborative playlists, motion primitives, and Dynamic Island."
+      }
+    },
+    {
+      "date": "11 May 2026",
+      "title": {
+        "ru": "Офлайн и прод-хардинг",
+        "en": "Offline and production hardening"
+      },
+      "description": {
+        "ru": "Автокеш, предзагрузка очереди, Prometheus, SSH-деплой, gitleaks CI, Tor-пул анти-абьюза.",
+        "en": "Auto-cache, queue prefetch, Prometheus, SSH deploy, gitleaks CI, and a Tor pool for anti-abuse."
       }
     }
   ]

@@ -305,7 +305,10 @@ const discover = {
   step2label: { ru: "Треки", en: "Tracks" },
   step3label: { ru: "Лента", en: "Feed" },
   step1cap: { ru: "выберите любимые жанры", en: "pick your favorite genres" },
-  step2cap: { ru: "оцените несколько треков - нравится или нет", en: "rate a few tracks — like or not" },
+  step2cap: {
+    ru: "оцените несколько треков - нравится или нет",
+    en: "rate a few tracks — like or not",
+  },
   step3cap: { ru: "лента собрана", en: "feed is ready" },
   next: { ru: "Далее →", en: "Next →" },
   done: { ru: "Готово →", en: "Done →" },
@@ -314,7 +317,10 @@ const discover = {
   like: { ru: "♥ нравится", en: "♥ like" },
   skip: { ru: "✕ не моё", en: "✕ skip" },
   maturity: { ru: "тёплый старт", en: "warm start" },
-  matNote: { ru: "лента улучшается с каждым прослушиванием", en: "feed improves with every listen" },
+  matNote: {
+    ru: "лента улучшается с каждым прослушиванием",
+    en: "feed improves with every listen",
+  },
   feedCap: { ru: "секции главного экрана", en: "home screen sections" },
 };
 const feedSections: { id: string; label: Bi; note: Bi }[] = [
@@ -497,7 +503,10 @@ const worker = {
   cap: { ru: "17 типов задач · одна очередь", en: "17 job types · one queue" },
   more: { ru: "Показать все", en: "Show all" },
   hide: { ru: "Свернуть", en: "Collapse" },
-  pick: { ru: "нажмите на задачу - покажу что она делает", en: "tap a job - I'll show what it does" },
+  pick: {
+    ru: "нажмите на задачу - покажу что она делает",
+    en: "tap a job - I'll show what it does",
+  },
   asr: {
     ru: "+ распознавание речи: разделение голоса → расшифровка → выравнивание по времени",
     en: "+ speech recognition: vocal separation → transcription → time alignment",
@@ -756,10 +765,16 @@ const nav = {
                 <li class="sf__im-row" data-im-row={i}>
                   <span class="sf__im-dot" aria-hidden="true" />
                   <span class="sf__im-info">
-                    <span class="sf__im-name" data-im-track-name>{tr.title}</span>
-                    <span class="sf__im-artist" data-im-track-artist>{tr.artist}</span>
+                    <span class="sf__im-name" data-im-track-name>
+                      {tr.title}
+                    </span>
+                    <span class="sf__im-artist" data-im-track-artist>
+                      {tr.artist}
+                    </span>
                   </span>
-                  <span class="sf__im-dur mono" data-im-track-dur>{tr.dur}</span>
+                  <span class="sf__im-dur mono" data-im-track-dur>
+                    {tr.dur}
+                  </span>
                   <span class="sf__im-ok mono" aria-hidden="true">
                     ok
                   </span>
@@ -801,7 +816,9 @@ const nav = {
               }
             </div>
             <div class="sf__viz-controls">
-              <button class="sf__act" type="button" data-dc-next1 disabled>{t(discover.next)}</button>
+              <button class="sf__act" type="button" data-dc-next1 disabled
+                >{t(discover.next)}</button
+              >
               <span class="sf__viz-note mono" data-dc-note1>{t(discover.need1)}</span>
             </div>
           </div>
@@ -813,7 +830,9 @@ const nav = {
                 swipeTracks.map((tr, i) => (
                   <div class="sf__dc-track" data-dc-track={i}>
                     <div class="sf__dc-tr-info">
-                      <span class="sf__dc-tr-ico" aria-hidden="true">♪</span>
+                      <span class="sf__dc-tr-ico" aria-hidden="true">
+                        ♪
+                      </span>
                       <div class="sf__dc-tr-meta">
                         <span class="sf__dc-tr-title">{tr.title}</span>
                         <span class="sf__dc-tr-artist">
@@ -828,21 +847,27 @@ const nav = {
                         data-dc-like={i}
                         aria-label={t(discover.like)}
                         aria-pressed="false"
-                      >{t(discover.like)}</button>
+                      >
+                        {t(discover.like)}
+                      </button>
                       <button
                         class="sf__dc-tr-btn sf__dc-tr-btn--skip"
                         type="button"
                         data-dc-skip={i}
                         aria-label={t(discover.skip)}
                         aria-pressed="false"
-                      >{t(discover.skip)}</button>
+                      >
+                        {t(discover.skip)}
+                      </button>
                     </div>
                   </div>
                 ))
               }
             </div>
             <div class="sf__viz-controls">
-              <button class="sf__act" type="button" data-dc-next2 disabled>{t(discover.done)}</button>
+              <button class="sf__act" type="button" data-dc-next2 disabled
+                >{t(discover.done)}</button
+              >
               <span class="sf__viz-note mono" data-dc-note2>{t(discover.need2)}</span>
             </div>
           </div>
@@ -2508,7 +2533,10 @@ const nav = {
     const stRun = (): void => {
       clearTimers();
       stStepEls.forEach((s) => s.classList.remove("is-on", "is-dup"));
-      if (stGo) { stGo.disabled = true; stGo.textContent = tr("загружаем…", "uploading…"); }
+      if (stGo) {
+        stGo.disabled = true;
+        stGo.textContent = tr("загружаем…", "uploading…");
+      }
       if (stNote) stNote.textContent = "";
       stStepEls.forEach((s, i) => {
         later(() => s.classList.add("is-on"), D(350) * (i + 1));
@@ -2517,7 +2545,10 @@ const nav = {
         () => {
           stRc += 1;
           if (stAgain) stAgain.disabled = false;
-          if (stGo) { stGo.disabled = false; stGo.textContent = tr("Залить трек", "Upload track"); }
+          if (stGo) {
+            stGo.disabled = false;
+            stGo.textContent = tr("Залить трек", "Upload track");
+          }
           if (stSaveNote) stSaveNote.textContent = tr("сохранён", "saved");
           if (stRefcount) stRefcount.hidden = false;
           if (stRef) stRef.textContent = String(stRc);
@@ -2540,7 +2571,11 @@ const nav = {
           stRc += 1;
           if (stSaveNote) stSaveNote.textContent = tr("уже есть", "already exists");
           if (stRef) stRef.textContent = String(stRc);
-          if (stNote) stNote.textContent = tr("файл уже есть - новый не создаётся", "file already exists — no new copy");
+          if (stNote)
+            stNote.textContent = tr(
+              "файл уже есть - новый не создаётся",
+              "file already exists — no new copy",
+            );
         },
         D(300) * (stStepEls.length + 1),
       );
@@ -2558,7 +2593,10 @@ const nav = {
       clearTimers();
       plNodes.forEach((n) => n.classList.remove("is-on"));
       plOuts.forEach((o) => o.classList.remove("is-on"));
-      if (plGo) { plGo.disabled = true; plGo.textContent = tr("обрабатываем…", "processing…"); }
+      if (plGo) {
+        plGo.disabled = true;
+        plGo.textContent = tr("обрабатываем…", "processing…");
+      }
       if (plNote) plNote.textContent = "";
       const seq = [...plNodes, ...plOuts];
       seq.forEach((el, i) => {
@@ -2567,7 +2605,10 @@ const nav = {
       later(
         () => {
           if (plNote) plNote.textContent = tr("все форматы готовы", "all formats ready");
-          if (plGo) { plGo.disabled = false; plGo.textContent = tr("Обработать файл", "Process file"); }
+          if (plGo) {
+            plGo.disabled = false;
+            plGo.textContent = tr("Обработать файл", "Process file");
+          }
         },
         D(280) * (seq.length + 1),
       );
@@ -2597,19 +2638,43 @@ const nav = {
         const direct = b.dataset.imDirect === "true";
         if (direct) {
           if (imInput) imInput.hidden = true;
-          if (imHandle) { imHandle.hidden = false; imHandle.textContent = url; }
-          if (imCap) imCap.textContent = tr("ничего вставлять не нужно — забираем прямо из профиля", "nothing to paste — we pull straight from the profile");
+          if (imHandle) {
+            imHandle.hidden = false;
+            imHandle.textContent = url;
+          }
+          if (imCap)
+            imCap.textContent = tr(
+              "ничего вставлять не нужно — забираем прямо из профиля",
+              "nothing to paste — we pull straight from the profile",
+            );
         } else {
-          if (imInput) { imInput.hidden = false; imInput.value = url; }
+          if (imInput) {
+            imInput.hidden = false;
+            imInput.value = url;
+          }
           if (imHandle) imHandle.hidden = true;
-          if (imCap) imCap.textContent = tr("ссылка на трек, плейлист или каталог артиста", "a track, playlist, or artist-catalog link");
+          if (imCap)
+            imCap.textContent = tr(
+              "ссылка на трек, плейлист или каталог артиста",
+              "a track, playlist, or artist-catalog link",
+            );
         }
         try {
-          const tracks: { title: string; artist: string; dur: string }[] = JSON.parse(b.dataset.imTracks ?? "[]");
-          imTrackNames.forEach((el, i) => { el.textContent = tracks[i]?.title ?? ""; });
-          imTrackArtists.forEach((el, i) => { el.textContent = tracks[i]?.artist ?? ""; });
-          imTrackDurs.forEach((el, i) => { el.textContent = tracks[i]?.dur ?? ""; });
-        } catch { /* invalid JSON in data-im-tracks */ }
+          const tracks: { title: string; artist: string; dur: string }[] = JSON.parse(
+            b.dataset.imTracks ?? "[]",
+          );
+          imTrackNames.forEach((el, i) => {
+            el.textContent = tracks[i]?.title ?? "";
+          });
+          imTrackArtists.forEach((el, i) => {
+            el.textContent = tracks[i]?.artist ?? "";
+          });
+          imTrackDurs.forEach((el, i) => {
+            el.textContent = tracks[i]?.dur ?? "";
+          });
+        } catch {
+          /* invalid JSON in data-im-tracks */
+        }
         imRows.forEach((r) => r.classList.remove("is-in"));
         if (imNote) imNote.textContent = "";
       });
@@ -2617,7 +2682,10 @@ const nav = {
     const runImport = (): void => {
       clearTimers();
       imRows.forEach((r) => r.classList.remove("is-in"));
-      if (imGo) { imGo.disabled = true; imGo.textContent = tr("загружаем…", "fetching…"); }
+      if (imGo) {
+        imGo.disabled = true;
+        imGo.textContent = tr("загружаем…", "fetching…");
+      }
       if (imNote) imNote.textContent = "";
       imRows.forEach((r, i) => {
         later(() => r.classList.add("is-in"), D(260) * (i + 1));
@@ -2625,7 +2693,10 @@ const nav = {
       later(
         () => {
           if (imNote) imNote.textContent = tr("добавлено в каталог", "added to the catalog");
-          if (imGo) { imGo.disabled = false; imGo.textContent = tr("Импортировать", "Import"); }
+          if (imGo) {
+            imGo.disabled = false;
+            imGo.textContent = tr("Импортировать", "Import");
+          }
         },
         D(260) * (imRows.length + 1),
       );
@@ -2754,7 +2825,12 @@ const nav = {
       });
       if (step === 2) {
         dcCards.forEach((card, i) => {
-          later(() => { card.hidden = false; }, D(150) * (i + 1));
+          later(
+            () => {
+              card.hidden = false;
+            },
+            D(150) * (i + 1),
+          );
         });
       }
     };
@@ -2771,7 +2847,9 @@ const nav = {
       Array.from(root.querySelectorAll<HTMLElement>("[data-dc-track]")).forEach((t) => {
         t.classList.remove("is-rated", "is-liked");
       });
-      dcCards.forEach((c) => { c.hidden = true; });
+      dcCards.forEach((c) => {
+        c.hidden = true;
+      });
       if (dcNext1) dcNext1.disabled = true;
       if (dcNext2) dcNext2.disabled = true;
       if (dcNote1) dcNote1.textContent = tr("выберите хотя бы 2 жанра", "pick at least 2 genres");
@@ -2788,9 +2866,13 @@ const nav = {
         if (dcGenreSel < 0) dcGenreSel = 0;
         if (dcNext1) dcNext1.disabled = dcGenreSel < 2;
         if (dcNote1) {
-          dcNote1.textContent = dcGenreSel >= 2
-            ? tr(`${dcGenreSel} жанра — можно идти дальше`, `${dcGenreSel} genres — ready to continue`)
-            : tr("выберите хотя бы 2 жанра", "pick at least 2 genres");
+          dcNote1.textContent =
+            dcGenreSel >= 2
+              ? tr(
+                  `${dcGenreSel} жанра — можно идти дальше`,
+                  `${dcGenreSel} genres — ready to continue`,
+                )
+              : tr("выберите хотя бы 2 жанра", "pick at least 2 genres");
         }
       });
     });
@@ -2801,7 +2883,12 @@ const nav = {
       const track = root.querySelector<HTMLElement>(`[data-dc-track="${idx}"]`);
       const likeBtn = root.querySelector<HTMLButtonElement>(`[data-dc-like="${idx}"]`);
       const skipBtn = root.querySelector<HTMLButtonElement>(`[data-dc-skip="${idx}"]`);
-      if (!track || likeBtn?.getAttribute("aria-pressed") === "true" || skipBtn?.getAttribute("aria-pressed") === "true") return;
+      if (
+        !track ||
+        likeBtn?.getAttribute("aria-pressed") === "true" ||
+        skipBtn?.getAttribute("aria-pressed") === "true"
+      )
+        return;
       track.classList.add("is-rated");
       if (liked) track.classList.add("is-liked");
       likeBtn?.setAttribute("aria-pressed", liked ? "true" : "false");
@@ -2809,9 +2896,10 @@ const nav = {
       dcRated += 1;
       if (dcNext2) dcNext2.disabled = dcRated < 2;
       if (dcNote2) {
-        dcNote2.textContent = dcRated >= 2
-          ? tr("вкус собран — смотрите что получилось", "taste collected — see the result")
-          : tr("оцените хотя бы 2 трека", "rate at least 2 tracks");
+        dcNote2.textContent =
+          dcRated >= 2
+            ? tr("вкус собран — смотрите что получилось", "taste collected — see the result")
+            : tr("оцените хотя бы 2 трека", "rate at least 2 tracks");
       }
     };
 

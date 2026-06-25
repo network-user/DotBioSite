@@ -14,7 +14,7 @@ import ProjectGlyph from "./ProjectGlyph.astro";
 interface Props {
   project: Project;
   locale: Locale;
-  /** Индекс в сетке (для staggered scroll-reveal). */
+  /** Индекс в сетке (для staggered scroll-reveal и staggered animation-delay). */
   index?: number;
 }
 
@@ -31,6 +31,7 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
 const accent = p.accent ?? "var(--accent)";
 const highlights = p.highlights?.slice(0, 3) ?? [];
 const isFeatured = index === 0;
+const animDelay = `${(index * 0.85).toFixed(2)}s`;
 ---
 
 <article
@@ -39,7 +40,7 @@ const isFeatured = index === 0;
   data-reveal-delay={index * 80}
   data-tilt
   aria-labelledby={`project-${p.slug}-title`}
-  style={`--project-accent: ${accent};`}
+  style={`--project-accent: ${accent}; --anim-delay: ${animDelay};`}
 >
   <a
     href={caseHref}
@@ -196,21 +197,14 @@ const isFeatured = index === 0;
       inset 0 1px 0 rgba(255, 255, 255, 0.08),
       0 18px 48px rgba(0, 0, 0, 0.42);
     transform: perspective(1400px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
-    /* transform УБРАН из transition: раньше CSS интерполировал каждое микро-
-       изменение тилта 280ms-кривой, и панель инерционно «догоняла» курсор — это и
-       есть «массив едет за мной». Теперь тилт применяется мгновенно (плавность
-       даёт JS-лерп). box-shadow тоже не анимируем (тень не композируется). */
     transition: border-color var(--dur-fast) var(--ease-standard);
   }
 
-  /* Brighter top-shine for the glass on these large surfaces. */
   .project-card.glass::before {
     background: var(--glass-top-shine);
     opacity: 0.9;
   }
 
-  /* Pointer-following sheen — sits over the glass, under the text (z-index 0,
-     same plane as .glass::before; .glass > * content is bumped to z-index 1). */
   .project-card::after {
     content: "";
     position: absolute;
@@ -241,7 +235,7 @@ const isFeatured = index === 0;
     opacity: 1;
   }
 
-  /* ---------- Cover ---------- */
+  /* ---------- Cover / Media ---------- */
   .project-card__media {
     position: relative;
     display: block;
@@ -255,7 +249,7 @@ const isFeatured = index === 0;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   }
 
-  /* ---------- Logo lockup (replaces the cover image on cards) ---------- */
+  /* ---------- Logo lockup ---------- */
   .project-card__media--logo {
     display: grid;
     place-items: center;
@@ -281,24 +275,69 @@ const isFeatured = index === 0;
     transition: transform var(--dur-slow) var(--ease-soft);
   }
 
+  /* Плавающий глиф: медленный вертикальный drift, только transform — compositor. */
+  @keyframes glyph-float {
+    0%,
+    100% {
+      transform: translateY(-4px);
+    }
+    50% {
+      transform: translateY(4px);
+    }
+  }
+
   .project-card__glyph {
     display: block;
     width: clamp(42px, 16cqi, 68px);
     filter: drop-shadow(0 4px 14px color-mix(in srgb, var(--project-accent) 28%, transparent));
   }
 
+  @media (prefers-reduced-motion: no-preference) {
+    .project-card__glyph {
+      animation: glyph-float 5s ease-in-out infinite;
+      animation-delay: var(--anim-delay, 0s);
+    }
+  }
+
+  /* Название проекта в медиа-блоке: white-space: nowrap исключает перенос
+     кириллических меток (.агенты, .работа) на узких контейнерах. */
   .project-card__logo-brand {
     font-size: clamp(var(--fs-24), 11cqi, var(--fs-40));
     line-height: 1;
     color: var(--project-accent);
     opacity: 0.94;
+    white-space: nowrap;
+  }
+
+  /* Дыхание: opacity бренда пульсирует медленно — «живой текст». */
+  @keyframes logo-brand-breathe {
+    0%,
+    100% {
+      opacity: 0.78;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .project-card__logo-brand {
+      animation: logo-brand-breathe 5.5s ease-in-out infinite;
+      animation-delay: calc(var(--anim-delay, 0s) + 0.6s);
+    }
   }
 
   .project-card:hover .project-card__logo {
     transform: scale(1.04);
   }
 
-  /* Accent glow rising from the base of the cover — the one place colour leans in. */
+  /* При ховере паузируем дыхание — фокус на ховер-эффекте */
+  .project-card:hover .project-card__glyph,
+  .project-card:hover .project-card__logo-brand {
+    animation-play-state: paused;
+  }
+
+  /* Accent glow rising from the base of the cover. */
   .project-card__media-glow {
     position: absolute;
     inset: auto 0 0;
@@ -311,6 +350,24 @@ const isFeatured = index === 0;
     );
     opacity: 0.7;
     z-index: 1;
+  }
+
+  /* Пульс glow внизу карточки-медиа */
+  @keyframes glow-pulse {
+    0%,
+    100% {
+      opacity: 0.45;
+    }
+    50% {
+      opacity: 0.85;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .project-card__media-glow {
+      animation: glow-pulse 5s ease-in-out infinite;
+      animation-delay: calc(var(--anim-delay, 0s) + 1.2s);
+    }
   }
 
   .project-card__media::after {
@@ -334,9 +391,6 @@ const isFeatured = index === 0;
     padding: var(--sp-1) var(--sp-3);
     border: var(--bw-thin) solid rgba(255, 255, 255, 0.18);
     border-radius: var(--r-pill);
-    /* backdrop-filter убран (правило бюджета: реальный blur только в шапке).
-       Над тёмной обложкой плотная заливка читается так же, но не переразмывает
-       фон при тилте карточки и на каждом кадре скролла. */
     background: rgba(5, 6, 8, 0.78);
     color: var(--text);
     font-size: var(--fs-11);
@@ -382,7 +436,6 @@ const isFeatured = index === 0;
     background: rgba(255, 255, 255, 0.04);
   }
 
-  /* When a cover already shows the status pill, hide the duplicate in the head. */
   .project-card__media ~ .project-card__head .project-card__status {
     display: none;
   }
@@ -400,6 +453,8 @@ const isFeatured = index === 0;
     color: var(--text-muted);
   }
 
+  /* Заголовок бренда: white-space: nowrap — страховка от переноса.
+     Бренды (`.агенты`, `.работа`) коротки, но кириллица чуть шире латиницы. */
   .project-card__brand {
     font-size: var(--fs-28);
     line-height: 1;
@@ -410,6 +465,25 @@ const isFeatured = index === 0;
     -webkit-text-fill-color: transparent;
     width: fit-content;
     max-width: 100%;
+    white-space: nowrap;
+  }
+
+  /* Мягкое дыхание — градиент живёт */
+  @keyframes brand-breathe {
+    0%,
+    100% {
+      opacity: 0.84;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .project-card__brand {
+      animation: brand-breathe 6s ease-in-out infinite;
+      animation-delay: calc(var(--anim-delay, 0s) + 2s);
+    }
   }
 
   .project-card__name {
@@ -432,7 +506,7 @@ const isFeatured = index === 0;
     max-width: 64ch;
   }
 
-  /* ---------- Highlights (flat, divider-separated row) ---------- */
+  /* ---------- Highlights ---------- */
   .project-card__highlights {
     grid-area: highlights;
     display: grid;
@@ -448,7 +522,6 @@ const isFeatured = index === 0;
     padding-block-start: var(--sp-3);
   }
 
-  /* Tiny accent tick above each proof point — reads as a chart marker. */
   .project-card__highlight::before {
     content: "";
     position: absolute;
@@ -547,7 +620,7 @@ const isFeatured = index === 0;
     }
 
     .project-card__brand {
-      font-size: var(--fs-28);
+      font-size: var(--fs-24);
     }
 
     .project-card__actions {
@@ -571,7 +644,7 @@ const isFeatured = index === 0;
     }
   }
 
-  /* ---------- Featured card (first in grid): full-width, media beside content ---------- */
+  /* ---------- Featured card (first in grid): full-width ---------- */
   @media (min-width: 900px) {
     .project-card--featured {
       grid-column: 1 / -1;
@@ -599,8 +672,9 @@ const isFeatured = index === 0;
       margin-block-start: var(--sp-1);
     }
 
+    /* clamp: минимум --fs-32, масштаб с viewport, максимум --fs-44 */
     .project-card--featured .project-card__brand {
-      font-size: var(--fs-44);
+      font-size: clamp(var(--fs-32), 3.2vw, var(--fs-44));
     }
 
     .project-card--featured .project-card__actions {
@@ -608,7 +682,7 @@ const isFeatured = index === 0;
     }
   }
 
-  /* ---------- Accessibility / input-mode guards ---------- */
+  /* ---------- Accessibility / motion guards ---------- */
   @media (prefers-reduced-motion: reduce) {
     .project-card,
     .project-card:hover,
@@ -627,7 +701,6 @@ const isFeatured = index === 0;
   }
 
   @media (pointer: coarse) {
-    /* No tilt on touch — keep the pane flat and the cover calm. */
     .project-card {
       transform: none;
     }

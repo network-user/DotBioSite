@@ -1,46 +1,53 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="t d">
-  <title id="t">DotWorkBot — .работа</title>
-  <desc id="d">On-demand shift marketplace that lives entirely in Telegram.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="DotWorkBot">
+  <title>DotWorkBot</title>
+  <style>
+    @keyframes breathe { 0%,100%{opacity:.85} 50%{opacity:1} }
+    @keyframes pulse   { 0%,100%{opacity:.72} 50%{opacity:1} }
+    @keyframes glow    { 0%,100%{opacity:.58} 50%{opacity:1} }
+    .br { animation: breathe 4.6s ease-in-out infinite }
+    .pu { animation: pulse   3.6s ease-in-out infinite }
+    .gl { animation: glow    6.6s ease-in-out infinite }
+    @media (prefers-reduced-motion:reduce) { .br,.pu,.gl { animation:none } }
+  </style>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0a0b0d"/>
+    <linearGradient id="dw-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0"   stop-color="#0a0b0d"/>
       <stop offset="0.5" stop-color="#14161a"/>
-      <stop offset="1" stop-color="#0b0c0e"/>
+      <stop offset="1"   stop-color="#0b0c0e"/>
     </linearGradient>
-    <radialGradient id="glow" cx="70%" cy="20%" r="62%">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.14"/>
+    <radialGradient id="dw-glow" cx="70%" cy="20%" r="62%">
+      <stop offset="0"   stop-color="#ffffff" stop-opacity="0.14"/>
       <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.04"/>
-      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1"   stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+    <radialGradient id="dw-halo" cx="50%" cy="50%" r="50%">
       <stop offset="0" stop-color="#ffffff" stop-opacity="0.1"/>
       <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
   </defs>
-  <rect width="1600" height="900" fill="url(#bg)"/>
-  <rect width="1600" height="900" fill="url(#glow)"/>
+  <rect width="1600" height="900" fill="url(#dw-bg)"/>
+  <rect width="1600" height="900" fill="url(#dw-glow)"/>
   <g opacity="0.045" stroke="#ffffff" stroke-width="1">
     <path d="M0 225 H1600 M0 450 H1600 M0 675 H1600 M400 0 V900 M800 0 V900 M1200 0 V900"/>
   </g>
-  <circle cx="1180" cy="460" r="330" fill="url(#halo)"/>
+  <circle cx="1180" cy="460" r="330" fill="url(#dw-halo)" class="gl"/>
   <svg x="965" y="245" width="430" height="430" viewBox="0 0 48 48">
     <g opacity="0.1" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="7" y="17" width="34" height="23" rx="4"/>
-      <path d="M18 17 v-3 a3 3 0 0 1 3-3 h6 a3 3 0 0 1 3 3 v3"/>
-      <path d="M7 27 h34"/>
-      <path d="M24 25 v4"/>
+      <path d="M9 19 H39 a2 2 0 0 1 2 2 V37 a2 2 0 0 1 -2 2 H9 a2 2 0 0 1 -2 -2 V21 a2 2 0 0 1 2 -2 Z"/>
+      <path d="M18 19 V16 a2 2 0 0 1 2 -2 H28 a2 2 0 0 1 2 2 V19"/>
+      <path d="M7 28 H41"/>
+      <path d="M22 26 H26 V30 H22 Z"/>
     </g>
   </svg>
-  <svg x="140" y="118" width="86" height="86" viewBox="0 0 48 48">
+  <svg x="140" y="118" width="86" height="86" viewBox="0 0 48 48" class="pu">
     <g fill="none" stroke="#f3f3f1" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="7" y="17" width="34" height="23" rx="4"/>
-      <path d="M18 17 v-3 a3 3 0 0 1 3-3 h6 a3 3 0 0 1 3 3 v3"/>
-      <path d="M7 27 h34"/>
-      <path d="M24 25 v4"/>
+      <path d="M9 19 H39 a2 2 0 0 1 2 2 V37 a2 2 0 0 1 -2 2 H9 a2 2 0 0 1 -2 -2 V21 a2 2 0 0 1 2 -2 Z"/>
+      <path d="M18 19 V16 a2 2 0 0 1 2 -2 H28 a2 2 0 0 1 2 2 V19"/>
+      <path d="M7 28 H41"/>
+      <path d="M22 26 H26 V30 H22 Z"/>
     </g>
   </svg>
-  <text x="138" y="408" font-family="Inter, Arial, sans-serif" font-size="132" font-weight="800" fill="#f3f3f1" letter-spacing="-3">.работа</text>
+  <text x="138" y="408" font-family="Inter, Arial, sans-serif" font-size="118" font-weight="800" fill="#f3f3f1" letter-spacing="-3" class="br">.работа</text>
   <text x="146" y="470" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700" fill="#f3f3f1">DotWorkBot</text>
-  <text x="146" y="516" font-family="Inter, Arial, sans-serif" font-size="26" fill="#a6a7ab">On-demand shift marketplace in Telegram</text>
-  <text x="140" y="822" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="600" fill="#5a5c63">.ядро · DotCore</text>
+  <text x="146" y="516" font-family="Inter, Arial, sans-serif" font-size="26" fill="#a6a7ab">Подбор разовой рабочей силы в Telegram</text>
 </svg>
