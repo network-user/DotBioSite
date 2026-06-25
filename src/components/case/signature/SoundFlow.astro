@@ -194,12 +194,79 @@ const WAVE: number[] = Array.from({ length: 56 }, (_, i) => {
 });
 
 // (4) Импорт
-const sources: { id: string; name: Bi }[] = [
-  { id: "sc", name: { ru: "SoundCloud", en: "SoundCloud" } },
-  { id: "sp", name: { ru: "Spotify", en: "Spotify" } },
-  { id: "ya", name: { ru: "Yandex Music", en: "Yandex Music" } },
-  { id: "bc", name: { ru: "Bandcamp", en: "Bandcamp" } },
-  { id: "yt", name: { ru: "YouTube", en: "YouTube" } },
+const sources: { id: string; name: Bi; url: string; tracks: Bi[] }[] = [
+  {
+    id: "sc",
+    name: { ru: "SoundCloud", en: "SoundCloud" },
+    url: "soundcloud.com/kaiangel",
+    tracks: [
+      { ru: "LIPSTICK", en: "LIPSTICK" },
+      { ru: "JUMP!", en: "JUMP!" },
+      { ru: "welcome to forever", en: "welcome to forever" },
+      { ru: "KYLIE", en: "KYLIE" },
+      { ru: "SHOW OFF", en: "SHOW OFF" },
+    ],
+  },
+  {
+    id: "sp",
+    name: { ru: "Spotify", en: "Spotify" },
+    url: "open.spotify.com/artist/kaiangel",
+    tracks: [
+      { ru: "welcome to forever", en: "welcome to forever" },
+      { ru: "LIPSTICK", en: "LIPSTICK" },
+      { ru: "KYLIE", en: "KYLIE" },
+      { ru: "damage", en: "damage" },
+      { ru: "JUMP!", en: "JUMP!" },
+    ],
+  },
+  {
+    id: "ya",
+    name: { ru: "Yandex Music", en: "Yandex Music" },
+    url: "music.yandex.ru/artist/12345",
+    tracks: [
+      { ru: "KYLIE", en: "KYLIE" },
+      { ru: "SHOW OFF", en: "SHOW OFF" },
+      { ru: "welcome to forever", en: "welcome to forever" },
+      { ru: "LIPSTICK", en: "LIPSTICK" },
+      { ru: "red weather", en: "red weather" },
+    ],
+  },
+  {
+    id: "vk",
+    name: { ru: "VK", en: "VK" },
+    url: "vk.com/music/artist/kaiangel",
+    tracks: [
+      { ru: "JUMP!", en: "JUMP!" },
+      { ru: "KYLIE", en: "KYLIE" },
+      { ru: "LIPSTICK", en: "LIPSTICK" },
+      { ru: "damage", en: "damage" },
+      { ru: "SHOW OFF", en: "SHOW OFF" },
+    ],
+  },
+  {
+    id: "yt",
+    name: { ru: "YouTube", en: "YouTube" },
+    url: "youtube.com/@kaiangel",
+    tracks: [
+      { ru: "welcome to forever (official)", en: "welcome to forever (official)" },
+      { ru: "JUMP! (live)", en: "JUMP! (live)" },
+      { ru: "KYLIE", en: "KYLIE" },
+      { ru: "LIPSTICK (clip)", en: "LIPSTICK (clip)" },
+      { ru: "SHOW OFF (mv)", en: "SHOW OFF (mv)" },
+    ],
+  },
+  {
+    id: "tg",
+    name: { ru: "Telegram", en: "Telegram" },
+    url: "t.me/kaiangel_music",
+    tracks: [
+      { ru: "damage", en: "damage" },
+      { ru: "red weather", en: "red weather" },
+      { ru: "KYLIE", en: "KYLIE" },
+      { ru: "welcome to forever", en: "welcome to forever" },
+      { ru: "JUMP!", en: "JUMP!" },
+    ],
+  },
 ];
 const importT = {
   linkCap: {
@@ -210,13 +277,6 @@ const importT = {
   pulling: { ru: "загружаем…", en: "fetching…" },
   done: { ru: "добавлено в каталог", en: "added to the catalog" },
 };
-const importTracks: Bi[] = [
-  { ru: "LIPSTICK", en: "LIPSTICK" },
-  { ru: "JUMP!", en: "JUMP!" },
-  { ru: "welcome to forever", en: "welcome to forever" },
-  { ru: "KYLIE", en: "KYLIE" },
-  { ru: "SHOW OFF", en: "SHOW OFF" },
-];
 
 // (5) Рекомендации
 const tasteChips: Bi[] = [
@@ -659,6 +719,8 @@ const nav = {
                   class={`sf__chip${i === 0 ? " is-on" : ""}`}
                   type="button"
                   data-im-src={s.id}
+                  data-im-url={s.url}
+                  data-im-tracks={JSON.stringify(s.tracks.map((tr) => t(tr)))}
                   aria-pressed={i === 0 ? "true" : "false"}
                 >
                   {t(s.name)}
@@ -672,7 +734,7 @@ const nav = {
               <input
                 class="sf__si-input mono"
                 type="text"
-                value="soundcloud.com/kaiangel"
+                value={sources[0]!.url}
                 data-im-input
                 aria-label={t(importT.linkCap)}
                 autocomplete="off"
@@ -682,10 +744,10 @@ const nav = {
           </div>
           <ul class="sf__im-list" data-im-list>
             {
-              importTracks.map((tr, i) => (
+              sources[0]!.tracks.map((tr, i) => (
                 <li class="sf__im-row" data-im-row={i}>
                   <span class="sf__im-dot" aria-hidden="true" />
-                  <span class="sf__im-name">{t(tr)}</span>
+                  <span class="sf__im-name" data-im-track-name>{t(tr)}</span>
                   <span class="sf__im-ok mono" aria-hidden="true">
                     ok
                   </span>
@@ -2454,6 +2516,8 @@ const nav = {
     // ============ (3) ИМПОРТ ============
     const imSrcBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-im-src]"));
     const imRows = Array.from(root.querySelectorAll<HTMLElement>("[data-im-row]"));
+    const imTrackNames = Array.from(root.querySelectorAll<HTMLElement>("[data-im-track-name]"));
+    const imInput = root.querySelector<HTMLInputElement>("[data-im-input]");
     const imGo = root.querySelector<HTMLButtonElement>("[data-im-go]");
     const imNote = root.querySelector<HTMLElement>("[data-im-note]");
 
@@ -2464,6 +2528,15 @@ const nav = {
           x.classList.toggle("is-on", on);
           x.setAttribute("aria-pressed", on ? "true" : "false");
         });
+        if (imInput) imInput.value = b.dataset.imUrl ?? "";
+        try {
+          const tracks: string[] = JSON.parse(b.dataset.imTracks ?? "[]");
+          imTrackNames.forEach((el, i) => {
+            el.textContent = tracks[i] ?? "";
+          });
+        } catch {}
+        imRows.forEach((r) => r.classList.remove("is-in"));
+        if (imNote) imNote.textContent = "";
       });
     });
     const runImport = (): void => {
