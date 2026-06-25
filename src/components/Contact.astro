@@ -155,9 +155,7 @@ const briefOptions = hasEmail
   const motionOk = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   if (fine.matches && motionOk) {
-    const channels = Array.from(
-      document.querySelectorAll<HTMLElement>("[data-channel]"),
-    );
+    const channels = Array.from(document.querySelectorAll<HTMLElement>("[data-channel]"));
     const cleanups: Array<() => void> = [];
 
     channels.forEach((el) => {
@@ -195,11 +193,7 @@ const briefOptions = hasEmail
       });
     });
 
-    window.addEventListener(
-      "pagehide",
-      () => cleanups.forEach((fn) => fn()),
-      { once: true },
-    );
+    window.addEventListener("pagehide", () => cleanups.forEach((fn) => fn()), { once: true });
   }
 </script>
 

@@ -115,52 +115,112 @@
   "architectureNodes": [
     {
       "id": "telegram",
-      "x": 110,
-      "y": 230,
+      "col": 0,
+      "row": 0,
       "label": "Telegram",
       "icon": "telegram",
-      "width": 150
+      "width": 145,
+      "desc": {
+        "ru": "Телефон владельца: статус, approve/deny, follow-up",
+        "en": "Owner's phone: status, approve/deny, follow-ups"
+      }
     },
     {
       "id": "bot",
-      "x": 380,
-      "y": 150,
+      "col": 0,
+      "row": 1,
       "label": "aiogram bot",
       "icon": "telegram",
-      "width": 160
+      "width": 160,
+      "desc": {
+        "ru": "Long-polling: live-сообщение, HMAC-кнопки, режимы",
+        "en": "Long-polling: live message, HMAC buttons, modes"
+      }
+    },
+    {
+      "id": "approvals",
+      "col": 1,
+      "row": 0,
+      "label": "Approvals",
+      "icon": "spark",
+      "width": 170,
+      "desc": {
+        "ru": "Решение по риск-вызову: режим или владелец, fail-closed",
+        "en": "Risk-call decision: mode or owner, fail-closed"
+      }
     },
     {
       "id": "api",
-      "x": 380,
-      "y": 320,
-      "label": "FastAPI 127.0.0.1",
-      "icon": "globe",
+      "col": 1,
+      "row": 1,
+      "label": "FastAPI loopback",
+      "icon": "stack",
+      "width": 195,
       "emphasis": "strong",
-      "width": 190
+      "desc": {
+        "ru": "Демон на 127.0.0.1: сессии, события, approvals",
+        "en": "Daemon on 127.0.0.1: sessions, events, approvals"
+      }
+    },
+    {
+      "id": "runner",
+      "col": 1,
+      "row": 2,
+      "label": "AgentRunner",
+      "icon": "rocket",
+      "width": 175,
+      "desc": {
+        "ru": "Спавнит CLI-агента, качает stdout в события",
+        "en": "Spawns the agent CLI, pumps stdout into events"
+      }
     },
     {
       "id": "db",
-      "x": 580,
-      "y": 320,
+      "col": 2,
+      "row": 2,
       "label": "SQLite",
       "icon": "dot",
-      "width": 130
+      "width": 130,
+      "desc": {
+        "ru": "Сессии, события, approvals, nonces и audit-log",
+        "en": "Sessions, events, approvals, nonces and audit log"
+      }
     },
     {
       "id": "hooks",
-      "x": 770,
-      "y": 150,
+      "col": 2,
+      "row": 0,
       "label": "IDE hooks",
       "icon": "code",
-      "width": 150
+      "width": 155,
+      "desc": {
+        "ru": "Fail-closed хуки в Cursor/Claude блокируют риск-вызов",
+        "en": "Fail-closed hooks in Cursor/Claude block a risky call"
+      }
     },
     {
-      "id": "cli",
-      "x": 770,
-      "y": 320,
-      "label": "agent CLI",
+      "id": "agents",
+      "col": 2,
+      "row": 1,
+      "label": "Agent CLIs",
       "icon": "spark",
-      "width": 150
+      "width": 170,
+      "desc": {
+        "ru": "claude / cursor-agent как подпроцессы, cwd=проект",
+        "en": "claude / cursor-agent subprocesses, cwd=project"
+      }
+    },
+    {
+      "id": "llm",
+      "col": 3,
+      "row": 0,
+      "label": "LLM provider",
+      "icon": "globe",
+      "width": 160,
+      "desc": {
+        "ru": "Anthropic / OpenAI: зовёт сам CLI, не демон",
+        "en": "Anthropic / OpenAI: called by the CLI, not the daemon"
+      }
     }
   ],
   "architectureEdges": [
@@ -173,39 +233,60 @@
     {
       "from": "bot",
       "to": "api",
-      "kind": "data"
+      "kind": "sync",
+      "label": "spawn"
     },
     {
       "from": "api",
+      "to": "runner",
+      "kind": "sync"
+    },
+    {
+      "from": "runner",
+      "to": "agents",
+      "kind": "async",
+      "label": "subprocess",
+      "oneway": false
+    },
+    {
+      "from": "agents",
+      "to": "llm",
+      "kind": "sync",
+      "label": "API"
+    },
+    {
+      "from": "runner",
       "to": "db",
       "kind": "data"
+    },
+    {
+      "from": "agents",
+      "to": "hooks",
+      "kind": "sync",
+      "label": "pre-call"
     },
     {
       "from": "hooks",
       "to": "api",
       "kind": "sync",
-      "label": "POST + secret"
+      "label": "approve?"
     },
     {
       "from": "api",
-      "to": "hooks",
-      "kind": "async",
-      "label": "long-poll"
+      "to": "approvals",
+      "kind": "sync"
     },
     {
-      "from": "cli",
-      "to": "hooks",
-      "kind": "sync",
-      "label": "stdio JSON"
+      "from": "approvals",
+      "to": "bot",
+      "kind": "async",
+      "label": "notify"
     }
   ],
   "clusters": [
     {
-      "x": 270,
-      "y": 100,
-      "width": 410,
-      "height": 280,
-      "label": "local daemon"
+      "label": "loopback daemon",
+      "members": ["approvals", "api", "runner"]
     }
   ],
   "capabilities": [

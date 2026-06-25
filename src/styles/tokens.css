@@ -122,7 +122,8 @@
     "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   --font-stack-body: "Inter Variable", "Inter", var(--font-stack-system);
   --font-stack-display:
-    "Bricolage Grotesque Variable", "Bricolage Grotesque", "Inter Variable", var(--font-stack-system);
+    "Bricolage Grotesque Variable", "Bricolage Grotesque", "Inter Variable",
+    var(--font-stack-system);
   --font-stack-mono:
     ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", monospace;

@@ -116,34 +116,179 @@
     "ml": ["lesson-forge skill", "BYOK: OpenAI / Anthropic / Ollama / OpenRouter", "ts-fsrs (SRS)"]
   },
   "architectureNodes": [
-    { "id": "agent", "x": 150, "y": 130, "label": "AI agent · lesson-forge", "icon": "spark", "width": 210 },
-    { "id": "topics", "x": 150, "y": 320, "label": "topics/ · code modules", "icon": "code", "width": 200 },
-    { "id": "contracts", "x": 480, "y": 90, "label": "Zod contracts", "icon": "stack", "width": 175 },
+    {
+      "id": "forge",
+      "col": 0,
+      "row": 0,
+      "label": "lesson-forge",
+      "icon": "spark",
+      "width": 190,
+      "desc": {
+        "ru": "AI-скилл офлайн пишет темы и открывает PR (Cursor/Claude)",
+        "en": "Offline AI skill authors topics and opens PRs (Cursor/Claude)"
+      }
+    },
+    {
+      "id": "topics",
+      "col": 0,
+      "row": 1,
+      "label": "topics/",
+      "icon": "code",
+      "width": 150,
+      "desc": {
+        "ru": "Файловые темы: manifest, MDX-теория и YAML-задачи",
+        "en": "File-based topics: manifest, MDX theory and YAML tasks"
+      }
+    },
+    {
+      "id": "contracts",
+      "col": 1,
+      "row": 1,
+      "label": "Zod contracts",
+      "icon": "code",
+      "width": 185,
+      "desc": {
+        "ru": "Общие Zod-схемы: валидируют темы и DTO заявок",
+        "en": "Shared Zod schemas: validate topics and submission DTOs"
+      }
+    },
     {
       "id": "web",
-      "x": 480,
-      "y": 265,
+      "col": 1,
+      "row": 0,
       "label": "web · local-first",
       "icon": "globe",
+      "width": 200,
       "emphasis": "strong",
-      "width": 190
+      "desc": {
+        "ru": "Vite+React SPA, local-first; читает topics через glob",
+        "en": "Vite+React SPA, local-first; reads topics via glob"
+      }
     },
-    { "id": "sandbox", "x": 480, "y": 445, "label": "sql.js + Pyodide", "icon": "rocket", "width": 190 },
-    { "id": "idb", "x": 810, "y": 150, "label": "IndexedDB", "icon": "dot", "width": 175 },
-    { "id": "ai", "x": 810, "y": 290, "label": "BYOK providers", "icon": "dot", "width": 175 },
-    { "id": "api", "x": 810, "y": 430, "label": "NestJS API · opt", "icon": "stack", "width": 185 }
+    {
+      "id": "engine",
+      "col": 2,
+      "row": 3,
+      "label": "lesson-engine",
+      "icon": "code",
+      "width": 185,
+      "desc": {
+        "ru": "Загрузчик тем, раннеры упражнений и CLI-валидатор",
+        "en": "Topic loader, exercise runners and a CLI validator"
+      }
+    },
+    {
+      "id": "sandbox",
+      "col": 2,
+      "row": 4,
+      "label": "sql.js + Pyodide",
+      "icon": "rocket",
+      "width": 195,
+      "desc": {
+        "ru": "Исполнение кода в Web Workers: SQL, Python, JS",
+        "en": "Code execution in Web Workers: SQL, Python, JS"
+      }
+    },
+    {
+      "id": "idb",
+      "col": 2,
+      "row": 0,
+      "label": "IndexedDB",
+      "icon": "dot",
+      "width": 160,
+      "desc": {
+        "ru": "Прогресс, заметки и FSRS-повторения в браузере (Dexie)",
+        "en": "Progress, notes and FSRS reviews in the browser (Dexie)"
+      }
+    },
+    {
+      "id": "ai",
+      "col": 2,
+      "row": 1,
+      "label": "BYOK providers",
+      "icon": "globe",
+      "width": 190,
+      "desc": {
+        "ru": "BYOK-ключи в браузере: OpenAI, Anthropic, Ollama",
+        "en": "BYOK keys in the browser: OpenAI, Anthropic, Ollama"
+      }
+    },
+    {
+      "id": "api",
+      "col": 2,
+      "row": 2,
+      "label": "NestJS API · opt",
+      "icon": "stack",
+      "width": 195,
+      "desc": {
+        "ru": "Опционально: заявки тем, защищённая админка, поиск",
+        "en": "Optional: topic submissions, hardened admin, search"
+      }
+    }
   ],
   "architectureEdges": [
-    { "from": "agent", "to": "topics", "kind": "async", "label": "generates" },
-    { "from": "agent", "to": "contracts", "kind": "data", "label": "validates" },
-    { "from": "topics", "to": "web", "kind": "data", "label": "import.meta.glob" },
-    { "from": "contracts", "to": "web", "kind": "data" },
-    { "from": "contracts", "to": "api", "kind": "data" },
-    { "from": "web", "to": "sandbox", "kind": "sync", "label": "Web Worker" },
-    { "from": "web", "to": "idb", "kind": "data", "label": "progress" },
-    { "from": "web", "to": "ai", "kind": "sync", "label": "BYOK" }
+    {
+      "from": "forge",
+      "to": "topics",
+      "kind": "async",
+      "label": "generates"
+    },
+    {
+      "from": "topics",
+      "to": "web",
+      "kind": "data",
+      "label": "glob",
+      "oneway": true
+    },
+    {
+      "from": "contracts",
+      "to": "web",
+      "kind": "data",
+      "oneway": true
+    },
+    {
+      "from": "contracts",
+      "to": "api",
+      "kind": "data",
+      "oneway": true
+    },
+    {
+      "from": "web",
+      "to": "engine",
+      "kind": "sync"
+    },
+    {
+      "from": "engine",
+      "to": "sandbox",
+      "kind": "async",
+      "label": "Web Worker",
+      "oneway": false
+    },
+    {
+      "from": "web",
+      "to": "idb",
+      "kind": "data",
+      "label": "progress"
+    },
+    {
+      "from": "web",
+      "to": "ai",
+      "kind": "sync",
+      "label": "BYOK"
+    },
+    {
+      "from": "web",
+      "to": "api",
+      "kind": "sync",
+      "label": "opt"
+    }
   ],
-  "clusters": [{ "x": 50, "y": 60, "width": 230, "height": 330, "label": "authoring" }],
+  "clusters": [
+    {
+      "label": "authoring",
+      "members": ["forge", "topics"]
+    }
+  ],
   "capabilities": [
     {
       "icon": "code",

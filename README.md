@@ -34,16 +34,16 @@ npm run dev        # http://localhost:4321
 
 ## Команды
 
-| Команда | Назначение |
-|---------|------------|
-| `npm run dev` | dev-сервер Astro с HMR (`:4321`) |
-| `npm run build` | production-билд в `dist/` |
-| `npm run preview` | локальный preview собранного `dist/` |
-| `npm run type-check` | `astro check` + `tsc --noEmit` |
-| `npm run lint` | ESLint, падает на любом warning |
-| `npm run lint:fix` | ESLint с авто-фиксом |
-| `npm run format` | Prettier write по `ts/tsx/astro/css/json/md` |
-| `npm run format:check` | Prettier check без записи |
+| Команда                | Назначение                                   |
+| ---------------------- | -------------------------------------------- |
+| `npm run dev`          | dev-сервер Astro с HMR (`:4321`)             |
+| `npm run build`        | production-билд в `dist/`                    |
+| `npm run preview`      | локальный preview собранного `dist/`         |
+| `npm run type-check`   | `astro check` + `tsc --noEmit`               |
+| `npm run lint`         | ESLint, падает на любом warning              |
+| `npm run lint:fix`     | ESLint с авто-фиксом                         |
+| `npm run format`       | Prettier write по `ts/tsx/astro/css/json/md` |
+| `npm run format:check` | Prettier check без записи                    |
 
 ## Стек
 

@@ -56,22 +56,49 @@ const intro: Bi = {
 const cmd = "dottraceip --format html target_ips.txt";
 
 // --- Целевые адреса (стримятся в очередь под семафором) ---
-const targetIps = ["185.220.101.4", "45.155.205.233", "193.32.162.7", "104.244.76.13", "5.188.206.18"];
+const targetIps = [
+  "185.220.101.4",
+  "45.155.205.233",
+  "193.32.162.7",
+  "104.244.76.13",
+  "5.188.206.18",
+];
 const SEM = 3; // семафор: до 3 IP одновременно
 const FOCUS = targetIps[0]; // фокус-IP для fan-out
 
 // --- Шесть источников на один IP (точные имена/назначения; Spamhaus падает) ---
 const sources: { key: string; via: Bi; note: Bi; fail?: boolean }[] = [
-  { key: "ip-api", via: { ru: "aiohttp", en: "aiohttp" }, note: { ru: "geo + ASN", en: "geo + ASN" } },
+  {
+    key: "ip-api",
+    via: { ru: "aiohttp", en: "aiohttp" },
+    note: { ru: "geo + ASN", en: "geo + ASN" },
+  },
   {
     key: "Team Cymru → bgpview",
     via: { ru: "dns → http", en: "dns → http" },
     note: { ru: "BGP-префикс + имя AS", en: "BGP prefix + AS name" },
   },
-  { key: "RDAP", via: { ru: "thread-pool", en: "thread-pool" }, note: { ru: "сеть владельца (CIDR)", en: "owner network (CIDR)" } },
-  { key: "reverse DNS", via: { ru: "thread-pool", en: "thread-pool" }, note: { ru: "PTR-запись", en: "PTR record" } },
-  { key: "AbuseIPDB", via: { ru: "aiohttp", en: "aiohttp" }, note: { ru: "репутация", en: "reputation" } },
-  { key: "Spamhaus DNSBL", via: { ru: "dns", en: "dns" }, note: { ru: "DNSBL — таймаут", en: "DNSBL — timeout" }, fail: true },
+  {
+    key: "RDAP",
+    via: { ru: "thread-pool", en: "thread-pool" },
+    note: { ru: "сеть владельца (CIDR)", en: "owner network (CIDR)" },
+  },
+  {
+    key: "reverse DNS",
+    via: { ru: "thread-pool", en: "thread-pool" },
+    note: { ru: "PTR-запись", en: "PTR record" },
+  },
+  {
+    key: "AbuseIPDB",
+    via: { ru: "aiohttp", en: "aiohttp" },
+    note: { ru: "репутация", en: "reputation" },
+  },
+  {
+    key: "Spamhaus DNSBL",
+    via: { ru: "dns", en: "dns" },
+    note: { ru: "DNSBL — таймаут", en: "DNSBL — timeout" },
+    fail: true,
+  },
 ];
 
 // --- Строки результатов (сортируемая таблица) ---
@@ -114,7 +141,8 @@ const exports: { fmt: string; note: Bi; preview: string }[] = [
   {
     fmt: "HTML",
     note: { ru: "самодостаточный отчёт", en: "self-contained report" },
-    preview: '<table id="report" data-sortable>\n  <thead>…</thead>\n  <tbody>…185.220.101.4…</tbody>\n</table>',
+    preview:
+      '<table id="report" data-sortable>\n  <thead>…</thead>\n  <tbody>…185.220.101.4…</tbody>\n</table>',
   },
 ];
 
@@ -134,7 +162,11 @@ const ui = {
 };
 ---
 
-<section class="ts" data-ts aria-label={t({ ru: "Живой скан-терминал DotTraceIP", en: "DotTraceIP live scan terminal" })}>
+<section
+  class="ts"
+  data-ts
+  aria-label={t({ ru: "Живой скан-терминал DotTraceIP", en: "DotTraceIP live scan terminal" })}
+>
   <p class="ts__intro">{t(intro)}</p>
 
   <!-- ===================== ТЕРМИНАЛ ===================== -->
@@ -160,12 +192,20 @@ const ui = {
     <!-- Контрольная панель: прокси-тоггл, break-proxy, чипы экспорта -->
     <div class="ts__controls">
       <button class="ts__toggle" type="button" data-ts-proxy aria-pressed="false">
-        <span class="ts__toggle-track" aria-hidden="true"><span class="ts__toggle-knob"></span></span>
+        <span class="ts__toggle-track" aria-hidden="true"
+          ><span class="ts__toggle-knob"></span></span
+        >
         <span class="ts__toggle-t" data-ts-proxy-t>{t(ui.proxyOff)}</span>
       </button>
 
       <span class="ts__pool mono" data-ts-pool aria-hidden="true">
-        {proxyTypes.map((p, k) => <span class="ts__ptype" data-ptype={k} style={`--i:${k}`}>{p}</span>)}
+        {
+          proxyTypes.map((p, k) => (
+            <span class="ts__ptype" data-ptype={k} style={`--i:${k}`}>
+              {p}
+            </span>
+          ))
+        }
         <span class="ts__cred" data-ts-cred>user:••••@—</span>
       </span>
 
@@ -223,7 +263,9 @@ const ui = {
                   <span class="ts__probe-dot" aria-hidden="true" />
                   <span class="ts__probe-key mono">{src.key}</span>
                   <span class="ts__probe-note">{t(src.note)}</span>
-                  <span class="ts__probe-via mono" aria-hidden="true">{t(src.via)}</span>
+                  <span class="ts__probe-via mono" aria-hidden="true">
+                    {t(src.via)}
+                  </span>
                   <span class="ts__probe-state mono" data-ts-probe-state aria-hidden="true" />
                 </button>
               </li>
@@ -267,11 +309,21 @@ const ui = {
           {
             rows.map((r, k) => (
               <div class="ts__trow" role="row" data-ts-trow={k} style={`--i:${k}`}>
-                <span class="ts__td mono" role="cell">{r.ip}</span>
-                <span class="ts__td" role="cell">{r.cc}</span>
-                <span class="ts__td mono is-num" role="cell">AS{r.asn}</span>
-                <span class="ts__td mono" role="cell">{r.net}</span>
-                <span class="ts__td mono is-num" role="cell" data-abuse={r.abuse}>{r.abuse}</span>
+                <span class="ts__td mono" role="cell">
+                  {r.ip}
+                </span>
+                <span class="ts__td" role="cell">
+                  {r.cc}
+                </span>
+                <span class="ts__td mono is-num" role="cell">
+                  AS{r.asn}
+                </span>
+                <span class="ts__td mono" role="cell">
+                  {r.net}
+                </span>
+                <span class="ts__td mono is-num" role="cell" data-abuse={r.abuse}>
+                  {r.abuse}
+                </span>
               </div>
             ))
           }
@@ -310,8 +362,7 @@ const ui = {
     border: var(--bw-thin) solid var(--glass-edge);
     border-radius: var(--r-lg);
     background:
-      radial-gradient(130% 120% at 0% 0%, var(--ts-glow), transparent 50%),
-      var(--glass-tint-frost);
+      radial-gradient(130% 120% at 0% 0%, var(--ts-glow), transparent 50%), var(--glass-tint-frost);
     box-shadow: var(--shadow-2);
     overflow: hidden;
   }
@@ -1208,17 +1259,53 @@ const ui = {
 
     const FOCUS = "185.220.101.4";
     const SEM = 3;
-    const queueIps = ["185.220.101.4", "45.155.205.233", "193.32.162.7", "104.244.76.13", "5.188.206.18"];
+    const queueIps = [
+      "185.220.101.4",
+      "45.155.205.233",
+      "193.32.162.7",
+      "104.244.76.13",
+      "5.188.206.18",
+    ];
 
     // Строки fan-out для потока вывода (порядок = data-ts-probe; последняя падает).
     type SrcLine = { key: string; via: string; ok: string; field: string; fail: boolean };
     const srcLines: SrcLine[] = [
-      { key: "ip-api", via: "aiohttp", ok: "200 OK", field: "country=DE asn=AS205100", fail: false },
-      { key: "Team Cymru → bgpview", via: "dns → http", ok: tr("dns miss → http fallback", "dns miss → http fallback"), field: "prefix=185.220.100.0/22", fail: false },
-      { key: "RDAP", via: "thread-pool", ok: "rdap.db.ripe.net", field: "cidr=185.220.100.0/22", fail: false },
-      { key: "reverse DNS", via: "thread-pool", ok: "PTR ok", field: "ptr=tor-exit.relay", fail: false },
+      {
+        key: "ip-api",
+        via: "aiohttp",
+        ok: "200 OK",
+        field: "country=DE asn=AS205100",
+        fail: false,
+      },
+      {
+        key: "Team Cymru → bgpview",
+        via: "dns → http",
+        ok: tr("dns miss → http fallback", "dns miss → http fallback"),
+        field: "prefix=185.220.100.0/22",
+        fail: false,
+      },
+      {
+        key: "RDAP",
+        via: "thread-pool",
+        ok: "rdap.db.ripe.net",
+        field: "cidr=185.220.100.0/22",
+        fail: false,
+      },
+      {
+        key: "reverse DNS",
+        via: "thread-pool",
+        ok: "PTR ok",
+        field: "ptr=tor-exit.relay",
+        fail: false,
+      },
       { key: "AbuseIPDB", via: "aiohttp", ok: "200 OK", field: "abuse=100/100", fail: false },
-      { key: "Spamhaus DNSBL", via: "dns", ok: "TimeoutError → value", field: "listed=∅ (empty_info)", fail: true },
+      {
+        key: "Spamhaus DNSBL",
+        via: "dns",
+        ok: "TimeoutError → value",
+        field: "listed=∅ (empty_info)",
+        fail: true,
+      },
     ];
 
     // ---- Состояние ----
@@ -1263,7 +1350,8 @@ const ui = {
 
     const setRunUI = (state: "idle" | "running" | "done"): void => {
       term.dataset.state = state === "running" ? "running" : "idle";
-      const label = state === "running" ? tr("Сканирую…", "Scanning…") : tr("Сканировать заново", "Scan again");
+      const label =
+        state === "running" ? tr("Сканирую…", "Scanning…") : tr("Сканировать заново", "Scan again");
       if (runT) runT.textContent = label;
       if (runBtn) {
         runBtn.setAttribute("aria-label", label);
@@ -1304,22 +1392,57 @@ const ui = {
 
       // guard: коннектор не построился → прямого фолбэка нет, real IP не утекает.
       if (mode === "blocked") {
-        later(() => print(tr("proxy build failed → connector=None", "proxy build failed → connector=None"), "err"), (tms += 220) * step);
-        later(() => print(tr("guard: HTTP-источники НЕ откатываются в direct", "guard: HTTP sources do NOT fall back to direct"), "err"), (tms += 240) * step);
-        later(() => {
-          print(tr("would have leaked → real IP withheld · скан остановлен", "would have leaked → real IP withheld · scan halted"), "dim");
-          setRunUI("done");
-        }, (tms += 240) * step);
+        later(
+          () =>
+            print(
+              tr("proxy build failed → connector=None", "proxy build failed → connector=None"),
+              "err",
+            ),
+          (tms += 220) * step,
+        );
+        later(
+          () =>
+            print(
+              tr(
+                "guard: HTTP-источники НЕ откатываются в direct",
+                "guard: HTTP sources do NOT fall back to direct",
+              ),
+              "err",
+            ),
+          (tms += 240) * step,
+        );
+        later(
+          () => {
+            print(
+              tr(
+                "would have leaked → real IP withheld · скан остановлен",
+                "would have leaked → real IP withheld · scan halted",
+              ),
+              "dim",
+            );
+            setRunUI("done");
+          },
+          (tms += 240) * step,
+        );
         return;
       }
 
       const route =
         mode === "proxied"
-          ? tr("route: pool HTTP/SOCKS4/SOCKS5 (rotating) · creds masked", "route: pool HTTP/SOCKS4/SOCKS5 (rotating) · creds masked")
+          ? tr(
+              "route: pool HTTP/SOCKS4/SOCKS5 (rotating) · creds masked",
+              "route: pool HTTP/SOCKS4/SOCKS5 (rotating) · creds masked",
+            )
           : tr("route: direct", "route: direct");
       later(() => print(route, "dim"), (tms += 200) * step);
-      later(() => print(`semaphore=${SEM} · queue: ${queueIps.join(" ")}`, "dim"), (tms += 200) * step);
-      later(() => print(`▸ focus ${FOCUS} → asyncio.gather(*6, return_exceptions=True)`, "acc"), (tms += 240) * step);
+      later(
+        () => print(`semaphore=${SEM} · queue: ${queueIps.join(" ")}`, "dim"),
+        (tms += 200) * step,
+      );
+      later(
+        () => print(`▸ focus ${FOCUS} → asyncio.gather(*6, return_exceptions=True)`, "acc"),
+        (tms += 240) * step,
+      );
 
       // Fan-out: каждая нода «возвращается» вразнобой; Spamhaus падает.
       srcLines.forEach((s, i) => {
@@ -1336,12 +1459,27 @@ const ui = {
       });
 
       // Итоговая строка TXT (построчно во время скана) + завершение.
-      later(() => {
-        print(`${FOCUS}  DE  AS205100  185.220.100.0/22  abuse=100`, "acc");
-        print(tr("5/6 источников ответили · строка собрана · TXT записан", "5/6 sources answered · row assembled · TXT written"), "dim");
-        print(tr("→ +JSON +CSV +HTML report (no external deps)", "→ +JSON +CSV +HTML report (no external deps)"), "dim");
-        setRunUI("done");
-      }, (tms += 360) * step);
+      later(
+        () => {
+          print(`${FOCUS}  DE  AS205100  185.220.100.0/22  abuse=100`, "acc");
+          print(
+            tr(
+              "5/6 источников ответили · строка собрана · TXT записан",
+              "5/6 sources answered · row assembled · TXT written",
+            ),
+            "dim",
+          );
+          print(
+            tr(
+              "→ +JSON +CSV +HTML report (no external deps)",
+              "→ +JSON +CSV +HTML report (no external deps)",
+            ),
+            "dim",
+          );
+          setRunUI("done");
+        },
+        (tms += 360) * step,
+      );
     };
 
     runBtn?.addEventListener("click", runScan);
@@ -1383,7 +1521,11 @@ const ui = {
       }
     };
 
-    const masks = ["http://user:••••@10.0.5.7:8080", "socks4://user:••••@10.0.9.1:1080", "socks5://user:••••@10.0.2.4:1080"];
+    const masks = [
+      "http://user:••••@10.0.5.7:8080",
+      "socks4://user:••••@10.0.9.1:1080",
+      "socks5://user:••••@10.0.2.4:1080",
+    ];
     const rotateActive = (): void => {
       if (ptypes.length === 0) return;
       const k = Math.floor(Math.random() * ptypes.length);
@@ -1395,25 +1537,40 @@ const ui = {
       term.dataset.mode = mode;
       stopRotation();
       if (proxyBtn) proxyBtn.setAttribute("aria-pressed", mode === "direct" ? "false" : "true");
-      if (proxyT) proxyT.textContent = mode === "direct" ? tr("Прокси: выкл", "Proxy: off") : tr("Прокси: вкл", "Proxy: on");
+      if (proxyT)
+        proxyT.textContent =
+          mode === "direct" ? tr("Прокси: выкл", "Proxy: off") : tr("Прокси: вкл", "Proxy: on");
       if (breakBtn) breakBtn.disabled = mode === "direct";
 
       if (mode === "direct") {
         ptypes.forEach((el) => el.classList.remove("is-active"));
         if (credEl) credEl.textContent = "user:••••@—";
         if (guard) guard.dataset.guard = "direct";
-        if (guardT) guardT.textContent = tr("прямое соединение — real IP виден источнику", "direct connection — real IP visible to the source");
+        if (guardT)
+          guardT.textContent = tr(
+            "прямое соединение — real IP виден источнику",
+            "direct connection — real IP visible to the source",
+          );
       } else if (mode === "proxied") {
         rotateActive();
         if (!reduced && inview) rotTimer = window.setInterval(rotateActive, 1400);
         if (guard) guard.dataset.guard = "proxied";
-        if (guardT) guardT.textContent = tr("через пул · креды замаскированы · real IP скрыт", "via pool · credentials masked · real IP hidden");
+        if (guardT)
+          guardT.textContent = tr(
+            "через пул · креды замаскированы · real IP скрыт",
+            "via pool · credentials masked · real IP hidden",
+          );
       } else {
         // blocked: коннектор не построился → прямого коннекта НЕТ, IP не утекает
         ptypes.forEach((el) => el.classList.remove("is-active"));
-        if (credEl) credEl.textContent = tr("connector=None (unparseable)", "connector=None (unparseable)");
+        if (credEl)
+          credEl.textContent = tr("connector=None (unparseable)", "connector=None (unparseable)");
         if (guard) guard.dataset.guard = "blocked";
-        if (guardT) guardT.textContent = tr("заблокировано: HTTP не уходит в direct — would have leaked, real IP withheld", "blocked: HTTP won't fall back to direct — would have leaked, real IP withheld");
+        if (guardT)
+          guardT.textContent = tr(
+            "заблокировано: HTTP не уходит в direct — would have leaked, real IP withheld",
+            "blocked: HTTP won't fall back to direct — would have leaked, real IP withheld",
+          );
       }
     };
 
@@ -1462,7 +1619,10 @@ const ui = {
       applyOrder(order);
       headers.forEach((h) => {
         const hk = h.dataset.tsCol as SortKey | undefined;
-        h.setAttribute("aria-sort", hk === key ? (sortDir === 1 ? "ascending" : "descending") : "none");
+        h.setAttribute(
+          "aria-sort",
+          hk === key ? (sortDir === 1 ? "ascending" : "descending") : "none",
+        );
       });
     };
 
@@ -1503,11 +1663,18 @@ const ui = {
       print(`▸ focus ${FOCUS} → asyncio.gather(*6, return_exceptions=True)`, "acc");
       srcLines.forEach((s, i) => {
         lightProbe(i, true);
-        if (s.fail) print(`  x ${s.key}: ${s.ok} → ${s.field} (default, row still assembled)`, "err");
+        if (s.fail)
+          print(`  x ${s.key}: ${s.ok} → ${s.field} (default, row still assembled)`, "err");
         else print(`  + ${s.key}: ${s.field}`, "");
       });
       print(`${FOCUS}  DE  AS205100  185.220.100.0/22  abuse=100`, "acc");
-      print(tr("5/6 источников ответили · строка собрана · TXT/JSON/CSV/HTML", "5/6 sources answered · row assembled · TXT/JSON/CSV/HTML"), "dim");
+      print(
+        tr(
+          "5/6 источников ответили · строка собрана · TXT/JSON/CSV/HTML",
+          "5/6 sources answered · row assembled · TXT/JSON/CSV/HTML",
+        ),
+        "dim",
+      );
       root.classList.add("is-run");
       setRunUI("done");
       return;

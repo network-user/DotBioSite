@@ -218,11 +218,13 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
                   style={`--i:${i}`}
                 >
                   <span class:list={["metric", numClass]}>
-                    <span class="case__metric-val" data-countup>{m.value}</span>
+                    <span class="case__metric-val" data-countup>
+                      {m.value}
+                    </span>
                     {m.unit && <span class="metric__unit">{m.unit}</span>}
                   </span>
                   <span class="metric__label">{m.label[locale]}</span>
-                  <span class="case__metric-bar" aria-hidden="true"></span>
+                  <span class="case__metric-bar" aria-hidden="true" />
                 </div>
               );
             })}
@@ -243,6 +245,8 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
               nodes={p.architectureNodes!}
               edges={p.architectureEdges ?? []}
               clusters={p.clusters ?? []}
+              locale={locale}
+              hint={t("case.architectureHint")}
               ariaLabel={`${name} — ${t("case.architecture")}`}
             />
           </div>
@@ -708,14 +712,6 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
     border-radius: var(--r-xl);
     background: var(--bg-elevated);
     padding: var(--sp-4);
-    overflow-x: auto;
-    overflow-y: hidden;
-    overscroll-behavior-inline: contain;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .case__arch :global(.architecture) {
-    min-width: 680px;
   }
 
   .case__chips {
@@ -845,10 +841,6 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
 
     .case__arch {
       padding: var(--sp-7);
-    }
-
-    .case__arch :global(.architecture) {
-      min-width: 0;
     }
 
     .case__repos {

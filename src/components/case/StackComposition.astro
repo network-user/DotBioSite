@@ -56,7 +56,11 @@ const shadeFor = (i: number): string => Math.max(0.32, 0.92 - i * 0.12).toFixed(
     {
       layers.map((l, i) => (
         <li class="stack-composition__legend-item">
-          <span class="stack-composition__swatch" style={`--shade: ${shadeFor(i)};`} aria-hidden="true" />
+          <span
+            class="stack-composition__swatch"
+            style={`--shade: ${shadeFor(i)};`}
+            aria-hidden="true"
+          />
           <span class="stack-composition__legend-label">{t(`case.stackGroups.${l.key}`)}</span>
           <span class="stack-composition__legend-count tabular">{l.count}</span>
         </li>

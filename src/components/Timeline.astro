@@ -36,9 +36,11 @@ const milestones = projects
     />
 
     <ol class="timeline" data-timeline data-reveal data-timeline-loop>
-      {/* Слой «чернил»: линия + рамки + точки рисуются здесь и прогибаются от
+      {
+        /* Слой «чернил»: линия + рамки + точки рисуются здесь и прогибаются от
           курсора. Включается JS-ом (класс .tl-warp-on) только на fine-указателе
-          без reduced-motion; иначе видна CSS-резервная отрисовка ниже. */}
+          без reduced-motion; иначе видна CSS-резервная отрисовка ниже. */
+      }
       <svg class="timeline__ink" data-tl-ink aria-hidden="true" preserveAspectRatio="none">
         <path class="tl-line" data-tl-line fill="none"></path>
       </svg>
@@ -487,7 +489,9 @@ const milestones = projects
         baseLine.push([lineX, y0 + ((y1 - y0) * i) / lineN]);
       }
 
-      baseFrames = cards.map((c) => roundRectPts(c.x + 0.5, c.y + 0.5, c.w - 1, c.h - 1, FRAME_RADIUS));
+      baseFrames = cards.map((c) =>
+        roundRectPts(c.x + 0.5, c.y + 0.5, c.w - 1, c.h - 1, FRAME_RADIUS),
+      );
       baseDots = cards.map((c) => [lineX, c.bulletY]);
 
       buildGradient(cards);
@@ -618,7 +622,13 @@ const milestones = projects
 
       // rect для перевода курсора в локальные координаты кешируем; устаревает на
       // скролле (флаг) и resize. getBoundingClientRect не читаем в горячем пути.
-      window.addEventListener("scroll", () => { rectDirty = true; }, { passive: true });
+      window.addEventListener(
+        "scroll",
+        () => {
+          rectDirty = true;
+        },
+        { passive: true },
+      );
 
       if ("ResizeObserver" in window) {
         let rt: number | null = null;

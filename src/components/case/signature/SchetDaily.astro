@@ -146,9 +146,30 @@ type Player = {
   weighted: number;
 };
 const players: Player[] = [
-  { id: "A", name: { ru: "Аня", en: "Anya" }, streak: 41, solved: 980, accuracy: 92, weighted: 2410 },
-  { id: "B", name: { ru: "Борис", en: "Boris" }, streak: 33, solved: 1510, accuracy: 90, weighted: 2180 },
-  { id: "C", name: { ru: "Вера", en: "Vera" }, streak: 28, solved: 870, accuracy: 97, weighted: 1640 },
+  {
+    id: "A",
+    name: { ru: "Аня", en: "Anya" },
+    streak: 41,
+    solved: 980,
+    accuracy: 92,
+    weighted: 2410,
+  },
+  {
+    id: "B",
+    name: { ru: "Борис", en: "Boris" },
+    streak: 33,
+    solved: 1510,
+    accuracy: 90,
+    weighted: 2180,
+  },
+  {
+    id: "C",
+    name: { ru: "Вера", en: "Vera" },
+    streak: 28,
+    solved: 870,
+    accuracy: 97,
+    weighted: 1640,
+  },
   { id: "you", name: ui.you, you: true, streak: 4, solved: 1190, accuracy: 94, weighted: 1980 },
 ];
 
@@ -163,7 +184,10 @@ const startLevel: LvId = "medium";
 const bundle = {
   ops: Object.fromEntries(operations.map((o) => [o.id, { glyph: o.glyph, name: t(o.name) }])),
   levels: Object.fromEntries(
-    levels.map((l) => [l.id, { name: t(l.name), range: l.range, count: l.count, weight: l.weight }]),
+    levels.map((l) => [
+      l.id,
+      { name: t(l.name), range: l.range, count: l.count, weight: l.weight },
+    ]),
   ),
   modes: Object.fromEntries(boardModes.map((m) => [m.key, { why: t(m.why), unit: t(m.unit) }])),
   players: players.map((p) => ({
@@ -248,7 +272,8 @@ const bundle = {
       <div class="sd__play" data-play>
         <div class="sd__play-top">
           <span class="sd__counter" data-counter aria-live="polite">
-            {t(ui.problemOf)} 1 {t(ui.setOf)} {levels[1]?.count ?? 7}
+            {t(ui.problemOf)} 1 {t(ui.setOf)}
+            {levels[1]?.count ?? 7}
           </span>
           <span class="sd__track" aria-hidden="true">
             <span class="sd__track-fill" data-track style="--p:0;"></span>
@@ -285,7 +310,9 @@ const bundle = {
           <span class="sd__score-lbl">{t(ui.yourScore)} · {t(ui.attempts)}</span>
         </div>
         <div class="sd__ctl">
-          <button type="button" class="sd__btn sd__btn--accent" data-autoplay>{t(ui.autoplay)}</button>
+          <button type="button" class="sd__btn sd__btn--accent" data-autoplay
+            >{t(ui.autoplay)}</button
+          >
           <button type="button" class="sd__btn sd__btn--ghost" data-reset>{t(ui.reset)}</button>
         </div>
       </div>
@@ -319,11 +346,7 @@ const bundle = {
       <ol class="sd__board" data-board>
         {
           players.map((p) => (
-            <li
-              class:list={["sd__row", { "is-you": p.you }]}
-              data-row={p.id}
-              style="--flip:0;"
-            >
+            <li class:list={["sd__row", { "is-you": p.you }]} data-row={p.id} style="--flip:0;">
               <span class="sd__place" data-place aria-hidden="true">
                 1
               </span>
@@ -378,17 +401,18 @@ const bundle = {
       <div class="sd__streak-foot">
         <ul class="sd__legend" role="list">
           <li class="sd__leg sd__leg--on">
-            <span class="sd__leg-sw" aria-hidden="true" />
+            <span class="sd__leg-sw" aria-hidden="true"></span>
             {t(ui.legOn)}
           </li>
           <li class="sd__leg sd__leg--gap">
-            <span class="sd__leg-sw" aria-hidden="true" />
+            <span class="sd__leg-sw" aria-hidden="true"></span>
             {t(ui.legGap)}
           </li>
           <li class="sd__leg sd__leg--sess">{t(ui.legSess)}</li>
         </ul>
         <p class="sd__now" data-now aria-live="polite">
-          {t(ui.nowStreak)}: <b>4</b> {t(ui.dayUnit)}
+          {t(ui.nowStreak)}: <b>4</b>
+          {t(ui.dayUnit)}
         </p>
       </div>
     </div>
@@ -455,8 +479,7 @@ const bundle = {
     border: var(--bw-thin) solid var(--glass-edge);
     border-radius: var(--r-xl);
     background:
-      radial-gradient(130% 130% at 0% 0%, var(--a-glow), transparent 52%),
-      var(--glass-tint-frost);
+      radial-gradient(130% 130% at 0% 0%, var(--a-glow), transparent 52%), var(--glass-tint-frost);
     box-shadow: var(--shadow-2);
     min-width: 0;
   }
@@ -631,8 +654,7 @@ const bundle = {
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-lg);
     background:
-      radial-gradient(120% 130% at 50% 0%, var(--a-soft), transparent 55%),
-      var(--surface);
+      radial-gradient(120% 130% at 50% 0%, var(--a-soft), transparent 55%), var(--surface);
   }
   .sd__play-top {
     display: flex;

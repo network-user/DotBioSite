@@ -219,9 +219,7 @@ const moreLabel = locale === "ru" ? "подробнее" : "more";
   // Раскрытие детали возможностей. Прогрессивное улучшение: detail размечен
   // открытым, скрипт сворачивает все панели и включает переключение по клику.
   document.querySelectorAll<HTMLElement>("[data-cap-accordion]").forEach((group) => {
-    const cards = Array.from(
-      group.querySelectorAll<HTMLElement>(".capabilities__card.has-detail"),
-    );
+    const cards = Array.from(group.querySelectorAll<HTMLElement>(".capabilities__card.has-detail"));
     if (cards.length === 0) return;
     group.classList.add("is-enhanced");
 

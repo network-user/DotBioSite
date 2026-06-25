@@ -109,34 +109,155 @@
     "client": ["Telegram Bot API"]
   },
   "architectureNodes": [
-    { "id": "tg", "x": 160, "y": 250, "label": "Telegram API", "icon": "telegram", "width": 170 },
+    {
+      "id": "reminders",
+      "col": 0,
+      "row": 0,
+      "label": "Reminders",
+      "icon": "spark",
+      "width": 165,
+      "desc": {
+        "ru": "APScheduler-cron шлёт напоминания (Europe/Moscow)",
+        "en": "APScheduler cron sends reminders (Europe/Moscow)"
+      }
+    },
+    {
+      "id": "tg",
+      "col": 0,
+      "row": 1,
+      "label": "Telegram API",
+      "icon": "telegram",
+      "width": 175,
+      "desc": {
+        "ru": "Источник апдейтов; бот опрашивает через long polling",
+        "en": "Update source; the bot reaches it via long polling"
+      }
+    },
+    {
+      "id": "backups",
+      "col": 2,
+      "row": 2,
+      "label": "Backups",
+      "icon": "rocket",
+      "width": 160,
+      "desc": {
+        "ru": "pg_dump каждые 12ч, последние дампы лежат на хосте",
+        "en": "pg_dump every 12h, recent dumps kept on the host"
+      }
+    },
+    {
+      "id": "generator",
+      "col": 1,
+      "row": 0,
+      "label": "Problem gen",
+      "icon": "code",
+      "width": 170,
+      "desc": {
+        "ru": "7 операций × 3 уровня; seed-RNG для челленджа дня",
+        "en": "7 ops x 3 levels; seeded RNG for the daily challenge"
+      }
+    },
     {
       "id": "bot",
-      "x": 470,
-      "y": 250,
-      "label": "DotSchet",
+      "col": 1,
+      "row": 1,
+      "label": "DotSchet bot",
       "icon": "stack",
+      "width": 185,
       "emphasis": "strong",
-      "width": 190
+      "desc": {
+        "ru": "Dispatcher: роутеры-хендлеры, FSM, DI сервисов",
+        "en": "Dispatcher: handler routers, FSM, service DI"
+      }
     },
     {
-      "id": "scheduler",
-      "x": 470,
-      "y": 440,
-      "label": "APScheduler",
-      "icon": "spark",
-      "width": 180
+      "id": "leaderboard",
+      "col": 1,
+      "row": 2,
+      "label": "Scoring · top",
+      "icon": "code",
+      "width": 180,
+      "desc": {
+        "ru": "Рейтинг в 4 среза, очки с весом по сложности",
+        "en": "Four-way ranking, difficulty-weighted score"
+      }
     },
-    { "id": "pg", "x": 790, "y": 180, "label": "PostgreSQL 16", "icon": "dot", "width": 180 },
-    { "id": "redis", "x": 790, "y": 330, "label": "Redis · FSM", "icon": "dot", "width": 180 }
+    {
+      "id": "redis",
+      "col": 2,
+      "row": 0,
+      "label": "Redis · FSM",
+      "icon": "dot",
+      "width": 170,
+      "desc": {
+        "ru": "FSM активной тренировки; AOF переживает рестарт",
+        "en": "Active-training FSM; AOF survives a restart"
+      }
+    },
+    {
+      "id": "pg",
+      "col": 2,
+      "row": 1,
+      "label": "PostgreSQL 16",
+      "icon": "dot",
+      "width": 180,
+      "desc": {
+        "ru": "Пользователи, сессии, задачи и челлендж дня",
+        "en": "Users, sessions, problems and the daily challenge"
+      }
+    }
   ],
   "architectureEdges": [
-    { "from": "tg", "to": "bot", "kind": "sync", "label": "Bot API" },
-    { "from": "bot", "to": "pg", "kind": "data" },
-    { "from": "bot", "to": "redis", "kind": "data" },
-    { "from": "scheduler", "to": "bot", "kind": "async", "label": "cron" }
+    {
+      "from": "tg",
+      "to": "bot",
+      "kind": "sync",
+      "label": "polling"
+    },
+    {
+      "from": "bot",
+      "to": "generator",
+      "kind": "sync"
+    },
+    {
+      "from": "bot",
+      "to": "leaderboard",
+      "kind": "sync"
+    },
+    {
+      "from": "bot",
+      "to": "pg",
+      "kind": "data"
+    },
+    {
+      "from": "bot",
+      "to": "redis",
+      "kind": "data"
+    },
+    {
+      "from": "leaderboard",
+      "to": "pg",
+      "kind": "data"
+    },
+    {
+      "from": "reminders",
+      "to": "tg",
+      "kind": "async",
+      "label": "cron"
+    },
+    {
+      "from": "backups",
+      "to": "pg",
+      "kind": "data",
+      "label": "pg_dump"
+    }
   ],
-  "clusters": [{ "x": 690, "y": 115, "width": 200, "height": 290, "label": "storage" }],
+  "clusters": [
+    {
+      "label": "storage",
+      "members": ["redis", "pg"]
+    }
+  ],
   "capabilities": [
     {
       "icon": "spark",

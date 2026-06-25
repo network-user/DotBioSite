@@ -113,91 +113,177 @@
   "architectureNodes": [
     {
       "id": "targets",
-      "x": 110,
-      "y": 270,
+      "col": 0,
+      "row": 0,
       "label": "target_ips.txt",
       "icon": "dot",
-      "width": 160
+      "width": 170,
+      "desc": {
+        "ru": "Файл с IP построчно; валидация и дедуп перед сканом",
+        "en": "IP list file, line by line; validated and deduped"
+      }
+    },
+    {
+      "id": "cli",
+      "col": 0,
+      "row": 1,
+      "label": "CLI · TUI menu",
+      "icon": "code",
+      "width": 180,
+      "desc": {
+        "ru": "main.py: headless scan и Rich-меню зовут run_scan",
+        "en": "main.py: headless scan and a Rich menu call run_scan"
+      }
     },
     {
       "id": "engine",
-      "x": 360,
-      "y": 270,
+      "col": 1,
+      "row": 0,
       "label": "async engine",
       "icon": "stack",
+      "width": 180,
       "emphasis": "strong",
-      "width": 180
+      "desc": {
+        "ru": "Семафор на N IP, as_completed, Rich Live-дашборд",
+        "en": "Semaphore over N IPs, as_completed, Rich live dashboard"
+      }
+    },
+    {
+      "id": "proxy",
+      "col": 1,
+      "row": 1,
+      "label": "proxy connector",
+      "icon": "code",
+      "width": 185,
+      "desc": {
+        "ru": "aiohttp-socks HTTP/SOCKS; нет прокси - HTTP не идёт напрямую",
+        "en": "aiohttp-socks HTTP/SOCKS; no proxy means no direct HTTP"
+      }
     },
     {
       "id": "geo",
-      "x": 620,
-      "y": 150,
+      "col": 2,
+      "row": 1,
       "label": "ip-api · geo/ASN",
       "icon": "globe",
-      "width": 200
-    },
-    {
-      "id": "bgp",
-      "x": 620,
-      "y": 270,
-      "label": "Cymru → bgpview",
-      "icon": "globe",
-      "width": 210
+      "width": 200,
+      "desc": {
+        "ru": "ip-api по HTTP: страна, город, ISP, ASN",
+        "en": "ip-api over HTTP: country, city, ISP, ASN"
+      }
     },
     {
       "id": "rep",
-      "x": 620,
-      "y": 390,
-      "label": "RDAP · DNS · abuse",
+      "col": 2,
+      "row": 4,
+      "label": "AbuseIPDB · Spamhaus",
       "icon": "globe",
-      "width": 210
+      "width": 220,
+      "desc": {
+        "ru": "Репутация: AbuseIPDB по ключу и Spamhaus DNSBL",
+        "en": "Reputation: AbuseIPDB by key and Spamhaus DNSBL"
+      }
+    },
+    {
+      "id": "bgp",
+      "col": 2,
+      "row": 2,
+      "label": "Cymru → bgpview",
+      "icon": "globe",
+      "width": 205,
+      "desc": {
+        "ru": "BGP-префикс и ASN: Team Cymru DNS, фолбэк bgpview",
+        "en": "BGP prefix and ASN: Team Cymru DNS, bgpview fallback"
+      }
+    },
+    {
+      "id": "rdapdns",
+      "col": 2,
+      "row": 3,
+      "label": "RDAP · rDNS",
+      "icon": "globe",
+      "width": 185,
+      "desc": {
+        "ru": "Сеть владельца (RDAP) и обратный DNS; в thread pool",
+        "en": "Owner network (RDAP) and reverse DNS; in a thread pool"
+      }
     },
     {
       "id": "export",
-      "x": 850,
-      "y": 430,
+      "col": 2,
+      "row": 0,
       "label": "TXT·JSON·CSV·HTML",
       "icon": "spark",
-      "width": 180
+      "width": 195,
+      "desc": {
+        "ru": "TXT построчно в скане; затем JSON, CSV и самодостаточный HTML",
+        "en": "TXT live during the scan; then JSON, CSV and a self-contained HTML"
+      }
     }
   ],
   "architectureEdges": [
     {
       "from": "targets",
-      "to": "engine",
+      "to": "cli",
       "kind": "data",
-      "label": "IP list"
+      "label": "read",
+      "oneway": true
+    },
+    {
+      "from": "cli",
+      "to": "engine",
+      "kind": "sync",
+      "label": "run_scan"
     },
     {
       "from": "engine",
+      "to": "proxy",
+      "kind": "sync"
+    },
+    {
+      "from": "proxy",
       "to": "geo",
-      "kind": "async"
+      "kind": "async",
+      "label": "gather",
+      "oneway": false
+    },
+    {
+      "from": "proxy",
+      "to": "rep",
+      "kind": "async",
+      "oneway": false
+    },
+    {
+      "from": "engine",
+      "to": "rep",
+      "kind": "async",
+      "oneway": false
     },
     {
       "from": "engine",
       "to": "bgp",
       "kind": "async",
-      "label": "fan-out"
+      "label": "fan-out",
+      "oneway": false
     },
     {
       "from": "engine",
-      "to": "rep",
-      "kind": "async"
+      "to": "rdapdns",
+      "kind": "async",
+      "oneway": false
     },
     {
       "from": "engine",
       "to": "export",
       "kind": "data",
-      "label": "merge"
+      "label": "merge",
+      "oneway": true
     }
   ],
   "clusters": [
     {
-      "x": 500,
-      "y": 100,
-      "width": 250,
-      "height": 330,
-      "label": "per-IP · asyncio.gather"
+      "label": "per-IP · asyncio.gather",
+      "members": ["geo", "rep", "bgp", "rdapdns"]
     }
   ],
   "capabilities": [

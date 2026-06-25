@@ -73,13 +73,23 @@ export type ProjectArchitectureNodeIcon =
 
 export interface ProjectArchitectureNode {
   id: string;
-  x: number;
-  y: number;
   label: string;
   icon?: ProjectArchitectureNodeIcon;
   width?: number;
   height?: number;
   emphasis?: "default" | "strong";
+  /** Слоистая раскладка (предпочтительно): `col` — колонка слева направо (стадия
+   *  потока), `row` — порядок внутри колонки сверху вниз. Компонент сам считает
+   *  ровные, выровненные координаты. См. Architecture.astro. */
+  col?: number;
+  row?: number;
+  /** Явные координаты центра капсулы (legacy). Используются, только если у узлов
+   *  не задан `col`. */
+  x?: number;
+  y?: number;
+  /** Короткое двуязычное пояснение роли узла — раскрывается по клику на капсулу
+   *  в диаграмме (см. Architecture.astro, слой «клик → пояснение»). */
+  desc?: { ru: string; en: string };
 }
 
 export type ProjectArchitectureEdgeKind = "sync" | "async" | "data";
@@ -90,14 +100,22 @@ export interface ProjectArchitectureEdge {
   kind?: ProjectArchitectureEdgeKind;
   label?: string;
   bend?: number;
+  /** Принудительно односторонний поток (без ответного пакета в анимации) — для
+   *  записей-стоков: отчёт на диск, нотификация, отгрузка в очередь. По умолчанию
+   *  односторонними считаются только `async`-рёбра; `sync`/`data` — round-trip. */
+  oneway?: boolean;
 }
 
 export interface ProjectCluster {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
   label: string;
+  /** Id узлов кластера — рамка считается как их общий bounding box + отступ
+   *  (предпочтительно при слоистой раскладке). */
+  members?: ReadonlyArray<string>;
+  /** Явные координаты рамки (legacy) — используются, если не заданы `members`. */
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
 }
 
 export interface ProjectCapability {

@@ -81,7 +81,13 @@ const years = visible.map((p) => p.year).filter((y): y is number => typeof y ===
     // rect карт устаревает при скролле — общий флаг ставим в scroll-хендлере без
     // чтения layout (без forced reflow); rect пересчитается на следующем move.
     let dirty = false;
-    window.addEventListener("scroll", () => { dirty = true; }, { passive: true });
+    window.addEventListener(
+      "scroll",
+      () => {
+        dirty = true;
+      },
+      { passive: true },
+    );
 
     document.querySelectorAll<HTMLElement>("[data-tilt]").forEach((card) => {
       let rect: DOMRect | null = null;

@@ -62,7 +62,10 @@ const ui = {
   laneDone: { ru: "Закрыто", en: "Done" },
   worker: { ru: "Работник", en: "Worker" },
   workerIdle: { ru: "свободен · ждёт смену", en: "free · waiting for a shift" },
-  branchPrompt: { ru: "Что сделает работник со сменой в 18:00?", en: "What does the worker do with the 18:00 shift?" },
+  branchPrompt: {
+    ru: "Что сделает работник со сменой в 18:00?",
+    en: "What does the worker do with the 18:00 shift?",
+  },
   doConfirm: { ru: "Подтвердить выход", en: "Confirm arrival" },
   doNoShow: { ru: "Пропасть (no-show)", en: "Go silent (no-show)" },
   hintClock: {
@@ -74,19 +77,28 @@ const ui = {
     en: "Tap a replica: it grabs the lock. Always exactly one leader — and it ticks the loop.",
   },
   log: { ru: "Журнал воркера", en: "Worker log" },
-  logIdle: { ru: "_operational_control_loop спит · ждёт такта", en: "_operational_control_loop sleeps · awaiting a tick" },
+  logIdle: {
+    ru: "_operational_control_loop спит · ждёт такта",
+    en: "_operational_control_loop sleeps · awaiting a tick",
+  },
   roles: { ru: "3 роли: worker · employer · admin", en: "3 roles: worker · employer · admin" },
   stack: {
     ru: "PostgreSQL · Redis (FSM/throttle/lock) · MinIO/S3 фото · AES-бэкапы · VPS-деплой с откатом",
     en: "PostgreSQL · Redis (FSM/throttle/lock) · MinIO/S3 photos · AES backups · VPS deploy with rollback",
   },
   loop: { ru: "_operational_control_loop · ≥15с", en: "_operational_control_loop · ≥15s" },
-  lockKey: { ru: "SET nx ex · dotworkbot:operational_control:leader", en: "SET nx ex · dotworkbot:operational_control:leader" },
+  lockKey: {
+    ru: "SET nx ex · dotworkbot:operational_control:leader",
+    en: "SET nx ex · dotworkbot:operational_control:leader",
+  },
   once: { ru: "ровно один раз", en: "exactly once" },
   tickTag: { ru: "тик цикла", en: "loop tick" },
   leaderTag: { ru: "лидер · держит лок", en: "leader · holds lock" },
   idleTag: { ru: "idle · пропускает такт", en: "idle · skips tick" },
-  makeLeader: { ru: "Сделать эту реплику лидером (забрать лок)", en: "Make this replica the leader (grab the lock)" },
+  makeLeader: {
+    ru: "Сделать эту реплику лидером (забрать лок)",
+    en: "Make this replica the leader (grab the lock)",
+  },
   slots: { ru: "слотов", en: "slots" },
 };
 
@@ -196,10 +208,22 @@ const DAY_END = 24;
         <div class="ws__clock-row">
           <span class="ws__clock-dial" aria-hidden="true">
             <svg viewBox="0 0 64 64" preserveAspectRatio="xMidYMid meet" class="ws__dial-svg">
-              <circle cx="32" cy="32" r="29" class="ws__dial-ring" />
-              <line x1="32" y1="32" x2="32" y2="13" class="ws__dial-hand ws__dial-hand--h" data-ws-hand-h />
-              <line x1="32" y1="32" x2="32" y2="8" class="ws__dial-hand ws__dial-hand--m" data-ws-hand-m />
-              <circle cx="32" cy="32" r="2.4" class="ws__dial-cap" />
+              <circle cx="32" cy="32" r="29" class="ws__dial-ring"></circle>
+              <line
+                x1="32"
+                y1="32"
+                x2="32"
+                y2="13"
+                class="ws__dial-hand ws__dial-hand--h"
+                data-ws-hand-h></line>
+              <line
+                x1="32"
+                y1="32"
+                x2="32"
+                y2="8"
+                class="ws__dial-hand ws__dial-hand--m"
+                data-ws-hand-m></line>
+              <circle cx="32" cy="32" r="2.4" class="ws__dial-cap"></circle>
             </svg>
           </span>
           <span class="ws__clock-time mono" data-ws-time aria-live="polite">18:00</span>
@@ -228,8 +252,8 @@ const DAY_END = 24;
         <span class="ws__worker-card">
           <span class="ws__avatar" aria-hidden="true">
             <svg viewBox="0 0 40 40" preserveAspectRatio="xMidYMid meet">
-              <circle cx="20" cy="15" r="7" class="ws__avatar-head" />
-              <path d="M6 36c0-8 6.5-13 14-13s14 5 14 13" class="ws__avatar-body" />
+              <circle cx="20" cy="15" r="7" class="ws__avatar-head"></circle>
+              <path d="M6 36c0-8 6.5-13 14-13s14 5 14 13" class="ws__avatar-body"></path>
             </svg>
             <span class="ws__avatar-dot" aria-hidden="true"></span>
           </span>
@@ -241,16 +265,20 @@ const DAY_END = 24;
     <!-- Три дорожки заказов -->
     <div class="ws__lanes">
       {
-        ([
-          ["open", ui.laneOpen],
-          ["progress", ui.laneProgress],
-          ["done", ui.laneDone],
-        ] as const).map(([lane, cap]) => (
+        (
+          [
+            ["open", ui.laneOpen],
+            ["progress", ui.laneProgress],
+            ["done", ui.laneDone],
+          ] as const
+        ).map(([lane, cap]) => (
           <section class="ws__lane" data-lane={lane} aria-label={t(cap)}>
             <span class="ws__lane-cap">
               <span class="ws__lane-dot" aria-hidden="true" data-lane-dot={lane} />
               {t(cap)}
-              <span class="ws__lane-count mono" data-lane-count={lane}>0</span>
+              <span class="ws__lane-count mono" data-lane-count={lane}>
+                0
+              </span>
             </span>
             <ul class="ws__lane-body" data-lane-body={lane} />
           </section>
@@ -312,10 +340,20 @@ const DAY_END = 24;
     <div class="ws__branch" data-ws-branch hidden>
       <span class="ws__branch-prompt">{t(ui.branchPrompt)}</span>
       <div class="ws__branch-btns">
-        <button class="ws__branch-btn ws__branch-btn--ok" type="button" data-ws-confirm aria-pressed="false">
+        <button
+          class="ws__branch-btn ws__branch-btn--ok"
+          type="button"
+          data-ws-confirm
+          aria-pressed="false"
+        >
           {t(ui.doConfirm)}
         </button>
-        <button class="ws__branch-btn ws__branch-btn--no" type="button" data-ws-noshow aria-pressed="false">
+        <button
+          class="ws__branch-btn ws__branch-btn--no"
+          type="button"
+          data-ws-noshow
+          aria-pressed="false"
+        >
           {t(ui.doNoShow)}
         </button>
       </div>
@@ -359,7 +397,9 @@ const DAY_END = 24;
             aria-label={t(ui.makeLeader)}
           >
             <span class="ws__rep-dot" aria-hidden="true" />
-            <span class="ws__rep-name mono">{r.id} · {t(ui.worker)}</span>
+            <span class="ws__rep-name mono">
+              {r.id} · {t(ui.worker)}
+            </span>
             <span class="ws__rep-tag ws__rep-tag--lead mono">{t(ui.leaderTag)}</span>
             <span class="ws__rep-tag ws__rep-tag--idle mono">{t(ui.idleTag)}</span>
           </button>
@@ -420,9 +460,7 @@ const DAY_END = 24;
     padding: var(--sp-5);
     border: var(--bw-thin) solid var(--glass-edge);
     border-radius: var(--r-lg);
-    background:
-      radial-gradient(120% 130% at 6% 0%, var(--glow), transparent 46%),
-      var(--surface);
+    background: radial-gradient(120% 130% at 6% 0%, var(--glow), transparent 46%), var(--surface);
   }
 
   .ws__board::before,
@@ -1429,7 +1467,8 @@ const DAY_END = 24;
           const txt = c.el.querySelector<HTMLElement>("[data-ws-slot-text]");
           if (txt) txt.textContent = `${c.filled}/${c.needed} ${tr("слотов", "slots")}`;
           // лента пере-предложения видна, когда слот освобождён и заказ снова open
-          const offering = c.status === "open" && c.filled < c.needed && c.fork && forkChoice === "noshow";
+          const offering =
+            c.status === "open" && c.filled < c.needed && c.fork && forkChoice === "noshow";
           c.el.dataset.offering = offering ? "1" : "0";
         };
 
@@ -1525,15 +1564,27 @@ const DAY_END = 24;
             }
 
             // 3) подтверждённый герой: набраны все слоты → закрытие другим, идёт к done позже
-            if (c.fork && c.status === "progress" && forkChoice === "confirm" && c.filled >= c.needed && hour >= c.end) {
+            if (
+              c.fork &&
+              c.status === "progress" &&
+              forkChoice === "confirm" &&
+              c.filled >= c.needed &&
+              hour >= c.end
+            ) {
               c.status = "done";
-              logs.push({ text: `${fmt(hour)}  end_time passed → close ${c.id} (all slots filled)`, tone: "dim" });
+              logs.push({
+                text: `${fmt(hour)}  end_time passed → close ${c.id} (all slots filled)`,
+                tone: "dim",
+              });
             }
 
             // 4) просрочка: прошёл end_time → авто-CANCELLED/закрытие (фоновый заказ)
             if (!c.fork && c.status === "progress" && hour >= c.end) {
               c.status = "done";
-              logs.push({ text: `${fmt(hour)}  expired ${c.id} (end ${c.end}:00) → auto-close`, tone: "dim" });
+              logs.push({
+                text: `${fmt(hour)}  expired ${c.id} (end ${c.end}:00) → auto-close`,
+                tone: "dim",
+              });
             }
           });
 
@@ -1629,7 +1680,13 @@ const DAY_END = 24;
             hour = h;
             // тихий проход: только применяем эффекты, без журнала каждого часа
             cards.forEach((c) => {
-              if (c.remindable && !c.reminded && c.status === "progress" && h >= c.start - 3 && h < c.start) {
+              if (
+                c.remindable &&
+                !c.reminded &&
+                c.status === "progress" &&
+                h >= c.start - 3 &&
+                h < c.start
+              ) {
                 c.reminded = true;
               }
               if (!c.fork && c.status === "progress" && h >= c.end) c.status = "done";
@@ -1643,8 +1700,20 @@ const DAY_END = 24;
           });
           renderCounts();
           updateBranch();
-          log(tr("18:00  воркер активен · напоминания разосланы (по разу)", "18:00  worker active · reminders sent (once each)"), "acc");
-          log(tr("крутите «+1 час» или ползунок — слоты освобождаются, заказы закрываются", "advance “+1 hour” or the slider — slots release, orders close"), "dim");
+          log(
+            tr(
+              "18:00  воркер активен · напоминания разосланы (по разу)",
+              "18:00  worker active · reminders sent (once each)",
+            ),
+            "acc",
+          );
+          log(
+            tr(
+              "крутите «+1 час» или ползунок — слоты освобождаются, заказы закрываются",
+              "advance “+1 hour” or the slider — slots release, orders close",
+            ),
+            "dim",
+          );
           return;
         }
 
@@ -1655,7 +1724,8 @@ const DAY_END = 24;
               inview = e.isIntersecting;
               root.classList.toggle("is-inview", inview);
               if (!inview) clearTimers();
-              else if (!logSeeded) log(tr("воркер на связи · крутите часы", "worker online · wind the clock"), "dim");
+              else if (!logSeeded)
+                log(tr("воркер на связи · крутите часы", "worker online · wind the clock"), "dim");
             }
           },
           { threshold: 0.2 },

@@ -113,52 +113,88 @@
   "architectureNodes": [
     {
       "id": "telegram",
-      "x": 130,
-      "y": 270,
+      "col": 0,
+      "row": 0,
       "label": "Telegram",
       "icon": "telegram",
-      "width": 150
+      "width": 150,
+      "desc": {
+        "ru": "Bot API: апдейты пользователей и исходящие сообщения",
+        "en": "Bot API: user updates in, outgoing messages out"
+      }
     },
     {
       "id": "bot",
-      "x": 370,
-      "y": 270,
+      "col": 1,
+      "row": 0,
       "label": "aiogram bot",
       "icon": "stack",
+      "width": 185,
       "emphasis": "strong",
-      "width": 180
-    },
-    {
-      "id": "pg",
-      "x": 620,
-      "y": 140,
-      "label": "PostgreSQL 16",
-      "icon": "dot",
-      "width": 170
-    },
-    {
-      "id": "redis",
-      "x": 620,
-      "y": 280,
-      "label": "Redis · FSM",
-      "icon": "dot",
-      "width": 170
-    },
-    {
-      "id": "minio",
-      "x": 620,
-      "y": 420,
-      "label": "MinIO · S3",
-      "icon": "dot",
-      "width": 170
+      "desc": {
+        "ru": "Polling-диспетчер: роутеры по ролям, middleware сессии и бана",
+        "en": "Polling dispatcher: role routers, session and ban middleware"
+      }
     },
     {
       "id": "worker",
-      "x": 850,
-      "y": 280,
+      "col": 1,
+      "row": 2,
       "label": "taskiq worker",
       "icon": "rocket",
-      "width": 170
+      "width": 180,
+      "desc": {
+        "ru": "Отдельный процесс: периодические циклы смен и бэкапов",
+        "en": "Separate process: periodic shift and backup loops"
+      }
+    },
+    {
+      "id": "opcontrol",
+      "col": 1,
+      "row": 1,
+      "label": "operational ctrl",
+      "icon": "code",
+      "width": 205,
+      "desc": {
+        "ru": "Физика смен: напоминания, релиз неявок, авто-закрытие",
+        "en": "Shift physics: reminders, release no-shows, auto-close"
+      }
+    },
+    {
+      "id": "redis",
+      "col": 2,
+      "row": 1,
+      "label": "Redis · FSM",
+      "icon": "dot",
+      "width": 170,
+      "desc": {
+        "ru": "FSM-хранилище, лидер-лок воркера, маркеры бэкапов",
+        "en": "FSM storage, worker leader lock, backup markers"
+      }
+    },
+    {
+      "id": "pg",
+      "col": 2,
+      "row": 0,
+      "label": "PostgreSQL 16",
+      "icon": "dot",
+      "width": 180,
+      "desc": {
+        "ru": "Заказы, назначения, пользователи, рейтинги, рассылки",
+        "en": "Orders, assignments, users, ratings, broadcasts"
+      }
+    },
+    {
+      "id": "minio",
+      "col": 2,
+      "row": 2,
+      "label": "MinIO · S3",
+      "icon": "dot",
+      "width": 170,
+      "desc": {
+        "ru": "Фото заказов в S3-совместимом хранилище, публичные ссылки",
+        "en": "Order photos in S3-compatible storage, public URLs"
+      }
     }
   ],
   "architectureEdges": [
@@ -185,23 +221,31 @@
     },
     {
       "from": "worker",
-      "to": "pg",
-      "kind": "data"
+      "to": "opcontrol",
+      "kind": "sync"
     },
     {
       "from": "worker",
       "to": "redis",
       "kind": "async",
       "label": "lock"
+    },
+    {
+      "from": "opcontrol",
+      "to": "pg",
+      "kind": "data"
+    },
+    {
+      "from": "opcontrol",
+      "to": "telegram",
+      "kind": "async",
+      "label": "notify"
     }
   ],
   "clusters": [
     {
-      "x": 525,
-      "y": 90,
-      "width": 190,
-      "height": 400,
-      "label": "storage"
+      "label": "storage",
+      "members": ["pg", "redis", "minio"]
     }
   ],
   "capabilities": [

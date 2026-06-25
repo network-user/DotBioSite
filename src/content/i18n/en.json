@@ -113,6 +113,7 @@
     "back": "← back to all projects",
     "overview": "the essence",
     "architecture": "architecture",
+    "architectureHint": "Tap a module to see its role in the system.",
     "stack": "stack",
     "stackComposition": "stack by layer",
     "repos": "repositories",

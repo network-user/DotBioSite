@@ -26,30 +26,38 @@ type Bi = { ru: string; en: string };
 const t = (b: Bi): string => b[locale];
 
 const intro: Bi = {
-  ru: "Не путь пользователя, а карта возможностей .звук — по блоку «что внутри» бэкенда. Выберите домен слева: справа живая схема и краткое описание сильной стороны. Тыкайте кнопки внутри — они показывают механику под капотом.",
-  en: "Not a user journey but a map of what .звук can do — drawn from the backend's “what's inside” section. Pick a domain on the left: a live diagram and a short pitch appear on the right. Press the buttons inside to see the mechanics underneath.",
+  ru: "Не путь пользователя, а карта возможностей .звук - семь доменов из бэкенда. Выберите слева: справа короткий питч и живая мини-схема, а кнопка «подробнее» раскрывает детали. Жмите кнопки внутри - они показывают механику под капотом. Примеры - на реальном каталоге сцены.",
+  en: 'Not a user journey but a map of what .sound can do - seven domains from the backend. Pick one on the left: a short pitch and a live mini-diagram appear on the right, and "more" unfolds the detail. Press the buttons inside to see the mechanics underneath. Examples use a real catalog from the scene.',
 };
 
-type Pillar = { id: string; label: Bi; tag: Bi; title: Bi; desc: Bi };
+type Pillar = { id: string; label: Bi; tag: Bi; title: Bi; pitch: Bi; desc: Bi };
 const pillars: Pillar[] = [
   {
     id: "storage",
     label: { ru: "Хранение", en: "Storage" },
     tag: { ru: "SHA-256 · MinIO", en: "SHA-256 · MinIO" },
-    title: { ru: "Загрузка и content-addressed storage", en: "Upload and content-addressed storage" },
+    title: { ru: "Загрузка и дедуп по содержимому", en: "Upload and content dedup" },
+    pitch: {
+      ru: "Трек заходит в систему один раз - и навсегда.",
+      en: "A track enters the system once - and for good.",
+    },
     desc: {
-      ru: "Chunked-загрузка (resumable, S3 multipart) с MIME-валидацией и ClamAV-сканом. Контент адресуется по SHA-256: одинаковый трек хранится один раз, повторная заливка лишь увеличивает ref_count. Пользовательские квоты, MinIO с дедупликацией.",
-      en: "Chunked upload (resumable, S3 multipart) with MIME validation and a ClamAV scan. Content is addressed by SHA-256: an identical track is stored once, a re-upload only bumps ref_count. Per-user quotas, MinIO with deduplication.",
+      ru: "Chunked-загрузка (resumable, S3 multipart) с MIME-валидацией и сканом ClamAV. Контент адресуется по SHA-256: одинаковый трек хранится один раз, повторная заливка лишь увеличивает ref_count. Двухслойный дедуп: предчек по компаунд-хэшу на клиенте и потоковый SHA-256 на сервере, общий на всех пользователей.",
+      en: "Chunked upload (resumable, S3 multipart) with MIME validation and a ClamAV scan. Content is addressed by SHA-256: an identical track is stored once, a re-upload only bumps ref_count. Two-layer dedup: a client compound-hash pre-check and a server streaming SHA-256, shared across all users.",
     },
   },
   {
     id: "pipeline",
     label: { ru: "Транскод", en: "Transcode" },
     tag: { ru: "FFmpeg · HLS", en: "FFmpeg · HLS" },
-    title: { ru: "Транскодинг и деривативы", en: "Transcoding and derivatives" },
+    title: { ru: "Транскод и деривативы", en: "Transcode and derivatives" },
+    pitch: {
+      ru: "Из одного файла собирается весь плеер.",
+      en: "One file becomes the whole player.",
+    },
     desc: {
-      ru: "FFmpeg строит progressive MP3 и адаптивный HLS (две дорожки), нормализует громкость. На каждый трек — waveform (200 столбцов), сниппет-превью и процедурная обложка. UGC-воспроизведение нормализуется по запросу.",
-      en: "FFmpeg builds progressive MP3 and adaptive HLS (two renditions) and normalizes loudness. Per track: a 200-bar waveform, a preview snippet, and a procedural cover. UGC playback is normalized on demand.",
+      ru: "FFmpeg строит progressive MP3 и адаптивный HLS (две дорожки) и нормализует громкость. На каждый трек - waveform на 200 столбцов, сниппет-превью и процедурная обложка. Сегменты адресуются по хэшу и кешируются как immutable.",
+      en: "FFmpeg builds progressive MP3 and adaptive HLS (two renditions) and normalizes loudness. Per track: a 200-bar waveform, a preview snippet, and a procedural cover. Segments are addressed by hash and cached immutable.",
     },
   },
   {
@@ -57,19 +65,27 @@ const pillars: Pillar[] = [
     label: { ru: "Стриминг", en: "Streaming" },
     tag: { ru: "HLS · лирика", en: "HLS · lyrics" },
     title: { ru: "Воспроизведение и синхро-лирика", en: "Playback and synced lyrics" },
+    pitch: {
+      ru: "Поток подстраивается, текст всплывает в такт.",
+      en: "The stream adapts, lyrics surface on the beat.",
+    },
     desc: {
-      ru: "Presigned URL, range-стриминг, HLS с adaptive bitrate (hls.js). Лирика всплывает построчно в такт: каскад с audio-based fallback, Demucs (--two-stems=vocals) + faster-whisper. Prefetch следующих треков, egress-пул для стороннего аудио.",
-      en: "Presigned URLs, range streaming, HLS with adaptive bitrate (hls.js). Lyrics surface line by line in sync: a cascade with audio-based fallback, Demucs (--two-stems=vocals) + faster-whisper. Prefetch of next tracks, egress pool for third-party audio.",
+      ru: "Presigned-ссылки, range-стриминг, HLS с адаптивным битрейтом (hls.js). Лирика всплывает построчно: на воркере Demucs (htdemucs, --two-stems=vocals) снимает вокал, faster-whisper large-v3 расшифровывает, stable-ts выравнивает тайм-коды по строкам. Каталожный текст пересобирается по этим тайм-кодам, следующие треки префетчатся.",
+      en: "Presigned URLs, range streaming, HLS with adaptive bitrate (hls.js). Lyrics surface line by line: on the worker Demucs (htdemucs, --two-stems=vocals) lifts the vocals, faster-whisper large-v3 transcribes, stable-ts aligns per-line timecodes. The reference text is re-anchored to those timecodes, and next tracks are prefetched.",
     },
   },
   {
     id: "import",
     label: { ru: "Импорт", en: "Import" },
-    tag: { ru: "yt-dlp · очередь", en: "yt-dlp · queue" },
+    tag: { ru: "7 источников · очередь", en: "7 sources · queue" },
     title: { ru: "Импорт из внешних источников", en: "Import from external sources" },
+    pitch: {
+      ru: "Чужой каталог переезжает по одной ссылке.",
+      en: "A whole catalog moves in by one link.",
+    },
     desc: {
-      ru: "Импорт треков, плейлистов и лайков из SoundCloud, YouTube, Bandcamp — по ссылке или каталогом. Очередь с диспетчером и лимитами (глобально / на пользователя), backfill артистов, in-app уведомления RU/EN.",
-      en: "Import tracks, playlists, and likes from SoundCloud, YouTube, Bandcamp — by link or whole catalog. A queued dispatcher with global and per-user limits, artist backfill, in-app notifications in RU/EN.",
+      ru: "Импорт треков, плейлистов и целых каталогов из SoundCloud, Spotify, Yandex Music, VK, Bandcamp, YouTube и Telegram - по ссылке или аккаунтом. Очередь с диспетчером и лимитами (глобально и на пользователя), backfill артистов, проверка играбельности и in-app уведомления RU/EN. На каждую ссылку - SSRF-защита.",
+      en: "Import tracks, playlists, and whole catalogs from SoundCloud, Spotify, Yandex Music, VK, Bandcamp, YouTube, and Telegram - by link or by account. A queued dispatcher with global and per-user limits, artist backfill, playability checks, and in-app notifications in RU/EN. Every URL is SSRF-guarded.",
     },
   },
   {
@@ -77,19 +93,24 @@ const pillars: Pillar[] = [
     label: { ru: "Рекомендации", en: "Discover" },
     tag: { ru: "128d · миксы", en: "128d · mixes" },
     title: { ru: "Персональная лента и миксы", en: "Personal feed and mixes" },
+    pitch: { ru: "Лента собирается под твой вкус.", en: "The feed assembles around your taste." },
     desc: {
-      ru: "Главный экран (8–10 секций): Daily / Weekly Mix, жанровые миксы, «Выбор пользователей», радио (seed-first), похожие треки. Скоринг в приватном ядре; прогрев кеша и телеметрия impressions ↔ listen для обратной связи.",
-      en: "Home screen (8–10 sections): Daily / Weekly Mix, genre mixes, community picks, radio (seed-first), similar tracks. Scoring lives in the private core; cache warm-up and impressions ↔ listen telemetry for feedback.",
+      ru: "Главный экран из секций: «Продолжить слушать», «Для вас», «Новые релизы», «Выбор пользователей», «Любимые исполнители». Рядом - Daily Mix, жанровые миксы, радио (seed-first), похожие треки и «Забытые сокровища». Скоринг живёт в закрытом ядре; кеш прогревается, телеметрия impressions ↔ listen замыкает обратную связь.",
+      en: "A home screen of sections: Continue listening, For you, New releases, Community picks, Favorite artists. Alongside: Daily Mix, genre mixes, radio (seed-first), similar tracks, and Forgotten Treasures. Scoring lives in the closed core; the cache is warmed and impressions ↔ listen telemetry closes the loop.",
     },
   },
   {
     id: "search",
     label: { ru: "Поиск", en: "Search" },
     tag: { ru: "Elasticsearch · SAYT", en: "Elasticsearch · SAYT" },
-    title: { ru: "Полнотекстовый поиск", en: "Full-text search" },
+    title: { ru: "Поиск по трекам и артистам", en: "Search over tracks and artists" },
+    pitch: {
+      ru: "Находит по названию и артисту, даже с опечаткой.",
+      en: "Finds by title and artist, even misspelled.",
+    },
     desc: {
-      ru: "Elasticsearch 8: полнотекст по трекам и артистам, автодополнение (SAYT), транслитерация RU↔LAT, fuzzy. Индексируются метаданные и распознанная лирика — трек находится по строчке из песни. Фоновая индексация и drain счётчиков из Redis.",
-      en: "Elasticsearch 8: full-text over tracks and artists, search-as-you-type (SAYT), RU↔LAT transliteration, fuzzy matching. Metadata and recognized lyrics are indexed — find a track by a line from the song. Background indexing and Redis play-count drain.",
+      ru: "Elasticsearch 8: полнотекст по трекам и артистам, автодополнение (SAYT, search-as-you-type), транслитерация RU↔LAT на индексации и в запросе, fuzzy-сопоставление. При равном score выше тот, что чаще слушают. Если ES выключен - SQL-фолбэк.",
+      en: "Elasticsearch 8: full-text over tracks and artists, search-as-you-type (SAYT), RU↔LAT transliteration at index and query time, fuzzy matching. On a score tie, the more-played track wins. If ES is off, a SQL fallback kicks in.",
     },
   },
   {
@@ -97,9 +118,13 @@ const pillars: Pillar[] = [
     label: { ru: "Воркер", en: "Worker" },
     tag: { ru: "HMAC pull · GPU", en: "HMAC pull · GPU" },
     title: { ru: "Compute-воркер без открытых портов", en: "Compute worker with no open ports" },
+    pitch: {
+      ru: "Тяжёлый счёт уезжает на GPU без открытых портов.",
+      en: "Heavy compute moves to GPU with no open ports.",
+    },
     desc: {
-      ru: "Pull-based протокол (claim / heartbeat / progress / result) с HMAC, IP-allowlist и одноразовыми токенами на скачивание аудио. 17 типов задач в одной очереди + ASR-конвейер (Demucs + faster-whisper). Лизы, детектор аномалий, авто-suspend.",
-      en: "Pull-based protocol (claim / heartbeat / progress / result) with HMAC, IP allowlist, and one-time audio download tokens. 17 job types in one queue plus an ASR pipeline (Demucs + faster-whisper). Leases, anomaly detection, auto-suspend.",
+      ru: "Pull-протокол (claim / heartbeat / progress / result) с HMAC-подписью, IP-allowlist и одноразовыми токенами на скачивание аудио (OTT: 5 минут, под один IP). 17 типов задач в одной очереди плюс ASR-конвейер. Лизы и дедлайны, бэк-офф ретраев, авто-suspend при злоупотреблении; пауза и отмена задач приходят прямо в heartbeat.",
+      en: "A pull protocol (claim / heartbeat / progress / result) with HMAC signing, an IP allowlist, and one-time audio download tokens (OTT: 5 min, IP-pinned). 17 job types in one queue plus an ASR pipeline. Leases and deadlines, retry back-off, auto-suspend on abuse; pause and per-job cancel ride in the heartbeat.",
     },
   },
 ];
@@ -108,14 +133,20 @@ const pillars: Pillar[] = [
 
 // (1) Хранение
 const storage = {
-  file: { ru: "track.flac", en: "track.flac" },
+  file: { ru: "red weather.flac", en: "red weather.flac" },
   scan: { ru: "ClamAV · чисто", en: "ClamAV · clean" },
   hashCap: { ru: "SHA-256 содержимого", en: "content SHA-256" },
   blobCap: { ru: "один blob в MinIO", en: "single MinIO blob" },
   send: { ru: "Залить трек", en: "Upload track" },
   again: { ru: "Тот же файл снова", en: "Same file again" },
-  steps: { ru: "MIME → ClamAV → дедуп → ref_count", en: "MIME → ClamAV → dedup → ref_count" },
-  sameNote: { ru: "тот же хэш → ref_count++, новый blob НЕ создаётся", en: "same hash → ref_count++, no new blob created" },
+  steps: {
+    ru: "MIME → ClamAV → SHA-256 → дедуп → ref_count",
+    en: "MIME → ClamAV → SHA-256 → dedup → ref_count",
+  },
+  sameNote: {
+    ru: "тот же хэш → ref_count++, новый blob НЕ создаётся",
+    en: "same hash → ref_count++, no new blob created",
+  },
 };
 
 // (2) Транскод
@@ -128,117 +159,261 @@ const pipeline = {
   wave: { ru: "waveform · 200", en: "waveform · 200" },
   snippet: { ru: "snippet preview", en: "snippet preview" },
   cover: { ru: "обложка", en: "cover art" },
-  done: { ru: "деривативы готовы — immutable сегменты", en: "derivatives ready — immutable segments" },
+  done: {
+    ru: "деривативы готовы — immutable сегменты",
+    en: "derivatives ready — immutable segments",
+  },
 };
 
-// (3) Стриминг
+// (3) Стриминг — реальный трек из каталога сцены
 const listen = {
-  title: { ru: "Держит зал", en: "Holds the Room" },
-  artist: { ru: "Невод", en: "Seine" },
+  title: "welcome to forever",
+  artist: "Kai Angel · damage · 2025",
+  dur: "2:48",
   play: { ru: "Играть", en: "Play" },
   pause: { ru: "Пауза", en: "Pause" },
+  replay: { ru: "Заново", en: "Replay" },
+  seek: { ru: "Перемотка трека", en: "Seek track" },
   hls: { ru: "HLS · авто-качество", en: "HLS · adaptive" },
   lyrCap: { ru: "лирика всплывает в такт", en: "lyrics surface on the beat" },
 };
-const lyricLines: { tc: string; ru: string; en: string }[] = [
-  { tc: "0:00", ru: "свет гаснет, зал затих", en: "lights go down, the room is still" },
-  { tc: "0:06", ru: "первый удар держит зал", en: "the first beat holds the room" },
-  { tc: "0:12", ru: "голос ведёт сквозь шум", en: "a voice cuts through the noise" },
-  { tc: "0:18", ru: "и мы снова на ногах", en: "and we're on our feet again" },
+// Реальные строки трека (в оригинале двуязычные). tc — демо-тайм-код от прогресса,
+// at — порог прогресса 0..1, на котором строка становится активной.
+const lyrics: { at: number; tc: string; text: string }[] = [
+  { at: 0.08, tc: "0:13", text: "Velvet fog in my lungs, I breathe slow" },
+  { at: 0.26, tc: "0:43", text: 'You said I\'m too cold, I said "Yeah, I know"' },
+  { at: 0.46, tc: "1:17", text: "Welcome to forever" },
+  { at: 0.66, tc: "1:50", text: "Okay, it's shorter than you think" },
+  { at: 0.86, tc: "2:24", text: "Ты запомнишь меня, you'll remember me" },
 ];
+// Форма волны: детерминированные высоты (build-time, без рандома).
+const WAVE: number[] = Array.from({ length: 56 }, (_, i) => {
+  const a = Math.sin(i * 0.55) * 0.5 + 0.5;
+  const b = Math.sin(i * 0.17 + 1.3) * 0.5 + 0.5;
+  return Math.round((0.22 + 0.78 * a * (0.55 + 0.45 * b)) * 100) / 100;
+});
 
 // (4) Импорт
 const sources: { id: string; name: Bi }[] = [
   { id: "sc", name: { ru: "SoundCloud", en: "SoundCloud" } },
-  { id: "yt", name: { ru: "YouTube", en: "YouTube" } },
+  { id: "sp", name: { ru: "Spotify", en: "Spotify" } },
+  { id: "ya", name: { ru: "Yandex Music", en: "Yandex Music" } },
   { id: "bc", name: { ru: "Bandcamp", en: "Bandcamp" } },
+  { id: "yt", name: { ru: "YouTube", en: "YouTube" } },
 ];
 const importT = {
-  linkCap: { ru: "ссылка на трек или каталог артиста", en: "a track or artist-catalog link" },
+  linkCap: {
+    ru: "ссылка на трек, плейлист или каталог артиста",
+    en: "a track, playlist, or artist-catalog link",
+  },
   go: { ru: "Импортировать", en: "Import" },
-  pulling: { ru: "тянем через yt-dlp…", en: "fetching via yt-dlp…" },
+  pulling: { ru: "тянем каталог…", en: "pulling the catalog…" },
   done: { ru: "синхронизировано в каталог", en: "synced into the catalog" },
 };
 const importTracks: Bi[] = [
-  { ru: "Ночной эфир", en: "Night Air" },
-  { ru: "Длинная дорога", en: "Long Way Home" },
-  { ru: "Тихий код", en: "Quiet Code" },
-  { ru: "Серый асфальт", en: "Grey Asphalt" },
+  { ru: "LIPSTICK", en: "LIPSTICK" },
+  { ru: "JUMP!", en: "JUMP!" },
+  { ru: "welcome to forever", en: "welcome to forever" },
+  { ru: "KYLIE", en: "KYLIE" },
+  { ru: "SHOW OFF", en: "SHOW OFF" },
 ];
 
 // (5) Рекомендации
 const tasteChips: Bi[] = [
-  { ru: "электроника", en: "electronic" },
-  { ru: "эмбиент", en: "ambient" },
-  { ru: "инди", en: "indie" },
-  { ru: "хип-хоп", en: "hip-hop" },
-  { ru: "джаз", en: "jazz" },
-  { ru: "рок", en: "rock" },
-  { ru: "lo-fi", en: "lo-fi" },
-  { ru: "поп", en: "pop" },
+  { ru: "phonk", en: "phonk" },
+  { ru: "rage", en: "rage" },
+  { ru: "cloud rap", en: "cloud rap" },
+  { ru: "hyperpop", en: "hyperpop" },
+  { ru: "trap", en: "trap" },
+  { ru: "ambient", en: "ambient" },
+  { ru: "drift", en: "drift" },
+  { ru: "alt", en: "alt" },
 ];
 const discover = {
-  cap: { ru: "отметьте жанры — соберётся 128d-вектор", en: "mark genres — builds a 128d vector" },
+  cap: { ru: "отметьте жанры - соберётся 128d-вектор", en: "mark genres - builds a 128d vector" },
   towerCap: { ru: "вектор вкуса · 128d", en: "taste vector · 128d" },
   pick: { ru: "выбрано", en: "selected" },
   feedCap: { ru: "секции главного экрана", en: "home screen sections" },
-  need: { ru: "отметьте хотя бы 2 — появятся секции ленты", en: "mark at least 2 — feed sections appear" },
-  ready: { ru: "лента прогрета — impressions ↔ listen", en: "feed warmed — impressions ↔ listen" },
+  need: {
+    ru: "отметьте хотя бы 2 - появятся секции ленты",
+    en: "mark at least 2 - feed sections appear",
+  },
+  ready: { ru: "лента прогрета - impressions ↔ listen", en: "feed warmed - impressions ↔ listen" },
 };
 const feedSections: { id: string; label: Bi; note: Bi }[] = [
-  { id: "daily", label: { ru: "Daily Mix", en: "Daily Mix" }, note: { ru: "ежедневный микс", en: "daily blend" } },
-  { id: "weekly", label: { ru: "Weekly Mix", en: "Weekly Mix" }, note: { ru: "недельный микс", en: "weekly blend" } },
-  { id: "foryou", label: { ru: "Для вас", en: "For you" }, note: { ru: "персональная лента", en: "personal feed" } },
-  { id: "genre", label: { ru: "Жанровый микс", en: "Genre mix" }, note: { ru: "по выбранным жанрам", en: "from picked genres" } },
-  { id: "radio", label: { ru: "Радио", en: "Radio" }, note: { ru: "seed-first", en: "seed-first" } },
-  { id: "similar", label: { ru: "Похожие", en: "Similar" }, note: { ru: "по эмбеддингу", en: "by embedding" } },
+  {
+    id: "continue",
+    label: { ru: "Продолжить слушать", en: "Continue" },
+    note: { ru: "не дослушано", en: "unfinished" },
+  },
+  {
+    id: "foryou",
+    label: { ru: "Для вас", en: "For you" },
+    note: { ru: "по вкусам", en: "by taste" },
+  },
+  {
+    id: "new",
+    label: { ru: "Новые релизы", en: "New releases" },
+    note: { ru: "свежее", en: "fresh" },
+  },
+  {
+    id: "daily",
+    label: { ru: "Daily Mix", en: "Daily Mix" },
+    note: { ru: "ежедневный", en: "daily" },
+  },
+  {
+    id: "radio",
+    label: { ru: "Радио", en: "Radio" },
+    note: { ru: "seed-first", en: "seed-first" },
+  },
+  {
+    id: "picks",
+    label: { ru: "Выбор пользователей", en: "Community picks" },
+    note: { ru: "за неделю", en: "this week" },
+  },
 ];
 
 // (6) Поиск
 const searchT = {
   cap: { ru: "SAYT · search-as-you-type", en: "SAYT · search-as-you-type" },
-  placeholder: { ru: "кин…", en: "kino…" },
+  placeholder: { ru: "онда…", en: "onda…" },
   translit: { ru: "RU↔LAT транслит", en: "RU↔LAT translit" },
-  fuzzy: { ru: "fuzzy · по лирике тоже", en: "fuzzy · lyrics too" },
+  fuzzy: { ru: "fuzzy · ранг по прослушиваниям", en: "fuzzy · ranked by plays" },
 };
 const searchHits: { title: Bi; sub: Bi; via: Bi }[] = [
   {
-    title: { ru: "Группа крови", en: "Gruppa krovi" },
-    sub: { ru: "Kino · 1988", en: "Kino · 1988" },
+    title: { ru: "ONDA ANDAR", en: "ONDA ANDAR" },
+    sub: { ru: "артист", en: "artist" },
+    via: { ru: "транслит онда → onda", en: "translit онда → onda" },
+  },
+  {
+    title: { ru: "red weather", en: "red weather" },
+    sub: { ru: "ONDA ANDAR · 2025", en: "ONDA ANDAR · 2025" },
     via: { ru: "метаданные", en: "metadata" },
   },
   {
-    title: { ru: "Кино", en: "Kino" },
-    sub: { ru: "Арбенина · лирика", en: "Arbenina · lyrics" },
-    via: { ru: "распознанный текст", en: "recognized lyrics" },
-  },
-  {
-    title: { ru: "Kino", en: "Kino" },
-    sub: { ru: "артист · fuzzy match", en: "artist · fuzzy match" },
-    via: { ru: "транслит кин → kino", en: "translit кин → kino" },
+    title: { ru: "Ночное кафе", en: "Ночное кафе" },
+    sub: { ru: "Mirèle & ONDA ANDAR", en: "Mirèle & ONDA ANDAR" },
+    via: { ru: "fuzzy-совпадение", en: "fuzzy match" },
   },
 ];
 
 // (7) Воркер
 type Job = { key: string; desc: Bi };
 const jobs: Job[] = [
-  { key: "audio_embedding", desc: { ru: "эмбеддинг трека: вектор из 128 чисел для похожести и рекомендаций.", en: "track embedding: a 128-number vector for similarity and recommendations." } },
-  { key: "track_audio_features", desc: { ru: "аудио-фичи трека: темп, тональность, энергия.", en: "track audio features: tempo, key, energy." } },
-  { key: "track_similarity", desc: { ru: "ближайшие треки по вектору эмбеддинга.", en: "nearest tracks by the embedding vector." } },
-  { key: "artist_similarity", desc: { ru: "похожие артисты по агрегированным фичам.", en: "similar artists by aggregated features." } },
-  { key: "track_transcoding", desc: { ru: "транскод трека в адаптивные HLS-сегменты.", en: "transcode the track into adaptive HLS segments." } },
-  { key: "track_waveform", desc: { ru: "строит форму волны для плеера.", en: "builds the waveform for the player." } },
-  { key: "track_snippet", desc: { ru: "короткий превью-сэмпл трека.", en: "a short preview snippet of the track." } },
-  { key: "track_cover_processing", desc: { ru: "обложка: ресайз и извлечение палитры.", en: "cover art: resize and palette extraction." } },
-  { key: "catalog_normalize", desc: { ru: "нормализует и чистит метаданные каталога.", en: "normalizes and cleans catalog metadata." } },
-  { key: "artist_features_update", desc: { ru: "пересчитывает агрегированные фичи артиста.", en: "recomputes an artist's aggregated features." } },
-  { key: "artist_enrichment", desc: { ru: "обогащает профиль артиста доп. данными.", en: "enriches an artist's profile with extra data." } },
-  { key: "track_info_fetch", desc: { ru: "дотягивает метаданные трека из источника.", en: "fetches a track's metadata from the source." } },
-  { key: "soundcloud_rpc", desc: { ru: "импорт и синхронизация с SoundCloud через yt-dlp.", en: "import and sync with SoundCloud via yt-dlp." } },
-  { key: "sc_artist_catalog_sync", desc: { ru: "синхронизирует каталог артиста из SoundCloud.", en: "syncs an artist's catalog from SoundCloud." } },
-  { key: "sc_artist_release_sync", desc: { ru: "синхронизирует релизы артиста из SoundCloud.", en: "syncs an artist's releases from SoundCloud." } },
-  { key: "sc_artist_similar_station_sync", desc: { ru: "синхронизирует станцию «похожее» артиста из SoundCloud.", en: "syncs an artist's 'similar' station from SoundCloud." } },
-  { key: "external_import_scan", desc: { ru: "сканирует внешние источники на новые треки для импорта.", en: "scans external sources for new tracks to import." } },
+  {
+    key: "audio_embedding",
+    desc: {
+      ru: "эмбеддинг трека: вектор из 128 чисел для похожести и рекомендаций.",
+      en: "track embedding: a 128-number vector for similarity and recommendations.",
+    },
+  },
+  {
+    key: "track_audio_features",
+    desc: {
+      ru: "аудио-фичи трека: темп, тональность, энергия.",
+      en: "track audio features: tempo, key, energy.",
+    },
+  },
+  {
+    key: "track_similarity",
+    desc: {
+      ru: "ближайшие треки по вектору эмбеддинга.",
+      en: "nearest tracks by the embedding vector.",
+    },
+  },
+  {
+    key: "artist_similarity",
+    desc: {
+      ru: "похожие артисты по агрегированным фичам.",
+      en: "similar artists by aggregated features.",
+    },
+  },
+  {
+    key: "track_transcoding",
+    desc: {
+      ru: "транскод трека в адаптивные HLS-сегменты.",
+      en: "transcode the track into adaptive HLS segments.",
+    },
+  },
+  {
+    key: "track_waveform",
+    desc: { ru: "строит форму волны для плеера.", en: "builds the waveform for the player." },
+  },
+  {
+    key: "track_snippet",
+    desc: { ru: "короткий превью-сэмпл трека.", en: "a short preview snippet of the track." },
+  },
+  {
+    key: "track_cover_processing",
+    desc: {
+      ru: "обложка: ресайз и извлечение палитры.",
+      en: "cover art: resize and palette extraction.",
+    },
+  },
+  {
+    key: "catalog_normalize",
+    desc: {
+      ru: "нормализует и чистит метаданные каталога.",
+      en: "normalizes and cleans catalog metadata.",
+    },
+  },
+  {
+    key: "artist_features_update",
+    desc: {
+      ru: "пересчитывает агрегированные фичи артиста.",
+      en: "recomputes an artist's aggregated features.",
+    },
+  },
+  {
+    key: "artist_enrichment",
+    desc: {
+      ru: "обогащает профиль артиста доп. данными.",
+      en: "enriches an artist's profile with extra data.",
+    },
+  },
+  {
+    key: "track_info_fetch",
+    desc: {
+      ru: "дотягивает метаданные трека из источника.",
+      en: "fetches a track's metadata from the source.",
+    },
+  },
+  {
+    key: "soundcloud_rpc",
+    desc: {
+      ru: "импорт и синхронизация с SoundCloud через yt-dlp.",
+      en: "import and sync with SoundCloud via yt-dlp.",
+    },
+  },
+  {
+    key: "sc_artist_catalog_sync",
+    desc: {
+      ru: "синхронизирует каталог артиста из SoundCloud.",
+      en: "syncs an artist's catalog from SoundCloud.",
+    },
+  },
+  {
+    key: "sc_artist_release_sync",
+    desc: {
+      ru: "синхронизирует релизы артиста из SoundCloud.",
+      en: "syncs an artist's releases from SoundCloud.",
+    },
+  },
+  {
+    key: "sc_artist_similar_station_sync",
+    desc: {
+      ru: "синхронизирует станцию «похожее» артиста из SoundCloud.",
+      en: "syncs an artist's 'similar' station from SoundCloud.",
+    },
+  },
+  {
+    key: "external_import_scan",
+    desc: {
+      ru: "сканирует внешние источники на новые треки для импорта.",
+      en: "scans external sources for new tracks to import.",
+    },
+  },
 ];
 const VISIBLE_JOBS = 8;
 const worker = {
@@ -246,7 +421,10 @@ const worker = {
   more: { ru: "Показать все", en: "Show all" },
   hide: { ru: "Свернуть", en: "Collapse" },
   pick: { ru: "тапните задачу - покажу, что она делает", en: "tap a job - I'll show what it does" },
-  asr: { ru: "+ ASR-конвейер: Demucs --two-stems=vocals → faster-whisper", en: "+ ASR pipeline: Demucs --two-stems=vocals → faster-whisper" },
+  asr: {
+    ru: "+ ASR-конвейер: Demucs --two-stems=vocals → faster-whisper large-v3 → stable-ts",
+    en: "+ ASR pipeline: Demucs --two-stems=vocals → faster-whisper large-v3 → stable-ts",
+  },
 };
 
 const nav = {
@@ -255,15 +433,36 @@ const nav = {
 };
 ---
 
-<section class="sf" data-sf aria-label={t({ ru: "Возможности платформы .звук", en: "DotSound platform capabilities" })}>
+<section
+  class="sf"
+  data-sf
+  aria-label={t({ ru: "Возможности платформы .звук", en: "DotSound platform capabilities" })}
+>
   <p class="sf__intro">{t(intro)}</p>
 
-  <ul class="sf__statline" role="list" aria-hidden="true">
-    <li class="sf__stat"><b>~30</b> {t({ ru: "доменов API", en: "API domains" })}</li>
-    <li class="sf__stat"><b>~25</b> {t({ ru: "Taskiq-воркеров", en: "Taskiq workers" })}</li>
-    <li class="sf__stat"><b>121</b> {t({ ru: "миграция", en: "migration" })}</li>
-    <li class="sf__stat sf__stat--wide"><b>250</b> {t({ ru: "тест-файлов · 95% branch coverage", en: "test files · 95% branch coverage" })}</li>
-  </ul>
+  <div class="sf__statbar">
+    <button
+      class="sf__stats-toggle"
+      type="button"
+      data-sf-stats-toggle
+      aria-expanded="true"
+      aria-controls="sf-stats"
+    >
+      <span class="sf__stats-chevron" aria-hidden="true"></span>
+      <span>{t({ ru: "Цифры под капотом", en: "The numbers underneath" })}</span>
+    </button>
+    <div class="sf__statline-box" id="sf-stats">
+      <ul class="sf__statline" role="list" aria-hidden="true">
+        <li class="sf__stat"><b>540</b> {t({ ru: "эндпоинтов API", en: "API endpoints" })}</li>
+        <li class="sf__stat"><b>17</b> {t({ ru: "типов GPU-задач", en: "GPU job types" })}</li>
+        <li class="sf__stat"><b>121</b> {t({ ru: "миграция БД", en: "DB migration" })}</li>
+        <li class="sf__stat sf__stat--wide">
+          <b>238</b>
+          {t({ ru: "тест-файлов · 95% branch coverage", en: "test files · 95% branch coverage" })}
+        </li>
+      </ul>
+    </div>
+  </div>
 
   <div class="sf__layout">
     <div class="sf__nav" role="tablist" aria-label={t({ ru: "Домены", en: "Domains" })}>
@@ -276,6 +475,9 @@ const nav = {
             id={`sf-tab-${s.id}`}
             data-sf-tab={i}
             data-id={s.id}
+            data-title={t(s.title)}
+            data-pitch={t(s.pitch)}
+            data-desc={t(s.desc)}
             aria-selected={i === 0 ? "true" : "false"}
             aria-controls="sf-panel"
             tabindex={i === 0 ? "0" : "-1"}
@@ -293,8 +495,21 @@ const nav = {
     <!-- ===================== ДЕТАЛЬНАЯ ПАНЕЛЬ ===================== -->
     <div class="sf__panel" id="sf-panel" role="tabpanel" aria-live="polite">
       <header class="sf__head">
-        <h3 class="sf__title" data-sf-title>{t(pillars[0]!.title)}</h3>
-        <p class="sf__desc body-sm" data-sf-desc>{t(pillars[0]!.desc)}</p>
+        <h3 class="sf__title" id="sf-title" data-sf-title>{t(pillars[0]!.title)}</h3>
+        <p class="sf__pitch" data-sf-pitch>{t(pillars[0]!.pitch)}</p>
+        <button
+          class="sf__more"
+          type="button"
+          data-sf-more
+          aria-expanded="true"
+          aria-controls="sf-detail"
+        >
+          <span class="sf__more-label">{t({ ru: "подробнее", en: "more" })}</span>
+          <span class="sf__chevron" aria-hidden="true"></span>
+        </button>
+        <div class="sf__detail" id="sf-detail" role="region" aria-labelledby="sf-title">
+          <p class="sf__desc body-sm sf__detail-inner" data-sf-desc>{t(pillars[0]!.desc)}</p>
+        </div>
       </header>
 
       <div class="sf__stage" data-sf-stage>
@@ -309,7 +524,9 @@ const nav = {
             <div class="sf__dd-col">
               <span class="sf__cap caption">{t(storage.scan)}</span>
               <span class="sf__cap caption">{t(storage.hashCap)}</span>
-              <code class="sf__hash mono"><span class="sf__hash-pre">sha256:</span><span data-st-hash>a1f9…7e3c</span></code>
+              <code class="sf__hash mono"
+                ><span class="sf__hash-pre">sha256:</span><span data-st-hash>a1f9…7e3c</span></code
+              >
               <code class="sf__path mono" data-st-path>blobs/a1/a1f9…7e3c</code>
             </div>
             <span class="sf__arrow" aria-hidden="true"></span>
@@ -322,7 +539,9 @@ const nav = {
           <p class="sf__up-steps mono" data-st-steps>{t(storage.steps)}</p>
           <div class="sf__viz-controls">
             <button class="sf__act" type="button" data-st-go>{t(storage.send)}</button>
-            <button class="sf__act sf__act--ghost" type="button" data-st-again disabled>{t(storage.again)}</button>
+            <button class="sf__act sf__act--ghost" type="button" data-st-again disabled
+              >{t(storage.again)}</button
+            >
             <span class="sf__viz-note mono" data-st-note></span>
           </div>
         </div>
@@ -369,27 +588,55 @@ const nav = {
           <div class="sf__ls-card">
             <span class="sf__ls-cover" aria-hidden="true">♪</span>
             <div class="sf__ls-meta">
-              <span class="sf__ls-title">{t(listen.title)}</span>
-              <span class="sf__ls-artist">{t(listen.artist)}</span>
+              <span class="sf__ls-title">{listen.title}</span>
+              <span class="sf__ls-artist">{listen.artist}</span>
             </div>
-            <span class="sf__ls-hls mono" aria-hidden="true">{t(listen.hls)}</span>
+            <span class="sf__ls-eq" data-ls-eq aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span>
+            </span>
           </div>
-          <div class="sf__ls-bar" data-ls-bar aria-hidden="true"><span class="sf__ls-fill" data-ls-fill></span></div>
-          <div class="sf__ls-lyr" data-ls-stage data-ls-state="idle">
+          <div class="sf__ls-wave" data-ls-wave style="--p: 0">
+            <div class="sf__wave-row sf__wave-row--base" aria-hidden="true">
+              {WAVE.map((h) => <span class="sf__wave-bar" style={`--h: ${h}`} />)}
+            </div>
+            <div class="sf__wave-row sf__wave-row--played" aria-hidden="true">
+              {WAVE.map((h) => <span class="sf__wave-bar" style={`--h: ${h}`} />)}
+            </div>
+            <input
+              class="sf__wave-seek"
+              type="range"
+              min="0"
+              max="1000"
+              value="0"
+              step="1"
+              data-ls-seek
+              aria-label={t(listen.seek)}
+            />
+          </div>
+          <div class="sf__ls-time">
+            <span class="mono" data-ls-cur>0:00</span>
+            <span class="sf__ls-hls mono" aria-hidden="true">{t(listen.hls)}</span>
+            <span class="mono">{listen.dur}</span>
+          </div>
+          <div class="sf__ls-lyr">
             <span class="sf__cap caption">{t(listen.lyrCap)}</span>
             <ol class="sf__ly-lines" data-ls-lines>
               {
-                lyricLines.map((l, i) => (
-                  <li class="sf__ly-line" data-ls-line={i}>
-                    <span class="sf__ly-tc mono" aria-hidden="true">{l.tc}</span>
-                    <span class="sf__ly-text">{locale === "en" ? l.en : l.ru}</span>
+                lyrics.map((l, i) => (
+                  <li class="sf__ly-line" data-ls-line={i} data-at={l.at}>
+                    <span class="sf__ly-tc mono" aria-hidden="true">
+                      {l.tc}
+                    </span>
+                    <span class="sf__ly-text">{l.text}</span>
                   </li>
                 ))
               }
             </ol>
           </div>
           <div class="sf__viz-controls">
-            <button class="sf__act" type="button" data-ls-play aria-pressed="false">{t(listen.play)}</button>
+            <button class="sf__act" type="button" data-ls-play aria-pressed="false"
+              >{t(listen.play)}</button
+            >
           </div>
         </div>
 
@@ -398,7 +645,12 @@ const nav = {
           <div class="sf__im-sources" role="group" aria-label={t({ ru: "Источник", en: "Source" })}>
             {
               sources.map((s, i) => (
-                <button class={`sf__chip${i === 0 ? " is-on" : ""}`} type="button" data-im-src={s.id} aria-pressed={i === 0 ? "true" : "false"}>
+                <button
+                  class={`sf__chip${i === 0 ? " is-on" : ""}`}
+                  type="button"
+                  data-im-src={s.id}
+                  aria-pressed={i === 0 ? "true" : "false"}
+                >
                   {t(s.name)}
                 </button>
               ))
@@ -407,7 +659,14 @@ const nav = {
           <div class="sf__im-field">
             <span class="sf__cap caption">{t(importT.linkCap)}</span>
             <div class="sf__si-field">
-              <input class="sf__si-input mono" type="text" value="soundcloud.com/seine/sets" data-im-input aria-label={t(importT.linkCap)} autocomplete="off" />
+              <input
+                class="sf__si-input mono"
+                type="text"
+                value="soundcloud.com/kaiangel"
+                data-im-input
+                aria-label={t(importT.linkCap)}
+                autocomplete="off"
+              />
               <button class="sf__act" type="button" data-im-go>{t(importT.go)}</button>
             </div>
           </div>
@@ -415,9 +674,11 @@ const nav = {
             {
               importTracks.map((tr, i) => (
                 <li class="sf__im-row" data-im-row={i}>
-                  <span class="sf__im-dot" aria-hidden="true"></span>
+                  <span class="sf__im-dot" aria-hidden="true" />
                   <span class="sf__im-name">{t(tr)}</span>
-                  <span class="sf__im-ok mono" aria-hidden="true">ok</span>
+                  <span class="sf__im-ok mono" aria-hidden="true">
+                    ok
+                  </span>
                 </li>
               ))
             }
@@ -439,14 +700,23 @@ const nav = {
           </div>
           <div class="sf__ta-tower">
             <span class="sf__cap caption">{t(discover.towerCap)}</span>
-            <div class="sf__ta-meter" aria-hidden="true"><span class="sf__ta-fill" data-dc-fill></span></div>
+            <div class="sf__ta-meter" aria-hidden="true">
+              <span class="sf__ta-fill" data-dc-fill></span>
+            </div>
             <span class="sf__ta-count mono" data-dc-count>0 {t(discover.pick)}</span>
           </div>
           <span class="sf__cap caption">{t(discover.feedCap)}</span>
           <div class="sf__dc-feed" data-dc-feed>
             {
               feedSections.map((sec, i) => (
-                <button class="sf__dc-card" type="button" data-dc-sec={i} data-note={t(sec.note)} aria-pressed="false" hidden>
+                <button
+                  class="sf__dc-card"
+                  type="button"
+                  data-dc-sec={i}
+                  data-note={t(sec.note)}
+                  aria-pressed="false"
+                  hidden
+                >
                   <span class="sf__dc-label">{t(sec.label)}</span>
                   <span class="sf__dc-note mono">{t(sec.note)}</span>
                 </button>
@@ -460,8 +730,17 @@ const nav = {
         <div class="sf__viz sf__viz--search" data-sf-viz="search" hidden>
           <span class="sf__cap caption">{t(searchT.cap)}</span>
           <div class="sf__sr-field">
-            <input class="sf__si-input mono" type="search" value={locale === "en" ? "kino" : "кин"} data-sr-input aria-label={t(searchT.cap)} autocomplete="off" />
-            <button class="sf__chip is-on" type="button" data-sr-translit aria-pressed="true">{t(searchT.translit)}</button>
+            <input
+              class="sf__si-input mono"
+              type="search"
+              value={locale === "en" ? "onda" : "онда"}
+              data-sr-input
+              aria-label={t(searchT.cap)}
+              autocomplete="off"
+            />
+            <button class="sf__chip is-on" type="button" data-sr-translit aria-pressed="true"
+              >{t(searchT.translit)}</button
+            >
           </div>
           <span class="sf__sr-fuzzy mono">{t(searchT.fuzzy)}</span>
           <ul class="sf__sr-hits" data-sr-hits>
@@ -511,13 +790,15 @@ const nav = {
 
   <div class="sf__pager">
     <button class="sf__pg-btn sf__pg-btn--prev" type="button" data-sf-prev>
-      <span aria-hidden="true">←</span> <span>{t(nav.prev)}</span>
+      <span aria-hidden="true">←</span>
+      <span>{t(nav.prev)}</span>
     </button>
     <ol class="sf__dots" aria-hidden="true">
-      {pillars.map((_, i) => <li class="sf__dot" data-sf-dot={i}></li>)}
+      {pillars.map((_, i) => <li class="sf__dot" data-sf-dot={i} />)}
     </ol>
     <button class="sf__pg-btn sf__pg-btn--next" type="button" data-sf-next>
-      <span>{t(nav.next)}</span> <span aria-hidden="true">→</span>
+      <span>{t(nav.next)}</span>
+      <span aria-hidden="true">→</span>
     </button>
   </div>
 </section>
@@ -636,6 +917,22 @@ const nav = {
     font-size: var(--fs-12);
     color: var(--text-secondary);
     overflow-wrap: anywhere;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+  }
+  .sf__tab[aria-selected="true"] .sf__tab-tag,
+  .sf__tab:hover .sf__tab-tag,
+  .sf__tab:focus-visible .sf__tab-tag {
+    max-height: 3em;
+    opacity: 1;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .sf__tab-tag {
+      transition:
+        max-height var(--dur-med) var(--ease-standard),
+        opacity var(--dur-fast) var(--ease-standard);
+    }
   }
 
   /* панель */
@@ -821,7 +1118,9 @@ const nav = {
     font-family: var(--font-stack-display);
     font-size: var(--fs-13);
     cursor: pointer;
-    transition: color var(--dur-fast) var(--ease-standard), background-color var(--dur-fast) var(--ease-standard);
+    transition:
+      color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard);
   }
   .sf__seg.is-on {
     color: var(--text);
@@ -1469,6 +1768,270 @@ const nav = {
     border-color: var(--text-faint);
   }
 
+  /* ---------- прогрессивное раскрытие ---------- */
+  .sf__statbar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    align-items: flex-start;
+  }
+  .sf__stats-toggle,
+  .sf__more {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: 0;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-12);
+    font-weight: var(--fw-medium);
+    text-transform: uppercase;
+    letter-spacing: var(--ls-wide);
+  }
+  .sf__more {
+    align-self: flex-start;
+  }
+  .sf__stats-toggle:hover,
+  .sf__more:hover {
+    color: var(--text);
+  }
+  .sf__stats-toggle:focus-visible,
+  .sf__more:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 3px;
+    border-radius: var(--r-xs);
+  }
+  /* плюс → минус */
+  .sf__stats-chevron,
+  .sf__chevron {
+    position: relative;
+    flex: none;
+    width: 10px;
+    height: 10px;
+  }
+  .sf__stats-chevron::before,
+  .sf__stats-chevron::after,
+  .sf__chevron::before,
+  .sf__chevron::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 10px;
+    height: 1.5px;
+    border-radius: 1px;
+    background: currentColor;
+    transform: translateY(-50%);
+  }
+  .sf__stats-chevron::after,
+  .sf__chevron::after {
+    transform: translateY(-50%) rotate(90deg);
+  }
+  .sf__stats-toggle[aria-expanded="true"] .sf__stats-chevron::after,
+  .sf__more[aria-expanded="true"] .sf__chevron::after {
+    opacity: 0;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .sf__stats-chevron::after,
+    .sf__chevron::after {
+      transition: opacity var(--dur-fast) var(--ease-standard);
+    }
+  }
+  .sf__statline-box {
+    display: grid;
+    grid-template-rows: 1fr;
+    width: 100%;
+  }
+  .sf__statline-box > .sf__statline {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .sf.is-enhanced .sf__statline-box {
+    grid-template-rows: 0fr;
+  }
+  .sf.is-enhanced.is-stats-open .sf__statline-box {
+    grid-template-rows: 1fr;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .sf__statline-box {
+      transition: grid-template-rows var(--dur-med) var(--ease-standard);
+    }
+  }
+
+  .sf__pitch {
+    font-size: var(--fs-16);
+    line-height: var(--lh-snug);
+    color: var(--text);
+    max-width: 64ch;
+  }
+  .sf__detail {
+    display: grid;
+    grid-template-rows: 1fr;
+  }
+  .sf__detail-inner {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .sf.is-enhanced .sf__detail {
+    grid-template-rows: 0fr;
+  }
+  .sf.is-enhanced .sf__panel.is-detail-open .sf__detail {
+    grid-template-rows: 1fr;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .sf.is-enhanced .sf__detail {
+      transition: grid-template-rows var(--dur-med) var(--ease-standard);
+    }
+  }
+
+  /* ---------- эквалайзер ---------- */
+  .sf__ls-eq {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 2px;
+    margin-left: auto;
+    height: 20px;
+    flex: none;
+  }
+  .sf__ls-eq span {
+    width: 3px;
+    height: 100%;
+    border-radius: 1px;
+    background: var(--sf-hot);
+    transform: scaleY(0.25);
+    transform-origin: bottom center;
+  }
+  .sf__viz--listen.is-playing .sf__ls-eq span {
+    animation: sf-eq 0.9s var(--ease-drift) infinite alternate;
+  }
+  .sf__ls-eq span:nth-child(1) {
+    animation-delay: -0.2s;
+  }
+  .sf__ls-eq span:nth-child(2) {
+    animation-delay: -0.5s;
+  }
+  .sf__ls-eq span:nth-child(3) {
+    animation-delay: -0.1s;
+  }
+  .sf__ls-eq span:nth-child(4) {
+    animation-delay: -0.7s;
+  }
+  .sf__ls-eq span:nth-child(5) {
+    animation-delay: -0.35s;
+  }
+  @keyframes sf-eq {
+    from {
+      transform: scaleY(0.2);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+
+  /* ---------- waveform-скраббер ---------- */
+  .sf__ls-wave {
+    position: relative;
+    height: 52px;
+    border-radius: var(--r-xs);
+  }
+  .sf__wave-row {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    pointer-events: none;
+  }
+  .sf__wave-bar {
+    flex: 1 1 0;
+    height: calc(var(--h, 0.5) * 100%);
+    min-height: 2px;
+    border-radius: 1px;
+    background: var(--sf-line);
+  }
+  .sf__wave-row--played {
+    clip-path: inset(0 calc((1 - var(--p, 0)) * 100%) 0 0);
+  }
+  .sf__wave-row--played .sf__wave-bar {
+    background: var(--sf-hot);
+  }
+  .sf__ls-wave::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    left: calc(var(--p, 0) * 100%);
+    width: 1.5px;
+    border-radius: 1px;
+    background: var(--sf-hot);
+    opacity: 0.85;
+    transform: translateX(-0.75px);
+    pointer-events: none;
+  }
+  .sf__wave-seek {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+    opacity: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+  }
+  .sf__wave-seek::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 6px;
+    height: 52px;
+  }
+  .sf__wave-seek::-moz-range-thumb {
+    width: 6px;
+    height: 52px;
+    border: 0;
+    background: transparent;
+  }
+  .sf__wave-seek:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 3px;
+    border-radius: var(--r-xs);
+  }
+  .sf__ls-time {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+  }
+  .sf__ls-time .sf__ls-hls {
+    margin-inline: auto;
+  }
+
+  /* активная строка лирики */
+  .sf__ly-line.is-active .sf__ly-text {
+    color: var(--sf-hot);
+  }
+  .sf__ly-line.is-in:not(.is-active) .sf__ly-text {
+    color: var(--text-muted);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .sf__ly-text {
+      transition: color var(--dur-med) var(--ease-standard);
+    }
+  }
+
+  /* список задач воркера: скролл в раскрытом виде */
+  .sf__jobs.is-expanded {
+    max-height: 220px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: var(--sp-1);
+  }
+
   /* адаптив */
   @media (max-width: 760px) {
     .sf__layout {
@@ -1504,11 +2067,15 @@ const nav = {
   @media (prefers-reduced-motion: reduce) {
     .sf__viz.is-active,
     .sf__card[data-st-card],
-    .sf__viz--listen.is-playing .sf__ls-fill {
+    .sf__viz--listen.is-playing .sf__ls-fill,
+    .sf__viz--listen.is-playing .sf__ls-eq span {
       animation: none !important;
     }
     .sf__ls-fill {
       transform: scaleX(1);
+    }
+    .sf__ls-eq span {
+      transform: scaleY(0.5);
     }
     .sf__ta-fill {
       transition: none;
@@ -1538,70 +2105,40 @@ const nav = {
 
     const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-sf-tab]"));
     const titleEl = root.querySelector<HTMLElement>("[data-sf-title]");
+    const pitchEl = root.querySelector<HTMLElement>("[data-sf-pitch]");
     const descEl = root.querySelector<HTMLElement>("[data-sf-desc]");
     const vizEls = Array.from(root.querySelectorAll<HTMLElement>("[data-sf-viz]"));
     const dots = Array.from(root.querySelectorAll<HTMLElement>("[data-sf-dot]"));
     dots.forEach((d, k) => d.classList.toggle("is-on", k === 0));
 
-    type Copy = { id: string; title: string; desc: string };
-    const copy: Copy[] = [
-      {
-        id: "storage",
-        title: tr("Загрузка и content-addressed storage", "Upload and content-addressed storage"),
-        desc: tr(
-          "Chunked-загрузка (resumable, S3 multipart) с MIME-валидацией и ClamAV-сканом. Контент адресуется по SHA-256: одинаковый трек хранится один раз, повторная заливка лишь увеличивает ref_count. Пользовательские квоты, MinIO с дедупликацией.",
-          "Chunked upload (resumable, S3 multipart) with MIME validation and a ClamAV scan. Content is addressed by SHA-256: an identical track is stored once, a re-upload only bumps ref_count. Per-user quotas, MinIO with deduplication.",
-        ),
-      },
-      {
-        id: "pipeline",
-        title: tr("Транскодинг и деривативы", "Transcoding and derivatives"),
-        desc: tr(
-          "FFmpeg строит progressive MP3 и адаптивный HLS (две дорожки), нормализует громкость. На каждый трек — waveform (200 столбцов), сниппет-превью и процедурная обложка.",
-          "FFmpeg builds progressive MP3 and adaptive HLS (two renditions) and normalizes loudness. Per track: a 200-bar waveform, a preview snippet, and a procedural cover.",
-        ),
-      },
-      {
-        id: "listen",
-        title: tr("Воспроизведение и синхро-лирика", "Playback and synced lyrics"),
-        desc: tr(
-          "Presigned URL, range-стриминг, HLS с adaptive bitrate (hls.js). Лирика всплывает построчно в такт: Demucs (--two-stems=vocals) + faster-whisper. Prefetch следующих треков.",
-          "Presigned URLs, range streaming, HLS with adaptive bitrate (hls.js). Lyrics surface line by line in sync: Demucs (--two-stems=vocals) + faster-whisper. Prefetch of next tracks.",
-        ),
-      },
-      {
-        id: "import",
-        title: tr("Импорт из внешних источников", "Import from external sources"),
-        desc: tr(
-          "Импорт треков из SoundCloud, YouTube, Bandcamp — по ссылке или каталогом. Очередь с диспетчером и лимитами, backfill артистов, in-app уведомления RU/EN.",
-          "Import tracks from SoundCloud, YouTube, Bandcamp — by link or catalog. A queued dispatcher with limits, artist backfill, in-app notifications in RU/EN.",
-        ),
-      },
-      {
-        id: "discover",
-        title: tr("Персональная лента и миксы", "Personal feed and mixes"),
-        desc: tr(
-          "Главный экран (8–10 секций): Daily / Weekly Mix, жанровые миксы, радио (seed-first), похожие треки. Скоринг в приватном ядре; телеметрия impressions ↔ listen.",
-          "Home screen (8–10 sections): Daily / Weekly Mix, genre mixes, radio (seed-first), similar tracks. Scoring in the private core; impressions ↔ listen telemetry.",
-        ),
-      },
-      {
-        id: "search",
-        title: tr("Полнотекстовый поиск", "Full-text search"),
-        desc: tr(
-          "Elasticsearch 8: полнотекст, SAYT, транслитерация RU↔LAT, fuzzy. Индексируются метаданные и распознанная лирика — трек находится по строчке из песни.",
-          "Elasticsearch 8: full-text, SAYT, RU↔LAT transliteration, fuzzy. Metadata and recognized lyrics are indexed — find a track by a line from the song.",
-        ),
-      },
-      {
-        id: "worker",
-        title: tr("Compute-воркер без открытых портов", "Compute worker with no open ports"),
-        desc: tr(
-          "Pull-based протокол с HMAC и одноразовыми токенами. 17 типов задач в одной очереди + ASR-конвейер (Demucs + faster-whisper). Тапните задачу — покажу, что она делает.",
-          "Pull-based protocol with HMAC and one-time tokens. 17 job types in one queue plus an ASR pipeline (Demucs + faster-whisper). Tap a job to see what it does.",
-        ),
-      },
-    ];
+    // Прогрессивное раскрытие: контент размечен открытым (доступен без JS),
+    // скрипт включает сворачивание цифр и описания + переключатели.
+    root.classList.add("is-enhanced");
+
+    const statsToggle = root.querySelector<HTMLButtonElement>("[data-sf-stats-toggle]");
+    let statsOpen = false;
+    const syncStats = (): void => {
+      root.classList.toggle("is-stats-open", statsOpen);
+      statsToggle?.setAttribute("aria-expanded", statsOpen ? "true" : "false");
+    };
+    statsToggle?.addEventListener("click", () => {
+      statsOpen = !statsOpen;
+      syncStats();
+    });
+    syncStats();
+
+    const panelEl = root.querySelector<HTMLElement>(".sf__panel");
+    const moreBtn = root.querySelector<HTMLButtonElement>("[data-sf-more]");
+    let detailOpen = false;
+    const syncDetail = (): void => {
+      panelEl?.classList.toggle("is-detail-open", detailOpen);
+      moreBtn?.setAttribute("aria-expanded", detailOpen ? "true" : "false");
+    };
+    moreBtn?.addEventListener("click", () => {
+      detailOpen = !detailOpen;
+      syncDetail();
+    });
+    syncDetail();
 
     // ---- инфраструктура таймеров ----
     let inview = false;
@@ -1675,15 +2212,18 @@ const nav = {
       seq.forEach((el, i) => {
         later(() => el.classList.add("is-on"), D(280) * (i + 1));
       });
-      later(() => {
-        if (plNote) {
-          plNote.textContent = tr(
-            "деривативы готовы — immutable сегменты",
-            "derivatives ready — immutable segments",
-          );
-        }
-        if (plGo) plGo.disabled = false;
-      }, D(280) * (seq.length + 1));
+      later(
+        () => {
+          if (plNote) {
+            plNote.textContent = tr(
+              "деривативы готовы — immutable сегменты",
+              "derivatives ready — immutable segments",
+            );
+          }
+          if (plGo) plGo.disabled = false;
+        },
+        D(280) * (seq.length + 1),
+      );
     };
     plGo?.addEventListener("click", runPipeline);
 
@@ -1710,47 +2250,110 @@ const nav = {
       imRows.forEach((r, i) => {
         later(() => r.classList.add("is-in"), D(260) * (i + 1));
       });
-      later(() => {
-        if (imNote) imNote.textContent = tr("синхронизировано в каталог", "synced into the catalog");
-        if (imGo) imGo.disabled = false;
-      }, D(260) * (imRows.length + 1));
+      later(
+        () => {
+          if (imNote)
+            imNote.textContent = tr("синхронизировано в каталог", "synced into the catalog");
+          if (imGo) imGo.disabled = false;
+        },
+        D(260) * (imRows.length + 1),
+      );
     };
     imGo?.addEventListener("click", runImport);
 
     // ============ (4) СЛУШАТЬ ============
+    // Мини-плеер: waveform-скраббер (seek), эквалайзер и караоке-подсветка строк.
+    // Один rAF только во время воспроизведения; останавливается на паузе/конце/
+    // offscreen. Под reduced-motion — статичный кадр без rAF.
     const lsViz = root.querySelector<HTMLElement>("[data-sf-viz='listen']");
+    const lsWave = root.querySelector<HTMLElement>("[data-ls-wave]");
+    const lsSeek = root.querySelector<HTMLInputElement>("[data-ls-seek]");
+    const lsCur = root.querySelector<HTMLElement>("[data-ls-cur]");
     const lsLines = Array.from(root.querySelectorAll<HTMLElement>("[data-ls-line]"));
     const lsPlay = root.querySelector<HTMLButtonElement>("[data-ls-play]");
+    const TRACK_LEN = 168; // 2:48 — для подписи текущего времени
+    const PLAY_DUR = 20; // секунд на полный проход в демо
+    let lsRaf = 0;
+    let lsTs = 0;
+    let lsP0 = 0;
+    let lsP = 0;
     let lsPlaying = false;
 
-    const lsStop = (): void => {
-      lsPlaying = false;
-      lsViz?.classList.remove("is-playing");
-      lsLines.forEach((l) => l.classList.remove("is-in"));
-      if (lsPlay) {
-        lsPlay.setAttribute("aria-pressed", "false");
-        lsPlay.textContent = tr("Играть", "Play");
+    const fmt = (s: number): string => {
+      const m = Math.floor(s / 60);
+      const sec = Math.max(0, Math.floor(s % 60));
+      return `${m}:${sec < 10 ? "0" : ""}${sec}`;
+    };
+    const lsCancel = (): void => {
+      if (lsRaf) {
+        cancelAnimationFrame(lsRaf);
+        lsRaf = 0;
       }
     };
-    const lsStart = (): void => {
-      clearTimers();
-      lsLines.forEach((l) => l.classList.remove("is-in"));
-      lsViz?.classList.remove("is-playing");
-      // рестарт CSS-анимации полосы прогресса
-      void lsViz?.offsetWidth;
-      lsViz?.classList.add("is-playing");
-      lsPlaying = true;
-      if (lsPlay) {
-        lsPlay.setAttribute("aria-pressed", "true");
-        lsPlay.textContent = tr("Пауза", "Pause");
-      }
+    const lsApply = (p: number): void => {
+      lsP = p;
+      lsWave?.style.setProperty("--p", p.toFixed(4));
+      if (lsSeek) lsSeek.value = String(Math.round(p * 1000));
+      if (lsCur) lsCur.textContent = fmt(p * TRACK_LEN);
+      let active = -1;
       lsLines.forEach((l, i) => {
-        later(() => l.classList.add("is-in"), D(400) + D(1500) * i);
+        const at = Number(l.dataset.at) || 0;
+        const on = p >= at - 0.001;
+        l.classList.toggle("is-in", on);
+        if (on) active = i;
       });
+      lsLines.forEach((l, i) => l.classList.toggle("is-active", i === active));
+    };
+    const lsLabel = (text: string, pressed: boolean): void => {
+      if (!lsPlay) return;
+      lsPlay.textContent = text;
+      lsPlay.setAttribute("aria-pressed", pressed ? "true" : "false");
+    };
+    const lsStop = (): void => {
+      lsCancel();
+      lsPlaying = false;
+      lsViz?.classList.remove("is-playing");
+      lsLabel(tr("Играть", "Play"), false);
+    };
+    const lsFrame = (ts: number): void => {
+      if (!lsTs) lsTs = ts;
+      const p = Math.min(1, lsP0 + (ts - lsTs) / 1000 / PLAY_DUR);
+      lsApply(p);
+      if (p >= 1) {
+        lsCancel();
+        lsPlaying = false;
+        lsViz?.classList.remove("is-playing");
+        lsLabel(tr("Заново", "Replay"), false);
+        return;
+      }
+      lsRaf = requestAnimationFrame(lsFrame);
+    };
+    const lsStart = (): void => {
+      lsCancel();
+      if (reduced) {
+        lsApply(1);
+        lsLabel(tr("Заново", "Replay"), false);
+        return;
+      }
+      if (lsP >= 1) lsP = 0;
+      lsP0 = lsP;
+      lsTs = 0;
+      lsPlaying = true;
+      lsViz?.classList.add("is-playing");
+      lsLabel(tr("Пауза", "Pause"), true);
+      lsRaf = requestAnimationFrame(lsFrame);
     };
     lsPlay?.addEventListener("click", () => {
       if (lsPlaying) lsStop();
       else lsStart();
+    });
+    lsSeek?.addEventListener("input", () => {
+      const p = (Number(lsSeek.value) || 0) / 1000;
+      if (lsPlaying) {
+        lsP0 = p;
+        lsTs = 0;
+      }
+      lsApply(p);
     });
 
     // ============ (5) РЕКОМЕНДАЦИИ ============
@@ -1768,14 +2371,21 @@ const nav = {
       dcCards.forEach((card, i) => {
         card.hidden = !showFeed;
         if (!showFeed) card.classList.remove("is-on");
-        else later(() => {
-          card.hidden = false;
-        }, D(120) * i);
+        else
+          later(
+            () => {
+              card.hidden = false;
+            },
+            D(120) * i,
+          );
       });
       if (dcNote) {
         dcNote.textContent = showFeed
           ? tr("лента прогрета — impressions ↔ listen", "feed warmed — impressions ↔ listen")
-          : tr("отметьте хотя бы 2 — появятся секции ленты", "mark at least 2 — feed sections appear");
+          : tr(
+              "отметьте хотя бы 2 — появятся секции ленты",
+              "mark at least 2 — feed sections appear",
+            );
       }
     };
     dcChips.forEach((c) => {
@@ -1810,9 +2420,12 @@ const nav = {
         r.hidden = true;
       });
       srRows.forEach((r, i) => {
-        later(() => {
-          r.hidden = false;
-        }, D(180) * (i + 1));
+        later(
+          () => {
+            r.hidden = false;
+          },
+          D(180) * (i + 1),
+        );
       });
     };
     srInput?.addEventListener("input", runSearch);
@@ -1826,6 +2439,7 @@ const nav = {
 
     // ============ (7) ВОРКЕР ============
     const wkJobs = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-wk-job]"));
+    const wkJobsBox = root.querySelector<HTMLElement>("[data-wk-jobs]");
     const wkMore = root.querySelector<HTMLButtonElement>("[data-wk-more]");
     const wkDesc = root.querySelector<HTMLElement>("[data-wk-desc]");
     const wkMoreT = root.querySelector<HTMLElement>("[data-wk-more-t]");
@@ -1839,7 +2453,11 @@ const nav = {
         j.hidden = !wkExpanded;
       });
       wkMore.setAttribute("aria-expanded", wkExpanded ? "true" : "false");
-      if (wkMoreT) wkMoreT.textContent = wkExpanded ? tr("Свернуть", "Collapse") : tr("Показать все", "Show all");
+      wkJobsBox?.classList.toggle("is-expanded", wkExpanded);
+      if (wkMoreT)
+        wkMoreT.textContent = wkExpanded
+          ? tr("Свернуть", "Collapse")
+          : tr("Показать все", "Show all");
       if (wkMoreC) wkMoreC.hidden = wkExpanded;
     });
     wkJobs.forEach((j) => {
@@ -1868,12 +2486,13 @@ const nav = {
         if (reduced) imRows.forEach((r) => r.classList.add("is-in"));
         else runImport();
       } else if (id === "listen") {
-        if (reduced) lsLines.forEach((l) => l.classList.add("is-in"));
+        if (reduced) lsApply(1);
         else lsStart();
       } else if (id === "search") {
-        if (reduced) srRows.forEach((r) => {
-          r.hidden = false;
-        });
+        if (reduced)
+          srRows.forEach((r) => {
+            r.hidden = false;
+          });
         else runSearch();
       }
     };
@@ -1897,11 +2516,14 @@ const nav = {
         v.hidden = !on;
         v.classList.toggle("is-active", on);
       });
-      const c = copy[idx];
-      if (c) {
-        if (titleEl) titleEl.textContent = c.title;
-        if (descEl) descEl.textContent = c.desc;
+      const tab = tabs[idx];
+      if (tab) {
+        if (titleEl) titleEl.textContent = tab.dataset.title ?? "";
+        if (pitchEl) pitchEl.textContent = tab.dataset.pitch ?? "";
+        if (descEl) descEl.textContent = tab.dataset.desc ?? "";
       }
+      detailOpen = false;
+      syncDetail();
       dots.forEach((d, k) => {
         d.classList.toggle("is-on", k === idx);
         d.classList.toggle("is-done", k < idx);
@@ -1914,7 +2536,8 @@ const nav = {
       tab.addEventListener("keydown", (e: KeyboardEvent) => {
         let next = -1;
         if (e.key === "ArrowDown" || e.key === "ArrowRight") next = (current + 1) % tabs.length;
-        else if (e.key === "ArrowUp" || e.key === "ArrowLeft") next = (current - 1 + tabs.length) % tabs.length;
+        else if (e.key === "ArrowUp" || e.key === "ArrowLeft")
+          next = (current - 1 + tabs.length) % tabs.length;
         else if (e.key === "Home") next = 0;
         else if (e.key === "End") next = tabs.length - 1;
         if (next >= 0) {
@@ -1926,7 +2549,9 @@ const nav = {
 
     const prevBtn = root.querySelector<HTMLButtonElement>("[data-sf-prev]");
     const nextBtn = root.querySelector<HTMLButtonElement>("[data-sf-next]");
-    prevBtn?.addEventListener("click", () => select((current - 1 + tabs.length) % tabs.length, false));
+    prevBtn?.addEventListener("click", () =>
+      select((current - 1 + tabs.length) % tabs.length, false),
+    );
     nextBtn?.addEventListener("click", () => select((current + 1) % tabs.length, false));
 
     // ============ IntersectionObserver-гейтинг ============

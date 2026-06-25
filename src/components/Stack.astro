@@ -151,9 +151,7 @@ const groups: ReadonlyArray<StackGroup> = [
   const motionOk = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   if (fine.matches && motionOk) {
-    const cards = Array.from(
-      document.querySelectorAll<HTMLElement>("[data-stack-card]"),
-    );
+    const cards = Array.from(document.querySelectorAll<HTMLElement>("[data-stack-card]"));
     const cleanups: Array<() => void> = [];
 
     cards.forEach((card) => {
@@ -191,11 +189,7 @@ const groups: ReadonlyArray<StackGroup> = [
       });
     });
 
-    window.addEventListener(
-      "pagehide",
-      () => cleanups.forEach((fn) => fn()),
-      { once: true },
-    );
+    window.addEventListener("pagehide", () => cleanups.forEach((fn) => fn()), { once: true });
   }
 </script>
 

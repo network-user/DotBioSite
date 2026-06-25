@@ -55,9 +55,21 @@ const cmd = "rm -rf /tmp/scratch";
 
 // IDE-транскрипт: то, что «печатал» агент перед перехватом (декор, aria-hidden).
 const transcript: { who: "user" | "agent" | "tool"; text: Bi }[] = [
-  { who: "user", text: { ru: "почисти временные артефакты сборки", en: "clean up the temp build artifacts" } },
-  { who: "agent", text: { ru: "Нашёл /tmp/scratch. Удаляю рекурсивно.", en: "Found /tmp/scratch. Removing recursively." } },
-  { who: "tool", text: { ru: "вызов shell · ожидает approval", en: "shell call · awaiting approval" } },
+  {
+    who: "user",
+    text: { ru: "почисти временные артефакты сборки", en: "clean up the temp build artifacts" },
+  },
+  {
+    who: "agent",
+    text: {
+      ru: "Нашёл /tmp/scratch. Удаляю рекурсивно.",
+      en: "Found /tmp/scratch. Removing recursively.",
+    },
+  },
+  {
+    who: "tool",
+    text: { ru: "вызов shell · ожидает approval", en: "shell call · awaiting approval" },
+  },
 ];
 
 const copy = {
@@ -66,13 +78,22 @@ const copy = {
   ideSub: { ru: "Cursor · Claude Code · Antigravity", en: "Cursor · Claude Code · Antigravity" },
   ideTab: { ru: "agent · session #a3f1", en: "agent · session #a3f1" },
   cmdKind: { ru: "shell · risk: high", en: "shell · risk: high" },
-  intercepted: { ru: "хук перехватил вызов — агент ждёт", en: "hook intercepted the call — agent waiting" },
-  hookLine: { ru: "↳ pre-tool hook: POST 127.0.0.1 · X-DotAgents-Secret", en: "↳ pre-tool hook: POST 127.0.0.1 · X-DotAgents-Secret" },
+  intercepted: {
+    ru: "хук перехватил вызов — агент ждёт",
+    en: "hook intercepted the call — agent waiting",
+  },
+  hookLine: {
+    ru: "↳ pre-tool hook: POST 127.0.0.1 · X-DotAgents-Secret",
+    en: "↳ pre-tool hook: POST 127.0.0.1 · X-DotAgents-Secret",
+  },
   // Daemon / wire
   daemon: { ru: "локальный демон", en: "local daemon" },
   daemonApi: { ru: "FastAPI · 127.0.0.1 · argon2id", en: "FastAPI · 127.0.0.1 · argon2id" },
   loopback: { ru: "loopback only", en: "loopback only" },
-  longPoll: { ru: "long-poll · asyncio.Event по short_id", en: "long-poll · asyncio.Event by short_id" },
+  longPoll: {
+    ru: "long-poll · asyncio.Event по short_id",
+    en: "long-poll · asyncio.Event by short_id",
+  },
   // Phone
   phone: { ru: "твой телефон", en: "your phone" },
   tgBot: { ru: "DotAgents bot", en: "DotAgents bot" },
@@ -86,7 +107,10 @@ const copy = {
   stAllowed: { ru: "allow · команда выполняется", en: "allowed · command runs" },
   stDenied: { ru: "deny · команда не запущена", en: "denied · command never runs" },
   stTimeout: { ru: "тишина → deny (fail-closed)", en: "silence → deny (fail-closed)" },
-  stAutoAllow: { ru: "readonly: авто-allow, только уведомление", en: "readonly: auto-allow, notify only" },
+  stAutoAllow: {
+    ru: "readonly: авто-allow, только уведомление",
+    en: "readonly: auto-allow, notify only",
+  },
   stAutoDeny: { ru: "standby: авто-deny, не спрашивает", en: "standby: auto-deny, never asks" },
   // Agent outcome line
   agRuns: { ru: "выполняется — вызов разрешён", en: "running — call allowed" },
@@ -98,10 +122,19 @@ const copy = {
   modeStandbyHint: { ru: "авто-deny опасного", en: "auto-deny risky" },
   // Seal
   sealLabel: { ru: "Печать ответа — попробуй сломать", en: "Answer seal — try to break it" },
-  sealNote: { ru: "ответь в Telegram — печать сформируется", en: "answer in Telegram — the seal forms" },
+  sealNote: {
+    ru: "ответь в Telegram — печать сформируется",
+    en: "answer in Telegram — the seal forms",
+  },
   sealOk: { ru: "подпись сходится · nonce свежий", en: "signature matches · nonce fresh" },
-  sealReplay: { ru: "nonce уже сгорел — повтор отклонён", en: "nonce already spent — replay rejected" },
-  sealTamper: { ru: "подпись не сходится — подделка отклонена", en: "signature mismatch — tamper rejected" },
+  sealReplay: {
+    ru: "nonce уже сгорел — повтор отклонён",
+    en: "nonce already spent — replay rejected",
+  },
+  sealTamper: {
+    ru: "подпись не сходится — подделка отклонена",
+    en: "signature mismatch — tamper rejected",
+  },
   replayBtn: { ru: "Повторить ту же подпись", en: "Replay same signature" },
   tamperBtn: { ru: "Подменить данные", en: "Tamper with the data" },
   resetBtn: { ru: "Сбросить запрос", en: "Reset request" },
@@ -132,7 +165,11 @@ const modes: { id: string; hint: Bi }[] = [
 ];
 ---
 
-<section class="ab" data-ab aria-label={t({ ru: "Диспетчерская одобрений .агенты", en: "DotAgents approval control room" })}>
+<section
+  class="ab"
+  data-ab
+  aria-label={t({ ru: "Диспетчерская одобрений .агенты", en: "DotAgents approval control room" })}
+>
   <p class="ab__intro">{t(intro)}</p>
 
   <!-- ===================== Диспетчерская: IDE | провод | телефон ===================== -->
@@ -167,7 +204,8 @@ const modes: { id: string; hint: Bi }[] = [
             <span class="ab-call__wait mono" data-agent-state>{t(copy.intercepted)}</span>
           </span>
           <code class="ab-call__cmd mono">
-            <span class="ab-call__prompt" aria-hidden="true">$</span> {cmd}<span class="ab-call__caret" aria-hidden="true"></span>
+            <span class="ab-call__prompt" aria-hidden="true">$</span>
+            {cmd}<span class="ab-call__caret" aria-hidden="true"></span>
           </code>
           <span class="ab-call__hook mono">{t(copy.hookLine)}</span>
         </div>
@@ -214,14 +252,18 @@ const modes: { id: string; hint: Bi }[] = [
 
             <div class="ab-msg__btns">
               <button type="button" class="ab-tg ab-tg--allow" data-act="allow" disabled>
-                <span aria-hidden="true">✓</span> {t(copy.allow)}
+                <span aria-hidden="true">✓</span>
+                {t(copy.allow)}
               </button>
               <button type="button" class="ab-tg ab-tg--deny" data-act="deny" disabled>
-                <span aria-hidden="true">✕</span> {t(copy.deny)}
+                <span aria-hidden="true">✕</span>
+                {t(copy.deny)}
               </button>
             </div>
 
-            <span class="ab-msg__status mono" data-status data-state="idle" aria-live="polite">{t(copy.stIdle)}</span>
+            <span class="ab-msg__status mono" data-status data-state="idle" aria-live="polite"
+              >{t(copy.stIdle)}</span
+            >
           </div>
         </div>
       </div>
@@ -261,17 +303,29 @@ const modes: { id: string; hint: Bi }[] = [
         {
           sealFields.map((f, i) => (
             <span class="ab-seal__chip" style={`--i:${i}`}>
-              {i > 0 && <span class="ab-seal__sep" aria-hidden="true">:</span>}
-              <span class="ab-seal__tok" title={t(f.note)}>{f.tok}</span>
+              {i > 0 && (
+                <span class="ab-seal__sep" aria-hidden="true">
+                  :
+                </span>
+              )}
+              <span class="ab-seal__tok" title={t(f.note)}>
+                {f.tok}
+              </span>
             </span>
           ))
         }
       </div>
       <span class="ab-seal__verdict mono" data-seal-verdict>{t(copy.sealNote)}</span>
       <div class="ab-seal__btns">
-        <button type="button" class="ab-seal__btn" data-seal-act="replay" disabled>{t(copy.replayBtn)}</button>
-        <button type="button" class="ab-seal__btn" data-seal-act="tamper" disabled>{t(copy.tamperBtn)}</button>
-        <button type="button" class="ab-seal__btn ab-seal__btn--reset" data-seal-act="reset">{t(copy.resetBtn)}</button>
+        <button type="button" class="ab-seal__btn" data-seal-act="replay" disabled
+          >{t(copy.replayBtn)}</button
+        >
+        <button type="button" class="ab-seal__btn" data-seal-act="tamper" disabled
+          >{t(copy.tamperBtn)}</button
+        >
+        <button type="button" class="ab-seal__btn ab-seal__btn--reset" data-seal-act="reset"
+          >{t(copy.resetBtn)}</button
+        >
       </div>
     </div>
   </div>
@@ -332,8 +386,7 @@ const modes: { id: string; hint: Bi }[] = [
     border: var(--bw-thin) solid var(--glass-edge);
     border-radius: var(--r-lg);
     background:
-      radial-gradient(120% 130% at 6% 0%, var(--ab-glow), transparent 52%),
-      var(--glass-tint-1);
+      radial-gradient(120% 130% at 6% 0%, var(--ab-glow), transparent 52%), var(--glass-tint-1);
   }
   /* дотовая подложка — бренд-мотив */
   .ab__room::before {
@@ -423,8 +476,14 @@ const modes: { id: string; hint: Bi }[] = [
     animation-delay: calc(var(--i) * 140ms);
   }
   @keyframes ab-type-in {
-    from { opacity: 0; transform: translate3d(-6px, 0, 0); }
-    to { opacity: 1; transform: none; }
+    from {
+      opacity: 0;
+      transform: translate3d(-6px, 0, 0);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
   .ab-ide__gutter {
     font-size: var(--fs-11);
@@ -438,9 +497,15 @@ const modes: { id: string; hint: Bi }[] = [
     color: var(--text-secondary);
     overflow-wrap: anywhere;
   }
-  .ab-ide__line--user .ab-ide__txt { color: var(--text); }
-  .ab-ide__line--agent .ab-ide__gutter { color: color-mix(in srgb, var(--accent) 70%, var(--text-muted)); }
-  .ab-ide__line--tool .ab-ide__txt { color: var(--text-muted); }
+  .ab-ide__line--user .ab-ide__txt {
+    color: var(--text);
+  }
+  .ab-ide__line--agent .ab-ide__gutter {
+    color: color-mix(in srgb, var(--accent) 70%, var(--text-muted));
+  }
+  .ab-ide__line--tool .ab-ide__txt {
+    color: var(--text-muted);
+  }
 
   /* перехваченный вызов */
   .ab-call {
@@ -452,10 +517,17 @@ const modes: { id: string; hint: Bi }[] = [
     border-left: var(--bw-thick) solid var(--accent);
     border-radius: var(--r-sm);
     background: var(--surface);
-    transition: border-color var(--dur-med) var(--ease-standard), background-color var(--dur-med) var(--ease-standard);
+    transition:
+      border-color var(--dur-med) var(--ease-standard),
+      background-color var(--dur-med) var(--ease-standard);
   }
-  .ab-call[data-resolved="allow"] { border-left-color: var(--accent); background: var(--ab-faint); }
-  .ab-call[data-resolved="deny"] { border-left-color: var(--text-muted); }
+  .ab-call[data-resolved="allow"] {
+    border-left-color: var(--accent);
+    background: var(--ab-faint);
+  }
+  .ab-call[data-resolved="deny"] {
+    border-left-color: var(--text-muted);
+  }
   .ab-call__top {
     display: flex;
     align-items: center;
@@ -474,10 +546,19 @@ const modes: { id: string; hint: Bi }[] = [
     animation: ab-pulse 1700ms var(--ease-drift) infinite;
   }
   @keyframes ab-pulse {
-    0%, 100% { opacity: 0.45; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1.15); }
+    0%,
+    100% {
+      opacity: 0.45;
+      transform: scale(0.8);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.15);
+    }
   }
-  .ab-call[data-resolved="deny"] .ab-call__pulse { background: var(--text-muted); }
+  .ab-call[data-resolved="deny"] .ab-call__pulse {
+    background: var(--text-muted);
+  }
   .ab-call__kind {
     font-size: var(--fs-11);
     color: var(--text-muted);
@@ -489,14 +570,20 @@ const modes: { id: string; hint: Bi }[] = [
     text-align: right;
     transition: color var(--dur-med) var(--ease-standard);
   }
-  .ab-call[data-resolved="allow"] .ab-call__wait { color: var(--text); }
-  .ab-call[data-resolved="deny"] .ab-call__wait { color: var(--text-secondary); }
+  .ab-call[data-resolved="allow"] .ab-call__wait {
+    color: var(--text);
+  }
+  .ab-call[data-resolved="deny"] .ab-call__wait {
+    color: var(--text-secondary);
+  }
   .ab-call__cmd {
     font-size: var(--fs-14);
     color: var(--text);
     overflow-wrap: anywhere;
   }
-  .ab-call__prompt { color: var(--accent); }
+  .ab-call__prompt {
+    color: var(--accent);
+  }
   .ab-call__caret {
     display: inline-block;
     width: 7px;
@@ -510,11 +597,20 @@ const modes: { id: string; hint: Bi }[] = [
     animation: ab-blink 1080ms steps(2, jump-none) infinite;
   }
   @keyframes ab-blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
   }
-  .ab-call[data-resolved="allow"] .ab-call__caret { opacity: 1; }
-  .ab-call[data-resolved="deny"] .ab-call__caret { opacity: 0.25; }
+  .ab-call[data-resolved="allow"] .ab-call__caret {
+    opacity: 1;
+  }
+  .ab-call[data-resolved="deny"] .ab-call__caret {
+    opacity: 0.25;
+  }
   .ab-call__hook {
     font-size: var(--fs-11);
     color: var(--text-faint);
@@ -567,19 +663,47 @@ const modes: { id: string; hint: Bi }[] = [
     background: var(--accent);
   }
   /* пакет летит вправо (IDE → телефон) только при .is-inview + data-run */
-  .ab.is-inview .ab-link__pkt[data-run="right"] { animation: ab-pkt-r var(--dur-glacial) var(--ease-soft) forwards; }
-  .ab.is-inview .ab-link__pkt[data-run="left"] { animation: ab-pkt-l var(--dur-glacial) var(--ease-soft) forwards; }
+  .ab.is-inview .ab-link__pkt[data-run="right"] {
+    animation: ab-pkt-r var(--dur-glacial) var(--ease-soft) forwards;
+  }
+  .ab.is-inview .ab-link__pkt[data-run="left"] {
+    animation: ab-pkt-l var(--dur-glacial) var(--ease-soft) forwards;
+  }
   @keyframes ab-pkt-r {
-    0% { opacity: 0; transform: translate(0, -50%) scale(0.7); }
-    15% { opacity: 1; transform: translate(8px, -50%) scale(1); }
-    85% { opacity: 1; transform: translate(var(--pkt-dist), -50%) scale(1); }
-    100% { opacity: 0; transform: translate(var(--pkt-dist), -50%) scale(0.7); }
+    0% {
+      opacity: 0;
+      transform: translate(0, -50%) scale(0.7);
+    }
+    15% {
+      opacity: 1;
+      transform: translate(8px, -50%) scale(1);
+    }
+    85% {
+      opacity: 1;
+      transform: translate(var(--pkt-dist), -50%) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(var(--pkt-dist), -50%) scale(0.7);
+    }
   }
   @keyframes ab-pkt-l {
-    0% { opacity: 0; transform: translate(var(--pkt-dist), -50%) scale(0.7); }
-    15% { opacity: 1; transform: translate(calc(var(--pkt-dist) - 8px), -50%) scale(1); }
-    85% { opacity: 1; transform: translate(0, -50%) scale(1); }
-    100% { opacity: 0; transform: translate(0, -50%) scale(0.7); }
+    0% {
+      opacity: 0;
+      transform: translate(var(--pkt-dist), -50%) scale(0.7);
+    }
+    15% {
+      opacity: 1;
+      transform: translate(calc(var(--pkt-dist) - 8px), -50%) scale(1);
+    }
+    85% {
+      opacity: 1;
+      transform: translate(0, -50%) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(0, -50%) scale(0.7);
+    }
   }
   .ab-link__cap {
     position: absolute;
@@ -589,8 +713,16 @@ const modes: { id: string; hint: Bi }[] = [
     text-align: center;
     white-space: nowrap;
   }
-  .ab-link__cap--top { top: 0; left: 50%; transform: translateX(-50%); }
-  .ab-link__cap--bot { bottom: 0; left: 50%; transform: translateX(-50%); }
+  .ab-link__cap--top {
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .ab-link__cap--bot {
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 
   /* ---------------------------- Телефон ---------------------------- */
   .ab-phone-wrap {
@@ -667,10 +799,16 @@ const modes: { id: string; hint: Bi }[] = [
     background: var(--surface);
     transition: border-color var(--dur-med) var(--ease-standard);
   }
-  .ab-msg[data-lit="true"] { border-color: var(--ab-line); }
-  .ab.is-inview .ab-msg[data-lit="true"] { animation: ab-pop var(--dur-med) var(--ease-spring); }
+  .ab-msg[data-lit="true"] {
+    border-color: var(--ab-line);
+  }
+  .ab.is-inview .ab-msg[data-lit="true"] {
+    animation: ab-pop var(--dur-med) var(--ease-spring);
+  }
   @keyframes ab-pop {
-    50% { transform: scale(1.012); }
+    50% {
+      transform: scale(1.012);
+    }
   }
   .ab-msg__from {
     font-size: var(--fs-11);
@@ -697,7 +835,9 @@ const modes: { id: string; hint: Bi }[] = [
     align-items: center;
     gap: var(--sp-3);
   }
-  .ab-ring[hidden] { display: none; }
+  .ab-ring[hidden] {
+    display: none;
+  }
   .ab-ring__dial {
     position: relative;
     width: 46px;
@@ -718,8 +858,12 @@ const modes: { id: string; hint: Bi }[] = [
   .ab-ring__half {
     overflow: hidden;
   }
-  .ab-ring__half--l { clip-path: inset(0 50% 0 0); }
-  .ab-ring__half--r { clip-path: inset(0 0 0 50%); }
+  .ab-ring__half--l {
+    clip-path: inset(0 50% 0 0);
+  }
+  .ab-ring__half--r {
+    clip-path: inset(0 0 0 50%);
+  }
   .ab-ring__half i {
     position: absolute;
     inset: 0;
@@ -728,8 +872,14 @@ const modes: { id: string; hint: Bi }[] = [
     transform-origin: center;
   }
   /* стартовые позиции: оба сектора скрыты «за спиной», поворотом проявляют дугу */
-  .ab-ring__half--r i { clip-path: inset(0 0 0 50%); transform: rotate(180deg); }
-  .ab-ring__half--l i { clip-path: inset(0 50% 0 0); transform: rotate(0deg); }
+  .ab-ring__half--r i {
+    clip-path: inset(0 0 0 50%);
+    transform: rotate(180deg);
+  }
+  .ab-ring__half--l i {
+    clip-path: inset(0 50% 0 0);
+    transform: rotate(0deg);
+  }
   /* при отсчёте обе дуги уезжают, открывая «съеденное» время */
   .ab.is-inview .ab-ring[data-run="true"] .ab-ring__half--r i {
     animation: ab-ring-r var(--ring-ms, 8000ms) linear forwards;
@@ -739,12 +889,22 @@ const modes: { id: string; hint: Bi }[] = [
   }
   /* первая половина времени съедает правый сектор, вторая — левый */
   @keyframes ab-ring-r {
-    0% { transform: rotate(180deg); }
-    50%, 100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(180deg);
+    }
+    50%,
+    100% {
+      transform: rotate(360deg);
+    }
   }
   @keyframes ab-ring-l {
-    0%, 50% { transform: rotate(0deg); }
-    100% { transform: rotate(180deg); }
+    0%,
+    50% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(180deg);
+    }
   }
   .ab-ring__num {
     position: absolute;
@@ -800,18 +960,33 @@ const modes: { id: string; hint: Bi }[] = [
       opacity var(--dur-fast) var(--ease-standard),
       transform var(--dur-fast) var(--ease-soft);
   }
-  .ab-tg:hover:not(:disabled) { color: var(--text); border-color: var(--border-hover); }
-  .ab-tg:active:not(:disabled) { transform: scale(0.96); }
-  .ab-tg:focus-visible { outline: var(--ring-width) solid var(--ring-focus); outline-offset: 2px; }
-  .ab-tg:disabled { opacity: 0.42; cursor: default; }
-  .ab-tg--allow:not(:disabled) { border-color: color-mix(in srgb, var(--accent) 32%, var(--border)); }
+  .ab-tg:hover:not(:disabled) {
+    color: var(--text);
+    border-color: var(--border-hover);
+  }
+  .ab-tg:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+  .ab-tg:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  .ab-tg:disabled {
+    opacity: 0.42;
+    cursor: default;
+  }
+  .ab-tg--allow:not(:disabled) {
+    border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
+  }
   .ab-tg[data-picked="true"] {
     color: var(--text);
     border-color: var(--accent);
     background: var(--ab-soft);
     transform: scale(1.03);
   }
-  .ab-tg[data-faded="true"] { opacity: 0.26; }
+  .ab-tg[data-faded="true"] {
+    opacity: 0.26;
+  }
 
   .ab-msg__status {
     font-size: var(--fs-12);
@@ -820,13 +995,25 @@ const modes: { id: string; hint: Bi }[] = [
     min-height: 1.3em;
     transition: color var(--dur-med) var(--ease-standard);
   }
-  .ab-msg__status[data-state="waiting"] { color: var(--text-secondary); }
-  .ab-msg__status[data-state="allowed"] { color: var(--text); }
-  .ab-msg__status[data-state="allowed"]::before { content: "✓ "; color: var(--accent); }
+  .ab-msg__status[data-state="waiting"] {
+    color: var(--text-secondary);
+  }
+  .ab-msg__status[data-state="allowed"] {
+    color: var(--text);
+  }
+  .ab-msg__status[data-state="allowed"]::before {
+    content: "✓ ";
+    color: var(--accent);
+  }
   .ab-msg__status[data-state="denied"],
-  .ab-msg__status[data-state="timeout"] { color: var(--text); }
+  .ab-msg__status[data-state="timeout"] {
+    color: var(--text);
+  }
   .ab-msg__status[data-state="denied"]::before,
-  .ab-msg__status[data-state="timeout"]::before { content: "✕ "; color: var(--text-secondary); }
+  .ab-msg__status[data-state="timeout"]::before {
+    content: "✕ ";
+    color: var(--text-secondary);
+  }
 
   /* ============================ Пульт демона ============================ */
   .ab__deck {
@@ -892,35 +1079,61 @@ const modes: { id: string; hint: Bi }[] = [
     color: var(--text-muted);
     text-align: left;
     cursor: pointer;
-    transition: color var(--dur-fast) var(--ease-standard), transform var(--dur-fast) var(--ease-soft);
+    transition:
+      color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-soft);
   }
-  .ab-seg__btn:hover { color: var(--text-secondary); }
-  .ab-seg__btn:active { transform: scale(0.97); }
-  .ab-seg__btn:focus-visible { outline: var(--ring-width) solid var(--ring-focus); outline-offset: 2px; }
-  .ab-seg__btn[aria-checked="true"] { color: var(--text); }
+  .ab-seg__btn:hover {
+    color: var(--text-secondary);
+  }
+  .ab-seg__btn:active {
+    transform: scale(0.97);
+  }
+  .ab-seg__btn:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  .ab-seg__btn[aria-checked="true"] {
+    color: var(--text);
+  }
   .ab-seg__id {
     font-size: var(--fs-14);
     font-weight: var(--fw-semibold);
   }
-  .ab-seg__btn[aria-checked="true"] .ab-seg__id { color: var(--accent); }
+  .ab-seg__btn[aria-checked="true"] .ab-seg__id {
+    color: var(--accent);
+  }
   .ab-seg__hint {
     font-size: var(--fs-11);
     color: var(--text-muted);
   }
 
   /* ---- Печать ---- */
-  .ab-seal[data-state="ok"] { border-color: var(--ab-line); }
+  .ab-seal[data-state="ok"] {
+    border-color: var(--ab-line);
+  }
   .ab-seal[data-state="replay"],
-  .ab-seal[data-state="tamper"] { border-color: var(--ab-err); }
+  .ab-seal[data-state="tamper"] {
+    border-color: var(--ab-err);
+  }
   .ab.is-inview .ab-seal[data-state="replay"],
   .ab.is-inview .ab-seal[data-state="tamper"] {
     animation: ab-shake var(--dur-slow) var(--ease-standard);
   }
   @keyframes ab-shake {
-    0%, 100% { transform: translateX(0); }
-    20% { transform: translateX(-5px); }
-    60% { transform: translateX(4px); }
-    80% { transform: translateX(-2px); }
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    20% {
+      transform: translateX(-5px);
+    }
+    60% {
+      transform: translateX(4px);
+    }
+    80% {
+      transform: translateX(-2px);
+    }
   }
   .ab-seal__line {
     display: flex;
@@ -932,7 +1145,10 @@ const modes: { id: string; hint: Bi }[] = [
     display: inline-flex;
     align-items: center;
   }
-  .ab-seal__sep { color: var(--text-faint); padding-inline: 2px; }
+  .ab-seal__sep {
+    color: var(--text-faint);
+    padding-inline: 2px;
+  }
   .ab-seal__tok {
     font-size: var(--fs-13);
     color: var(--text-secondary);
@@ -941,9 +1157,14 @@ const modes: { id: string; hint: Bi }[] = [
     border-radius: var(--r-xs);
     background: var(--bg-elevated);
     cursor: help;
-    transition: color var(--dur-med) var(--ease-standard), border-color var(--dur-med) var(--ease-standard);
+    transition:
+      color var(--dur-med) var(--ease-standard),
+      border-color var(--dur-med) var(--ease-standard);
   }
-  .ab-seal[data-state="ok"] .ab-seal__tok { color: var(--text); border-color: var(--ab-line); }
+  .ab-seal[data-state="ok"] .ab-seal__tok {
+    color: var(--text);
+    border-color: var(--ab-line);
+  }
   /* tamper рвёт hmac16 (последний), replay сжигает nonce (четвёртый) */
   .ab-seal[data-state="tamper"] .ab-seal__chip:last-child .ab-seal__tok {
     color: var(--state-error);
@@ -958,9 +1179,13 @@ const modes: { id: string; hint: Bi }[] = [
     color: var(--text-muted);
     transition: color var(--dur-med) var(--ease-standard);
   }
-  .ab-seal[data-state="ok"] .ab-seal__verdict { color: var(--text); }
+  .ab-seal[data-state="ok"] .ab-seal__verdict {
+    color: var(--text);
+  }
   .ab-seal[data-state="replay"] .ab-seal__verdict,
-  .ab-seal[data-state="tamper"] .ab-seal__verdict { color: var(--state-error); }
+  .ab-seal[data-state="tamper"] .ab-seal__verdict {
+    color: var(--state-error);
+  }
   .ab-seal__btns {
     display: flex;
     flex-wrap: wrap;
@@ -977,12 +1202,25 @@ const modes: { id: string; hint: Bi }[] = [
     font-family: var(--font-stack-display);
     font-size: var(--fs-13);
     cursor: pointer;
-    transition: color var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard);
+    transition:
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard);
   }
-  .ab-seal__btn:hover:not(:disabled) { color: var(--text); border-color: var(--border-hover); }
-  .ab-seal__btn:focus-visible { outline: var(--ring-width) solid var(--ring-focus); outline-offset: 2px; }
-  .ab-seal__btn:disabled { opacity: 0.4; cursor: default; }
-  .ab-seal__btn--reset { margin-left: auto; }
+  .ab-seal__btn:hover:not(:disabled) {
+    color: var(--text);
+    border-color: var(--border-hover);
+  }
+  .ab-seal__btn:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  .ab-seal__btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .ab-seal__btn--reset {
+    margin-left: auto;
+  }
 
   /* ============================ Audit-log ============================ */
   .ab-audit {
@@ -1022,14 +1260,29 @@ const modes: { id: string; hint: Bi }[] = [
     animation: ab-log-in var(--dur-med) var(--ease-soft) both;
   }
   @keyframes ab-log-in {
-    from { opacity: 0; transform: translate3d(-6px, 0, 0); }
-    to { opacity: 1; transform: none; }
+    from {
+      opacity: 0;
+      transform: translate3d(-6px, 0, 0);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
-  .ab-audit__row--empty { color: var(--text-faint); }
-  .ab-audit__ts { color: var(--text-faint); flex: none; }
-  .ab-audit__row--allow .ab-audit__verb { color: var(--accent); }
+  .ab-audit__row--empty {
+    color: var(--text-faint);
+  }
+  .ab-audit__ts {
+    color: var(--text-faint);
+    flex: none;
+  }
+  .ab-audit__row--allow .ab-audit__verb {
+    color: var(--accent);
+  }
   .ab-audit__row--deny .ab-audit__verb,
-  .ab-audit__row--reject .ab-audit__verb { color: var(--text); }
+  .ab-audit__row--reject .ab-audit__verb {
+    color: var(--text);
+  }
 
   /* ============================ Инвариант ============================ */
   .ab__invariant {
@@ -1051,8 +1304,14 @@ const modes: { id: string; hint: Bi }[] = [
 
   /* ============================ Появление под .is-inview ============================ */
   @keyframes ab-rise {
-    from { opacity: 0; transform: translate3d(0, 12px, 0); }
-    to { opacity: 1; transform: none; }
+    from {
+      opacity: 0;
+      transform: translate3d(0, 12px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
   .ab.is-inview .ab-ide,
   .ab.is-inview .ab-phone,
@@ -1061,10 +1320,18 @@ const modes: { id: string; hint: Bi }[] = [
   .ab.is-inview .ab-audit {
     animation: ab-rise var(--dur-slower) var(--ease-soft) both;
   }
-  .ab.is-inview .ab-phone { animation-delay: 90ms; }
-  .ab.is-inview .ab-mode-block { animation-delay: 150ms; }
-  .ab.is-inview .ab-seal { animation-delay: 210ms; }
-  .ab.is-inview .ab-audit { animation-delay: 270ms; }
+  .ab.is-inview .ab-phone {
+    animation-delay: 90ms;
+  }
+  .ab.is-inview .ab-mode-block {
+    animation-delay: 150ms;
+  }
+  .ab.is-inview .ab-seal {
+    animation-delay: 210ms;
+  }
+  .ab.is-inview .ab-audit {
+    animation-delay: 270ms;
+  }
 
   /* ============================ Широкая раскладка ============================ */
   @container (min-width: 680px) {
@@ -1102,28 +1369,67 @@ const modes: { id: string; hint: Bi }[] = [
       left: auto;
       transform: none;
     }
-    .ab-link__cap--top { top: 50%; right: 0; transform: translateY(-50%); }
-    .ab-link__cap--bot { bottom: auto; top: 50%; left: 0; transform: translateY(-50%); }
+    .ab-link__cap--top {
+      top: 50%;
+      right: 0;
+      transform: translateY(-50%);
+    }
+    .ab-link__cap--bot {
+      bottom: auto;
+      top: 50%;
+      left: 0;
+      transform: translateY(-50%);
+    }
     /* вертикальный пакет: вниз = IDE→телефон */
-    .ab.is-inview .ab-link__pkt[data-run="right"] { animation: ab-pkt-d var(--dur-glacial) var(--ease-soft) forwards; }
-    .ab.is-inview .ab-link__pkt[data-run="left"] { animation: ab-pkt-u var(--dur-glacial) var(--ease-soft) forwards; }
+    .ab.is-inview .ab-link__pkt[data-run="right"] {
+      animation: ab-pkt-d var(--dur-glacial) var(--ease-soft) forwards;
+    }
+    .ab.is-inview .ab-link__pkt[data-run="left"] {
+      animation: ab-pkt-u var(--dur-glacial) var(--ease-soft) forwards;
+    }
     .ab__deck {
       grid-template-columns: 1fr 1fr;
       align-items: start;
     }
-    .ab-phone { align-self: start; }
+    .ab-phone {
+      align-self: start;
+    }
   }
   @keyframes ab-pkt-d {
-    0% { opacity: 0; transform: translate(-50%, 0) scale(0.7); }
-    15% { opacity: 1; transform: translate(-50%, 8px) scale(1); }
-    85% { opacity: 1; transform: translate(-50%, var(--pkt-dist)) scale(1); }
-    100% { opacity: 0; transform: translate(-50%, var(--pkt-dist)) scale(0.7); }
+    0% {
+      opacity: 0;
+      transform: translate(-50%, 0) scale(0.7);
+    }
+    15% {
+      opacity: 1;
+      transform: translate(-50%, 8px) scale(1);
+    }
+    85% {
+      opacity: 1;
+      transform: translate(-50%, var(--pkt-dist)) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, var(--pkt-dist)) scale(0.7);
+    }
   }
   @keyframes ab-pkt-u {
-    0% { opacity: 0; transform: translate(-50%, var(--pkt-dist)) scale(0.7); }
-    15% { opacity: 1; transform: translate(-50%, calc(var(--pkt-dist) - 8px)) scale(1); }
-    85% { opacity: 1; transform: translate(-50%, 8px) scale(1); }
-    100% { opacity: 0; transform: translate(-50%, 8px) scale(0.7); }
+    0% {
+      opacity: 0;
+      transform: translate(-50%, var(--pkt-dist)) scale(0.7);
+    }
+    15% {
+      opacity: 1;
+      transform: translate(-50%, calc(var(--pkt-dist) - 8px)) scale(1);
+    }
+    85% {
+      opacity: 1;
+      transform: translate(-50%, 8px) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, 8px) scale(0.7);
+    }
   }
 
   /* ============================ Reduced motion ============================ */
@@ -1143,8 +1449,12 @@ const modes: { id: string; hint: Bi }[] = [
     .ab.is-inview .ab-link__pkt[data-run] {
       animation: none;
     }
-    .ab-ring[data-run="true"] .ab-ring__half i { animation: none; }
-    .ab-call__caret { opacity: 1; }
+    .ab-ring[data-run="true"] .ab-ring__half i {
+      animation: none;
+    }
+    .ab-call__caret {
+      opacity: 1;
+    }
     .ab-seg__glide,
     .ab-seal__tok,
     .ab-tg,
@@ -1176,15 +1486,25 @@ const modes: { id: string; hint: Bi }[] = [
       stAllowed: isEn ? "allowed · command runs" : "allow · команда выполняется",
       stDenied: isEn ? "denied · command never runs" : "deny · команда не запущена",
       stTimeout: isEn ? "silence → deny (fail-closed)" : "тишина → deny (fail-closed)",
-      stAutoAllow: isEn ? "readonly: auto-allow, notify only" : "readonly: авто-allow, только уведомление",
+      stAutoAllow: isEn
+        ? "readonly: auto-allow, notify only"
+        : "readonly: авто-allow, только уведомление",
       stAutoDeny: isEn ? "standby: auto-deny, never asks" : "standby: авто-deny, не спрашивает",
-      agWaiting: isEn ? "hook intercepted the call — agent waiting" : "хук перехватил вызов — агент ждёт",
+      agWaiting: isEn
+        ? "hook intercepted the call — agent waiting"
+        : "хук перехватил вызов — агент ждёт",
       agRuns: isEn ? "running — call allowed" : "выполняется — вызов разрешён",
       agBlocked: isEn ? "blocked — call never ran" : "заблокировано — вызов не запущен",
-      sealNote: isEn ? "answer in Telegram — the seal forms" : "ответь в Telegram — печать сформируется",
+      sealNote: isEn
+        ? "answer in Telegram — the seal forms"
+        : "ответь в Telegram — печать сформируется",
       sealOk: isEn ? "signature matches · nonce fresh" : "подпись сходится · nonce свежий",
-      sealReplay: isEn ? "nonce already spent — replay rejected" : "nonce уже сгорел — повтор отклонён",
-      sealTamper: isEn ? "signature mismatch — tamper rejected" : "подпись не сходится — подделка отклонена",
+      sealReplay: isEn
+        ? "nonce already spent — replay rejected"
+        : "nonce уже сгорел — повтор отклонён",
+      sealTamper: isEn
+        ? "signature mismatch — tamper rejected"
+        : "подпись не сходится — подделка отклонена",
       auditEmpty: isEn ? "log empty — make a move" : "журнал пуст — сделай ход",
     };
 
@@ -1288,8 +1608,14 @@ const modes: { id: string; hint: Bi }[] = [
 
     // --- кольцо отсчёта ---
     const stopRing = (): void => {
-      if (ringTimer) { window.clearTimeout(ringTimer); ringTimer = 0; }
-      if (ringTick) { window.clearInterval(ringTick); ringTick = 0; }
+      if (ringTimer) {
+        window.clearTimeout(ringTimer);
+        ringTimer = 0;
+      }
+      if (ringTick) {
+        window.clearInterval(ringTick);
+        ringTick = 0;
+      }
       ringBox?.removeAttribute("data-run");
       if (ringBox) ringBox.hidden = true;
     };
@@ -1373,7 +1699,9 @@ const modes: { id: string; hint: Bi }[] = [
     // --- применить режим к ТОМУ ЖЕ запросу ---
     const applyMode = (next: string, log: boolean): void => {
       const idx = modeEls.findIndex((m) => m.dataset.mode === next);
-      modeEls.forEach((m) => m.setAttribute("aria-checked", m.dataset.mode === next ? "true" : "false"));
+      modeEls.forEach((m) =>
+        m.setAttribute("aria-checked", m.dataset.mode === next ? "true" : "false"),
+      );
       if (glide && idx >= 0) glide.style.setProperty("--seg", `${idx}`);
       resetSeal();
       msg.removeAttribute("data-lit");
@@ -1473,7 +1801,9 @@ const modes: { id: string; hint: Bi }[] = [
       // финальное читаемое состояние: remote-исход «застывшим» кадром
       root.classList.add("is-inview");
       inview = false;
-      modeEls.forEach((m) => m.setAttribute("aria-checked", m.dataset.mode === "remote" ? "true" : "false"));
+      modeEls.forEach((m) =>
+        m.setAttribute("aria-checked", m.dataset.mode === "remote" ? "true" : "false"),
+      );
       if (glide) glide.style.setProperty("--seg", "0");
       setTgEnabled(true);
       setStatus("waiting", txt.stWaiting);

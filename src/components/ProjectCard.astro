@@ -52,7 +52,7 @@ const isFeatured = index === 0;
       </span>
       <span class="project-card__logo-brand display">{brand}</span>
     </span>
-    <span class="project-card__media-glow" aria-hidden="true" />
+    <span class="project-card__media-glow" aria-hidden="true"></span>
     <span class="project-card__media-status" aria-hidden="true">
       <Icon name="dot" size={10} />
       <span>{t(`projects.status.${p.status}`)}</span>
@@ -614,7 +614,9 @@ const isFeatured = index === 0;
     .project-card:hover,
     .project-card:focus-within {
       transform: none;
-      transition: border-color var(--dur-med), box-shadow var(--dur-med);
+      transition:
+        border-color var(--dur-med),
+        box-shadow var(--dur-med);
     }
 
     .project-card__logo,

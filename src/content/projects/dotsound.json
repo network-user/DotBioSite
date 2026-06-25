@@ -109,7 +109,7 @@
       }
     },
     {
-      "value": "550",
+      "value": "540",
       "label": {
         "ru": "API-эндпоинтов в бэкенде",
         "en": "API endpoints in the backend"
@@ -123,7 +123,7 @@
       }
     },
     {
-      "value": "125",
+      "value": "121",
       "label": {
         "ru": "миграций базы данных",
         "en": "database migrations"
@@ -139,33 +139,169 @@
     "ml": ["faster-whisper 1.2", "Demucs 4.0", "PyTorch 2.7"]
   },
   "architectureNodes": [
-    { "id": "bot", "x": 140, "y": 165, "label": "Telegram Bot", "icon": "telegram", "width": 160 },
-    { "id": "miniapp", "x": 140, "y": 375, "label": "Mini App", "icon": "code", "width": 160 },
-    { "id": "core", "x": 470, "y": 110, "label": "PrivateCore", "icon": "dot", "width": 160 },
+    {
+      "id": "bot",
+      "col": 0,
+      "row": 0,
+      "label": "Telegram Bot",
+      "icon": "telegram",
+      "width": 170,
+      "desc": {
+        "ru": "Тонкий aiogram-клиент: вход в Mini App, inline-поиск, лайки",
+        "en": "Thin aiogram client: Mini App entry, inline search, likes"
+      }
+    },
+    {
+      "id": "miniapp",
+      "col": 0,
+      "row": 1,
+      "label": "Mini App",
+      "icon": "globe",
+      "width": 160,
+      "desc": {
+        "ru": "Веб-плеер платформы: загрузка треков, HLS-стриминг, WebSocket",
+        "en": "Platform web player: track upload, HLS streaming, WebSocket"
+      }
+    },
+    {
+      "id": "core",
+      "col": 2,
+      "row": 0,
+      "label": "Closed core",
+      "icon": "code",
+      "width": 175,
+      "desc": {
+        "ru": "Закрытое ядро: бизнес-правила, политика выдачи, security-константы",
+        "en": "Closed core: business rules, ranking policy, security constants"
+      }
+    },
     {
       "id": "backend",
-      "x": 470,
-      "y": 270,
+      "col": 1,
+      "row": 0,
       "label": "Backend Hub",
       "icon": "stack",
+      "width": 195,
       "emphasis": "strong",
-      "width": 185
+      "desc": {
+        "ru": "FastAPI: API, очередь Taskiq, дедуп по SHA-256, HLS, раздача Mini App",
+        "en": "FastAPI: API, Taskiq queue, SHA-256 dedup, HLS, Mini App delivery"
+      }
     },
-    { "id": "worker", "x": 470, "y": 460, "label": "ComputeWorker", "icon": "spark", "width": 180 },
-    { "id": "pg", "x": 800, "y": 150, "label": "PostgreSQL 16", "icon": "dot", "width": 170 },
-    { "id": "es", "x": 800, "y": 285, "label": "Elasticsearch 8", "icon": "dot", "width": 170 },
-    { "id": "minio", "x": 800, "y": 420, "label": "MinIO · S3", "icon": "dot", "width": 170 }
+    {
+      "id": "worker",
+      "col": 0,
+      "row": 2,
+      "label": "ComputeWorker",
+      "icon": "rocket",
+      "width": 185,
+      "desc": {
+        "ru": "Pull-воркер на GPU: Demucs + faster-whisper, аудио-эмбеддинги",
+        "en": "GPU pull worker: Demucs + faster-whisper, audio embeddings"
+      }
+    },
+    {
+      "id": "pg",
+      "col": 2,
+      "row": 1,
+      "label": "PostgreSQL 16",
+      "icon": "dot",
+      "width": 175,
+      "desc": {
+        "ru": "Метаданные, пользователи, плейлисты; ~70 моделей, 121 миграция",
+        "en": "Metadata, users, playlists; ~70 models, 121 migrations"
+      }
+    },
+    {
+      "id": "redis",
+      "col": 2,
+      "row": 2,
+      "label": "Redis 7",
+      "icon": "dot",
+      "width": 150,
+      "desc": {
+        "ru": "WS pub/sub, rate-limit, кеш file_id, счётчики прослушиваний",
+        "en": "WS pub/sub, rate limit, file_id cache, play counters"
+      }
+    },
+    {
+      "id": "es",
+      "col": 2,
+      "row": 3,
+      "label": "Elasticsearch 8",
+      "icon": "dot",
+      "width": 185,
+      "desc": {
+        "ru": "Полнотекст по трекам, артистам и распознанной лирике",
+        "en": "Full-text over tracks, artists and recognized lyrics"
+      }
+    },
+    {
+      "id": "minio",
+      "col": 2,
+      "row": 4,
+      "label": "MinIO · S3",
+      "icon": "dot",
+      "width": 160,
+      "desc": {
+        "ru": "Content-addressed аудио по SHA-256, HLS-сегменты",
+        "en": "Content-addressed audio by SHA-256, HLS segments"
+      }
+    }
   ],
   "architectureEdges": [
-    { "from": "bot", "to": "backend", "kind": "sync", "label": "HTTPS" },
-    { "from": "miniapp", "to": "backend", "kind": "sync", "label": "WS" },
-    { "from": "backend", "to": "core", "kind": "data", "label": "policy" },
-    { "from": "backend", "to": "pg", "kind": "data" },
-    { "from": "backend", "to": "es", "kind": "data" },
-    { "from": "backend", "to": "minio", "kind": "data" },
-    { "from": "worker", "to": "backend", "kind": "async", "label": "HMAC pull" }
+    {
+      "from": "bot",
+      "to": "backend",
+      "kind": "sync",
+      "label": "HTTPS"
+    },
+    {
+      "from": "miniapp",
+      "to": "backend",
+      "kind": "sync",
+      "label": "WS · HLS"
+    },
+    {
+      "from": "backend",
+      "to": "core",
+      "kind": "sync",
+      "label": "import"
+    },
+    {
+      "from": "backend",
+      "to": "pg",
+      "kind": "data"
+    },
+    {
+      "from": "backend",
+      "to": "redis",
+      "kind": "data"
+    },
+    {
+      "from": "backend",
+      "to": "es",
+      "kind": "data"
+    },
+    {
+      "from": "backend",
+      "to": "minio",
+      "kind": "data"
+    },
+    {
+      "from": "worker",
+      "to": "backend",
+      "kind": "async",
+      "label": "HMAC pull",
+      "oneway": false
+    }
   ],
-  "clusters": [{ "x": 700, "y": 95, "width": 200, "height": 380, "label": "Data plane" }],
+  "clusters": [
+    {
+      "label": "data plane",
+      "members": ["pg", "redis", "es", "minio"]
+    }
+  ],
   "capabilities": [
     {
       "icon": "code",

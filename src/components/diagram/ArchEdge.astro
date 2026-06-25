@@ -8,12 +8,20 @@
  * ровно по нормали и плавно подходит к цели — без острых углов и пересечений.
  *
  * Три kind'а отличаются паттерном и оттенком штриха:
- *   sync  → сплошная линия (нейтраль с лёгким акцентом)
- *   async → длинный dash в цвете акцента (анимированный поток)
- *   data  → мелкий dot-dash, приглушённый (анимированный поток)
+ *   sync  → сплошная линия (вызов, нейтраль с лёгким акцентом)
+ *   async → длинный dash в цвете акцента (fire-and-forget: spawn/cron/lock)
+ *   data  → мелкий dot-dash, приглушённый (чтение/запись в хранилище)
  *
- * Наконечник — залитый треугольник, ориентированный по касательной к концу
- * кривой (направление c2 → to), поэтому всегда смотрит «в узел».
+ * Анимация потока моделирует РЕАЛЬНОЕ взаимодействие, а не просто «точка едет»:
+ *   • round-trip (sync, data) — запрос source→target, короткая «обработка»
+ *     (рипл у цели), затем ответ target→source более тусклым пакетом.
+ *   • one-way (async или edge.oneway) — один исходящий пакет без ответа.
+ * Всё на CSS motion-path (offset-path) + transform/opacity — компоновочно
+ * дёшево и целиком гаснет при prefers-reduced-motion (остаётся штрих со стрелкой).
+ *
+ * Наконечники — залитые треугольники по касательной к кривой. У round-trip
+ * рёбер их два (у цели и у источника, второй приглушён), поэтому видно, что
+ * данные ходят в обе стороны, даже когда анимация выключена; у one-way — один.
  */
 
 type EdgeKind = "sync" | "async" | "data";
@@ -28,16 +36,33 @@ interface Props {
   to: Point;
   kind?: EdgeKind;
   label?: string;
-  /** id узлов-концов — пробрасываются в DOM (`data-from`/`data-to`) для
-   *  интерактивной подсветки связей при наведении на узел. */
+  /** id узлов-концов — пробрасываются в DOM (`data-from`/`data-to`) как
+   *  машиночитаемая разметка концов ребра. */
   fromId?: string;
   toId?: string;
+  /** Принудительно односторонний поток (без ответного пакета) — для записей-
+   *  стоков: отчёт на диск, нотификация, отгрузка в очередь. По умолчанию
+   *  односторонними считаются только async-рёбра. */
+  oneway?: boolean;
+  /** Порядковый номер ребра — лёгкий фазовый сдвиг анимации, чтобы пакеты по
+   *  разным рёбрам не пульсировали в унисон. */
+  seq?: number;
   /** Сохранён для обратной совместимости API; при гладком роутинге не нужен. */
   bend?: number;
   class?: string;
 }
 
-const { from, to, kind = "sync", label, fromId, toId, class: className = "" } = Astro.props;
+const {
+  from,
+  to,
+  kind = "sync",
+  label,
+  fromId,
+  toId,
+  oneway,
+  seq = 0,
+  class: className = "",
+} = Astro.props;
 
 const dx = to.x - from.x;
 const dy = to.y - from.y;
@@ -56,7 +81,7 @@ const c2 = horizontal ? { x: to.x - sx * k, y: to.y } : { x: to.x, y: to.y - sy 
 
 const path = `M ${from.x} ${from.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${to.x} ${to.y}`;
 
-// Наконечник: ориентация = касательная в конце кривой ≈ направление c2 → to.
+// Наконечник у цели: ориентация = касательная в конце кривой ≈ c2 → to.
 const angle = Math.atan2(to.y - c2.y, to.x - c2.x);
 const head = 7.5;
 const wing = head * 0.6;
@@ -69,16 +94,65 @@ const by = back.y + Math.cos(angle) * wing;
 // Точка t=0.5 кубической кривой (для подписи).
 const midX = 0.125 * from.x + 0.375 * c1.x + 0.375 * c2.x + 0.125 * to.x;
 const midY = 0.125 * from.y + 0.375 * c1.y + 0.375 * c2.y + 0.125 * to.y;
+
+// Направление и ритм потока. async по умолчанию односторонний (нет ответа),
+// sync/data — round-trip; явный `oneway` перекрывает это правило.
+const isOneWay = oneway ?? kind === "async";
+const cycle = isOneWay ? 3.2 : 4.4;
+// Фазовый сдвиг отрицательной задержкой — desync без пустого старта.
+const shift = `${((seq % 6) * -0.55).toFixed(2)}s`;
+const pulseVars = `offset-path: path('${path}'); --pulse-dur: ${cycle}s; --pulse-shift: ${shift};`;
+
+// Round-trip → второй наконечник у источника (ориентация c1 → from): статично
+// показывает, что данные ходят в обе стороны, даже когда анимация выключена.
+const angleS = Math.atan2(from.y - c1.y, from.x - c1.x);
+const backS = { x: from.x - Math.cos(angleS) * head, y: from.y - Math.sin(angleS) * head };
+const asx = backS.x + Math.sin(angleS) * wing;
+const asy = backS.y - Math.cos(angleS) * wing;
+const bsx = backS.x - Math.sin(angleS) * wing;
+const bsy = backS.y + Math.cos(angleS) * wing;
 ---
 
-<g
-  class:list={["arch-edge", `arch-edge--${kind}`, className]}
-  data-from={fromId}
-  data-to={toId}
->
+<g class:list={["arch-edge", `arch-edge--${kind}`, className]} data-from={fromId} data-to={toId}>
   <path d={path} class="arch-edge__halo"></path>
   <path d={path} class="arch-edge__path"></path>
+
+  {
+    isOneWay ? (
+      <g class="arch-edge__pulse arch-edge__pulse--out" style={pulseVars}>
+        <circle class="arch-edge__pulse-glow" r="5" />
+        <circle class="arch-edge__pulse-core" r="2.4" />
+      </g>
+    ) : (
+      <>
+        <g class="arch-edge__pulse arch-edge__pulse--req" style={pulseVars}>
+          <circle class="arch-edge__pulse-glow" r="5" />
+          <circle class="arch-edge__pulse-core" r="2.4" />
+        </g>
+        <g class="arch-edge__pulse arch-edge__pulse--res" style={pulseVars}>
+          <circle class="arch-edge__res-glow" r="4" />
+          <circle class="arch-edge__res-core" r="1.9" />
+        </g>
+        <circle
+          class="arch-edge__process"
+          cx={to.x}
+          cy={to.y}
+          r="6"
+          style={`--pulse-dur: ${cycle}s; --pulse-shift: ${shift};`}
+        />
+      </>
+    )
+  }
+
   <polygon points={`${to.x},${to.y} ${ax},${ay} ${bx},${by}`} class="arch-edge__head"></polygon>
+  {
+    !isOneWay && (
+      <polygon
+        points={`${from.x},${from.y} ${asx},${asy} ${bsx},${bsy}`}
+        class="arch-edge__head-back"
+      />
+    )
+  }
   {
     label && (
       <text x={midX} y={midY - 7} text-anchor="middle" class="arch-edge__label">
@@ -111,6 +185,14 @@ const midY = 0.125 * from.y + 0.375 * c1.y + 0.375 * c2.y + 0.125 * to.y;
     fill: var(--text-muted);
   }
 
+  /* Return-side head for round-trip edges — muted so the primary direction still
+     reads, while the two-way nature of the link stays explicit. */
+  .arch-edge__head-back {
+    stroke: none;
+    fill: var(--text-muted);
+    opacity: 0.85;
+  }
+
   /* sync — solid, neutral with a whisper of the project accent. */
   .arch-edge--sync .arch-edge__path,
   .arch-edge--sync .arch-edge__head {
@@ -124,21 +206,72 @@ const midY = 0.125 * from.y + 0.375 * c1.y + 0.375 * c2.y + 0.125 * to.y;
     fill: color-mix(in srgb, var(--text-secondary) 78%, var(--project-accent));
   }
 
-  /* async — accent-tinted dashed flow (the "special" transport: pull / spawn / cron). */
+  /* async — accent-tinted dashed rail (the "special" transport: pull / spawn / cron). */
   .arch-edge--async .arch-edge__path {
     stroke: color-mix(in srgb, var(--project-accent) 68%, var(--text-secondary));
     stroke-dasharray: 7 7;
-    animation: edge-flow-async 12s linear infinite;
   }
   .arch-edge--async .arch-edge__head {
     fill: color-mix(in srgb, var(--project-accent) 68%, var(--text-secondary));
   }
 
-  /* data — muted fine dot-dash, gentle flow toward the store. */
+  /* data — muted fine dot-dash rail toward the store. */
   .arch-edge--data .arch-edge__path {
     stroke: var(--text-muted);
     stroke-dasharray: 1.5 5;
-    animation: edge-flow-data 9s linear infinite;
+  }
+
+  /* Request / outbound packet: a bright core wrapped in a faint glow. Colour
+     leans into the project accent on the async transport. */
+  .arch-edge__pulse-glow {
+    fill: var(--text-secondary);
+    opacity: 0.14;
+  }
+  .arch-edge__pulse-core {
+    fill: var(--text-secondary);
+    opacity: 0.95;
+  }
+  .arch-edge--sync .arch-edge__pulse-core {
+    fill: color-mix(in srgb, var(--text-secondary) 55%, var(--project-accent));
+  }
+  .arch-edge--sync .arch-edge__pulse-glow {
+    fill: var(--project-accent);
+    opacity: 0.16;
+  }
+  .arch-edge--async .arch-edge__pulse-core {
+    fill: color-mix(in srgb, var(--project-accent) 85%, white);
+  }
+  .arch-edge--async .arch-edge__pulse-glow {
+    fill: var(--project-accent);
+    opacity: 0.22;
+  }
+  .arch-edge--data .arch-edge__pulse-core {
+    fill: var(--text-secondary);
+    opacity: 0.8;
+  }
+  .arch-edge--data .arch-edge__pulse-glow {
+    fill: var(--text-muted);
+    opacity: 0.1;
+  }
+
+  /* Response packet: smaller, muted — reads as "the result coming back". */
+  .arch-edge__res-core {
+    fill: var(--text-secondary);
+    opacity: 0.7;
+  }
+  .arch-edge__res-glow {
+    fill: var(--text-muted);
+    opacity: 0.08;
+  }
+
+  /* Processing ripple at the target anchor between request and response. */
+  .arch-edge__process {
+    fill: none;
+    stroke: color-mix(in srgb, var(--project-accent) 70%, var(--text-secondary));
+    stroke-width: 1.2;
+    transform-box: fill-box;
+    transform-origin: center;
+    opacity: 0;
   }
 
   .arch-edge__label {
@@ -153,21 +286,124 @@ const midY = 0.125 * from.y + 0.375 * c1.y + 0.375 * c2.y + 0.125 * to.y;
     stroke-width: 4;
   }
 
-  @keyframes edge-flow-async {
-    to {
-      stroke-dashoffset: -56;
+  /* Пакеты и рипл показываются и анимируются только при разрешённом движении;
+     иначе остаётся статичный штрих со стрелкой (без точки, замершей на ребре). */
+  .arch-edge__pulse,
+  .arch-edge__process {
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .arch-edge__pulse {
+      display: block;
+      offset-rotate: 0deg;
+      animation-duration: var(--pulse-dur, 4.4s);
+      animation-delay: var(--pulse-shift, 0s);
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+    }
+    .arch-edge__pulse--out {
+      animation-name: arch-pulse-out;
+    }
+    .arch-edge__pulse--req {
+      animation-name: arch-pulse-req;
+    }
+    .arch-edge__pulse--res {
+      animation-name: arch-pulse-res;
+    }
+    .arch-edge__process {
+      display: block;
+      animation: arch-pulse-proc var(--pulse-dur, 4.4s) linear var(--pulse-shift, 0s) infinite;
     }
   }
 
-  @keyframes edge-flow-data {
-    to {
-      stroke-dashoffset: -39;
+  /* one-way: непрерывный пакет source→target с мягким появлением/уходом. */
+  @keyframes arch-pulse-out {
+    0% {
+      offset-distance: 0%;
+      opacity: 0;
+    }
+    8% {
+      opacity: 1;
+    }
+    92% {
+      opacity: 1;
+    }
+    100% {
+      offset-distance: 100%;
+      opacity: 0;
     }
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .arch-edge__path {
-      animation: none !important;
+  /* запрос: source→target в первой части цикла, затем гаснет (идёт обработка). */
+  @keyframes arch-pulse-req {
+    0% {
+      offset-distance: 0%;
+      opacity: 0;
+    }
+    5% {
+      opacity: 1;
+    }
+    36% {
+      offset-distance: 100%;
+      opacity: 1;
+    }
+    42% {
+      offset-distance: 100%;
+      opacity: 0;
+    }
+    100% {
+      offset-distance: 100%;
+      opacity: 0;
+    }
+  }
+
+  /* ответ: target→source во второй части, после паузы-обработки, тусклее. */
+  @keyframes arch-pulse-res {
+    0% {
+      offset-distance: 100%;
+      opacity: 0;
+    }
+    54% {
+      offset-distance: 100%;
+      opacity: 0;
+    }
+    58% {
+      offset-distance: 100%;
+      opacity: 1;
+    }
+    90% {
+      offset-distance: 0%;
+      opacity: 1;
+    }
+    95% {
+      offset-distance: 0%;
+      opacity: 0;
+    }
+    100% {
+      offset-distance: 0%;
+      opacity: 0;
+    }
+  }
+
+  /* «обработка»: короткий расходящийся рипл у цели, когда запрос дошёл. */
+  @keyframes arch-pulse-proc {
+    0%,
+    40% {
+      transform: scale(0.2);
+      opacity: 0;
+    }
+    46% {
+      transform: scale(0.95);
+      opacity: 0.5;
+    }
+    57% {
+      transform: scale(1.7);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1.7);
+      opacity: 0;
     }
   }
 </style>

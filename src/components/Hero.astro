@@ -48,12 +48,24 @@ const subtitle = t("hero.subtitle");
     <!-- Узлы — отдельные элементы, чтобы каждый дрейфовал и парралаксил
          со своей глубиной (--depth) и фазой (--drift-i). -->
     <div class="hero__nodes">
-      <span class="hero__node" style="--nx: 12.6%; --ny: 22.1%; --depth: 1.0; --drift-i: 0; --size: 5px;"></span>
-      <span class="hero__node" style="--nx: 39.5%; --ny: 12.1%; --depth: 1.7; --drift-i: 1; --size: 4px;"></span>
-      <span class="hero__node" style="--nx: 65.3%; --ny: 31.6%; --depth: 0.6; --drift-i: 2; --size: 6px;"></span>
-      <span class="hero__node" style="--nx: 24.2%; --ny: 56.3%; --depth: 2.2; --drift-i: 3; --size: 3.5px;"></span>
-      <span class="hero__node" style="--nx: 52.6%; --ny: 76.3%; --depth: 1.2; --drift-i: 4; --size: 4.5px;"></span>
-      <span class="hero__node" style="--nx: 87.4%; --ny: 61.1%; --depth: 0.9; --drift-i: 5; --size: 5px;"></span>
+      <span
+        class="hero__node"
+        style="--nx: 12.6%; --ny: 22.1%; --depth: 1.0; --drift-i: 0; --size: 5px;"></span>
+      <span
+        class="hero__node"
+        style="--nx: 39.5%; --ny: 12.1%; --depth: 1.7; --drift-i: 1; --size: 4px;"></span>
+      <span
+        class="hero__node"
+        style="--nx: 65.3%; --ny: 31.6%; --depth: 0.6; --drift-i: 2; --size: 6px;"></span>
+      <span
+        class="hero__node"
+        style="--nx: 24.2%; --ny: 56.3%; --depth: 2.2; --drift-i: 3; --size: 3.5px;"></span>
+      <span
+        class="hero__node"
+        style="--nx: 52.6%; --ny: 76.3%; --depth: 1.2; --drift-i: 4; --size: 4.5px;"></span>
+      <span
+        class="hero__node"
+        style="--nx: 87.4%; --ny: 61.1%; --depth: 0.9; --drift-i: 5; --size: 5px;"></span>
     </div>
   </div>
 
@@ -64,10 +76,7 @@ const subtitle = t("hero.subtitle");
 
     <div class="hero__brand-wrap" data-reveal data-reveal-delay="60">
       <span class="hero__brand-aura" aria-hidden="true"></span>
-      <h1
-        class="hero__brand display-xl"
-        style="view-transition-name: brand-root;"
-      >
+      <h1 class="hero__brand display-xl" style="view-transition-name: brand-root;">
         {brand}
       </h1>
     </div>
@@ -226,8 +235,7 @@ const subtitle = t("hero.subtitle");
     .hero__node {
       /* Очень долгий дрейф (28-37s) с разнесёнными фазами: узлы плывут едва
          заметно, движение не «суетится» и не отвлекает от текста. */
-      animation: hero-node-drift calc(28s + var(--drift-i, 0) * 1.8s)
-        var(--ease-drift) infinite;
+      animation: hero-node-drift calc(28s + var(--drift-i, 0) * 1.8s) var(--ease-drift) infinite;
       animation-delay: calc(var(--drift-i, 0) * -4.6s);
     }
   }
@@ -237,8 +245,7 @@ const subtitle = t("hero.subtitle");
      стал тише и читается как лёгкое покачивание, а не как полёт. */
   @keyframes hero-node-drift {
     0% {
-      transform: translate3d(var(--px), var(--py), 0)
-        translate(0, 0);
+      transform: translate3d(var(--px), var(--py), 0) translate(0, 0);
     }
     25% {
       transform: translate3d(var(--px), var(--py), 0)
@@ -253,8 +260,7 @@ const subtitle = t("hero.subtitle");
         translate(calc(var(--depth, 1) * -3px), calc(var(--depth, 1) * -2px));
     }
     100% {
-      transform: translate3d(var(--px), var(--py), 0)
-        translate(0, 0);
+      transform: translate3d(var(--px), var(--py), 0) translate(0, 0);
     }
   }
 

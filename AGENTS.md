@@ -21,16 +21,16 @@ npm run dev        # http://localhost:4321
 
 ## Сборка и проверки
 
-| Действие | Команда |
-|----------|---------|
-| Установка | `npm install` (CI: `npm ci`) |
-| Dev | `npm run dev` (`:4321`) |
-| Тесты | нет тестов в репо |
-| Lint | `npm run lint` (ESLint, fail на warning) |
+| Действие  | Команда                                               |
+| --------- | ----------------------------------------------------- |
+| Установка | `npm install` (CI: `npm ci`)                          |
+| Dev       | `npm run dev` (`:4321`)                               |
+| Тесты     | нет тестов в репо                                     |
+| Lint      | `npm run lint` (ESLint, fail на warning)              |
 | Typecheck | `npm run type-check` (`astro check` + `tsc --noEmit`) |
-| Format | `npm run format` / `npm run format:check` (Prettier) |
-| Build | `npm run build` → `dist/` |
-| Preview | `npm run preview` |
+| Format    | `npm run format` / `npm run format:check` (Prettier)  |
+| Build     | `npm run build` → `dist/`                             |
+| Preview   | `npm run preview`                                     |
 
 Команды - только из `package.json`. Тестового раннера в проекте нет; quality-gate - `lint` + `type-check` (так же гоняет CI перед билдом).
 
@@ -66,14 +66,14 @@ astro.config.mjs
 
 Имена - из Zod-схемы `src/lib/config.ts`. Значения не читать, `.env` не открывать.
 
-| Переменная | Назначение |
-|------------|------------|
-| `PUBLIC_DOMAIN` | канонический домен (site URL, OG) |
-| `PUBLIC_GITHUB_USER` / `PUBLIC_GITHUB_REPO` | сборка ссылок на репозитории проектов |
-| `PUBLIC_AUTHOR_NAME_RU` / `PUBLIC_AUTHOR_NAME_EN` | имя автора по локали |
-| `PUBLIC_AUTHOR_PHOTO` / `PUBLIC_AUTHOR_BIO_RU` / `PUBLIC_AUTHOR_BIO_EN` | фото и био (опц.) |
-| `PUBLIC_SOCIAL_GITHUB/TELEGRAM/LINKEDIN/X/VK` | соцссылки (пустые не рендерятся) |
-| `AUTHOR_EMAIL` | без префикса; кодируется в base64 на билде, в bundle не утекает |
+| Переменная                                                              | Назначение                                                      |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `PUBLIC_DOMAIN`                                                         | канонический домен (site URL, OG)                               |
+| `PUBLIC_GITHUB_USER` / `PUBLIC_GITHUB_REPO`                             | сборка ссылок на репозитории проектов                           |
+| `PUBLIC_AUTHOR_NAME_RU` / `PUBLIC_AUTHOR_NAME_EN`                       | имя автора по локали                                            |
+| `PUBLIC_AUTHOR_PHOTO` / `PUBLIC_AUTHOR_BIO_RU` / `PUBLIC_AUTHOR_BIO_EN` | фото и био (опц.)                                               |
+| `PUBLIC_SOCIAL_GITHUB/TELEGRAM/LINKEDIN/X/VK`                           | соцссылки (пустые не рендерятся)                                |
+| `AUTHOR_EMAIL`                                                          | без префикса; кодируется в base64 на билде, в bundle не утекает |
 
 `PUBLIC_*` попадают в клиентский bundle (видны посетителю). На CI значения материализуются из GitHub Actions secrets. Не коммить секреты и `.env`.
 

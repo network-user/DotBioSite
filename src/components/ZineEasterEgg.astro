@@ -14,11 +14,34 @@
 <div class="zine-egg" data-zine-egg hidden aria-hidden="true">
   <svg class="zine-egg__defs" width="0" height="0" aria-hidden="true">
     <defs>
-      <filter id="egg-xerox" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB">
-        <feTurbulence type="fractalNoise" baseFrequency="0.045 0.06" numOctaves="3" seed="6" result="w"></feTurbulence>
-        <feDisplacementMap in="SourceGraphic" in2="w" scale="3" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap>
-        <feTurbulence type="fractalNoise" baseFrequency="0.9 0.9" numOctaves="2" seed="9" result="g"></feTurbulence>
-        <feColorMatrix in="g" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.4 1.15" result="gm"></feColorMatrix>
+      <filter
+        id="egg-xerox"
+        x="-15%"
+        y="-15%"
+        width="130%"
+        height="130%"
+        color-interpolation-filters="sRGB"
+      >
+        <feTurbulence
+          type="fractalNoise"
+          baseFrequency="0.045 0.06"
+          numOctaves="3"
+          seed="6"
+          result="w"></feTurbulence>
+        <feDisplacementMap
+          in="SourceGraphic"
+          in2="w"
+          scale="3"
+          xChannelSelector="R"
+          yChannelSelector="G"
+          result="d"></feDisplacementMap>
+        <feTurbulence type="fractalNoise" baseFrequency="0.9 0.9" numOctaves="2" seed="9" result="g"
+        ></feTurbulence>
+        <feColorMatrix
+          in="g"
+          type="matrix"
+          values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.4 1.15"
+          result="gm"></feColorMatrix>
         <feComposite in="d" in2="gm" operator="in"></feComposite>
       </filter>
     </defs>
@@ -26,13 +49,24 @@
 
   <div class="zine-egg__art">
     <svg class="zine-egg__star" viewBox="0 0 60 60" aria-hidden="true">
-      <path d="M30 4 l7 18 19 1 -15 12 6 19 -17 -11 -17 11 6 -19 -15 -12 19 -1z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"></path>
+      <path
+        d="M30 4 l7 18 19 1 -15 12 6 19 -17 -11 -17 11 6 -19 -15 -12 19 -1z"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.4"
+        stroke-linejoin="round"></path>
     </svg>
 
     <p class="zine-egg__kicker">скрытая дорожка</p>
     <h2 class="zine-egg__word">.звук</h2>
     <svg class="zine-egg__rule" viewBox="0 0 320 18" preserveAspectRatio="none" aria-hidden="true">
-      <path d="M3 9 L40 4 L80 12 L120 4 L160 11 L200 4 L240 12 L280 5 L317 10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+      <path
+        d="M3 9 L40 4 L80 12 L120 4 L160 11 L200 4 L240 12 L280 5 L317 10"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="3"
+        stroke-linecap="round"
+        stroke-linejoin="round"></path>
     </svg>
     <p class="zine-egg__note">b-side · DotSound</p>
   </div>

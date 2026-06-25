@@ -245,8 +245,12 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
           },
           { passive: true },
         );
-        document.addEventListener("pointerdown", () => ring.classList.add("is-press"), { passive: true });
-        document.addEventListener("pointerup", () => ring.classList.remove("is-press"), { passive: true });
+        document.addEventListener("pointerdown", () => ring.classList.add("is-press"), {
+          passive: true,
+        });
+        document.addEventListener("pointerup", () => ring.classList.remove("is-press"), {
+          passive: true,
+        });
         document.addEventListener("mouseleave", () => {
           ring.classList.remove("is-visible");
         });
@@ -448,7 +452,13 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
             ro.observe(root);
             entries.forEach((e) => ro.observe(e.card));
           }
-          window.addEventListener("scroll", () => { dirty = true; }, { passive: true });
+          window.addEventListener(
+            "scroll",
+            () => {
+              dirty = true;
+            },
+            { passive: true },
+          );
 
           root.addEventListener("pointerenter", () => {
             rect = ink.getBoundingClientRect();

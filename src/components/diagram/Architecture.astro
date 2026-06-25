@@ -2,15 +2,23 @@
 /**
  * Architecture.astro — оркестратор архитектурной диаграммы.
  *
- * Принимает массивы узлов, рёбер и кластеров (опционально) и рендерит единый
- * SVG в системе координат 960×540 с `preserveAspectRatio="xMidYMid meet"`.
- * Каждый узел получает `data-reveal` со staggered delay (i * 80ms), чтобы
- * диаграмма «собиралась» при появлении в viewport через общий IO в BaseLayout.
+ * Раскладка — слоистая (LR-поток): узел задаёт `col` (колонка-стадия слева
+ * направо) и `row` (порядок в колонке сверху вниз), а компонент сам считает
+ * ровные, выровненные, равномерно распределённые координаты в системе 960×540.
+ * Это читается как нормальная архитектурная схема: вход → хаб → хранилища.
+ * Legacy-узлы с явными `x/y` тоже поддерживаются (если ни у кого нет `col`).
  *
- * Узел адресуется по `id`; рёбра ссылаются на пару `from`/`to` — компонент
- * сам находит координаты центров капсул и направляет линию от края до края.
+ * Кластер задаётся списком `members` — рамка считается как их общий bounding
+ * box плюс отступ, поэтому всегда аккуратно обнимает свои узлы.
+ *
+ * Два слоя интерактива (оба перф-лёгкие, под prefers-reduced-motion):
+ *   1. Бегущие импульсы по рёбрам (в ArchEdge): запрос → обработка → ответ.
+ *   2. Клик / тап / фокус по капсуле раскрывает в подписи под диаграммой
+ *      короткое пояснение роли узла (поле `desc`). Чистые class-toggle +
+ *      textContent: ни requestAnimationFrame, ни чтения геометрии.
  */
 
+import type { Locale } from "../../lib/i18n";
 import ArchNode from "./ArchNode.astro";
 import ArchEdge from "./ArchEdge.astro";
 import ArchCluster from "./ArchCluster.astro";
@@ -20,13 +28,16 @@ type EdgeKind = "sync" | "async" | "data";
 
 interface NodeInput {
   id: string;
-  x: number;
-  y: number;
   label: string;
   icon?: IconKey;
   width?: number;
   height?: number;
   emphasis?: "default" | "strong";
+  col?: number;
+  row?: number;
+  x?: number;
+  y?: number;
+  desc?: { ru: string; en: string };
 }
 
 interface EdgeInput {
@@ -35,14 +46,16 @@ interface EdgeInput {
   kind?: EdgeKind;
   label?: string;
   bend?: number;
+  oneway?: boolean;
 }
 
 interface ClusterInput {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
   label: string;
+  members?: ReadonlyArray<string>;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
 }
 
 interface Props {
@@ -52,6 +65,9 @@ interface Props {
   viewBox?: string;
   class?: string;
   ariaLabel?: string;
+  locale?: Locale;
+  /** Подсказка-приглашение в подписи под диаграммой (до выбора узла). */
+  hint?: string;
 }
 
 const {
@@ -61,10 +77,51 @@ const {
   viewBox = "0 0 960 540",
   class: className = "",
   ariaLabel = "Architecture diagram",
+  locale = "ru",
+  hint = "",
 } = Astro.props;
 
 const DEFAULT_W = 140;
 const DEFAULT_H = 56;
+
+// Размер холста из viewBox (для слоистой раскладки).
+const vb = viewBox.split(/\s+/).map(Number);
+const VBW = vb[2] && vb[2] > 0 ? vb[2] : 960;
+const VBH = vb[3] && vb[3] > 0 ? vb[3] : 540;
+
+// Отступы колонок/рядов от краёв холста.
+const PAD_X = 112;
+const PAD_Y = 76;
+
+/**
+ * Слоистая раскладка: x по колонке (равномерно между PAD_X и VBW-PAD_X),
+ * y по позиции в колонке (группа центрируется по вертикали). Если ни у одного
+ * узла нет `col`, падаем на legacy-координаты `x/y`.
+ */
+const pos = new Map<string, { x: number; y: number }>();
+const layered = nodes.some((n) => typeof n.col === "number");
+if (layered) {
+  const byCol = new Map<number, NodeInput[]>();
+  nodes.forEach((n) => {
+    const c = n.col ?? 0;
+    const arr = byCol.get(c);
+    if (arr) arr.push(n);
+    else byCol.set(c, [n]);
+  });
+  const cols = [...byCol.keys()].sort((a, b) => a - b);
+  const maxCol = cols.length > 0 ? cols[cols.length - 1]! : 0;
+  const band = VBH - 2 * PAD_Y;
+  byCol.forEach((arr, c) => {
+    const ordered = [...arr].sort((a, b) => (a.row ?? 0) - (b.row ?? 0));
+    const n = ordered.length;
+    const x = maxCol === 0 ? VBW / 2 : PAD_X + (c * (VBW - 2 * PAD_X)) / maxCol;
+    ordered.forEach((node, i) => {
+      pos.set(node.id, { x, y: PAD_Y + ((i + 0.5) * band) / n });
+    });
+  });
+} else {
+  nodes.forEach((n) => pos.set(n.id, { x: n.x ?? 0, y: n.y ?? 0 }));
+}
 
 interface Resolved {
   id: string;
@@ -76,10 +133,11 @@ interface Resolved {
 
 const resolved = new Map<string, Resolved>();
 nodes.forEach((n) => {
+  const p = pos.get(n.id) ?? { x: 0, y: 0 };
   resolved.set(n.id, {
     id: n.id,
-    x: n.x,
-    y: n.y,
+    x: p.x,
+    y: p.y,
     hw: (n.width ?? DEFAULT_W) / 2,
     hh: (n.height ?? DEFAULT_H) / 2,
   });
@@ -118,60 +176,166 @@ const edgeData = edges
       to: { x: number; y: number };
     } => e !== null,
   );
+
+// Кластер по members → общий bounding box узлов + отступ. Иначе legacy x/y/w/h.
+const CLUSTER_PAD = 22;
+const clusterBoxes = clusters
+  .map((c) => {
+    if (c.members && c.members.length > 0) {
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      for (const id of c.members) {
+        const r = resolved.get(id);
+        if (!r) continue;
+        minX = Math.min(minX, r.x - r.hw);
+        minY = Math.min(minY, r.y - r.hh);
+        maxX = Math.max(maxX, r.x + r.hw);
+        maxY = Math.max(maxY, r.y + r.hh);
+      }
+      if (!Number.isFinite(minX)) return null;
+      return {
+        x: minX - CLUSTER_PAD,
+        y: minY - CLUSTER_PAD,
+        width: maxX - minX + 2 * CLUSTER_PAD,
+        height: maxY - minY + 2 * CLUSTER_PAD,
+        label: c.label,
+      };
+    }
+    if (
+      typeof c.x === "number" &&
+      typeof c.y === "number" &&
+      typeof c.width === "number" &&
+      typeof c.height === "number"
+    ) {
+      return { x: c.x, y: c.y, width: c.width, height: c.height, label: c.label };
+    }
+    return null;
+  })
+  .filter(
+    (c): c is { x: number; y: number; width: number; height: number; label: string } => c !== null,
+  );
+
+// Локализуем пояснения один раз на сервере (страница рендерится под локаль).
+const nodeData = nodes.map((n) => ({
+  node: n,
+  p: pos.get(n.id) ?? { x: 0, y: 0 },
+  desc: n.desc ? (n.desc[locale] ?? n.desc.ru) : "",
+}));
+
+const hasCaption = hint.length > 0 && nodeData.some((n) => n.desc.length > 0);
 ---
 
-<svg
-  xmlns="http://www.w3.org/2000/svg"
-  viewBox={viewBox}
-  preserveAspectRatio="xMidYMid meet"
-  class:list={["architecture", className]}
-  role="img"
-  aria-label={ariaLabel}
->
-  <defs>
-    <pattern id="arch-dotgrid" width="34" height="34" patternUnits="userSpaceOnUse">
-      <circle cx="1" cy="1" r="1" class="architecture__griddot"></circle>
-    </pattern>
-  </defs>
-  <rect class="architecture__grid" x="0" y="0" width="100%" height="100%" fill="url(#arch-dotgrid)"
-  ></rect>
-  {clusters.map((c) => <ArchCluster {...c} />)}
+<figure class:list={["architecture-fig", className]}>
+  <div class="architecture__viewport">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox={viewBox}
+      preserveAspectRatio="xMidYMid meet"
+      class="architecture"
+      role="group"
+      aria-label={ariaLabel}
+    >
+      <defs>
+        <pattern id="arch-dotgrid" width="34" height="34" patternUnits="userSpaceOnUse">
+          <circle cx="1" cy="1" r="1" class="architecture__griddot"></circle>
+        </pattern>
+      </defs>
+      <rect
+        class="architecture__grid"
+        x="0"
+        y="0"
+        width="100%"
+        height="100%"
+        fill="url(#arch-dotgrid)"></rect>
+      {clusterBoxes.map((c) => <ArchCluster {...c} />)}
+      {
+        edgeData.map((e, i) => (
+          <ArchEdge
+            from={e.from}
+            to={e.to}
+            fromId={e.fromId}
+            toId={e.toId}
+            kind={e.kind}
+            label={e.label}
+            bend={e.bend}
+            oneway={e.oneway}
+            seq={i}
+          />
+        ))
+      }
+      {
+        nodeData.map(({ node: n, p, desc }, i) => (
+          <g
+            class="architecture__node"
+            style={`--node-i: ${i};`}
+            data-arch-node={n.id}
+            data-arch-label={n.label}
+            data-arch-desc={desc || undefined}
+            tabindex={desc ? "0" : undefined}
+            role={desc ? "button" : undefined}
+            aria-label={desc ? `${n.label}: ${desc}` : undefined}
+          >
+            <ArchNode
+              x={p.x}
+              y={p.y}
+              label={n.label}
+              icon={n.icon}
+              width={n.width}
+              height={n.height}
+              emphasis={n.emphasis}
+            />
+          </g>
+        ))
+      }
+    </svg>
+  </div>
+
   {
-    edgeData.map((e) => (
-      <ArchEdge
-        from={e.from}
-        to={e.to}
-        fromId={e.fromId}
-        toId={e.toId}
-        kind={e.kind}
-        label={e.label}
-        bend={e.bend}
-      />
-    ))
+    hasCaption && (
+      <figcaption class="architecture__caption" data-arch-caption aria-live="polite">
+        <span class="architecture__caption-hint" data-arch-hint>
+          {hint}
+        </span>
+        <span class="architecture__caption-active" data-arch-active hidden>
+          <span class="architecture__caption-label" data-arch-cap-label />
+          <span class="architecture__caption-text" data-arch-cap-text />
+        </span>
+      </figcaption>
+    )
   }
-  {
-    nodes.map((n, i) => (
-      <g class="architecture__node" style={`--node-i: ${i};`}>
-        <ArchNode
-          x={n.x}
-          y={n.y}
-          label={n.label}
-          icon={n.icon}
-          width={n.width}
-          height={n.height}
-          emphasis={n.emphasis}
-        />
-      </g>
-    ))
-  }
-</svg>
+</figure>
 
 <style>
+  .architecture-fig {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+  }
+
+  /* Горизонтальный скролл живёт на вьюпорте, а не на карточке: подпись под
+     диаграммой остаётся на всю ширину и переносится нормально, тогда как сам
+     SVG на узких экранах держит min-width и прокручивается. */
+  .architecture__viewport {
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .architecture {
     display: block;
     width: 100%;
     height: auto;
     color: var(--text);
+  }
+
+  @media (max-width: 719px) {
+    .architecture {
+      min-width: 640px;
+    }
   }
 
   /* Faint schematic dot-grid behind the nodes — reads as a blueprint surface,
@@ -223,4 +387,147 @@ const edgeData = edges
     }
   }
 
+  /* ----------------------------------------------------------------------
+   * Слой «клик → пояснение». Капсула-кнопка подсвечивается акцентом, её роль
+   * уходит в подпись под диаграммой. Только смена stroke/fill по классам —
+   * без перерасчёта layout. (Подсветку соседних связей сознательно не делаем.)
+   * -------------------------------------------------------------------- */
+  .architecture__node[role="button"] {
+    cursor: pointer;
+  }
+  .architecture__node:focus {
+    outline: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .architecture__node :global(.arch-node__bg) {
+      transition:
+        stroke var(--dur-fast) var(--ease-standard),
+        stroke-width var(--dur-fast) var(--ease-standard);
+    }
+  }
+
+  .architecture__node[role="button"]:focus-visible :global(.arch-node__bg),
+  .architecture__node.is-selected :global(.arch-node__bg) {
+    stroke: var(--project-accent);
+    stroke-width: 2;
+  }
+  .architecture__node.is-selected :global(.arch-node__shine) {
+    fill: color-mix(in srgb, var(--project-accent) 16%, rgba(255, 255, 255, 0.05));
+  }
+
+  .architecture__caption {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--sp-1) var(--sp-2);
+    padding-block-start: var(--sp-3);
+    border-block-start: var(--bw-thin) solid var(--glass-edge);
+    font-size: var(--fs-14);
+    line-height: var(--lh-normal);
+    color: var(--text-secondary);
+    min-height: 1.6em;
+  }
+
+  .architecture__caption-hint {
+    color: var(--text-muted);
+  }
+
+  .architecture__caption-active {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--sp-1) var(--sp-2);
+  }
+  .architecture__caption-active[hidden] {
+    display: none;
+  }
+
+  .architecture__caption-label {
+    color: var(--project-accent);
+    font-weight: var(--fw-semibold);
+    font-family: var(--font-stack-display);
+  }
+
+  .architecture__caption-text {
+    color: var(--text-secondary);
+  }
 </style>
+
+<script>
+  /**
+   * Клик / тап / клавиатурный фокус по капсуле узла раскрывает его пояснение
+   * (data-arch-desc) в подписи под диаграммой и подсвечивает капсулу акцентом.
+   * Повторный клик или Escape — сброс. Чистые class/textContent-операции:
+   * ни requestAnimationFrame, ни чтения геометрии. Каждая диаграмма независима.
+   *
+   * Указатель и клавиатура не конфликтуют: флаг viaPointer гасит «показ по
+   * фокусу» для мыши/тача (там работает toggle по клику), оставляя авто-показ
+   * по фокусу только для Tab-навигации.
+   */
+  (() => {
+    const figs = Array.from(document.querySelectorAll<HTMLElement>(".architecture-fig"));
+    figs.forEach((fig) => {
+      const nodes = Array.from(
+        fig.querySelectorAll<SVGGElement>('[data-arch-node][role="button"]'),
+      );
+      const hintEl = fig.querySelector<HTMLElement>("[data-arch-hint]");
+      const activeEl = fig.querySelector<HTMLElement>("[data-arch-active]");
+      const labelEl = fig.querySelector<HTMLElement>("[data-arch-cap-label]");
+      const textEl = fig.querySelector<HTMLElement>("[data-arch-cap-text]");
+      if (nodes.length === 0 || !hintEl || !activeEl || !labelEl || !textEl) return;
+
+      let current: SVGGElement | null = null;
+      let viaPointer = false;
+
+      const show = (n: SVGGElement): void => {
+        current = n;
+        for (const x of nodes) x.classList.toggle("is-selected", x === n);
+        labelEl.textContent = n.getAttribute("data-arch-label") ?? "";
+        textEl.textContent = n.getAttribute("data-arch-desc") ?? "";
+        hintEl.hidden = true;
+        activeEl.hidden = false;
+      };
+
+      const clear = (): void => {
+        current = null;
+        for (const x of nodes) x.classList.remove("is-selected");
+        hintEl.hidden = false;
+        activeEl.hidden = true;
+      };
+
+      for (const n of nodes) {
+        n.addEventListener("pointerdown", () => {
+          viaPointer = true;
+        });
+        n.addEventListener("click", () => {
+          if (current === n) clear();
+          else show(n);
+          viaPointer = false;
+        });
+        n.addEventListener("focus", () => {
+          if (viaPointer) {
+            viaPointer = false;
+            return;
+          }
+          show(n);
+        });
+        n.addEventListener("keydown", (ev: KeyboardEvent) => {
+          if (ev.key === "Enter" || ev.key === " ") {
+            ev.preventDefault();
+            show(n);
+          } else if (ev.key === "Escape") {
+            clear();
+            n.blur();
+          }
+        });
+      }
+
+      // Уход фокуса за пределы диаграммы — сброс выбора.
+      fig.addEventListener("focusout", (ev) => {
+        const next = (ev as FocusEvent).relatedTarget as Node | null;
+        if (next === null || !fig.contains(next)) clear();
+      });
+    });
+  })();
+</script>

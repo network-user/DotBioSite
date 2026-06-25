@@ -118,17 +118,15 @@ const variants: Variant[] = [
       ["1003", "keto"],
       ["1004", "NULL"],
     ],
-    note: { ru: "лишняя строка NULL — расходится с gold", en: "extra NULL row — differs from gold" },
+    note: {
+      ru: "лишняя строка NULL — расходится с gold",
+      en: "extra NULL row — differs from gold",
+    },
   },
   {
     label: { ru: "CROSS JOIN", en: "CROSS JOIN" },
     ok: false,
-    sql: [
-      "SELECT o.id, u.name",
-      "FROM orders o",
-      "CROSS JOIN users u",
-      "ORDER BY o.id;",
-    ],
+    sql: ["SELECT o.id, u.name", "FROM orders o", "CROSS JOIN users u", "ORDER BY o.id;"],
     py: [
       "rows = sql(db, '''",
       "  SELECT o.id, u.name",
@@ -192,7 +190,9 @@ const ui = {
     <li class="lf__stat"><b>22</b> {t({ ru: "темы", en: "topics" })}</li>
     <li class="lf__stat"><b>6</b> {t({ ru: "типов упражнений", en: "exercise types" })}</li>
     <li class="lf__stat"><b>2</b> {t({ ru: "рантайма в WASM", en: "WASM runtimes" })}</li>
-    <li class="lf__stat lf__stat--local">{t({ ru: "local-first · import.meta.glob", en: "local-first · import.meta.glob" })}</li>
+    <li class="lf__stat lf__stat--local">
+      {t({ ru: "local-first · import.meta.glob", en: "local-first · import.meta.glob" })}
+    </li>
   </ul>
 
   <div class="lf__bench">
@@ -204,11 +204,7 @@ const ui = {
       </header>
 
       <!-- вкладки рантайма: sql.js ↔ Pyodide -->
-      <div
-        class="lf-ide__runtimes"
-        role="tablist"
-        aria-label={t(ui.runtimeLabel)}
-      >
+      <div class="lf-ide__runtimes" role="tablist" aria-label={t(ui.runtimeLabel)}>
         {
           runtimes.map((r, k) => (
             <button
@@ -230,8 +226,13 @@ const ui = {
 
       <!-- редактор: faux line numbers + код активного варианта -->
       <div class="lf-ide__editor" data-lf-editor>
-        <pre class="lf-ide__gutter mono" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span></pre>
-        <pre class="lf-ide__code mono" data-lf-code aria-live="polite"><code>{initialCode}</code></pre>
+        <pre
+          class="lf-ide__gutter mono"
+          aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span></pre>
+        <pre
+          class="lf-ide__code mono"
+          data-lf-code
+          aria-live="polite"><code>{initialCode}</code></pre>
       </div>
 
       <!-- селектор варианта решения -->
@@ -266,7 +267,9 @@ const ui = {
 
       <div class="lf-ide__result" data-lf-result data-state="idle">
         <div class="lf-ide__result-head">
-          <span class="lf-ide__result-cap caption">{t({ ru: "результат прогона", en: "run output" })}</span>
+          <span class="lf-ide__result-cap caption"
+            >{t({ ru: "результат прогона", en: "run output" })}</span
+          >
           <span class="lf-ide__verdict mono" data-lf-verdict></span>
         </div>
         <div class="lf-ide__table-wrap">
@@ -298,12 +301,14 @@ const ui = {
 
       <!-- 1. сборка файлов модуля по одному -->
       <div class="lf-forge__stage" data-lf-stage="files" data-on="false">
-        <span class="lf-forge__stage-cap caption">{t({ ru: "1 · тема собирается как код", en: "1 · topic assembles as code" })}</span>
+        <span class="lf-forge__stage-cap caption"
+          >{t({ ru: "1 · тема собирается как код", en: "1 · topic assembles as code" })}</span
+        >
         <ul class="lf-forge__files" role="list">
           {
             forgeFiles.map((f, k) => (
               <li class="lf-forge__file" data-file={k} style={`--i:${k}`}>
-                <span class="lf-forge__file-dot" aria-hidden="true"></span>
+                <span class="lf-forge__file-dot" aria-hidden="true" />
                 <span class="lf-forge__file-name mono">{f.name}</span>
                 <span class="lf-forge__file-kind">{t(f.kind)}</span>
               </li>
@@ -315,22 +320,41 @@ const ui = {
       <!-- 2. Zod-гейт контракта -->
       <div class="lf-forge__stage" data-lf-stage="zod" data-on="false">
         <span class="lf-forge__stage-cap caption">
-          {t({ ru: "2 · общий Zod-контракт (web + api)", en: "2 · shared Zod contract (web + api)" })}
+          {
+            t({
+              ru: "2 · общий Zod-контракт (web + api)",
+              en: "2 · shared Zod contract (web + api)",
+            })
+          }
         </span>
         <div class="lf-forge__schema mono" data-state="pass" data-lf-schema aria-hidden="true">
           <span class="lf-forge__sline lf-forge__sline--head">topicSchema = z.object(&#123;</span>
           {
             schemaFields.map((f) => (
-              <span class="lf-forge__sline">{"  "}{f.key}: <em>{f.type}</em>,</span>
+              <span class="lf-forge__sline">
+                {"  "}
+                {f.key}: <em>{f.type}</em>,
+              </span>
             ))
           }
-          <span class="lf-forge__sline lf-forge__sline--bad" data-lf-badline>{"  "}_inject: <em>z.any()</em>,</span>
+          <span class="lf-forge__sline lf-forge__sline--bad" data-lf-badline
+            >{"  "}_inject: <em>z.any()</em>,</span
+          >
           <span class="lf-forge__sline lf-forge__sline--head">&#125;)</span>
-          <span class="lf-forge__sline lf-forge__sline--infer">type Topic = z.infer&lt;typeof topicSchema&gt;</span>
+          <span class="lf-forge__sline lf-forge__sline--infer"
+            >type Topic = z.infer&lt;typeof topicSchema&gt;</span
+          >
         </div>
         <div class="lf-forge__gate" data-lf-gate data-state="pass" role="status" aria-live="polite">
           <span class="lf-forge__gate-icon" aria-hidden="true"></span>
-          <span class="lf-forge__gate-text" data-lf-gatetext>{t({ ru: "PASS · форма валидна для web и api", en: "PASS · shape valid for web and api" })}</span>
+          <span class="lf-forge__gate-text" data-lf-gatetext
+            >{
+              t({
+                ru: "PASS · форма валидна для web и api",
+                en: "PASS · shape valid for web and api",
+              })
+            }</span
+          >
         </div>
         <button class="lf-forge__toggle" type="button" data-lf-badfield aria-pressed="false">
           {t(ui.badField)}
@@ -339,7 +363,9 @@ const ui = {
 
       <!-- 3. прогон в песочнице → PR -->
       <div class="lf-forge__stage" data-lf-stage="pr" data-on="false">
-        <span class="lf-forge__stage-cap caption">{t({ ru: "3 · gold-прогон → pull request", en: "3 · gold run → pull request" })}</span>
+        <span class="lf-forge__stage-cap caption"
+          >{t({ ru: "3 · gold-прогон → pull request", en: "3 · gold run → pull request" })}</span
+        >
         <ul class="lf-forge__pipe" role="list">
           <li class="lf-forge__pipe-step" data-pipe="0">
             <span class="lf-forge__pipe-dot" aria-hidden="true"></span>
@@ -436,8 +462,7 @@ const ui = {
     border: var(--bw-thin) solid var(--glass-edge);
     border-radius: var(--r-lg);
     background:
-      radial-gradient(130% 80% at 0% 0%, var(--lf-glow), transparent 52%),
-      var(--bg-elevated);
+      radial-gradient(130% 80% at 0% 0%, var(--lf-glow), transparent 52%), var(--bg-elevated);
     overflow: hidden;
   }
 
@@ -683,8 +708,15 @@ const ui = {
   }
 
   @keyframes lf-pulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(0.6); opacity: 0.5; }
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(0.6);
+      opacity: 0.5;
+    }
   }
 
   .lf-ide__status {
@@ -783,8 +815,7 @@ const ui = {
     border: var(--bw-thin) solid var(--glass-edge);
     border-radius: var(--r-lg);
     background:
-      radial-gradient(120% 70% at 100% 0%, var(--lf-glow), transparent 55%),
-      var(--glass-tint-frost);
+      radial-gradient(120% 70% at 100% 0%, var(--lf-glow), transparent 55%), var(--glass-tint-frost);
   }
 
   .lf-forge__head {
@@ -807,7 +838,9 @@ const ui = {
   }
 
   @keyframes lf-spin {
-    to { transform: rotate(180deg); }
+    to {
+      transform: rotate(180deg);
+    }
   }
 
   .lf-forge__title {
@@ -1060,9 +1093,16 @@ const ui = {
   }
 
   @keyframes lf-shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-4px); }
-    75% { transform: translateX(4px); }
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-4px);
+    }
+    75% {
+      transform: translateX(4px);
+    }
   }
 
   .lf-forge__toggle {
@@ -1328,12 +1368,7 @@ const ui = {
       },
       {
         ok: false,
-        sql: [
-          "SELECT o.id, u.name",
-          "FROM orders o",
-          "CROSS JOIN users u",
-          "ORDER BY o.id;",
-        ],
+        sql: ["SELECT o.id, u.name", "FROM orders o", "CROSS JOIN users u", "ORDER BY o.id;"],
         py: [
           "rows = sql(db, '''",
           "  SELECT o.id, u.name",
@@ -1531,7 +1566,10 @@ const ui = {
       gateEl?.setAttribute("data-state", failed ? "fail" : "pass");
       if (gateText) {
         gateText.textContent = failed
-          ? tr("REJECT · ZodError: unrecognized key — отклонено web И api", "REJECT · ZodError: unrecognized key — rejected by web AND api")
+          ? tr(
+              "REJECT · ZodError: unrecognized key — отклонено web И api",
+              "REJECT · ZodError: unrecognized key — rejected by web AND api",
+            )
           : tr("PASS · форма валидна для web и api", "PASS · shape valid for web and api");
       }
       if (badFieldBtn) {
