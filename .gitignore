@@ -20,6 +20,7 @@ dist/
 *.log
 *.tmp
 *.bak
+debug.txt
 
 # --- OS -------------------------------------------------------------------
 .DS_Store
@@ -43,3 +44,6 @@ public/private/
 .wrangler/
 .vercel/
 .netlify/
+
+# --- Claude Code (локальные настройки агента, не для публичного репо) -----
+.claude/settings.local.json

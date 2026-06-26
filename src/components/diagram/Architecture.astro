@@ -181,7 +181,10 @@ interface Port {
 }
 
 /** Точка-порт на середине грани `side` капсулы и внешняя нормаль этой грани. */
-function facePort(n: Resolved, side: Side): { p: { x: number; y: number }; d: { x: number; y: number } } {
+function facePort(
+  n: Resolved,
+  side: Side,
+): { p: { x: number; y: number }; d: { x: number; y: number } } {
   switch (side) {
     case "r":
       return { p: { x: n.x + n.hw, y: n.y }, d: { x: 1, y: 0 } };
@@ -294,10 +297,7 @@ const hasCaption = hint.length > 0 && nodeData.some((n) => n.desc.length > 0);
 const labelById = new Map(nodes.map((n) => [n.id, n.label] as const));
 
 // Исходящие связи узла → чипы (куда, каким каналом, с какой подписью).
-const edgesByFrom = new Map<
-  string,
-  { toLabel: string; kind: EdgeKind; label?: string }[]
->();
+const edgesByFrom = new Map<string, { toLabel: string; kind: EdgeKind; label?: string }[]>();
 for (const e of edges) {
   const toLabel = labelById.get(e.to);
   if (!toLabel) continue;
@@ -530,7 +530,7 @@ for (const { node, desc } of flowSorted) {
       display: none;
     }
     .architecture__flow {
-      display: block;
+      display: flex;
     }
     .architecture__caption {
       display: none;
@@ -656,7 +656,6 @@ for (const { node, desc } of flowSorted) {
    * Мобильный вертикальный flow (виден только на узких экранах, см. toggle).
    * ==================================================================== */
   .architecture__flow {
-    display: none;
     flex-direction: column;
     gap: var(--sp-5);
   }

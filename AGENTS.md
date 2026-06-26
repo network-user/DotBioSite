@@ -73,7 +73,7 @@ astro.config.mjs
 | `PUBLIC_AUTHOR_NAME_RU` / `PUBLIC_AUTHOR_NAME_EN`                       | имя автора по локали                                            |
 | `PUBLIC_AUTHOR_PHOTO` / `PUBLIC_AUTHOR_BIO_RU` / `PUBLIC_AUTHOR_BIO_EN` | фото и био (опц.)                                               |
 | `PUBLIC_SOCIAL_GITHUB/TELEGRAM/LINKEDIN/X/VK`                           | соцссылки (пустые не рендерятся)                                |
-| `AUTHOR_EMAIL`                                                          | без префикса; кодируется в base64 на билде, в bundle не утекает |
+| `AUTHOR_EMAIL`                                                          | без префикса; в bundle уходит base64 от перевёрнутой строки (`data-e`) - обфускация от скраперов, тривиально восстановима, адрес считать публичным |
 
 `PUBLIC_*` попадают в клиентский bundle (видны посетителю). На CI значения материализуются из GitHub Actions secrets. Не коммить секреты и `.env`.
 

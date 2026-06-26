@@ -19,6 +19,10 @@ interface ImportMetaEnv {
   readonly PUBLIC_SOCIAL_VK?: string;
 
   readonly AUTHOR_EMAIL?: string;
+
+  /** Явный URL репозитория проекта — один ключ на репо (см. config.repoEnvKey).
+   *  Напр. PUBLIC_REPO_DOTSOUNDBACKEND, PUBLIC_REPO_DOTCORE_SKILLS. */
+  readonly [key: `PUBLIC_REPO_${string}`]: string | undefined;
 }
 
 interface ImportMeta {

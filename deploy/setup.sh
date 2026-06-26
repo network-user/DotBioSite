@@ -61,8 +61,15 @@ if command -v node >/dev/null 2>&1; then
 	[ "$cur" -ge "$NODE_MAJOR" ] && need_node=0
 fi
 if [ "$need_node" -eq 1 ]; then
-	echo "==> Установка Node ${NODE_MAJOR}..."
-	curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash - >/dev/null
+	echo "==> Установка Node ${NODE_MAJOR} (NodeSource, подписанный keyring)..."
+	# Не пайпим установочный скрипт NodeSource в bash от root: добавляем
+	# подписанный apt-репозиторий вручную (как для Caddy ниже), чтобы apt
+	# проверял GPG-подпись пакетов и MITM/компрометация CDN не давала RCE.
+	curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
+		| gpg --batch --yes --dearmor -o /usr/share/keyrings/nodesource.gpg
+	echo "deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" \
+		> /etc/apt/sources.list.d/nodesource.list
+	apt-get update -qq
 	apt-get install -y -qq nodejs >/dev/null
 else
 	echo "==> Node уже есть: $(node -v)"

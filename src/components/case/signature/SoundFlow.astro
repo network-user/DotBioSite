@@ -2668,6 +2668,7 @@ const nav = {
 
     // ---- инфраструктура таймеров ----
     let inview = false;
+    let userRunning = false;
     const timers: number[] = [];
     const clearTimers = (): void => {
       while (timers.length) {
@@ -2696,6 +2697,7 @@ const nav = {
     let stRc = 0;
 
     const stRun = (): void => {
+      userRunning = true;
       clearTimers();
       stStepEls.forEach((s) => s.classList.remove("is-on", "is-dup"));
       if (stGo) {
@@ -2708,7 +2710,8 @@ const nav = {
       });
       later(
         () => {
-          stRc += 1;
+          userRunning = false;
+          stRc = 1;
           if (stAgain) stAgain.disabled = false;
           if (stGo) {
             stGo.disabled = false;
@@ -2722,6 +2725,7 @@ const nav = {
       );
     };
     const stBump = (): void => {
+      userRunning = true;
       clearTimers();
       stStepEls.forEach((s) => s.classList.remove("is-on", "is-dup"));
       if (stNote) stNote.textContent = "";
@@ -2733,6 +2737,7 @@ const nav = {
       });
       later(
         () => {
+          userRunning = false;
           stRc += 1;
           if (stSaveNote) stSaveNote.textContent = tr("уже есть", "already exists");
           if (stRef) stRef.textContent = String(stRc);
@@ -2755,6 +2760,7 @@ const nav = {
     const plNote = root.querySelector<HTMLElement>("[data-pl-note]");
 
     const runPipeline = (): void => {
+      userRunning = true;
       clearTimers();
       plNodes.forEach((n) => n.classList.remove("is-on"));
       plOuts.forEach((o) => o.classList.remove("is-on"));
@@ -2769,6 +2775,7 @@ const nav = {
       });
       later(
         () => {
+          userRunning = false;
           if (plNote) plNote.textContent = tr("все форматы готовы", "all formats ready");
           if (plGo) {
             plGo.disabled = false;
@@ -2847,6 +2854,7 @@ const nav = {
       });
     });
     const runImport = (): void => {
+      userRunning = true;
       clearTimers();
       imRows.forEach((r) => r.classList.remove("is-in"));
       if (imGo) {
@@ -2859,6 +2867,7 @@ const nav = {
       });
       later(
         () => {
+          userRunning = false;
           if (imNote) imNote.textContent = tr("добавлено в каталог", "added to the catalog");
           if (imGo) {
             imGo.disabled = false;
@@ -3244,7 +3253,7 @@ const nav = {
             inview = e.isIntersecting;
             root.classList.toggle("is-inview", inview);
             if (!inview) {
-              clearTimers();
+              if (!userRunning) clearTimers();
               lsStop();
             } else {
               autoplay(tabs[current]?.dataset.id ?? "storage");

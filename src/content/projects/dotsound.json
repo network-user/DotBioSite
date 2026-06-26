@@ -197,12 +197,12 @@
       "id": "core",
       "col": 1,
       "row": 1,
-      "label": "Closed core",
+      "label": "PrivateCore",
       "icon": "code",
       "width": 175,
       "desc": {
-        "ru": "Закрытое ядро: бизнес-правила, политика выдачи, security-константы",
-        "en": "Closed core: business rules, ranking policy, security constants"
+        "ru": "PrivateCore: бизнес-правила, политика выдачи, security-константы",
+        "en": "PrivateCore: business rules, ranking policy, security constants"
       }
     },
     {

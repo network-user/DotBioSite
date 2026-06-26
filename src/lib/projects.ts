@@ -6,7 +6,7 @@
  */
 
 import type { Locale } from "./i18n";
-import { config } from "./config";
+import { config, repoUrlOverride } from "./config";
 
 export interface ProjectRepo {
   /** Короткое отображаемое имя в карточке (например, "Backend"). */
@@ -109,6 +109,11 @@ export interface ProjectArchitectureEdge {
   kind?: ProjectArchitectureEdgeKind;
   label?: string;
   bend?: number;
+  /** Принудительная грань выхода/входа ребра (t/b/l/r). По умолчанию грань
+   *  выбирается автоматически по доминирующей оси разноса узлов; override нужен
+   *  рёбрам-перескокам, которым авто-грань мешала бы обойти соседний блок. */
+  fromSide?: "t" | "b" | "l" | "r";
+  toSide?: "t" | "b" | "l" | "r";
   /** Принудительно односторонний поток (без ответного пакета в анимации) — для
    *  записей-стоков: отчёт на диск, нотификация, отгрузка в очередь. По умолчанию
    *  односторонними считаются только `async`-рёбра; `sync`/`data` — round-trip. */
@@ -255,17 +260,23 @@ export function projectDescription(p: Project, locale: Locale): string {
 /**
  * URL репозитория с graceful fallback:
  *   1) если в JSON явно задан `repo.url` — берём его (например, репо в чужой org);
- *   2) если задан `PUBLIC_GITHUB_USER` — собираем `https://github.com/<user>/<name>`;
- *   3) иначе возвращаем пустую строку — компоненты не рендерят ссылку.
+ *   2) если задана env-переменная `PUBLIC_REPO_<ИДЕНТ>` (см. {@link repoUrlOverride})
+ *      — берём её: так URL'ы репо держатся вне кода, по одному на репозиторий;
+ *   3) если задан `PUBLIC_GITHUB_USER` — собираем `https://github.com/<user>/<ident>`;
+ *   4) иначе возвращаем пустую строку — компоненты не рендерят ссылку.
  *
- * Это позволяет держать JSON-ы проектов без захардкоженного username и
- * шарить репозиторий как шаблон.
+ * Идентификатор репо (`repo.repo ?? repo.name`) — один и тот же ключ и для
+ * env-переменной, и для авто-сборки URL. Это позволяет держать JSON-ы проектов
+ * без захардкоженного username и шарить репозиторий как шаблон.
  */
 export function repoUrl(repo: ProjectRepo): string {
   if (repo.url && repo.url.length > 0) return repo.url;
+  const ident = repo.repo ?? repo.name;
+  const fromEnv = repoUrlOverride(ident);
+  if (fromEnv.length > 0) return fromEnv;
   const user = config.PUBLIC_GITHUB_USER;
   if (!user) return "";
-  return `https://github.com/${user}/${repo.repo ?? repo.name}`;
+  return `https://github.com/${user}/${ident}`;
 }
 
 /**

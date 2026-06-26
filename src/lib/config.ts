@@ -67,6 +67,38 @@ if (!parsed.success) {
 export const config = parsed.data;
 export type Config = typeof config;
 
+/**
+ * Полный объект переменных окружения (build-time). В отличие от `config` с
+ * фиксированной Zod-схемой, здесь читаем динамические ключи `PUBLIC_REPO_*` —
+ * по одному URL на репозиторий проекта. Доступ по ключу безопасен: сайт
+ * собирается статически, и Vite кладёт все PUBLIC_-переменные в `import.meta.env`.
+ */
+const rawEnv = import.meta.env as unknown as Record<string, string | undefined>;
+
+/**
+ * Имя env-переменной с URL репозитория по его GitHub-идентификатору
+ * (`repo.repo ?? repo.name`): верхний регистр, не-буквенно-цифровые → `_`,
+ * крайние `_` срезаются. Схема обязана совпадать с ключами в `.env.example`.
+ * Примеры: «DotSoundBackend» → `PUBLIC_REPO_DOTSOUNDBACKEND`,
+ *          «dotcore-skills» → `PUBLIC_REPO_DOTCORE_SKILLS`.
+ */
+export function repoEnvKey(repoIdent: string): string {
+  const slug = repoIdent
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return `PUBLIC_REPO_${slug}`;
+}
+
+/**
+ * URL репозитория из env по его идентификатору. Пустая строка, если переменная
+ * не задана — тогда `repoUrl()` падает дальше на сборку из `PUBLIC_GITHUB_USER`.
+ */
+export function repoUrlOverride(repoIdent: string): string {
+  const v = rawEnv[repoEnvKey(repoIdent)];
+  return typeof v === "string" ? v : "";
+}
+
 /** Список соцсетей в фиксированном порядке. Пустые URL отфильтрованы. */
 export const socials: ReadonlyArray<{ id: SocialId; url: string }> = (
   [
