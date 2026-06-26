@@ -1,7 +1,7 @@
 ---
 import { useTranslations, type Locale } from "../lib/i18n";
 import { socials } from "../lib/config";
-import { emailB64, hasEmail, emailDecoderScript } from "../lib/contacts";
+import { emailB64, hasEmail } from "../lib/contacts";
 import SectionHeader from "./SectionHeader.astro";
 import Icon from "./Icon/Icon.astro";
 
@@ -200,7 +200,80 @@ const briefOptions = hasEmail
   }
 </script>
 
-{hasEmail && <script is:inline set:html={emailDecoderScript} />}
+<script>
+  /* Email decoder: распаковывает обфусцированный адрес (base64 от перевёрнутой
+     строки) из data-e и по клику открывает mailto или копирует. Вынесен из
+     is:inline в обычный <script>, поэтому Astro хостит его во внешний бандл —
+     CSP может быть script-src 'self' без 'unsafe-inline'. No-op без кнопок. */
+  const decodeEmail = (b64: string): string => {
+    try {
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder("utf-8").decode(bytes).split("").reverse().join("");
+    } catch {
+      return "";
+    }
+  };
+
+  const buildMailto = (addr: string, btn: HTMLElement): string => {
+    const params = new URLSearchParams();
+    const subject = btn.getAttribute("data-subject") || "";
+    const body = btn.getAttribute("data-body") || "";
+    if (subject) params.set("subject", subject);
+    if (body) params.set("body", body);
+    const qs = params.toString();
+    return "mailto:" + addr + (qs ? "?" + qs : "");
+  };
+
+  const setCopied = (btn: HTMLElement): void => {
+    const label = btn.querySelector<HTMLElement>("[data-contact-label]");
+    if (!label) return;
+    if (!btn.dataset.defaultLabel) btn.dataset.defaultLabel = label.textContent || "";
+    label.textContent = btn.getAttribute("data-copied-label") || btn.dataset.defaultLabel || "";
+    btn.classList.add("is-copied");
+    window.setTimeout(() => {
+      label.textContent = btn.dataset.defaultLabel || label.textContent;
+      btn.classList.remove("is-copied");
+    }, 1800);
+  };
+
+  const copyText = (text: string, done: () => void): void => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => {
+        /* clipboard write rejected; silently ignore */
+      });
+      return;
+    }
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand("copy");
+      done();
+    } catch {
+      /* execCommand fallback failed; ignore */
+    }
+    document.body.removeChild(textarea);
+  };
+
+  document.querySelectorAll<HTMLElement>(".contact-email[data-e]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const addr = decodeEmail(btn.getAttribute("data-e") || "");
+      if (!addr) return;
+      if (btn.getAttribute("data-mode") === "copy") {
+        copyText(addr, () => setCopied(btn));
+      } else {
+        window.location.href = buildMailto(addr, btn);
+      }
+    });
+  });
+</script>
 
 <style>
   .contact__brief {

@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# DotBioSite secret-guard (pre-commit).
+# Блокирует попадание приватных файлов и явных секретов в коммит.
+# Активация в новом клоне: git config core.hooksPath .githooks
+#
+# Это первая линия обороны на машине разработчика; обязательная проверка
+# гоняется в CI (.github/workflows/security.yml, gitleaks).
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+fail=0
+
+# 1) Приватные / секретные файлы не должны коммититься.
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  case "$f" in
+  .env.example) ;; # шаблон без значений — можно
+  *settings.local.json | .env | .env.local | .env.* | *.pem | *.key | *.p12 | *.pfx)
+    echo "✖ blocked: '$f' выглядит приватным/секретным — не коммить."
+    fail=1
+    ;;
+  esac
+done <<EOF
+$staged
+EOF
+
+# 2) Явные секреты в содержимом staged-изменений (токены, ключи).
+if git diff --cached -U0 --diff-filter=ACM |
+  grep -nE '(ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|xox[baprs]-[0-9A-Za-z-]{10,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|\bsk-[A-Za-z0-9]{20,})' \
+    >/dev/null 2>&1; then
+  echo "✖ blocked: в staged-изменениях возможный секрет (token/key)."
+  fail=1
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo "Коммит отменён secret-guard'ом (.githooks/pre-commit)."
+  echo "Если это ложное срабатывание — закоммить с --no-verify осознанно."
+  exit 1
+fi
+exit 0

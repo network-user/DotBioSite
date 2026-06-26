@@ -26,6 +26,7 @@
 ```bash
 nvm use            # Node 20 LTS (.nvmrc)
 npm install
+git config core.hooksPath .githooks   # secret-guard перед коммитом
 cp .env.example .env   # заполни своими данными
 npm run dev        # http://localhost:4321
 ```
