@@ -414,7 +414,6 @@ const bundle = {
           <span class="dl__znum" aria-hidden="true">3</span>
           <h3 class="dl__ztitle">{t(ui.z3)}</h3>
           <span class="dl__zcap">{t(ui.z3cap)}</span>
-          <span class="dl__chip-slot" data-chip-slot aria-hidden="true"></span>
         </div>
 
         <div class="dl__modes" role="group" aria-label={t(ui.z3)} data-modes>
@@ -434,6 +433,7 @@ const bundle = {
 
         <p class="dl__why" data-why aria-live="polite">{t(ui.mStreakWhy)}</p>
 
+        <span class="dl__chip-slot" data-chip-slot aria-hidden="true"></span>
         <ol class="dl__board" data-board>
           {
             players.map((p) => (
@@ -1188,10 +1188,9 @@ const bundle = {
     }
   }
   .dl__chip-slot {
-    margin-inline-start: auto;
+    display: block;
     width: 8px;
-    height: 8px;
-    flex: none;
+    height: 0;
   }
 
   /* --- Связки между зонами (стрелки-локти) --- */
