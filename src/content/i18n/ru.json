@@ -116,7 +116,7 @@
     "colophon": "README и правила проектов собраны скиллом generate-readme из"
   },
   "case": {
-    "back": "← ко всем проектам",
+    "back": "ко всем проектам",
     "overview": "суть",
     "architecture": "архитектура",
     "architectureHint": "Нажми на модуль - покажу его роль в системе.",

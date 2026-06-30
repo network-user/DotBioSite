@@ -47,3 +47,6 @@ public/private/
 
 # --- Claude Code (локальные настройки агента, не для публичного репо) -----
 .claude/settings.local.json
+
+# --- Временные скриншоты / verification-артефакты -------------------------
+.shots/

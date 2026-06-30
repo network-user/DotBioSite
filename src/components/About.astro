@@ -149,7 +149,6 @@ const portraitContacts: {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    filter: grayscale(100%) contrast(1.05);
   }
 
   .about__monogram {
@@ -168,9 +167,11 @@ const portraitContacts: {
     pointer-events: none;
     background: linear-gradient(
       115deg,
-      transparent 38%,
-      var(--glass-edge-bright) 50%,
-      transparent 62%
+      transparent 36%,
+      rgba(0, 0, 0, 0.1) 42%,
+      rgba(255, 255, 255, 0.55) 50%,
+      rgba(0, 0, 0, 0.1) 58%,
+      transparent 64%
     );
     opacity: 0;
     transform: translateX(-60%);
@@ -193,7 +194,7 @@ const portraitContacts: {
       transform: translateX(-60%);
     }
     46% {
-      opacity: 0.32;
+      opacity: 0.55;
     }
     72% {
       opacity: 0;

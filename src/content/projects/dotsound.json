@@ -136,11 +136,11 @@
       }
     },
     {
-      "value": "2.2k",
+      "value": "3.3k",
       "span": 3,
       "label": {
-        "ru": "автотестов в трёх сервисах",
-        "en": "automated tests across three services"
+        "ru": "автотестов в четырёх репозиториях",
+        "en": "automated tests across four repos"
       }
     },
     {
@@ -152,7 +152,7 @@
       }
     },
     {
-      "value": "120",
+      "value": "241",
       "span": 3,
       "label": {
         "ru": "миграций базы данных",
@@ -238,8 +238,8 @@
       "icon": "dot",
       "width": 175,
       "desc": {
-        "ru": "Метаданные, пользователи, плейлисты; ~70 моделей, 120 миграций",
-        "en": "Metadata, users, playlists; ~70 models, 120 migrations"
+        "ru": "Метаданные, пользователи, плейлисты; ~70 моделей, 241 миграция",
+        "en": "Metadata, users, playlists; ~70 models, 241 migrations"
       }
     },
     {

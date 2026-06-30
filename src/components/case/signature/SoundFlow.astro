@@ -52,19 +52,19 @@ const pillars: Pillar[] = [
     tag: { ru: "все форматы · форма волны", en: "all formats · waveform" },
     title: { ru: "Обработка после загрузки", en: "Post-upload processing" },
     pitch: {
-      ru: "Из одного файла собирается весь плеер.",
-      en: "One file becomes the whole player.",
+      ru: "Из одного файла - форматы, форма волны, тексты.",
+      en: "One file yields formats, waveform, and lyrics.",
     },
     desc: {
-      ru: "Из исходного файла автоматически создаётся всё нужное для плеера: поток с адаптивным качеством, форма волны, короткий превью и обложка. Всё готовится однажды и хранится в неизменном виде.",
-      en: "From the source file everything the player needs is generated automatically: an adaptive-quality stream, a waveform, a preview snippet, and cover art. Prepared once, stored immutably.",
+      ru: "Из исходного файла автоматически создаётся всё нужное: адаптивный поток, форма волны, короткий превью, обложка и текст песни через ASR. Перед обработкой отсеиваются дубликаты. Всё готовится однажды и хранится в неизменном виде.",
+      en: "From the source file everything is generated automatically: an adaptive-quality stream, a waveform, a preview snippet, cover art, and song lyrics via ASR. Duplicates are filtered before processing. Prepared once, stored immutably.",
     },
   },
   {
     id: "listen",
-    label: { ru: "Плеер", en: "Player" },
+    label: { ru: "Треки", en: "Tracks" },
     tag: { ru: "авто-качество · тексты в такт", en: "adaptive · synced lyrics" },
-    title: { ru: "Плеер с синхронизированными текстами", en: "Player with synced lyrics" },
+    title: { ru: "Треки с синхронизированными текстами", en: "Tracks with synced lyrics" },
     pitch: {
       ru: "Поток подстраивается, текст всплывает в такт.",
       en: "The stream adapts, lyrics surface on the beat.",
@@ -153,15 +153,56 @@ const storage = {
 const pipeline = {
   go: { ru: "Обработать файл", en: "Process file" },
   raw: { ru: "исходник", en: "source" },
+  dedup: { ru: "дедупликация", en: "dedup" },
   ffmpeg: { ru: "обработчик", en: "processor" },
   mp3: { ru: "MP3", en: "MP3" },
   hls: { ru: "поток · 2 качества", en: "stream · 2 quality" },
   wave: { ru: "форма волны", en: "waveform" },
   snippet: { ru: "превью", en: "preview" },
   cover: { ru: "обложка", en: "cover art" },
+  lyrics: { ru: "текст · ASR", en: "lyrics · ASR" },
   done: {
-    ru: "все форматы готовы",
-    en: "all formats ready",
+    ru: "форматы + тексты готовы",
+    en: "formats + lyrics ready",
+  },
+};
+
+const pipelineHints: Record<string, Bi> = {
+  raw: {
+    ru: "Загруженный аудиофайл. Принимаются FLAC, WAV, MP3, AAC, OGG и другие форматы — без ограничений на битрейт.",
+    en: "The uploaded audio file. FLAC, WAV, MP3, AAC, OGG and other formats accepted — no bitrate restrictions.",
+  },
+  dedup: {
+    ru: "Акустический отпечаток файла сравнивается с базой. Если трек уже есть — повторная обработка не запускается, возвращается ссылка на существующий.",
+    en: "The file's acoustic fingerprint is compared against the database. If the track already exists, processing is skipped and a link to the existing one is returned.",
+  },
+  ffmpeg: {
+    ru: "Транскодирует трек во все форматы параллельно. Одновременно нейросеть выделяет вокал и расшифровывает текст по тайм-кодам.",
+    en: "Transcodes the track into all formats in parallel. Simultaneously, the neural network isolates vocals and transcribes lyrics with timestamps.",
+  },
+  mp3: {
+    ru: "Универсальный формат для скачивания и офлайн-прослушивания.",
+    en: "Universal format for download and offline playback.",
+  },
+  hls: {
+    ru: "Адаптивный поток: два качества, переключаются автоматически под скорость соединения без разрыва воспроизведения.",
+    en: "Adaptive stream: two quality tiers, switching automatically based on connection speed without interrupting playback.",
+  },
+  wave: {
+    ru: "Форма волны для скруббера — строится один раз при загрузке, хранится в S3.",
+    en: "Waveform for the scrubber — generated once on upload, stored in S3.",
+  },
+  snippet: {
+    ru: "30-секундное превью для быстрого прослушивания без загрузки полного трека.",
+    en: "30-second preview for quick listening without loading the full track.",
+  },
+  cover: {
+    ru: "Обложка нормализуется по размеру и формату. Если нет — генерируется цветная заглушка по названию.",
+    en: "Cover art is normalized to size and format. If missing, a colored placeholder is generated from the title.",
+  },
+  lyrics: {
+    ru: "Demucs отделяет вокал от инструментов, Whisper расшифровывает слова и выравнивает каждую строку по тайм-коду.",
+    en: "Demucs separates vocals from instruments; Whisper transcribes the words and aligns each line to a timestamp.",
   },
 };
 
@@ -360,7 +401,7 @@ const feedSections: { id: string; label: Bi; note: Bi }[] = [
 const searchT = {
   cap: { ru: "поиск с первой буквы", en: "search as you type" },
   placeholder: { ru: "онда…", en: "onda…" },
-  translit: { ru: "RU↔LAT", en: "RU↔LAT" },
+  translit: { ru: "искать", en: "search" },
   fuzzy: { ru: "с опечатками · популярные выше", en: "fuzzy · popular first" },
 };
 const searchHits: { title: Bi; sub: Bi; via: Bi }[] = [
@@ -634,12 +675,23 @@ const nav = {
         <!-- ----------------- (2) ТРАНСКОД ----------------- -->
         <div class="sf__viz sf__viz--pipeline" data-sf-viz="pipeline" hidden>
           <div class="sf__pl-flow">
-            <div class="sf__pl-node" data-pl-node="raw">
+            <div class="sf__pl-node" data-pl-node="raw"
+              data-pl-hint-ru={pipelineHints.raw.ru}
+              data-pl-hint-en={pipelineHints.raw.en}>
               <span class="sf__pl-ico mono" aria-hidden="true">♪</span>
               <span class="sf__pl-label">{t(pipeline.raw)}</span>
             </div>
             <span class="sf__arrow" aria-hidden="true"></span>
-            <div class="sf__pl-node sf__pl-node--core" data-pl-node="ffmpeg">
+            <div class="sf__pl-node" data-pl-node="dedup"
+              data-pl-hint-ru={pipelineHints.dedup.ru}
+              data-pl-hint-en={pipelineHints.dedup.en}>
+              <span class="sf__pl-ico mono" aria-hidden="true">⊘</span>
+              <span class="sf__pl-label">{t(pipeline.dedup)}</span>
+            </div>
+            <span class="sf__arrow" aria-hidden="true"></span>
+            <div class="sf__pl-node sf__pl-node--core" data-pl-node="ffmpeg"
+              data-pl-hint-ru={pipelineHints.ffmpeg.ru}
+              data-pl-hint-en={pipelineHints.ffmpeg.en}>
               <span class="sf__pl-ico mono" aria-hidden="true">⚙</span>
               <span class="sf__pl-label">{t(pipeline.ffmpeg)}</span>
             </div>
@@ -653,15 +705,19 @@ const nav = {
                     ["wave", pipeline.wave],
                     ["snippet", pipeline.snippet],
                     ["cover", pipeline.cover],
+                    ["lyrics", pipeline.lyrics],
                   ] as const
                 ).map(([id, label]) => (
-                  <div class="sf__pl-chip" data-pl-out={id}>
+                  <div class="sf__pl-chip" data-pl-out={id}
+                    data-pl-hint-ru={pipelineHints[id]?.ru}
+                    data-pl-hint-en={pipelineHints[id]?.en}>
                     <span class="mono">{t(label)}</span>
                   </div>
                 ))
               }
             </div>
           </div>
+          <p class="sf__pl-hint mono" data-pl-hint aria-live="polite"></p>
           <div class="sf__viz-controls">
             <button class="sf__act" type="button" data-pl-go>{t(pipeline.go)}</button>
             <span class="sf__viz-note mono" data-pl-note></span>
@@ -1802,6 +1858,32 @@ const nav = {
     border-color: var(--sf-hot-line);
     background: var(--sf-hot-soft);
   }
+  .sf__pl-node,
+  .sf__pl-chip {
+    cursor: pointer;
+  }
+  .sf__pl-node:focus-visible,
+  .sf__pl-chip:focus-visible {
+    outline: 2px solid var(--sf-hot-line);
+    outline-offset: 2px;
+  }
+  .sf__pl-node.is-hint-active,
+  .sf__pl-chip.is-hint-active {
+    border-color: var(--sf-hot-line);
+    opacity: 1;
+  }
+  .sf__pl-hint {
+    min-height: 2.6em;
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+    line-height: 1.5;
+    opacity: 0;
+    transition: opacity var(--dur-med) var(--ease-standard);
+    margin-block: var(--sp-2) 0;
+  }
+  .sf__pl-hint.is-visible {
+    opacity: 1;
+  }
 
   /* (5) Рекомендации — 3-step onboarding */
   .sf__dc-steps {
@@ -2265,34 +2347,10 @@ const nav = {
     height: 100%;
     border-radius: 1px;
     background: var(--sf-hot);
-    transform: scaleY(0.25);
+    transform: scaleY(0.15);
     transform-origin: bottom center;
-  }
-  .sf__viz--listen.is-playing .sf__ls-eq span {
-    animation: sf-eq 0.6s var(--ease-drift) infinite alternate;
-  }
-  .sf__ls-eq span:nth-child(1) {
-    animation-delay: -0.2s;
-  }
-  .sf__ls-eq span:nth-child(2) {
-    animation-delay: -0.5s;
-  }
-  .sf__ls-eq span:nth-child(3) {
-    animation-delay: -0.1s;
-  }
-  .sf__ls-eq span:nth-child(4) {
-    animation-delay: -0.7s;
-  }
-  .sf__ls-eq span:nth-child(5) {
-    animation-delay: -0.35s;
-  }
-  @keyframes sf-eq {
-    from {
-      transform: scaleY(0.2);
-    }
-    to {
-      transform: scaleY(1);
-    }
+    transition: transform 55ms linear;
+    will-change: transform;
   }
 
   /* ---------- waveform-скраббер ---------- */
@@ -2592,14 +2650,14 @@ const nav = {
   @media (prefers-reduced-motion: reduce) {
     .sf__viz.is-active,
     .sf__st-file[data-st-card],
-    .sf__viz--listen.is-playing .sf__ls-fill,
-    .sf__viz--listen.is-playing .sf__ls-eq span {
+    .sf__viz--listen.is-playing .sf__ls-fill {
       animation: none !important;
     }
     .sf__ls-fill {
       transform: scaleX(1);
     }
     .sf__ls-eq span {
+      transition: none;
       transform: scaleY(0.5);
     }
     .sf__ta-fill {
@@ -2759,9 +2817,44 @@ const nav = {
     const plGo = root.querySelector<HTMLButtonElement>("[data-pl-go]");
     const plNote = root.querySelector<HTMLElement>("[data-pl-note]");
 
+    const plHint = root.querySelector<HTMLElement>("[data-pl-hint]");
+    const allPlClickable = [...plNodes, ...plOuts];
+
+    const clearHint = (): void => {
+      allPlClickable.forEach((i) => i.classList.remove("is-hint-active"));
+      plHint?.classList.remove("is-visible");
+    };
+
+    allPlClickable.forEach((el) => {
+      el.setAttribute("tabindex", "0");
+      el.setAttribute("role", "button");
+      const showHint = (): void => {
+        const text = el.getAttribute(isEn ? "data-pl-hint-en" : "data-pl-hint-ru") ?? "";
+        if (!text) return;
+        const isSame =
+          plHint?.textContent === text && plHint?.classList.contains("is-visible");
+        clearHint();
+        if (!isSame) {
+          el.classList.add("is-hint-active");
+          if (plHint) {
+            plHint.textContent = text;
+            plHint.classList.add("is-visible");
+          }
+        }
+      };
+      el.addEventListener("click", showHint);
+      el.addEventListener("keydown", (e: KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          showHint();
+        }
+      });
+    });
+
     const runPipeline = (): void => {
       userRunning = true;
       clearTimers();
+      clearHint();
       plNodes.forEach((n) => n.classList.remove("is-on"));
       plOuts.forEach((o) => o.classList.remove("is-on"));
       if (plGo) {
@@ -2889,6 +2982,7 @@ const nav = {
     const lsCur = root.querySelector<HTMLElement>("[data-ls-cur]");
     const lsLines = Array.from(root.querySelectorAll<HTMLElement>("[data-ls-line]"));
     const lsPlay = root.querySelector<HTMLButtonElement>("[data-ls-play]");
+    const lsEqBars = Array.from(root.querySelectorAll<HTMLElement>("[data-ls-eq] span"));
     const TRACK_LEN = 168; // 2:48 — для подписи текущего времени
     const PLAY_DUR = 13; // секунд на полный проход в демо
     let lsRaf = 0;
@@ -2896,6 +2990,29 @@ const nav = {
     let lsP0 = 0;
     let lsP = 0;
     let lsPlaying = false;
+
+    // [f1, f2, f3, a1, a2, a3] — суперпозиция 3 синусоид на бар; иррациональные
+    // соотношения частот исключают зримое повторение паттерна
+    const EQ_CFG = [
+      [1.3, 2.9, 0.71, 0.42, 0.33, 0.25],  // bass: медленно, высоко
+      [2.3, 4.1, 1.73, 0.38, 0.35, 0.27],
+      [3.7, 6.3, 2.17, 0.35, 0.37, 0.28],
+      [5.1, 8.7, 3.31, 0.32, 0.38, 0.30],
+      [7.3, 11.9, 5.13, 0.30, 0.38, 0.32], // treble: быстро, мало
+    ] as const;
+
+    const lsEqTick = (ts: number): void => {
+      const t = ts * 0.001;
+      lsEqBars.forEach((bar, i) => {
+        const [f1, f2, f3, a1, a2, a3] = EQ_CFG[i];
+        const raw = Math.sin(t * f1) * a1 + Math.sin(t * f2) * a2 + Math.sin(t * f3) * a3;
+        const v = Math.max(0.1, Math.min(0.98, (raw + 1) * 0.5));
+        bar.style.transform = `scaleY(${v.toFixed(3)})`;
+      });
+    };
+    const lsEqReset = (): void => {
+      lsEqBars.forEach((bar) => (bar.style.transform = ""));
+    };
 
     const fmt = (s: number): string => {
       const m = Math.floor(s / 60);
@@ -2932,16 +3049,19 @@ const nav = {
       lsPlaying = false;
       lsViz?.classList.remove("is-playing");
       lsLabel(tr("Играть", "Play"), false);
+      lsEqReset();
     };
     const lsFrame = (ts: number): void => {
       if (!lsTs) lsTs = ts;
       const p = Math.min(1, lsP0 + (ts - lsTs) / 1000 / PLAY_DUR);
       lsApply(p);
+      lsEqTick(ts);
       if (p >= 1) {
         lsCancel();
         lsPlaying = false;
         lsViz?.classList.remove("is-playing");
         lsLabel(tr("Заново", "Replay"), false);
+        lsEqReset();
         return;
       }
       lsRaf = requestAnimationFrame(lsFrame);

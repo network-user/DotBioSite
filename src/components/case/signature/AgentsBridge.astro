@@ -1,15 +1,30 @@
 ---
 /**
- * AgentsBridge.astro — сигнатурная визуализация DotAgents.
+ * AgentsBridge.astro - сигнатурная визуализация .агенты (DotAgents).
  *
- * Концепция: AI-агент нарвался на рискованную команду — хук перехватил.
- * Посетитель выбирает сценарий (3 варианта) и жмёт Allow / Deny в мок-телефоне.
- * Режим демона меняет поведение: remote — спрашивает, readonly — авто-allow,
- * standby — авто-deny. Никакого HMAC-seal и audit-log — только ключевая история.
+ * Концепт: ТЕЛЕФОН КАК ПУЛЬТ. Одна понятная петля для обычного человека:
+ * AI-агент на твоей машине тянется к рискованной команде → хук ставит его на
+ * паузу → телефон спрашивает → ты жмёшь Allow / Deny (или молчишь) → результат
+ * сразу виден на стороне агента. Никаких двух селекторов сразу: на главном
+ * экране одно действие. Режимы демона (remote / readonly / standby) и
+ * security-инварианты вынесены в сворачиваемый блок «Режимы и безопасность» -
+ * кто хочет, докопается до механики, остальным не мешает.
  *
- * Перфоманс: только transform/opacity. Никаких rAF — отсчёт через CSS-анимацию +
- * один setInterval на текст. Все анимации под .is-inview (IntersectionObserver),
- * prefers-reduced-motion → финальное статичное состояние.
+ * Fail-closed показан без авто-таймера, который «сам всё решает»: тишина
+ * демонстрируется явной кнопкой «Ничего не делать», так пользователь остаётся
+ * хозяином демо. Авто-allow/deny включаются только когда сам переключишь режим.
+ *
+ * Перф: только transform/opacity, конечные CSS-переходы (нет вечного rAF).
+ * Тайминги - один setTimeout-конвейер later() с очисткой офскрин / на скрытой
+ * вкладке / при pagehide. Всё под IntersectionObserver (.ab.is-inview).
+ * prefers-reduced-motion → финальный статичный кадр, интеракции работают.
+ *
+ * Факты сверены по репозиторию DotAgents:
+ *  - hook before_shell / before_mcp → long-poll до 270 c, ошибка/таймаут = deny.
+ *  - режимы AFK: remote (спрашивать), readonly (авто-allow), standby (авто-deny).
+ *  - argon2id passcode, HMAC-SHA256 + одноразовый nonce на callback, owner-only,
+ *    audit-log, uvicorn только на 127.0.0.1, env чистится от секретов при спавне.
+ *  - 3 агента: claude-code (stream-json), cursor-agent, antigravity (заглушка).
  */
 import type { Locale } from "../../../lib/i18n";
 
@@ -21,78 +36,160 @@ const { locale } = Astro.props;
 type Bi = { ru: string; en: string };
 const t = (b: Bi): string => b[locale];
 
-const scenarios: {
+const intro: Bi = {
+  ru: "AI-агент работает прямо на твоей машине. Стоит ему потянуться к рискованной команде - хук DotAgents ставит его на паузу и спрашивает тебя в Telegram. Выбери, что агент пытается сделать, и реши за него. Промолчишь - откажет само.",
+  en: "An AI agent runs right on your machine. The moment it reaches for a risky command, the DotAgents hook pauses it and asks you in Telegram. Pick what the agent is attempting and decide for it. Stay silent and it auto-denies.",
+};
+
+// --- Сценарии: что агент пытается сделать. Тексты локализованы на build-time и
+//     уезжают в data-* на чипах; скрипт читает активный чип. ---
+type Scenario = {
   id: string;
-  label: Bi;
-  kind: Bi;
-  cmd: string;
-  transcript: { who: "user" | "agent" | "tool"; text: Bi }[];
-}[] = [
+  label: Bi; // человеческий ярлык на чипе
+  intent: Bi; // что агент «говорит», что делает
+  cmd: string; // сама команда
+  kind: Bi; // shell / MCP
+  risk: "high" | "critical";
+  riskLabel: Bi; // словами
+  why: Bi; // почему это опасно, простым языком (на телефоне)
+  allow: Bi; // последствие allow на стороне агента
+  deny: Bi; // последствие deny на стороне агента
+};
+
+const scenarios: Scenario[] = [
   {
-    id: "shell-clean",
-    label: { ru: "Удали сборку", en: "Clean build" },
-    kind: { ru: "shell · risk: high", en: "shell · risk: high" },
+    id: "clean",
+    label: { ru: "Удалить сборку", en: "Delete the build" },
+    intent: { ru: "Чищу артефакты сборки", en: "Cleaning up build artifacts" },
     cmd: "rm -rf dist/",
-    transcript: [
-      { who: "user", text: { ru: "очисти артефакты сборки", en: "clean up build artifacts" } },
-      { who: "agent", text: { ru: "Нашёл dist/. Удаляю рекурсивно.", en: "Found dist/. Removing recursively." } },
-      { who: "tool", text: { ru: "shell · rm -rf · ждёт решения", en: "shell · rm -rf · awaiting decision" } },
-    ],
+    kind: { ru: "shell", en: "shell" },
+    risk: "high",
+    riskLabel: { ru: "рискованно", en: "risky" },
+    why: {
+      ru: "Снесёт папку целиком, мимо корзины - не вернуть.",
+      en: "Wipes the whole folder, no recycle bin - unrecoverable.",
+    },
+    allow: {
+      ru: "dist/ удалена - агент продолжил сборку.",
+      en: "dist/ removed - the agent continued the build.",
+    },
+    deny: {
+      ru: "Команда отклонена - агент пошёл дальше без неё.",
+      en: "Call denied - the agent moved on without it.",
+    },
   },
   {
-    id: "git-force",
-    label: { ru: "Форс-пуш", en: "Force push" },
-    kind: { ru: "shell · risk: high", en: "shell · risk: high" },
+    id: "force",
+    label: { ru: "Переписать main", en: "Rewrite main" },
+    intent: { ru: "Поправил коммит, пушу в main", en: "Amended the commit, pushing to main" },
     cmd: "git push --force origin main",
-    transcript: [
-      { who: "user", text: { ru: "поправь коммит и запуш", en: "fix the commit and push" } },
-      { who: "agent", text: { ru: "Amend готов. Force push в main.", en: "Amend done. Force pushing to main." } },
-      { who: "tool", text: { ru: "shell · git push --force · ждёт", en: "shell · git push --force · waiting" } },
-    ],
+    kind: { ru: "shell", en: "shell" },
+    risk: "high",
+    riskLabel: { ru: "рискованно", en: "risky" },
+    why: {
+      ru: "Перезапишет общую ветку main у всей команды.",
+      en: "Overwrites the shared main branch for everyone.",
+    },
+    allow: { ru: "Force-push ушёл в main.", en: "Force-push landed on main." },
+    deny: {
+      ru: "Пуш отклонён - история main цела.",
+      en: "Push denied - main's history is intact.",
+    },
   },
   {
-    id: "mcp-env",
-    label: { ru: "Читай .env", en: "Read .env" },
-    kind: { ru: "MCP · risk: critical", en: "MCP · risk: critical" },
+    id: "secret",
+    label: { ru: "Прочитать .env", en: "Read .env" },
+    intent: {
+      ru: "Смотрю строку подключения к базе",
+      en: "Checking the database connection string",
+    },
     cmd: 'read_file(".env")',
-    transcript: [
-      { who: "user", text: { ru: "покажи настройки подключения к базе", en: "show the database connection settings" } },
-      { who: "agent", text: { ru: "Ищу в .env через MCP read_file.", en: "Checking .env via MCP read_file." } },
-      { who: "tool", text: { ru: "MCP read_file · .env · ждёт решения", en: "MCP read_file · .env · awaiting decision" } },
-    ],
+    kind: { ru: "MCP", en: "MCP" },
+    risk: "critical",
+    riskLabel: { ru: "критично", en: "critical" },
+    why: {
+      ru: "Это файл с паролями и ключами - уедет в контекст модели.",
+      en: "That's the secrets file - it would leak into the model's context.",
+    },
+    allow: {
+      ru: "Файл прочитан - секреты попали в контекст.",
+      en: "File read - secrets entered the context.",
+    },
+    deny: { ru: "Доступ к секретам заблокирован.", en: "Access to the secrets blocked." },
   },
 ];
 
-const modes: { id: string; label: string; hint: Bi }[] = [
-  { id: "remote",   label: "remote",   hint: { ru: "ждёт твоего ответа в Telegram", en: "waits for your answer in Telegram" } },
-  { id: "readonly", label: "readonly", hint: { ru: "авто-allow, просто уведомляет", en: "auto-allow, just notifies" } },
-  { id: "standby",  label: "standby",  hint: { ru: "авто-deny, не спрашивает", en: "auto-deny, never asks" } },
+// --- Режимы демона (вынесены в «Режимы и безопасность»). ---
+const modes: { id: string; label: string; gloss: Bi }[] = [
+  { id: "remote", label: "remote", gloss: { ru: "спрашивает каждый раз", en: "asks every time" } },
+  {
+    id: "readonly",
+    label: "readonly",
+    gloss: { ru: "сам разрешает, только шлёт уведомление", en: "auto-allows, just notifies" },
+  },
+  {
+    id: "standby",
+    label: "standby",
+    gloss: { ru: "сам отклоняет всё опасное", en: "auto-denies anything risky" },
+  },
 ];
 
-const copy: Record<string, Bi> = {
-  intro: {
-    ru: "AI-агент нарвался на рискованную команду — хук DotAgents перехватил её и ждёт твоего слова. Выбери сценарий, нажми Allow или Deny.",
-    en: "An AI agent hit a risky command — the DotAgents hook caught it and is waiting for your call. Pick a scenario, then tap Allow or Deny.",
-  },
-  session:      { ru: "сессия #a3f1 · Claude Code", en: "session #a3f1 · Claude Code" },
-  intercepted:  { ru: "хук перехватил · ждёт решения", en: "hook caught it · awaiting decision" },
-  agAllowed:    { ru: "✓ агент продолжает", en: "✓ agent continues" },
-  agDenied:     { ru: "✕ агент заблокирован", en: "✕ agent blocked" },
-  tgBot:        { ru: "DotAgents", en: "DotAgents" },
-  tgYou:        { ru: "твой телефон", en: "your phone" },
-  allow:        { ru: "Allow", en: "Allow" },
-  deny:         { ru: "Deny", en: "Deny" },
-  outcomeAllow: { ru: "✓ Разрешено — команда выполняется", en: "✓ Allowed — command is running" },
-  outcomeDeny:  { ru: "✕ Заблокировано — команда не запустилась", en: "✕ Blocked — command never ran" },
-  outcomeTimeout:  { ru: "Тишина → deny (fail-closed)", en: "Silence → deny (fail-closed)" },
-  outcomeReadonly: { ru: "авто-allow · уведомление отправлено", en: "auto-allowed · notification sent" },
-  outcomeStandby:  { ru: "авто-deny · агент заблокирован", en: "auto-deny · agent blocked" },
-  modeLabel:    { ru: "Режим демона", en: "Daemon mode" },
-  timerHint:    { ru: "тишина = deny (fail-closed)", en: "silence = deny (fail-closed)" },
+const securityChips: Bi[] = [
+  { ru: "passcode argon2id", en: "argon2id passcode" },
+  { ru: "HMAC + одноразовый nonce", en: "HMAC + one-shot nonce" },
+  { ru: "только владелец", en: "owner-only" },
+  { ru: "audit-log решений", en: "audit log of decisions" },
+  { ru: "API только 127.0.0.1", en: "API on 127.0.0.1 only" },
+  { ru: "env без секретов при спавне", en: "env stripped on spawn" },
+];
+
+const stats: Bi[] = [
+  { ru: "19k+ строк", en: "19k+ lines" },
+  { ru: "132 теста", en: "132 tests" },
+  { ru: "3 миграции", en: "3 migrations" },
+  { ru: "long-poll 270 c", en: "270s long-poll" },
+];
+
+const ui = {
+  pickCap: { ru: "Что агент пытается сделать:", en: "What the agent is attempting:" },
+  agentName: { ru: "Claude Code · сессия #a3f1", en: "Claude Code · session #a3f1" },
+  stPaused: { ru: "на паузе", en: "paused" },
+  stRunning: { ru: "выполняет", en: "running" },
+  stBlocked: { ru: "заблокирован", en: "blocked" },
+  link: { ru: "перехвачено хуком", en: "caught by the hook" },
+  botName: { ru: "DotAgents", en: "DotAgents" },
+  you: { ru: "твой телефон", en: "your phone" },
+  ask: { ru: "Разрешить вызов?", en: "Allow this call?" },
+  allow: { ru: "Allow", en: "Allow" },
+  deny: { ru: "Deny", en: "Deny" },
+  ignore: { ru: "Ничего не делать", en: "Do nothing" },
+  ignoreHint: { ru: "тишина → deny через ~4½ мин", en: "silence → deny in ~4½ min" },
+  outAllow: { ru: "✓ Разрешено", en: "✓ Allowed" },
+  outDeny: { ru: "✕ Заблокировано", en: "✕ Blocked" },
+  outTimeout: { ru: "Тишина → deny (fail-closed)", en: "Silence → deny (fail-closed)" },
   invariant: {
-    ru: "Код, approvals и transcript не покидают машину. API слушает только на 127.0.0.1.",
-    en: "Code, approvals, and transcript never leave the machine. API listens on 127.0.0.1 only.",
+    ru: "Канал управления уходит в Telegram. Код, approvals и transcript остаются на машине - API слушает только 127.0.0.1.",
+    en: "The control channel goes to Telegram. Code, approvals and transcript stay on the machine - the API listens on 127.0.0.1 only.",
   },
+  underLabel: { ru: "Режимы и безопасность", en: "Modes & security" },
+  modeTitle: { ru: "Режим демона", en: "Daemon mode" },
+  modeNote: {
+    ru: "Меняет, как решается тот же запрос.",
+    en: "Changes how the same request resolves.",
+  },
+  noteRemote: {
+    ru: "remote: решаешь ты - кнопками на телефоне.",
+    en: "remote: you decide - with the phone buttons.",
+  },
+  noteReadonly: {
+    ru: "readonly разрешил сам и просто уведомил.",
+    en: "readonly allowed it and just notified you.",
+  },
+  noteStandby: {
+    ru: "standby отклонил сам, ничего не спрашивая.",
+    en: "standby denied it without asking.",
+  },
+  secTitle: { ru: "Безопасность", en: "Security" },
 };
 ---
 
@@ -100,367 +197,361 @@ const copy: Record<string, Bi> = {
   class="ab"
   data-ab
   data-locale={locale}
-  aria-label={t({ ru: "Интерактивный демо DotAgents", en: "DotAgents interactive demo" })}
+  aria-label={t({ ru: "Интерактивное демо DotAgents", en: "DotAgents interactive demo" })}
 >
-  <p class="ab__intro">{t(copy.intro)}</p>
+  <p class="ab__intro">{t(intro)}</p>
 
-  <!-- Сценарии -->
-  <div class="ab-tabs" role="tablist" aria-label={t({ ru: "Сценарии", en: "Scenarios" })}>
-    {scenarios.map((s, i) => (
-      <button
-        type="button"
-        class="ab-tab"
-        role="tab"
-        aria-selected={i === 0 ? "true" : "false"}
-        data-tab={s.id}
-        style={`--i:${i}`}
-      >
-        <span class="ab-tab__label">{t(s.label)}</span>
-        <span class="ab-tab__kind mono">{t(s.kind)}</span>
-      </button>
-    ))}
-  </div>
-
-  <!-- Основная зона: терминал + телефон -->
-  <div class="ab__main">
-    <!-- Терминал -->
-    <div class="ab-term" aria-label={t({ ru: "Терминал агента", en: "Agent terminal" })}>
-      <div class="ab-term__chrome">
-        <span class="ab-term__dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="ab-term__tab mono">{t(copy.session)}</span>
-      </div>
-      <div class="ab-term__body">
-        {scenarios.map((s, si) => (
-          <ol
-            class="ab-term__log"
-            data-log={s.id}
-            aria-hidden="true"
-            style={si !== 0 ? "display:none" : undefined}
+  <!-- ============== ВЫБОР СЦЕНАРИЯ ============== -->
+  <div class="ab__pick">
+    <span class="ab__pick-cap caption">{t(ui.pickCap)}</span>
+    <div class="ab__chips" role="group" aria-label={t(ui.pickCap)}>
+      {
+        scenarios.map((s, i) => (
+          <button
+            class={`ab__chip${i === 0 ? " is-on" : ""}`}
+            type="button"
+            data-ab-chip={s.id}
+            data-cmd={s.cmd}
+            data-kind={t(s.kind)}
+            data-risk={s.risk}
+            data-risk-label={t(s.riskLabel)}
+            data-intent={t(s.intent)}
+            data-why={t(s.why)}
+            data-allow={t(s.allow)}
+            data-deny={t(s.deny)}
+            aria-pressed={i === 0 ? "true" : "false"}
           >
-            {s.transcript.map((l, i) => (
-              <li class={`ab-term__line ab-term__line--${l.who}`} style={`--i:${i}`}>
-                <span class="ab-term__who mono">
-                  {l.who === "user" ? "you" : l.who === "agent" ? " ai" : "  →"}
-                </span>
-                <span class="ab-term__txt">{t(l.text)}</span>
-              </li>
-            ))}
-          </ol>
-        ))}
-
-        <!-- Перехваченный вызов -->
-        <div class="ab-call" data-call data-resolved="">
-          <div class="ab-call__row">
-            <span class="ab-call__dot" aria-hidden="true"></span>
-            <span class="ab-call__kind mono" data-call-kind>{t(scenarios[0].kind)}</span>
-            <span class="ab-call__state mono" data-call-state aria-live="polite">{t(copy.intercepted)}</span>
-          </div>
-          <code class="ab-call__cmd mono">
-            <span class="ab-call__prompt" aria-hidden="true">$ </span><span
-              data-call-cmd>{scenarios[0].cmd}</span><span
-              class="ab-call__caret" aria-hidden="true"></span>
-          </code>
-        </div>
-      </div>
-    </div>
-
-    <!-- Телефон -->
-    <div class="ab-phone-wrap">
-      <div class="ab-phone">
-        <div class="ab-phone__top" aria-hidden="true">
-          <span class="ab-phone__notch"></span>
-        </div>
-        <div class="ab-phone__screen">
-          <div class="ab-phone__bar">
-            <span class="ab-phone__ava" aria-hidden="true">⬡</span>
-            <span class="ab-phone__name mono">{t(copy.tgBot)}</span>
-            <span class="ab-phone__you mono">{t(copy.tgYou)}</span>
-          </div>
-          <div class="ab-msg" data-msg data-state="pending">
-            <code class="ab-msg__cmd mono" data-msg-cmd>{scenarios[0].cmd}</code>
-            <span class="ab-msg__kind mono" data-msg-kind>{t(scenarios[0].kind)}</span>
-            <div class="ab-timer" data-timer hidden>
-              <div class="ab-timer__track">
-                <div class="ab-timer__fill" data-timer-fill></div>
-              </div>
-              <span class="ab-timer__text mono">
-                <span data-timer-num>10</span>s · {t(copy.timerHint)}
-              </span>
-            </div>
-            <div class="ab-msg__btns">
-              <button type="button" class="ab-btn ab-btn--allow" data-act="allow" disabled>
-                ✓ {t(copy.allow)}
-              </button>
-              <button type="button" class="ab-btn ab-btn--deny" data-act="deny" disabled>
-                ✕ {t(copy.deny)}
-              </button>
-            </div>
-            <p class="ab-msg__outcome" data-outcome hidden></p>
-          </div>
-        </div>
-      </div>
+            <span class={`ab__chip-dot ab__chip-dot--${s.risk}`} aria-hidden="true" />
+            <span class="ab__chip-label">{t(s.label)}</span>
+          </button>
+        ))
+      }
     </div>
   </div>
 
-  <!-- Режим демона -->
-  <div class="ab-modes">
-    <span class="ab-modes__lbl">{t(copy.modeLabel)}</span>
-    <div class="ab-modes__row" role="radiogroup" aria-label={t(copy.modeLabel)}>
-      <span class="ab-modes__glide" data-glide aria-hidden="true"></span>
-      {modes.map((m, i) => (
-        <button
-          type="button"
-          class="ab-mode"
-          role="radio"
-          aria-checked={i === 0 ? "true" : "false"}
-          data-mode={m.id}
-          style={`--i:${i}`}
+  <!-- ============== СЦЕНА: агент → телефон ============== -->
+  <div class="ab__stage" data-stage data-state="pending" data-mode="remote">
+    <!-- агент на машине -->
+    <div class="ab__agent" data-agent>
+      <div class="ab__agent-head">
+        <span class="ab__agent-dot" aria-hidden="true"></span>
+        <span class="ab__agent-name mono">{t(ui.agentName)}</span>
+        <span class="ab__agent-state mono" data-agent-state aria-live="polite"
+          >{t(ui.stPaused)}</span
         >
-          <span class="ab-mode__id mono">{m.label}</span>
-          <span class="ab-mode__hint">{t(m.hint)}</span>
-        </button>
-      ))}
+      </div>
+      <p class="ab__agent-intent" data-agent-intent>{t(scenarios[0]!.intent)}</p>
+      <code class="ab__agent-cmd mono">
+        <span class="ab__agent-prompt" aria-hidden="true">$ </span><span data-agent-cmd
+          >{scenarios[0]!.cmd}</span
+        ><span class="ab__caret" aria-hidden="true"></span>
+      </code>
+      <p class="ab__agent-out" data-agent-out hidden></p>
+    </div>
+
+    <!-- связка: перехват уходит в телефон -->
+    <div class="ab__link" aria-hidden="true">
+      <span class="ab__link-line"></span>
+      <span class="ab__link-tag mono">{t(ui.link)}</span>
+      <span class="ab__link-arrow"></span>
+    </div>
+
+    <!-- телефон-герой -->
+    <div class="ab__phone-wrap">
+      <div class="ab__phone">
+        <div class="ab__phone-top" aria-hidden="true"><span class="ab__notch"></span></div>
+        <div class="ab__phone-screen">
+          <div class="ab__phone-bar">
+            <span class="ab__ava" aria-hidden="true">⬡</span>
+            <span class="ab__bot mono">{t(ui.botName)}</span>
+            <span class="ab__you mono">{t(ui.you)}</span>
+          </div>
+
+          <div class="ab__msg" data-msg data-state="pending">
+            <p class="ab__msg-ask">{t(ui.ask)}</p>
+            <code class="ab__msg-cmd mono" data-msg-cmd>{scenarios[0]!.cmd}</code>
+            <p class="ab__msg-meta mono">
+              <span data-msg-kind>{t(scenarios[0]!.kind)}</span>
+              <span class="ab__msg-sep" aria-hidden="true">·</span>
+              <span class={`ab__msg-risk ab__msg-risk--${scenarios[0]!.risk}`} data-msg-risk
+                >{t(scenarios[0]!.riskLabel)}</span
+              >
+            </p>
+            <p class="ab__msg-why" data-msg-why>{t(scenarios[0]!.why)}</p>
+
+            <div class="ab__btns">
+              <button type="button" class="ab__btn ab__btn--allow" data-act="allow"
+                >✓ {t(ui.allow)}</button
+              >
+              <button type="button" class="ab__btn ab__btn--deny" data-act="deny"
+                >✕ {t(ui.deny)}</button
+              >
+            </div>
+            <button type="button" class="ab__ignore" data-act="ignore">
+              <span class="ab__ignore-label">{t(ui.ignore)}</span>
+              <span class="ab__ignore-hint mono">{t(ui.ignoreHint)}</span>
+            </button>
+
+            <p class="ab__msg-out mono" data-msg-out aria-live="polite" hidden></p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
+  <!-- ============== ИНВАРИАНТ ============== -->
   <p class="ab__inv">
     <span class="ab__inv-dot" aria-hidden="true"></span>
-    {t(copy.invariant)}
+    {t(ui.invariant)}
   </p>
+
+  <!-- ============== РЕЖИМЫ И БЕЗОПАСНОСТЬ ============== -->
+  <div class="ab__under">
+    <button
+      class="ab__under-toggle"
+      type="button"
+      data-under-toggle
+      aria-expanded="true"
+      aria-controls="ab-under"
+    >
+      <span class="ab__under-chevron" aria-hidden="true"></span>
+      <span>{t(ui.underLabel)}</span>
+    </button>
+
+    <div class="ab__under-box" id="ab-under">
+      <div class="ab__under-inner">
+        <!-- режимы -->
+        <div class="ab__panel">
+          <h4 class="ab__panel-title">{t(ui.modeTitle)}</h4>
+          <p class="ab__panel-note">{t(ui.modeNote)}</p>
+          <div class="ab__seg" role="radiogroup" aria-label={t(ui.modeTitle)}>
+            <span class="ab__glide" data-glide aria-hidden="true"></span>
+            {
+              modes.map((m, i) => (
+                <button
+                  class="ab__mode"
+                  type="button"
+                  role="radio"
+                  aria-checked={i === 0 ? "true" : "false"}
+                  data-mode={m.id}
+                >
+                  <span class="ab__mode-id mono">{m.label}</span>
+                  <span class="ab__mode-gloss">{t(m.gloss)}</span>
+                </button>
+              ))
+            }
+          </div>
+          <p class="ab__mode-applied mono" data-mode-note aria-live="polite">{t(ui.noteRemote)}</p>
+        </div>
+
+        <!-- безопасность -->
+        <div class="ab__panel">
+          <h4 class="ab__panel-title">{t(ui.secTitle)}</h4>
+          <ul class="ab__sec-chips">
+            {securityChips.map((c) => <li class="ab__sec-chip mono">{t(c)}</li>)}
+          </ul>
+          <ul class="ab__stats">
+            {stats.map((s) => <li class="ab__stat mono">{t(s)}</li>)}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <style>
-  /* === Контейнер === */
   .ab {
     --accent: var(--project-accent);
-    --ab-line:  color-mix(in srgb, var(--accent) 40%, transparent);
-    --ab-soft:  color-mix(in srgb, var(--accent) 13%, transparent);
-    --ab-faint: color-mix(in srgb, var(--accent)  7%, transparent);
+    --ab-line: color-mix(in srgb, var(--accent) 40%, transparent);
+    --ab-soft: color-mix(in srgb, var(--accent) 13%, transparent);
+    --ab-faint: color-mix(in srgb, var(--accent) 7%, transparent);
+    --ab-hot: color-mix(in srgb, var(--accent) 60%, var(--text));
+    --ab-warn: var(--state-warn);
+    --ab-err: var(--state-error);
+    --ab-ok: var(--state-ok);
     position: relative;
     display: flex;
     flex-direction: column;
     gap: var(--sp-5);
     container-type: inline-size;
   }
-  .ab :global(.mono) { font-family: var(--font-stack-mono); }
+  .ab :global(.mono) {
+    font-family: var(--font-stack-mono);
+  }
 
   .ab__intro {
     margin: 0;
-    max-width: 62ch;
-    font-size: var(--fs-15);
+    max-width: 64ch;
+    font-size: var(--fs-16);
     line-height: var(--lh-normal);
     color: var(--text-secondary);
   }
 
-  /* === Сценарии === */
-  .ab-tabs {
-    display: flex;
-    gap: var(--sp-2);
-    /* Горизонтальный скролл на мобиле вместо переноса */
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding-bottom: 2px; /* чтобы тень активного таба не обрезалась */
-  }
-  .ab-tabs::-webkit-scrollbar { display: none; }
-  .ab-tab {
-    appearance: none;
+  /* ============== выбор сценария ============== */
+  .ab__pick {
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    padding: var(--sp-2) var(--sp-3);
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-md);
-    background: var(--surface);
-    cursor: pointer;
-    text-align: left;
-    flex: none; /* не сжимается при скролле */
-    transition:
-      border-color var(--dur-fast) var(--ease-standard),
-      background    var(--dur-fast) var(--ease-standard);
+    gap: var(--sp-2);
   }
-  .ab-tab:hover { border-color: var(--border-hover); }
-  .ab-tab[aria-selected="true"] {
-    border-color: var(--ab-line);
-    background: var(--ab-faint);
-  }
-  /* Тап-фидбэк на тач-устройствах */
-  @media (hover: none) {
-    .ab-tab:active { transform: scale(0.97); opacity: 0.8; }
-  }
-  .ab-tab__label {
-    font-size: var(--fs-14);
-    font-weight: var(--fw-medium);
-    color: var(--text);
-    line-height: 1;
-  }
-  .ab-tab__kind {
-    font-size: var(--fs-11);
+  .ab__pick-cap {
     color: var(--text-muted);
-    line-height: 1;
   }
-
-  /* === Основной грид === */
-  .ab__main {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--sp-4);
-  }
-  @container (min-width: 560px) {
-    .ab__main {
-      grid-template-columns: 1fr minmax(230px, 290px);
-      align-items: start;
-    }
-  }
-
-  /* === Терминал === */
-  .ab-term {
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-md);
-    background: var(--bg-deep);
-    overflow: hidden;
-    min-width: 0;
-  }
-  .ab-term__chrome {
+  .ab__chips {
     display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+  .ab__chip {
+    display: inline-flex;
     align-items: center;
     gap: var(--sp-2);
+    min-height: var(--tap-min);
     padding: var(--sp-2) var(--sp-3);
-    border-bottom: var(--bw-thin) solid var(--border);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-pill);
     background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition:
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-soft);
   }
-  .ab-term__dots {
-    display: inline-flex;
-    gap: 5px;
-    flex: none;
+  .ab__chip:hover {
+    border-color: var(--border-hover);
   }
-  .ab-term__dots i {
-    display: block;
+  .ab__chip:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  .ab__chip.is-on {
+    color: var(--text);
+    border-color: var(--ab-line);
+    background: var(--ab-soft);
+  }
+  @media (hover: none) {
+    .ab__chip:active {
+      transform: scale(0.97);
+    }
+  }
+  .ab__chip-dot {
     width: 8px;
     height: 8px;
+    flex: none;
     border-radius: 50%;
-    background: var(--surface-3);
+    background: var(--accent);
   }
-  .ab-term__tab {
-    font-size: var(--fs-12);
-    color: var(--text-muted);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .ab__chip-dot--critical {
+    background: var(--ab-err);
   }
-  .ab-term__body {
-    padding: var(--sp-4);
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-3);
+  .ab__chip-label {
+    font-size: var(--fs-14);
+    font-weight: var(--fw-medium);
+    line-height: 1;
   }
-  .ab-term__log {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-2);
-  }
-  .ab-term__line {
-    display: grid;
-    grid-template-columns: 2.4em 1fr;
-    gap: var(--sp-2);
-    align-items: baseline;
-  }
-  /* Анимация строк — только когда лог помечен data-animate и раздел in-view */
-  .ab.is-inview .ab-term__log[data-animate] .ab-term__line {
-    animation: ab-line-in var(--dur-slow) var(--ease-soft) both;
-    animation-delay: calc(var(--i) * 110ms + 150ms);
-  }
-  @keyframes ab-line-in {
-    from { opacity: 0; transform: translateX(-6px); }
-    to   { opacity: 1; transform: none; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .ab-term__line { animation: none !important; }
-  }
-  .ab-term__who {
-    font-size: var(--fs-11);
-    color: var(--text-faint);
-    text-align: right;
-    white-space: nowrap;
-  }
-  .ab-term__line--agent .ab-term__who {
-    color: color-mix(in srgb, var(--accent) 70%, var(--text-faint));
-  }
-  .ab-term__txt {
-    font-size: var(--fs-13);
-    line-height: var(--lh-snug);
-    color: var(--text-secondary);
-  }
-  .ab-term__line--user .ab-term__txt { color: var(--text); }
-  .ab-term__line--tool .ab-term__txt { color: var(--text-muted); }
 
-  /* === Перехваченный вызов === */
-  .ab-call {
+  /* ============== сцена ============== */
+  .ab__stage {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--sp-3);
+    padding: var(--sp-4);
+    border: var(--bw-thin) solid var(--glass-edge);
+    border-radius: var(--r-lg);
+    background:
+      radial-gradient(130% 110% at 50% 0%, var(--ab-faint), transparent 60%),
+      var(--glass-tint-frost);
+    box-shadow: var(--shadow-2);
+  }
+
+  /* ----- агент на машине ----- */
+  .ab__agent {
     display: flex;
     flex-direction: column;
     gap: var(--sp-2);
-    padding: var(--sp-3);
-    border: var(--bw-thin) solid var(--ab-line);
-    border-left: 3px solid var(--accent);
-    border-radius: var(--r-sm);
-    background: var(--surface);
-    transition:
-      border-color var(--dur-med) var(--ease-standard),
-      background   var(--dur-med) var(--ease-standard);
+    padding: var(--sp-3) var(--sp-4);
+    border: var(--bw-thin) solid var(--border);
+    border-left: 3px solid var(--ab-line);
+    border-radius: var(--r-md);
+    background: var(--bg-deep);
+    min-width: 0;
+    transition: border-color var(--dur-med) var(--ease-standard);
   }
-  .ab-call[data-resolved="allow"] {
-    background: var(--ab-faint);
+  .ab__stage[data-state="allowed"] .ab__agent {
+    border-left-color: var(--accent);
   }
-  .ab-call[data-resolved="deny"] {
+  .ab__stage[data-state="denied"] .ab__agent,
+  .ab__stage[data-state="timeout"] .ab__agent {
     border-left-color: var(--text-muted);
-    border-color: var(--border);
   }
-  .ab-call__row {
+  .ab__agent-head {
     display: flex;
     align-items: center;
     gap: var(--sp-2);
     flex-wrap: wrap;
   }
-  .ab-call__dot {
+  .ab__agent-dot {
     width: 7px;
     height: 7px;
     flex: none;
     border-radius: 50%;
     background: var(--accent);
-    transition: background var(--dur-med) var(--ease-standard);
   }
-  .ab.is-inview .ab-call[data-resolved=""] .ab-call__dot {
-    animation: ab-pulse 1500ms ease-in-out infinite;
+  .ab.is-inview .ab__stage[data-state="pending"] .ab__agent-dot {
+    animation: ab-pulse 1600ms ease-in-out infinite;
   }
   @keyframes ab-pulse {
-    0%, 100% { opacity: 0.4; transform: scale(0.85); }
-    50%       { opacity: 1;   transform: scale(1.18); }
+    0%,
+    100% {
+      opacity: 0.45;
+      transform: scale(0.85);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.15);
+    }
   }
-  .ab-call[data-resolved="deny"] .ab-call__dot { background: var(--text-muted); }
-  .ab-call__kind {
-    font-size: var(--fs-11);
-    color: var(--text-muted);
+  .ab__agent-name {
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
   }
-  .ab-call__state {
+  .ab__agent-state {
     margin-left: auto;
     font-size: var(--fs-11);
-    color: color-mix(in srgb, var(--accent) 65%, var(--text-muted));
-    text-align: right;
-    transition: color var(--dur-med) var(--ease-standard);
+    color: var(--text-muted);
+    padding: 2px var(--sp-2);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-pill);
+    white-space: nowrap;
+    transition:
+      color var(--dur-med) var(--ease-standard),
+      border-color var(--dur-med) var(--ease-standard);
   }
-  .ab-call[data-resolved="allow"] .ab-call__state { color: var(--text); }
-  .ab-call[data-resolved="deny"]  .ab-call__state { color: var(--text-muted); }
-
-  .ab-call__cmd {
+  .ab__stage[data-state="allowed"] .ab__agent-state {
+    color: var(--ab-hot);
+    border-color: var(--ab-line);
+  }
+  .ab__agent-intent {
+    margin: 0;
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+    line-height: var(--lh-snug);
+  }
+  .ab__agent-cmd {
     font-size: var(--fs-14);
     color: var(--text);
     overflow-wrap: anywhere;
   }
-  .ab-call__prompt { color: var(--accent); }
-  .ab-call__caret {
+  .ab__agent-prompt {
+    color: var(--accent);
+  }
+  .ab__caret {
     display: inline-block;
     width: 7px;
     height: 1em;
@@ -469,48 +560,105 @@ const copy: Record<string, Bi> = {
     background: var(--accent);
     transform: translateY(1px);
   }
-  .ab.is-inview .ab-call[data-resolved=""] .ab-call__caret {
+  .ab.is-inview .ab__stage[data-state="pending"] .ab__caret {
     animation: ab-blink 1100ms steps(2, jump-none) infinite;
   }
   @keyframes ab-blink {
-    from, to { opacity: 1; }
-    50%       { opacity: 0; }
+    from,
+    to {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
   }
-  .ab-call[data-resolved="deny"]  .ab-call__caret { opacity: 0.2; }
+  .ab__stage:not([data-state="pending"]) .ab__caret {
+    opacity: 0.2;
+  }
+  .ab__agent-out {
+    margin: 0;
+    font-size: var(--fs-13);
+    line-height: var(--lh-snug);
+    color: var(--text-secondary);
+  }
+  .ab__agent-out[hidden] {
+    display: none;
+  }
+  .ab__stage[data-state="allowed"] .ab__agent-out {
+    color: var(--ab-hot);
+  }
 
-  /* === Телефон === */
-  .ab-phone-wrap {
+  /* ----- связка агент → телефон ----- */
+  .ab__link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-faint);
+  }
+  .ab__link-line {
+    width: var(--bw-thin);
+    height: 14px;
+    background: var(--ab-line);
+  }
+  .ab__link-tag {
+    font-size: var(--fs-10);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+  }
+  .ab__link-arrow {
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 6px 5px 0 5px;
+    border-color: var(--ab-line) transparent transparent transparent;
+  }
+  .ab.is-inview .ab__stage[data-state="pending"] .ab__link-arrow {
+    animation: ab-nudge 1600ms ease-in-out infinite;
+  }
+  @keyframes ab-nudge {
+    0%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.6;
+    }
+    50% {
+      transform: translateY(2px);
+      opacity: 1;
+    }
+  }
+
+  /* ----- телефон ----- */
+  .ab__phone-wrap {
     display: flex;
     justify-content: center;
-    align-items: flex-start;
   }
-  .ab-phone {
+  .ab__phone {
     width: 100%;
-    max-width: 290px;
+    max-width: 320px;
     border: var(--bw-thin) solid var(--glass-edge);
     border-radius: var(--r-xl);
     background: var(--bg-elevated);
     padding: var(--sp-3);
   }
-  .ab-phone__top {
+  .ab__phone-top {
     display: flex;
     justify-content: center;
     padding-bottom: var(--sp-2);
   }
-  .ab-phone__notch {
-    display: block;
+  .ab__notch {
     width: 52px;
     height: 4px;
     border-radius: var(--r-pill);
     background: var(--border-hover);
   }
-  .ab-phone__screen {
+  .ab__phone-screen {
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-lg);
     background: var(--bg-deep);
     overflow: hidden;
   }
-  .ab-phone__bar {
+  .ab__phone-bar {
     display: flex;
     align-items: center;
     gap: var(--sp-2);
@@ -518,7 +666,7 @@ const copy: Record<string, Bi> = {
     border-bottom: var(--bw-thin) solid var(--border);
     background: var(--surface);
   }
-  .ab-phone__ava {
+  .ab__ava {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -530,226 +678,206 @@ const copy: Record<string, Bi> = {
     color: var(--accent);
     font-size: var(--fs-13);
   }
-  .ab-phone__name {
+  .ab__bot {
     font-size: var(--fs-13);
     font-weight: var(--fw-semibold);
     color: var(--text);
   }
-  .ab-phone__you {
+  .ab__you {
     margin-left: auto;
     font-size: var(--fs-10);
     color: var(--text-faint);
   }
 
-  /* === Сообщение в телефоне === */
-  .ab-msg {
+  /* сообщение */
+  .ab__msg {
     display: flex;
     flex-direction: column;
     gap: var(--sp-2);
-    padding: var(--sp-3);
     margin: var(--sp-2);
-    border: var(--bw-thin) solid var(--border);
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--ab-line);
     border-radius: var(--r-md);
     background: var(--surface);
     transition: border-color var(--dur-med) var(--ease-standard);
   }
-  .ab-msg[data-state="pending"] {
-    border-color: var(--ab-line);
-  }
-  .ab-msg[data-state="allowed"] {
+  .ab__msg[data-state="allowed"] {
     border-color: color-mix(in srgb, var(--accent) 55%, transparent);
   }
-  .ab-msg[data-state="denied"] {
+  .ab__msg[data-state="denied"],
+  .ab__msg[data-state="timeout"] {
     border-color: var(--border);
   }
-  .ab-msg__cmd {
-    display: block;
-    font-size: var(--fs-12);
+  /* «прилёт» нового запроса - конечная анимация на смене сценария */
+  .ab.is-inview .ab__msg[data-arrive] {
+    animation: ab-arrive var(--dur-med) var(--ease-soft) both;
+  }
+  @keyframes ab-arrive {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 6px, 0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ab__msg[data-arrive] {
+      animation: none !important;
+    }
+  }
+  .ab__msg-ask {
+    margin: 0;
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
     color: var(--text);
+  }
+  .ab__msg-cmd {
+    display: block;
+    align-self: flex-start;
+    max-width: 100%;
     padding: var(--sp-1) var(--sp-2);
     border-radius: var(--r-xs);
     background: var(--bg-elevated);
+    color: var(--text);
+    font-size: var(--fs-12);
     overflow-wrap: anywhere;
-    align-self: flex-start;
-    max-width: 100%;
   }
-  .ab-msg__kind {
+  .ab__msg-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    margin: 0;
     font-size: var(--fs-11);
     color: var(--text-muted);
   }
-
-  /* Таймер (progress bar) */
-  .ab-timer {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+  .ab__msg-risk--high {
+    color: var(--ab-warn);
   }
-  .ab-timer[hidden] { display: none; }
-  .ab-timer__track {
-    height: 2px;
-    border-radius: var(--r-pill);
-    background: var(--border);
-    overflow: hidden;
+  .ab__msg-risk--critical {
+    color: var(--ab-err);
   }
-  .ab-timer__fill {
-    height: 100%;
-    width: 100%;
-    border-radius: var(--r-pill);
-    background: var(--accent);
-    transform-origin: left;
-    transform: scaleX(1);
-  }
-  .ab.is-inview .ab-timer__fill[data-run] {
-    animation: ab-drain var(--timer-ms, 10000ms) linear forwards;
-  }
-  @keyframes ab-drain {
-    from { transform: scaleX(1); }
-    to   { transform: scaleX(0); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .ab-timer__fill { animation: none !important; }
-  }
-  .ab-timer__text {
-    font-size: var(--fs-10);
-    color: var(--text-faint);
+  .ab__msg-why {
+    margin: 0;
+    font-size: var(--fs-12);
+    line-height: var(--lh-snug);
+    color: var(--text-secondary);
   }
 
-  /* Кнопки Allow / Deny */
-  .ab-msg__btns {
+  /* кнопки */
+  .ab__btns {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--sp-2);
+    margin-top: var(--sp-1);
   }
-  .ab-btn {
-    appearance: none;
+  .ab__btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: var(--sp-1);
-    min-height: var(--tap-min, 44px);
+    min-height: var(--tap-min);
     padding: var(--sp-2);
-    border-radius: var(--r-md);
     border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-md);
     background: var(--surface);
+    color: var(--text);
     font-size: var(--fs-13);
     font-weight: var(--fw-medium);
-    color: var(--text);
     cursor: pointer;
     transition:
-      background    var(--dur-fast) var(--ease-standard),
-      border-color  var(--dur-fast) var(--ease-standard),
-      opacity       var(--dur-fast) var(--ease-standard),
-      color         var(--dur-fast) var(--ease-standard);
+      background-color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard),
+      opacity var(--dur-fast) var(--ease-standard),
+      color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-soft);
   }
-  .ab-btn:disabled { opacity: 0.35; cursor: default; }
-  .ab-btn--allow:not(:disabled):hover {
+  .ab__btn:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  .ab__btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  .ab__btn--allow:not(:disabled):hover {
     background: var(--ab-soft);
     border-color: var(--ab-line);
   }
-  .ab-btn--deny:not(:disabled):hover {
+  .ab__btn--deny:not(:disabled):hover {
     background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+    border-color: var(--border-hover);
   }
-  /* Тап-фидбэк */
   @media (hover: none) {
-    .ab-btn:not(:disabled):active { transform: scale(0.95); }
+    .ab__btn:not(:disabled):active {
+      transform: scale(0.95);
+    }
   }
-  .ab-btn--allow[data-picked] {
+  .ab__btn--allow[data-picked] {
     background: var(--ab-soft);
     border-color: var(--ab-line);
     color: var(--accent);
     opacity: 1;
   }
-  .ab-btn--deny[data-picked] {
-    background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+  .ab__btn--deny[data-picked] {
+    background: color-mix(in srgb, var(--text-muted) 14%, transparent);
     border-color: var(--text-muted);
     opacity: 1;
   }
-  .ab-btn[data-faded] { opacity: 0.2; }
+  .ab__btn[data-faded] {
+    opacity: 0.2;
+  }
 
-  /* Результат */
-  .ab-msg__outcome {
+  /* «ничего не делать» - приглушённый, fail-closed по запросу */
+  .ab__ignore {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: var(--sp-2);
+    flex-wrap: wrap;
+    padding: var(--sp-1);
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: var(--r-sm);
+    transition: color var(--dur-fast) var(--ease-standard);
+  }
+  .ab__ignore:hover {
+    color: var(--text-secondary);
+  }
+  .ab__ignore:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  .ab__ignore[hidden] {
+    display: none;
+  }
+  .ab__ignore-label {
+    font-size: var(--fs-12);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: var(--border-hover);
+  }
+  .ab__ignore-hint {
+    font-size: var(--fs-10);
+    color: var(--text-faint);
+  }
+
+  .ab__msg-out {
     margin: 0;
     font-size: var(--fs-12);
     line-height: var(--lh-snug);
-    font-family: var(--font-stack-mono);
   }
-  .ab-msg__outcome[hidden] { display: none; }
-  .ab-msg__outcome[data-kind="allow"]   { color: var(--accent); }
-  .ab-msg__outcome[data-kind="deny"],
-  .ab-msg__outcome[data-kind="timeout"] { color: var(--text-muted); }
-
-  /* === Режим демона === */
-  .ab-modes {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-2);
+  .ab__msg-out[hidden] {
+    display: none;
   }
-  .ab-modes__lbl {
-    font-size: var(--fs-12);
+  .ab__msg-out[data-kind="allow"] {
+    color: var(--accent);
+  }
+  .ab__msg-out[data-kind="deny"],
+  .ab__msg-out[data-kind="timeout"] {
     color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-  .ab-modes__row {
-    position: relative;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-md);
-    background: var(--surface);
-    overflow: hidden;
-  }
-  .ab-modes__glide {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 33.333%;
-    background: var(--ab-soft);
-    border-radius: calc(var(--r-md) - 1px);
-    transition: transform var(--dur-med) var(--ease-spring);
-    pointer-events: none;
-  }
-  .ab-mode {
-    appearance: none;
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding: var(--sp-3);
-    border: none;
-    border-right: var(--bw-thin) solid var(--border);
-    background: transparent;
-    cursor: pointer;
-    text-align: left;
-  }
-  .ab-mode:last-child { border-right: none; }
-  @media (hover: none) {
-    .ab-mode:active { opacity: 0.7; }
-  }
-  .ab-mode__id {
-    font-size: var(--fs-13);
-    font-weight: var(--fw-medium);
-    color: var(--text-secondary);
-    transition: color var(--dur-fast) var(--ease-standard);
-  }
-  .ab-mode[aria-checked="true"] .ab-mode__id { color: var(--accent); }
-  .ab-mode__hint {
-    font-size: var(--fs-11);
-    color: var(--text-muted);
-    line-height: var(--lh-snug);
   }
 
-  /* На узких контейнерах — стек */
-  @container (max-width: 420px) {
-    .ab-modes__row { grid-template-columns: 1fr; }
-    .ab-mode { border-right: none; border-bottom: var(--bw-thin) solid var(--border); }
-    .ab-mode:last-child { border-bottom: none; }
-    .ab-modes__glide { display: none; }
-  }
-
-  /* === Инвариант === */
+  /* ============== инвариант ============== */
   .ab__inv {
     margin: 0;
     display: flex;
@@ -759,265 +887,557 @@ const copy: Record<string, Bi> = {
     color: var(--text-faint);
   }
   .ab__inv-dot {
-    display: inline-block;
     width: 5px;
     height: 5px;
     flex: none;
     border-radius: 50%;
     background: var(--ab-line);
-    flex-shrink: 0;
+  }
+
+  /* ============== режимы и безопасность ============== */
+  .ab__under {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+  }
+  .ab__under-toggle {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: 0;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-12);
+    font-weight: var(--fw-medium);
+    text-transform: uppercase;
+    letter-spacing: var(--ls-wide);
+  }
+  .ab__under-toggle:hover {
+    color: var(--text);
+  }
+  .ab__under-toggle:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 3px;
+    border-radius: var(--r-xs);
+  }
+  .ab__under-chevron {
+    position: relative;
+    flex: none;
+    width: 10px;
+    height: 10px;
+  }
+  .ab__under-chevron::before,
+  .ab__under-chevron::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 10px;
+    height: 1.5px;
+    border-radius: 1px;
+    background: currentColor;
+    transform: translateY(-50%);
+  }
+  .ab__under-chevron::after {
+    transform: translateY(-50%) rotate(90deg);
+  }
+  .ab__under-toggle[aria-expanded="true"] .ab__under-chevron::after {
+    opacity: 0;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .ab__under-chevron::after {
+      transition: opacity var(--dur-fast) var(--ease-standard);
+    }
+  }
+  .ab__under-box {
+    display: grid;
+    grid-template-rows: 1fr;
+  }
+  .ab__under-inner {
+    min-height: 0;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-3);
+  }
+  .ab.is-enhanced .ab__under-box {
+    grid-template-rows: 0fr;
+  }
+  .ab.is-enhanced.is-under-open .ab__under-box {
+    grid-template-rows: 1fr;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .ab__under-box {
+      transition: grid-template-rows var(--dur-med) var(--ease-standard);
+    }
+  }
+
+  .ab__panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    padding: var(--sp-4);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    min-width: 0;
+  }
+  .ab__panel-title {
+    margin: 0;
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-semibold);
+    font-size: var(--fs-15);
+    color: var(--text);
+  }
+  .ab__panel-note {
+    margin: 0;
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+    line-height: var(--lh-snug);
+  }
+
+  /* сегмент режимов */
+  .ab__seg {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--surface-2);
+    overflow: hidden;
+  }
+  .ab__glide {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 33.333%;
+    background: var(--ab-soft);
+    border-radius: calc(var(--r-md) - 1px);
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .ab__glide {
+      transition: transform var(--dur-med) var(--ease-spring);
+    }
+  }
+  .ab__mode {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: var(--sp-2) var(--sp-3);
+    border: none;
+    border-right: var(--bw-thin) solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    min-height: var(--tap-min);
+  }
+  .ab__mode:last-child {
+    border-right: none;
+  }
+  .ab__mode:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: -2px;
+  }
+  @media (hover: none) {
+    .ab__mode:active {
+      opacity: 0.7;
+    }
+  }
+  .ab__mode-id {
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    color: var(--text-secondary);
+    transition: color var(--dur-fast) var(--ease-standard);
+  }
+  .ab__mode[aria-checked="true"] .ab__mode-id {
+    color: var(--accent);
+  }
+  .ab__mode-gloss {
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+    line-height: var(--lh-snug);
+  }
+  .ab__mode-applied {
+    margin: 0;
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
+    line-height: var(--lh-snug);
+  }
+
+  /* безопасность */
+  .ab__sec-chips,
+  .ab__stats {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+  .ab__sec-chip {
+    padding: var(--sp-1) var(--sp-2);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-pill);
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    font-size: var(--fs-11);
+  }
+  .ab__stats {
+    gap: var(--sp-2) var(--sp-4);
+    margin-top: auto;
+    padding-top: var(--sp-2);
+    border-top: var(--bw-thin) solid var(--border);
+  }
+  .ab__stat {
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
+  .ab__stat::before {
+    content: "";
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    margin-right: var(--sp-2);
+    border-radius: 50%;
+    background: var(--ab-line);
+    vertical-align: middle;
+  }
+
+  /* ============== адаптив ============== */
+  @container (min-width: 620px) {
+    .ab__stage {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(260px, 320px);
+      align-items: center;
+      gap: var(--sp-4);
+      padding: var(--sp-5);
+    }
+    .ab__link {
+      flex-direction: row;
+    }
+    .ab__link-line {
+      width: 16px;
+      height: var(--bw-thin);
+    }
+    .ab__link-arrow {
+      border-width: 5px 0 5px 6px;
+      border-color: transparent transparent transparent var(--ab-line);
+    }
+    .ab.is-inview .ab__stage[data-state="pending"] .ab__link-arrow {
+      animation: ab-nudge-x 1600ms ease-in-out infinite;
+    }
+    @keyframes ab-nudge-x {
+      0%,
+      100% {
+        transform: translateX(0);
+        opacity: 0.6;
+      }
+      50% {
+        transform: translateX(2px);
+        opacity: 1;
+      }
+    }
+  }
+
+  @container (max-width: 460px) {
+    .ab__under-inner {
+      grid-template-columns: 1fr;
+    }
+    .ab__seg {
+      grid-template-columns: 1fr;
+    }
+    .ab__mode {
+      border-right: none;
+      border-bottom: var(--bw-thin) solid var(--border);
+    }
+    .ab__mode:last-child {
+      border-bottom: none;
+    }
+    .ab__glide {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ab__agent-dot,
+    .ab__caret,
+    .ab__link-arrow {
+      animation: none !important;
+    }
   }
 </style>
 
 <script>
-  const root = document.querySelector<HTMLElement>("[data-ab]");
-  if (root) {
-    const locale = root.dataset.locale ?? "ru";
-    const isEn = locale === "en";
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Оркестратор демо .агенты. Одна петля approve/deny на главном экране; режимы и
+  // безопасность - в сворачиваемом блоке. Без вечного rAF: всё через later()
+  // (setTimeout-конвейер с очисткой). Гейт - IntersectionObserver. reduced-motion
+  // → мгновенные состояния, интеракции работают.
+  (() => {
+    const root = document.querySelector<HTMLElement>("[data-ab]");
+    if (!root) return;
 
-    const TIMER_MS = 10_000;
+    const isEn = (root.dataset.locale ?? "ru") === "en";
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const tr = (ru: string, en: string): string => (isEn ? en : ru);
 
-    // Строки (зеркало фронтматтера)
-    const txt = {
-      intercepted:    isEn ? "hook caught it · awaiting decision" : "хук перехватил · ждёт решения",
-      agAllowed:      isEn ? "✓ agent continues"   : "✓ агент продолжает",
-      agDenied:       isEn ? "✕ agent blocked"      : "✕ агент заблокирован",
-      outcomeAllow:   isEn ? "✓ Allowed — command is running"       : "✓ Разрешено — команда выполняется",
-      outcomeDeny:    isEn ? "✕ Blocked — command never ran"        : "✕ Заблокировано — команда не запустилась",
-      outcomeTimeout: isEn ? "Silence → deny (fail-closed)"         : "Тишина → deny (fail-closed)",
-      outcomeReadonly:isEn ? "auto-allowed · notification sent"     : "авто-allow · уведомление отправлено",
-      outcomeStandby: isEn ? "auto-deny · agent blocked"            : "авто-deny · агент заблокирован",
+    // строки-зеркало (генерик, не зависят от сценария)
+    const TXT = {
+      paused: tr("на паузе", "paused"),
+      running: tr("выполняет", "running"),
+      blocked: tr("заблокирован", "blocked"),
+      outAllow: tr("✓ Разрешено", "✓ Allowed"),
+      outDeny: tr("✕ Заблокировано", "✕ Blocked"),
+      outTimeout: tr("Тишина → deny (fail-closed)", "Silence → deny (fail-closed)"),
+      noteRemote: tr(
+        "remote: решаешь ты - кнопками на телефоне.",
+        "remote: you decide - with the phone buttons.",
+      ),
+      noteReadonly: tr(
+        "readonly разрешил сам и просто уведомил.",
+        "readonly allowed it and just notified you.",
+      ),
+      noteStandby: tr(
+        "standby отклонил сам, ничего не спрашивая.",
+        "standby denied it without asking.",
+      ),
     };
 
-    // Данные сценариев (зеркало фронтматтера)
-    const SCENARIOS: Record<string, { cmd: string; kind: string }> = {
-      "shell-clean": { cmd: "rm -rf dist/",                kind: "shell · risk: high" },
-      "git-force":   { cmd: "git push --force origin main", kind: "shell · risk: high" },
-      "mcp-env":     { cmd: 'read_file(".env")',            kind: isEn ? "MCP · risk: critical" : "MCP · risk: critical" },
+    // ----- DOM -----
+    const chips = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-ab-chip]"));
+    const stage = root.querySelector<HTMLElement>("[data-stage]");
+    const agentState = root.querySelector<HTMLElement>("[data-agent-state]");
+    const agentIntent = root.querySelector<HTMLElement>("[data-agent-intent]");
+    const agentCmd = root.querySelector<HTMLElement>("[data-agent-cmd]");
+    const agentOut = root.querySelector<HTMLElement>("[data-agent-out]");
+    const msg = root.querySelector<HTMLElement>("[data-msg]");
+    const msgCmd = root.querySelector<HTMLElement>("[data-msg-cmd]");
+    const msgKind = root.querySelector<HTMLElement>("[data-msg-kind]");
+    const msgRisk = root.querySelector<HTMLElement>("[data-msg-risk]");
+    const msgWhy = root.querySelector<HTMLElement>("[data-msg-why]");
+    const msgOut = root.querySelector<HTMLElement>("[data-msg-out]");
+    const allowBtn = root.querySelector<HTMLButtonElement>('[data-act="allow"]');
+    const denyBtn = root.querySelector<HTMLButtonElement>('[data-act="deny"]');
+    const ignoreBtn = root.querySelector<HTMLButtonElement>('[data-act="ignore"]');
+    const modeEls = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-mode]"));
+    const glide = root.querySelector<HTMLElement>("[data-glide]");
+    const modeNote = root.querySelector<HTMLElement>("[data-mode-note]");
+    const underToggle = root.querySelector<HTMLButtonElement>("[data-under-toggle]");
+
+    if (!stage || !msg) return;
+
+    // ----- инфраструктура таймеров -----
+    let inview = false;
+    const timers: number[] = [];
+    const clearTimers = (): void => {
+      while (timers.length) {
+        const id = timers.pop();
+        if (id !== undefined) window.clearTimeout(id);
+      }
+    };
+    const later = (fn: () => void, ms: number): void => {
+      const id = window.setTimeout(() => {
+        const i = timers.indexOf(id);
+        if (i >= 0) timers.splice(i, 1);
+        fn();
+      }, ms);
+      timers.push(id);
+    };
+    const D = (ms: number): number => (reduced ? 0 : ms);
+
+    // ----- состояние -----
+    let activeChip: HTMLButtonElement = chips[0] ?? document.createElement("button");
+    let activeMode = "remote";
+
+    type Sc = {
+      cmd: string;
+      kind: string;
+      risk: string;
+      riskLabel: string;
+      intent: string;
+      why: string;
+      allow: string;
+      deny: string;
+    };
+    const read = (c: HTMLElement): Sc => ({
+      cmd: c.dataset.cmd ?? "",
+      kind: c.dataset.kind ?? "",
+      risk: c.dataset.risk ?? "high",
+      riskLabel: c.dataset.riskLabel ?? "",
+      intent: c.dataset.intent ?? "",
+      why: c.dataset.why ?? "",
+      allow: c.dataset.allow ?? "",
+      deny: c.dataset.deny ?? "",
+    });
+
+    // ----- кнопки -----
+    const setButtons = (on: boolean): void => {
+      [allowBtn, denyBtn].forEach((b) => {
+        if (!b) return;
+        b.disabled = !on;
+        b.removeAttribute("data-picked");
+        b.removeAttribute("data-faded");
+      });
+      if (ignoreBtn) ignoreBtn.hidden = !on;
     };
 
-    // DOM
-    const tabs      = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-tab]"));
-    const logs      = Array.from(root.querySelectorAll<HTMLElement>("[data-log]"));
-    const callBox   = root.querySelector<HTMLElement>("[data-call]");
-    const callKind  = root.querySelector<HTMLElement>("[data-call-kind]");
-    const callState = root.querySelector<HTMLElement>("[data-call-state]");
-    const callCmd   = root.querySelector<HTMLElement>("[data-call-cmd]");
-    const msgEl     = root.querySelector<HTMLElement>("[data-msg]");
-    const msgCmd    = root.querySelector<HTMLElement>("[data-msg-cmd]");
-    const msgKind   = root.querySelector<HTMLElement>("[data-msg-kind]");
-    const timerEl   = root.querySelector<HTMLElement>("[data-timer]");
-    const timerFill = root.querySelector<HTMLElement>("[data-timer-fill]");
-    const timerNum  = root.querySelector<HTMLElement>("[data-timer-num]");
-    const allowBtn  = root.querySelector<HTMLButtonElement>('[data-act="allow"]');
-    const denyBtn   = root.querySelector<HTMLButtonElement>('[data-act="deny"]');
-    const outcomeEl = root.querySelector<HTMLElement>("[data-outcome]");
-    const modeEls   = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-mode]"));
-    const glide     = root.querySelector<HTMLElement>("[data-glide]");
+    // ----- сброс к «ждёт решения» -----
+    const toPending = (): void => {
+      stage.dataset.state = "pending";
+      msg.dataset.state = "pending";
+      if (agentState) agentState.textContent = TXT.paused;
+      if (agentOut) agentOut.hidden = true;
+      if (msgOut) msgOut.hidden = true;
+    };
 
-    // Состояние
-    let inview          = false;
-    let activeScenario  = "shell-clean";
-    let activeMode      = "remote";
-    let timerHandle     = 0;
-    let tickHandle      = 0;
-    let pendingHandle   = 0;
+    // ----- разрешение петли -----
+    const resolve = (action: "allow" | "deny" | "timeout"): void => {
+      clearTimers();
+      setButtons(false);
+      const sc = read(activeChip);
+      const allowed = action === "allow";
 
-    // IntersectionObserver
+      stage.dataset.state = allowed ? "allowed" : action === "deny" ? "denied" : "timeout";
+      msg.dataset.state = stage.dataset.state;
+
+      if (agentState) agentState.textContent = allowed ? TXT.running : TXT.blocked;
+      if (agentOut) {
+        agentOut.textContent = allowed ? sc.allow : sc.deny;
+        agentOut.hidden = false;
+      }
+      if (msgOut) {
+        const txt =
+          action === "allow" ? TXT.outAllow : action === "deny" ? TXT.outDeny : TXT.outTimeout;
+        msgOut.textContent = txt;
+        msgOut.dataset.kind = action === "allow" ? "allow" : action === "deny" ? "deny" : "timeout";
+        msgOut.hidden = false;
+      }
+
+      if (action === "allow") {
+        allowBtn?.setAttribute("data-picked", "1");
+        denyBtn?.setAttribute("data-faded", "1");
+      } else if (action === "deny") {
+        denyBtn?.setAttribute("data-picked", "1");
+        allowBtn?.setAttribute("data-faded", "1");
+      }
+    };
+
+    // ----- анимация «прилёта» сообщения -----
+    const arrive = (): void => {
+      if (reduced) return;
+      msg.removeAttribute("data-arrive");
+      void msg.offsetWidth; // reflow → перезапуск
+      msg.setAttribute("data-arrive", "1");
+    };
+
+    // ----- применить режим к текущему сценарию -----
+    const applyMode = (): void => {
+      clearTimers();
+      toPending();
+      if (activeMode === "remote") {
+        setButtons(true);
+        if (modeNote) modeNote.textContent = TXT.noteRemote;
+      } else if (activeMode === "readonly") {
+        setButtons(false);
+        if (modeNote) modeNote.textContent = TXT.noteReadonly;
+        later(() => resolve("allow"), D(650));
+      } else {
+        setButtons(false);
+        if (modeNote) modeNote.textContent = TXT.noteStandby;
+        later(() => resolve("deny"), D(500));
+      }
+    };
+
+    // ----- выбрать сценарий -----
+    const selectScenario = (chip: HTMLButtonElement): void => {
+      activeChip = chip;
+      chips.forEach((c) => {
+        const on = c === chip;
+        c.classList.toggle("is-on", on);
+        c.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+      const sc = read(chip);
+      if (agentIntent) agentIntent.textContent = sc.intent;
+      if (agentCmd) agentCmd.textContent = sc.cmd;
+      if (msgCmd) msgCmd.textContent = sc.cmd;
+      if (msgKind) msgKind.textContent = sc.kind;
+      if (msgRisk) {
+        msgRisk.textContent = sc.riskLabel;
+        msgRisk.className = `ab__msg-risk ab__msg-risk--${sc.risk}`;
+      }
+      if (msgWhy) msgWhy.textContent = sc.why;
+      arrive();
+      applyMode();
+    };
+
+    // ----- выбрать режим -----
+    const selectMode = (id: string): void => {
+      activeMode = id;
+      modeEls.forEach((m, i) => {
+        const on = m.dataset.mode === id;
+        m.setAttribute("aria-checked", on ? "true" : "false");
+        if (on && glide) glide.style.transform = `translateX(${i * 100}%)`;
+      });
+      applyMode();
+    };
+
+    // ----- сворачивание блока «Режимы и безопасность» -----
+    if (underToggle) {
+      root.classList.add("is-enhanced"); // включает grid-анимацию; по умолчанию свёрнуто
+      underToggle.setAttribute("aria-expanded", "false");
+      underToggle.addEventListener("click", () => {
+        const open = root.classList.toggle("is-under-open");
+        underToggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    }
+
+    // ----- события -----
+    chips.forEach((c) => c.addEventListener("click", () => selectScenario(c)));
+    modeEls.forEach((m) =>
+      m.addEventListener("click", () => selectMode(m.dataset.mode ?? "remote")),
+    );
+    allowBtn?.addEventListener("click", () => {
+      if (!allowBtn.disabled) resolve("allow");
+    });
+    denyBtn?.addEventListener("click", () => {
+      if (!denyBtn.disabled) resolve("deny");
+    });
+    ignoreBtn?.addEventListener("click", () => {
+      if (!ignoreBtn.hidden) resolve("timeout");
+    });
+
+    // ----- гейт по видимости + очистка -----
     const io = new IntersectionObserver(
       ([e]) => {
         inview = !!e?.isIntersecting;
         if (inview) {
           root.classList.add("is-inview");
-          // Анимируем первый лог при входе в viewport
-          const first = root.querySelector<HTMLElement>("[data-log]");
-          if (first) triggerLogAnim(first);
-          // Запускаем начальное состояние через 600ms (после анимации строк)
-          pendingHandle = window.setTimeout(() => applyMode(activeMode), 600);
+          // первичная раскладка под дефолтный режим
+          later(() => applyMode(), D(400));
+        } else {
+          clearTimers();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
     io.observe(root);
 
-    // Пауза таймера при скрытой вкладке
     document.addEventListener("visibilitychange", () => {
-      if (document.hidden) stopTimer();
+      if (document.hidden) clearTimers();
+    });
+    window.addEventListener("pagehide", () => {
+      clearTimers();
+      io.disconnect();
     });
 
-    // === Таймер ===
-    function stopTimer() {
-      if (timerHandle)   { clearTimeout(timerHandle);   timerHandle   = 0; }
-      if (tickHandle)    { clearInterval(tickHandle);   tickHandle    = 0; }
-      if (pendingHandle) { clearTimeout(pendingHandle); pendingHandle = 0; }
-      timerFill?.removeAttribute("data-run");
-      if (timerEl) timerEl.hidden = true;
-    }
-
-    function startTimer() {
-      stopTimer();
-      if (!timerEl || !timerFill) return;
-      timerEl.hidden = false;
-      const totalSec = Math.round(TIMER_MS / 1000);
-      if (timerNum) timerNum.textContent = String(totalSec);
-
-      if (!reduce && inview) {
-        timerEl.style.setProperty("--timer-ms", `${TIMER_MS}ms`);
-        void timerFill.offsetWidth; // restart animation
-        timerFill.setAttribute("data-run", "1");
-      }
-
-      const startedAt = Date.now();
-      tickHandle = window.setInterval(() => {
-        const rem = Math.max(0, Math.ceil((TIMER_MS - (Date.now() - startedAt)) / 1000));
-        if (timerNum) timerNum.textContent = String(rem);
-      }, 400);
-
-      timerHandle = window.setTimeout(() => {
-        stopTimer();
-        resolve("timeout");
-      }, TIMER_MS);
-    }
-
-    // === Кнопки ===
-    function setEnabled(on: boolean) {
-      if (!allowBtn || !denyBtn) return;
-      allowBtn.disabled = !on;
-      denyBtn.disabled  = !on;
-      allowBtn.removeAttribute("data-picked");
-      allowBtn.removeAttribute("data-faded");
-      denyBtn.removeAttribute("data-picked");
-      denyBtn.removeAttribute("data-faded");
-    }
-
-    function setOutcome(kind: string, text: string) {
-      if (!outcomeEl) return;
-      outcomeEl.setAttribute("data-kind", kind);
-      outcomeEl.textContent = text;
-      outcomeEl.hidden = false;
-    }
-
-    // === Резолв ===
-    function resolve(action: "allow" | "deny" | "timeout") {
-      stopTimer();
-      setEnabled(false);
-
-      const allowed = action === "allow";
-      callBox?.setAttribute("data-resolved", allowed ? "allow" : "deny");
-      if (callState) callState.textContent = allowed ? txt.agAllowed : txt.agDenied;
-      msgEl?.setAttribute("data-state", allowed ? "allowed" : "denied");
-
-      if (allowed) {
-        allowBtn?.setAttribute("data-picked", "1");
-        denyBtn?.setAttribute("data-faded",  "1");
-        setOutcome("allow", txt.outcomeAllow);
-      } else if (action === "deny") {
-        denyBtn?.setAttribute("data-picked",  "1");
-        allowBtn?.setAttribute("data-faded", "1");
-        setOutcome("deny", txt.outcomeDeny);
-      } else {
-        denyBtn?.setAttribute("data-picked",  "1");
-        allowBtn?.setAttribute("data-faded", "1");
-        setOutcome("timeout", txt.outcomeTimeout);
-      }
-    }
-
-    // === Анимация лога ===
-    function triggerLogAnim(logEl: HTMLElement) {
-      if (reduce) return;
-      logEl.removeAttribute("data-animate");
-      void logEl.offsetWidth; // reflow → перезапуск animation
-      logEl.setAttribute("data-animate", "1");
-    }
-
-    // === Переключение сценария ===
-    function selectScenario(id: string) {
-      if (!id || !SCENARIOS[id]) return;
-      activeScenario = id;
-
-      // Tabs
-      tabs.forEach(t => t.setAttribute("aria-selected", t.dataset.tab === id ? "true" : "false"));
-
-      // Логи: показываем нужный, скрываем остальные
-      logs.forEach(l => {
-        const active = l.dataset.log === id;
-        l.style.display = active ? "" : "none";
-        if (active) triggerLogAnim(l);
-      });
-
-      // Обновляем тексты
-      const s = SCENARIOS[id];
-      if (callCmd)  callCmd.textContent  = s.cmd;
-      if (callKind) callKind.textContent = s.kind;
-      if (msgCmd)   msgCmd.textContent   = s.cmd;
-      if (msgKind)  msgKind.textContent  = s.kind;
-
-      // Сброс состояния
-      callBox?.setAttribute("data-resolved", "");
-      if (callState) callState.textContent = txt.intercepted;
-      msgEl?.setAttribute("data-state", "pending");
-      if (outcomeEl) outcomeEl.hidden = true;
-
-      stopTimer();
-      setEnabled(false);
-
-      // Применяем режим после паузы (чтобы транскрипт успел анимироваться)
-      pendingHandle = window.setTimeout(() => applyMode(activeMode), 500);
-    }
-
-    // === Переключение режима ===
-    function applyMode(mode: string) {
-      stopTimer();
-      setEnabled(false);
-      if (outcomeEl) outcomeEl.hidden = true;
-      callBox?.setAttribute("data-resolved", "");
-      if (callState) callState.textContent = txt.intercepted;
-      msgEl?.setAttribute("data-state", "pending");
-      allowBtn?.removeAttribute("data-picked");
-      allowBtn?.removeAttribute("data-faded");
-      denyBtn?.removeAttribute("data-picked");
-      denyBtn?.removeAttribute("data-faded");
-
-      if (mode === "remote") {
-        setEnabled(true);
-        startTimer();
-      } else if (mode === "readonly") {
-        pendingHandle = window.setTimeout(() => {
-          callBox?.setAttribute("data-resolved", "allow");
-          if (callState) callState.textContent = txt.agAllowed;
-          msgEl?.setAttribute("data-state", "allowed");
-          setOutcome("allow", txt.outcomeReadonly);
-        }, 700);
-      } else {
-        // standby
-        pendingHandle = window.setTimeout(() => {
-          callBox?.setAttribute("data-resolved", "deny");
-          if (callState) callState.textContent = txt.agDenied;
-          msgEl?.setAttribute("data-state", "denied");
-          setOutcome("deny", txt.outcomeStandby);
-        }, 500);
-      }
-    }
-
-    function selectMode(id: string) {
-      activeMode = id;
-      modeEls.forEach((m, i) => {
-        const active = m.dataset.mode === id;
-        m.setAttribute("aria-checked", active ? "true" : "false");
-        if (active && glide) glide.style.transform = `translateX(${i * 100}%)`;
-      });
-      applyMode(id);
-    }
-
-    // === События ===
-    tabs.forEach(t =>
-      t.addEventListener("click", () => selectScenario(t.dataset.tab ?? ""))
-    );
-    modeEls.forEach(m =>
-      m.addEventListener("click", () => selectMode(m.dataset.mode ?? "remote"))
-    );
-    allowBtn?.addEventListener("click", () => { if (!allowBtn.disabled) resolve("allow"); });
-    denyBtn?.addEventListener("click",  () => { if (!denyBtn.disabled)  resolve("deny");  });
-  }
+    // стартовое состояние (на случай, если уже во вьюпорте без анимаций)
+    setButtons(activeMode === "remote");
+  })();
 </script>
