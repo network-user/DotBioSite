@@ -2,28 +2,21 @@
 /**
  * LearnForge.astro — сигнатурная визуализация .учёба (DotLearn).
  *
- * ПОЛНЫЙ РЕБИЛД (был «двухпанельный верстак», слишком плотный для новичка).
- * Теперь это ОДНА связная история-навигатор «как живёт продукт» — 7 актов,
- * по которым пользователь идёт пейджером ←/→ (или клавишами). В фокусе всегда
- * один шаг, остальные приглушены; активная сцена сама проигрывает короткое демо.
+ * ФОРМА — «МАРШРУТ ПРОДУКТА» (сознательно НЕ shell-селектор .звук): сверху
+ * горизонтальная прогресс-линия из 7 станций (линия заливается до текущего
+ * шага), снизу — один крупный stage активного акта. Пользователь идёт по пути
+ * продукта стрелками ←/→ или клавишами; активная сцена сама проигрывает демо.
  * Цель — чтобы человек, мало знакомый с программированием, протыкал интерактив
  * и понял продукт целиком: от `git clone` до экспорта прогресса.
  *
- * Акты (каждый опирается на реальные артефакты репозитория DotLearn):
- *  1 · Клонируй и попроси — `git clone … && pnpm dev:web`, затем словами просишь
- *      ИИ-агента: «добавь тему по SQL JOIN». Активируется скилл lesson-forge.
- *  2 · Кузница кует урок — lesson-forge: план программы (ждёт твоё «ок») → manifest →
- *      theory.mdx + exercises.yaml + flashcards. Тема собирается как набор файлов.
- *  3 · Контракт проверяет форму — общий Zod-контракт (`topic.schema.ts`, .strict()):
- *      тогл «лишнее поле» → REJECT; одна схема валидирует и темы, и заявки (web+api);
- *      `pnpm validate` реально прогоняет gold-SQL в sql.js.
- *  4 · Решаешь в браузере — мини-IDE: реальный урок JOIN (author/book) на sql.js и
- *      python-function (Vector.length) на Pyodide, Run → исполнение в Web Worker.
- *  5 · Интерактивная теория — не стена текста: живые визуализации (40+ компонентов)
- *      + проверочный theory-quiz прямо в чтении, мгновенная проверка.
- *  6 · Привычка и карточки — стрик + GitHub-heatmap в IndexedDB; FSRS-карточка с
- *      переворотом и оценками «Снова/Трудно/Хорошо/Легко».
- *  7 · Унеси с собой — экспорт/импорт всего прогресса одним JSON (бэкап и перенос).
+ * Акты (опираются на реальные артефакты репозитория DotLearn):
+ *  1 · Клонируй и попроси — `git clone … && pnpm dev:web`, словами просишь агента.
+ *  2 · Кузница кует урок — lesson-forge: план → manifest → theory.mdx + yaml + flashcards.
+ *  3 · Контракт проверяет форму — общий Zod (`topic.schema.ts`, .strict()), web+api.
+ *  4 · Решаешь в браузере — sql.js (JOIN author/book) и Pyodide (Vector.length) в Worker.
+ *  5 · Интерактивная теория — 40+ живых визуализаций + theory-quiz по ходу чтения.
+ *  6 · Привычка и карточки — стрик + GitHub-heatmap (IndexedDB), FSRS-карточка.
+ *  7 · Унеси с собой — экспорт/импорт всего прогресса одним JSON (version 4).
  *
  * Бюджет анимации (строго): анимируются ТОЛЬКО transform и opacity. Постоянного
  * rAF нет — демо ведётся цепочками setTimeout (массив timers), которые ЧИСТЯТСЯ
@@ -31,12 +24,10 @@
  * под классом .is-inview (IntersectionObserver на корне) и гасится вне кадра.
  * prefers-reduced-motion → финальный читаемый кадр; все кнопки/тоглы работают.
  *
- * Факты сверены по репозиторию DotLearn (точно): 34 темы; 7 типов упражнений
- * (theory-quiz, sql-query, python-function, javascript-function, fill-in-blanks,
- * predict-output, git-challenge); рантаймы sql.js / Pyodide / JS / git в Web
- * Workers; Zod-контракт в packages/contracts общий для web+api, типы через
- * z.infer; lesson-forge — офлайн-скилл (.cursor/.claude), РАНТАЙМ-AI НЕТ;
- * прогресс/heatmap/стрик — Dexie/IndexedDB; карточки — ts-fsrs; экспорт — version 4.
+ * Факты сверены по репозиторию (точно): 34 темы; 7 типов упражнений; рантаймы
+ * sql.js / Pyodide / JS / git в Web Workers; Zod-контракт общий для web+api;
+ * lesson-forge — офлайн-скилл, РАНТАЙМ-AI НЕТ; прогресс/heatmap/стрик —
+ * Dexie/IndexedDB; карточки — ts-fsrs; экспорт прогресса — version 4.
  */
 import type { Locale } from "../../../lib/i18n";
 
@@ -60,7 +51,7 @@ const stats: { v: string; label: Bi; plain?: boolean }[] = [
   { v: "", label: { ru: "local-first · без бэкенда", en: "local-first · no backend" }, plain: true },
 ];
 
-/* ── Акты истории (шапки для рейки и заголовка сцены) ─────────────────── */
+/* ── Акты истории (шапки для станций и заголовка сцены) ───────────────── */
 type Act = { id: string; eyebrow: Bi; title: Bi; lede: Bi };
 const acts: Act[] = [
   {
@@ -298,6 +289,7 @@ const sx = {
   imported: { ru: "Импортировано записей: 1 248", en: "Imported records: 1,248" },
   prev: { ru: "Назад", en: "Back" },
   next: { ru: "Далее", en: "Next" },
+  step: { ru: "Шаг", en: "Step" },
 };
 const sBundle = Object.fromEntries(Object.entries(sx).map(([k, v]) => [k, t(v)]));
 sBundle.locale = locale;
@@ -311,7 +303,7 @@ sBundle.locale = locale;
 >
   <p class="lf__intro">{t(intro)}</p>
 
-  <ul class="lf__statline" role="list">
+  <ul class="lf__stats" role="list">
     {
       stats.map((s) => (
         <li class:list={["lf__stat", s.plain && "lf__stat--plain"]}>
@@ -322,14 +314,14 @@ sBundle.locale = locale;
     }
   </ul>
 
-  <div class="lf__nav">
-    <!-- рейка актов -->
-    <ol class="lf__rail" role="tablist" aria-label={t({ ru: "Шаги истории", en: "Story steps" })}>
+  <!-- ░░░░░ горизонтальный маршрут: станции + прогресс-линия ░░░░░ -->
+  <nav class="lf__journey" aria-label={t({ ru: "Шаги истории", en: "Story steps" })}>
+    <ol class="lf__spine" role="tablist">
       {
         acts.map((a, i) => (
-          <li>
+          <li class="lf__station">
             <button
-              class="lf__step"
+              class="lf__st"
               type="button"
               role="tab"
               id={`lf-tab-${a.id}`}
@@ -339,465 +331,512 @@ sBundle.locale = locale;
               data-lf-tab={a.id}
               data-i={i}
             >
-              <span class="lf__step-n" aria-hidden="true">{i + 1}</span>
-              <span class="lf__step-label">{t(a.eyebrow)}</span>
+              <span class="lf__st-node" aria-hidden="true">
+                <span class="lf__st-num">{i + 1}</span>
+                <span class="lf__st-check" />
+              </span>
+              <span class="lf__st-label">{t(a.eyebrow)}</span>
             </button>
           </li>
         ))
       }
     </ol>
+  </nav>
 
-    <!-- сцена -->
-    <div class="lf__stage">
-      {
-        acts.map((a, i) => (
-          <section
-            class:list={["lf-act", i === 0 && "is-active"]}
-            id={`lf-panel-${a.id}`}
-            role="tabpanel"
-            aria-labelledby={`lf-tab-${a.id}`}
-            data-lf-panel={a.id}
-            hidden={i !== 0}
-          >
-            <header class="lf-act__head">
-              <span class="lf-act__eyebrow caption">
-                <span class="lf-act__eyebrow-n">{`0${i + 1}`}</span>
-                {t(a.eyebrow)}
-              </span>
-              <h3 class="lf-act__title">{t(a.title)}</h3>
-              <p class="lf-act__lede">{t(a.lede)}</p>
-            </header>
+  <!-- ░░░░░ stage активного акта ░░░░░ -->
+  <div class="lf__stage">
+    {
+      acts.map((a, i) => (
+        <section
+          class:list={["lf-act", i === 0 && "is-active"]}
+          id={`lf-panel-${a.id}`}
+          role="tabpanel"
+          aria-labelledby={`lf-tab-${a.id}`}
+          data-lf-panel={a.id}
+          hidden={i !== 0}
+        >
+          <header class="lf-act__head">
+            <span class="lf-act__eyebrow">
+              <span class="lf-act__eyebrow-n">{`0${i + 1}`}</span>
+              {t(a.eyebrow)}
+            </span>
+            <h3 class="lf-act__title">{t(a.title)}</h3>
+            <p class="lf-act__lede">{t(a.lede)}</p>
+          </header>
 
-            <div class="lf-act__body">
-              {/* ═════════ Акт 1: clone ═════════ */}
-              {a.id === "clone" && (
-                <div class="lf-clone">
-                  <div class="lf-term" data-lf-term aria-hidden="true">
-                    <span class="lf-term__bar"><i /><i /><i /></span>
-                    <pre class="lf-term__body mono">
-                      {termLines.map((l, k) => (
-                        <span class:list={["lf-term__line", `lf-term__line--${l.kind}`]} data-term={k}>
-                          {l.kind === "cmd" && <span class="lf-term__sigil">$</span>}
-                          {l.text}
-                        </span>
-                      ))}
-                    </pre>
-                  </div>
-                  <div class="lf-ask">
-                    <span class="lf-ask__cap caption">
-                      {t({ ru: "в редакторе (Cursor / Claude Code):", en: "in your editor (Cursor / Claude Code):" })}
-                    </span>
-                    <div class="lf-ask__bubble">
-                      <span class="lf-ask__sigil" aria-hidden="true">/</span>
-                      <span class="lf-ask__text">{t(agentPrompt)}</span>
-                    </div>
-                    <div class="lf-act__run">
-                      <button class="lf-btn lf-btn--accent" type="button" data-lf-clone-run>
-                        <span class="lf-btn__glyph lf-btn__glyph--play" aria-hidden="true" />
-                        <span data-lf-clone-label>{t(sx.runAgent)}</span>
-                      </button>
-                      <span class="lf-status mono" data-lf-clone-status role="status" aria-live="polite" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ═════════ Акт 2: forge ═════════ */}
-              {a.id === "forge" && (
-                <div class="lf-forge">
-                  <div class="lf-plan" data-lf-plan>
-                    <span class="lf-plan__cap caption">
-                      {t({ ru: "план программы · 6 концептов", en: "curriculum plan · 6 concepts" })}
-                    </span>
-                    <ol class="lf-plan__list">
-                      {planConcepts.map((c, k) => (
-                        <li class="lf-plan__item" data-plan={k} style={`--i:${k}`}>
-                          <span class="lf-plan__dot" aria-hidden="true" />
-                          {t(c)}
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                  <div class="lf-files" data-lf-files>
-                    <span class="lf-files__cap caption">topics/sql-joins/</span>
-                    <ul class="lf-files__list" role="list">
-                      {forgeFiles.map((f, k) => (
-                        <li class="lf-file" data-file={k} style={`--i:${k}`}>
-                          <span class="lf-file__dot" aria-hidden="true" />
-                          <span class="lf-file__name mono">{f.name}</span>
-                          <span class="lf-file__kind">{t(f.kind)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div class="lf-act__run">
-                    <button class="lf-btn lf-btn--accent" type="button" data-lf-forge-run>
-                      <span class="lf-btn__glyph lf-btn__glyph--spark" aria-hidden="true" />
-                      <span data-lf-forge-label>{t(sx.approve)}</span>
-                    </button>
-                    <span class="lf-status mono" data-lf-forge-status role="status" aria-live="polite">
-                      {t(sx.planWait)}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* ═════════ Акт 3: contract ═════════ */}
-              {a.id === "contract" && (
-                <div class="lf-contract">
-                  <div class="lf-schema mono" data-lf-schema data-state="pass" aria-hidden="true">
-                    <span class="lf-schema__line lf-schema__line--head">topicSchema = z.object(&#123;</span>
-                    {schemaFields.map((f) => (
-                      <span class="lf-schema__line">{"  "}{f.key}: <em>{f.type}</em>,</span>
-                    ))}
-                    <span class="lf-schema__line lf-schema__line--bad" data-lf-badline>{"  "}_inject: <em>z.any()</em>,</span>
-                    <span class="lf-schema__line lf-schema__line--head">&#125;).strict()</span>
-                    <span class="lf-schema__line lf-schema__line--infer">type Topic = z.infer&lt;typeof topicSchema&gt;</span>
-                  </div>
-                  <div class="lf-gate__wrap">
-                    <div class="lf-gate" data-lf-gate data-state="pass" role="status" aria-live="polite">
-                      <span class="lf-gate__icon" aria-hidden="true" />
-                      <span class="lf-gate__text" data-lf-gate-text>{t(sx.pass)}</span>
-                    </div>
-                    <span class="lf-validate mono">{t(sx.validate)}</span>
-                  </div>
-                  <button class="lf-toggle" type="button" data-lf-inject aria-pressed="false">
-                    {t(sx.inject)}
-                  </button>
-                </div>
-              )}
-
-              {/* ═════════ Акт 4: solve ═════════ */}
-              {a.id === "solve" && (
-                <div class="lf-ide" data-lf-ide>
-                  <div class="lf-ide__tabs" role="tablist" aria-label={t({ ru: "Рантайм", en: "Runtime" })}>
-                    <button class="lf-ide__tab" type="button" role="tab" data-lf-rt="sql" aria-selected="true" tabindex="0">
-                      <span class="mono">sql.js</span>
-                      <span class="lf-ide__tab-sub">{t({ ru: "SQLite в WASM", en: "SQLite in WASM" })}</span>
-                    </button>
-                    <button class="lf-ide__tab" type="button" role="tab" data-lf-rt="py" aria-selected="false" tabindex="-1">
-                      <span class="mono">Pyodide</span>
-                      <span class="lf-ide__tab-sub">{t({ ru: "Python в WASM", en: "Python in WASM" })}</span>
-                    </button>
-                    <span class="lf-ide__worker caption">{t({ ru: "в Web Worker", en: "in a Web Worker" })}</span>
-                  </div>
-
-                  <div class="lf-ide__editor">
-                    <pre class="lf-ide__code mono" data-lf-code aria-live="polite"><code>{sqlVariants[0]!.code.join("\n")}</code></pre>
-                  </div>
-
-                  <div class="lf-ide__variants" data-lf-variants role="radiogroup" aria-label={t({ ru: "Вариант решения", en: "Solution variant" })}>
-                    {sqlVariants.map((v, k) => (
-                      <button class="lf-chip" type="button" role="radio" data-lf-variant={k} aria-checked={k === 0 ? "true" : "false"} tabindex={k === 0 ? 0 : -1}>
-                        {t(v.label)}
-                      </button>
+          <div class="lf-act__body">
+            {/* ═════════ Акт 1: clone ═════════ */}
+            {a.id === "clone" && (
+              <div class="lf-clone">
+                <div class="lf-term" data-lf-term aria-hidden="true">
+                  <div class="lf-term__bar"><i /><i /><i /></div>
+                  <div class="lf-term__body mono">
+                    {termLines.map((l, k) => (
+                      <div class:list={["lf-term__line", `lf-term__line--${l.kind}`]} data-term={k}>
+                        {l.kind === "cmd" && <span class="lf-term__sigil">$</span>}
+                        <span class="lf-term__cmd">{l.text}</span>
+                      </div>
                     ))}
                   </div>
-
+                </div>
+                <div class="lf-ask">
+                  <span class="lf-ask__cap caption">
+                    {t({ ru: "в редакторе (Cursor / Claude Code):", en: "in your editor (Cursor / Claude Code):" })}
+                  </span>
+                  <div class="lf-ask__bubble">
+                    <span class="lf-ask__sigil mono" aria-hidden="true">/</span>
+                    <span class="lf-ask__text">{t(agentPrompt)}</span>
+                  </div>
                   <div class="lf-act__run">
-                    <button class="lf-btn lf-btn--accent" type="button" data-lf-run>
+                    <button class="lf-btn lf-btn--accent" type="button" data-lf-clone-run>
                       <span class="lf-btn__glyph lf-btn__glyph--play" aria-hidden="true" />
-                      <span>{t(sx.run)}</span>
+                      <span data-lf-clone-label>{t(sx.runAgent)}</span>
                     </button>
-                    <span class="lf-status mono" data-lf-run-status role="status" aria-live="polite">{t(sx.ready)}</span>
-                  </div>
-
-                  <div class="lf-ide__out" data-lf-out data-kind="sql" data-state="idle">
-                    <div class="lf-ide__out-head">
-                      <span class="caption">{t({ ru: "результат прогона", en: "run output" })}</span>
-                      <span class="lf-ide__verdict mono" data-lf-verdict />
-                    </div>
-                    <div class="lf-ide__table-wrap" data-lf-sqlout>
-                      <table class="lf-ide__table"><thead data-lf-thead /><tbody data-lf-tbody /></table>
-                    </div>
-                    <ul class="lf-ide__cases" data-lf-pyout hidden>
-                      {pyCases.map((c, k) => (
-                        <li class="lf-ide__case" data-case={k} style={`--i:${k}`}>
-                          <span class="lf-ide__case-mark" aria-hidden="true" />
-                          <span class="mono">{c.call}</span>
-                          <span class="lf-ide__case-eq mono">→ {c.expect}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <span class="lf-status mono" data-lf-clone-status role="status" aria-live="polite" />
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* ═════════ Акт 5: theory ═════════ */}
-              {a.id === "theory" && (
-                <div class="lf-theory">
-                  <ul class="lf-theory__chips" data-lf-viz role="list" aria-label={t({ ru: "Визуализации в теории", en: "Theory visualizations" })}>
-                    {vizChips.map((c, k) => (
-                      <li class="lf-vchip" data-viz={k} style={`--i:${k}`}>{t(c)}</li>
+            {/* ═════════ Акт 2: forge ═════════ */}
+            {a.id === "forge" && (
+              <div class="lf-forge">
+                <div class="lf-plan" data-lf-plan>
+                  <span class="lf-plan__cap caption">
+                    {t({ ru: "план программы · 6 концептов", en: "curriculum plan · 6 concepts" })}
+                  </span>
+                  <ol class="lf-plan__list">
+                    {planConcepts.map((c, k) => (
+                      <li class="lf-plan__item" data-plan={k}>
+                        <span class="lf-plan__dot" aria-hidden="true" />
+                        {t(c)}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+                <div class="lf-files" data-lf-files>
+                  <span class="lf-files__cap caption">topics/sql-joins/</span>
+                  <ul class="lf-files__list" role="list">
+                    {forgeFiles.map((f, k) => (
+                      <li class="lf-file" data-file={k}>
+                        <span class="lf-file__dot" aria-hidden="true" />
+                        <span class="lf-file__name mono">{f.name}</span>
+                        <span class="lf-file__kind">{t(f.kind)}</span>
+                      </li>
                     ))}
                   </ul>
-                  <div class="lf-quiz" data-lf-quiz>
-                    <span class="lf-quiz__cap caption">{t({ ru: "проверочный вопрос · theory-quiz", en: "check question · theory-quiz" })}</span>
-                    <p class="lf-quiz__prompt">{t(quizPrompt)}</p>
-                    <ul class="lf-quiz__choices" role="list">
-                      {quizChoices.map((c) => (
-                        <li>
-                          <button class="lf-quiz__choice" type="button" data-lf-choice={c.id} data-correct={c.correct ? "1" : "0"} aria-pressed="false">
-                            <span class="lf-quiz__mark" aria-hidden="true">{c.id}</span>
-                            <span>{t(c.text)}</span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                    <div class="lf-act__run">
-                      <button class="lf-btn lf-btn--accent" type="button" data-lf-quiz-check>{t(sx.check)}</button>
-                      <span class="lf-status mono" data-lf-quiz-status role="status" aria-live="polite" />
-                    </div>
-                    <p class="lf-quiz__explain" data-lf-quiz-explain hidden>{t(quizExplain)}</p>
-                  </div>
                 </div>
-              )}
+                <div class="lf-act__run">
+                  <button class="lf-btn lf-btn--accent" type="button" data-lf-forge-run>
+                    <span class="lf-btn__glyph lf-btn__glyph--spark" aria-hidden="true" />
+                    <span data-lf-forge-label>{t(sx.approve)}</span>
+                  </button>
+                  <span class="lf-status mono" data-lf-forge-status role="status" aria-live="polite">
+                    {t(sx.planWait)}
+                  </span>
+                </div>
+              </div>
+            )}
 
-              {/* ═════════ Акт 6: habit ═════════ */}
-              {a.id === "habit" && (
-                <div class="lf-habit">
-                  <div class="lf-streak">
-                    <div class="lf-streak__head">
-                      <span class="lf-streak__num" data-lf-streak>0</span>
-                      <span class="lf-streak__cap">{t({ ru: "стрик · подряд идущих дней", en: "streak · consecutive days" })}</span>
-                    </div>
-                    <div class="lf-heat" data-lf-heat aria-hidden="true" style={`--cols:${HM_COLS}; --rows:${HM_ROWS}`}>
-                      {heatmap.map((lvl, k) => (
-                        <span class="lf-heat__cell" data-lvl={lvl} data-k={k} style={`--i:${k}`} />
-                      ))}
-                    </div>
-                    <span class="lf-heat__cap caption">{t({ ru: "тепловая карта активности · IndexedDB", en: "activity heatmap · IndexedDB" })}</span>
+            {/* ═════════ Акт 3: contract ═════════ */}
+            {a.id === "contract" && (
+              <div class="lf-contract">
+                <div class="lf-schema mono" data-lf-schema data-state="pass" aria-hidden="true">
+                  <span class="lf-schema__line lf-schema__line--head">topicSchema = z.object(&#123;</span>
+                  {schemaFields.map((f) => (
+                    <span class="lf-schema__line">{"  "}{f.key}: <em>{f.type}</em>,</span>
+                  ))}
+                  <span class="lf-schema__line lf-schema__line--bad" data-lf-badline>{"  "}_inject: <em>z.any()</em>,</span>
+                  <span class="lf-schema__line lf-schema__line--head">&#125;).strict()</span>
+                  <span class="lf-schema__line lf-schema__line--infer">type Topic = z.infer&lt;typeof topicSchema&gt;</span>
+                </div>
+                <div class="lf-gate__wrap">
+                  <div class="lf-gate" data-lf-gate data-state="pass" role="status" aria-live="polite">
+                    <span class="lf-gate__icon" aria-hidden="true" />
+                    <span class="lf-gate__text" data-lf-gate-text>{t(sx.pass)}</span>
                   </div>
+                  <span class="lf-validate mono">{t(sx.validate)}</span>
+                </div>
+                <button class="lf-toggle" type="button" data-lf-inject aria-pressed="false">
+                  {t(sx.inject)}
+                </button>
+              </div>
+            )}
 
-                  <div class="lf-card" data-lf-card>
-                    <span class="lf-card__cap caption">{t({ ru: "интервальное повторение · FSRS", en: "spaced repetition · FSRS" })}</span>
-                    <button class="lf-card__flip" type="button" data-lf-flip aria-label={t(sx.flip)}>
-                      <span class="lf-card__inner" data-lf-card-inner>
-                        <span class="lf-card__face lf-card__face--front">{t(flashcard.front)}</span>
-                        <span class="lf-card__face lf-card__face--back">{t(flashcard.back)}</span>
-                      </span>
+            {/* ═════════ Акт 4: solve ═════════ */}
+            {a.id === "solve" && (
+              <div class="lf-ide" data-lf-ide>
+                <div class="lf-ide__tabs" role="tablist" aria-label={t({ ru: "Рантайм", en: "Runtime" })}>
+                  <button class="lf-ide__tab" type="button" role="tab" data-lf-rt="sql" aria-selected="true" tabindex="0">
+                    <span class="mono">sql.js</span>
+                    <span class="lf-ide__tab-sub">{t({ ru: "SQLite в WASM", en: "SQLite in WASM" })}</span>
+                  </button>
+                  <button class="lf-ide__tab" type="button" role="tab" data-lf-rt="py" aria-selected="false" tabindex="-1">
+                    <span class="mono">Pyodide</span>
+                    <span class="lf-ide__tab-sub">{t({ ru: "Python в WASM", en: "Python in WASM" })}</span>
+                  </button>
+                  <span class="lf-ide__worker caption">{t({ ru: "в Web Worker", en: "in a Web Worker" })}</span>
+                </div>
+
+                <div class="lf-ide__editor">
+                  <pre class="lf-ide__code mono" data-lf-code aria-live="polite"><code>{sqlVariants[0]!.code.join("\n")}</code></pre>
+                </div>
+
+                <div class="lf-ide__variants" data-lf-variants role="radiogroup" aria-label={t({ ru: "Вариант решения", en: "Solution variant" })}>
+                  {sqlVariants.map((v, k) => (
+                    <button class="lf-chip" type="button" role="radio" data-lf-variant={k} aria-checked={k === 0 ? "true" : "false"} tabindex={k === 0 ? 0 : -1}>
+                      {t(v.label)}
                     </button>
-                    <div class="lf-card__ratings" data-lf-ratings>
-                      {fsrsRatings.map((r) => (
-                        <button class="lf-rate" type="button" data-lf-rate={r.key} data-tone={r.tone}>
-                          <span class="lf-rate__label">{t(r.label)}</span>
-                          <span class="lf-rate__due mono">{t(r.due)}</span>
+                  ))}
+                </div>
+
+                <div class="lf-act__run">
+                  <button class="lf-btn lf-btn--accent" type="button" data-lf-run>
+                    <span class="lf-btn__glyph lf-btn__glyph--play" aria-hidden="true" />
+                    <span>{t(sx.run)}</span>
+                  </button>
+                  <span class="lf-status mono" data-lf-run-status role="status" aria-live="polite">{t(sx.ready)}</span>
+                </div>
+
+                <div class="lf-ide__out" data-lf-out data-kind="sql" data-state="idle">
+                  <div class="lf-ide__out-head">
+                    <span class="caption">{t({ ru: "результат прогона", en: "run output" })}</span>
+                    <span class="lf-ide__verdict mono" data-lf-verdict />
+                  </div>
+                  <div class="lf-ide__table-wrap" data-lf-sqlout>
+                    <table class="lf-ide__table"><thead data-lf-thead /><tbody data-lf-tbody /></table>
+                  </div>
+                  <ul class="lf-ide__cases" data-lf-pyout hidden>
+                    {pyCases.map((c, k) => (
+                      <li class="lf-ide__case" data-case={k}>
+                        <span class="lf-ide__case-mark" aria-hidden="true" />
+                        <span class="mono">{c.call}</span>
+                        <span class="lf-ide__case-eq mono">→ {c.expect}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* ═════════ Акт 5: theory ═════════ */}
+            {a.id === "theory" && (
+              <div class="lf-theory">
+                <ul class="lf-theory__chips" data-lf-viz role="list" aria-label={t({ ru: "Визуализации в теории", en: "Theory visualizations" })}>
+                  {vizChips.map((c, k) => (
+                    <li class="lf-vchip" data-viz={k}>{t(c)}</li>
+                  ))}
+                </ul>
+                <div class="lf-quiz" data-lf-quiz>
+                  <span class="lf-quiz__cap caption">{t({ ru: "проверочный вопрос · theory-quiz", en: "check question · theory-quiz" })}</span>
+                  <p class="lf-quiz__prompt">{t(quizPrompt)}</p>
+                  <ul class="lf-quiz__choices" role="list">
+                    {quizChoices.map((c) => (
+                      <li>
+                        <button class="lf-quiz__choice" type="button" data-lf-choice={c.id} data-correct={c.correct ? "1" : "0"} aria-pressed="false">
+                          <span class="lf-quiz__mark" aria-hidden="true">{c.id}</span>
+                          <span>{t(c.text)}</span>
                         </button>
-                      ))}
-                    </div>
-                    <span class="lf-status mono" data-lf-card-status role="status" aria-live="polite" />
+                      </li>
+                    ))}
+                  </ul>
+                  <div class="lf-act__run">
+                    <button class="lf-btn lf-btn--accent" type="button" data-lf-quiz-check>{t(sx.check)}</button>
+                    <span class="lf-status mono" data-lf-quiz-status role="status" aria-live="polite" />
                   </div>
+                  <p class="lf-quiz__explain" data-lf-quiz-explain hidden>{t(quizExplain)}</p>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* ═════════ Акт 7: export ═════════ */}
-              {a.id === "export" && (
-                <div class="lf-export">
-                  <div class="lf-export__file" data-lf-file-card data-on="false">
-                    <span class="lf-export__name mono">dotlearn-progress-2026-06-30.json</span>
-                    <ul class="lf-export__rows" role="list">
-                      {exportRows.map((r, k) => (
-                        <li class="lf-export__row" data-row={k} style={`--i:${k}`}>
-                          <span class="lf-export__check" aria-hidden="true" />
-                          {t(r)}
-                        </li>
-                      ))}
-                    </ul>
-                    <span class="lf-export__foot caption">version 4 · app: "dotlearn" · {t({ ru: "без аккаунта", en: "no account" })}</span>
+            {/* ═════════ Акт 6: habit ═════════ */}
+            {a.id === "habit" && (
+              <div class="lf-habit">
+                <div class="lf-streak">
+                  <div class="lf-streak__head">
+                    <span class="lf-streak__num" data-lf-streak>0</span>
+                    <span class="lf-streak__cap">{t({ ru: "стрик · подряд идущих дней", en: "streak · consecutive days" })}</span>
                   </div>
-                  <div class="lf-export__controls">
-                    <button class="lf-btn lf-btn--accent" type="button" data-lf-export>
-                      <span class="lf-btn__glyph lf-btn__glyph--down" aria-hidden="true" />
-                      <span>{t(sx.exportBtn)}</span>
-                    </button>
-                    <button class="lf-btn" type="button" data-lf-import>
-                      <span class="lf-btn__glyph lf-btn__glyph--up" aria-hidden="true" />
-                      <span>{t(sx.importBtn)}</span>
-                    </button>
-                    <span class="lf-status mono" data-lf-export-status role="status" aria-live="polite" />
+                  <div class="lf-heat" data-lf-heat aria-hidden="true" style={`--cols:${HM_COLS}`}>
+                    {heatmap.map((lvl, k) => (
+                      <span class="lf-heat__cell" data-lvl={lvl} data-k={k} />
+                    ))}
                   </div>
+                  <span class="lf-heat__cap caption">{t({ ru: "тепловая карта активности · IndexedDB", en: "activity heatmap · IndexedDB" })}</span>
                 </div>
-              )}
-            </div>
-          </section>
-        ))
-      }
 
-      <!-- пейджер -->
-      <footer class="lf__pager">
-        <button class="lf__pager-btn" type="button" data-lf-prev aria-label={t(sx.prev)}>
-          <span aria-hidden="true">←</span>
-        </button>
-        <ol class="lf__dots" aria-hidden="true">
-          {acts.map((_, i) => <li class="lf__dot" data-dot={i} data-on={i === 0 ? "true" : "false"} />)}
-        </ol>
-        <button class="lf__pager-btn" type="button" data-lf-next aria-label={t(sx.next)}>
-          <span aria-hidden="true">→</span>
-        </button>
-      </footer>
-    </div>
+                <div class="lf-card" data-lf-card>
+                  <span class="lf-card__cap caption">{t({ ru: "интервальное повторение · FSRS", en: "spaced repetition · FSRS" })}</span>
+                  <button class="lf-card__flip" type="button" data-lf-flip aria-label={t(sx.flip)}>
+                    <span class="lf-card__inner" data-lf-card-inner>
+                      <span class="lf-card__face lf-card__face--front">{t(flashcard.front)}</span>
+                      <span class="lf-card__face lf-card__face--back">{t(flashcard.back)}</span>
+                    </span>
+                  </button>
+                  <div class="lf-card__ratings" data-lf-ratings data-armed="false">
+                    {fsrsRatings.map((r) => (
+                      <button class="lf-rate" type="button" data-lf-rate={r.key} data-tone={r.tone}>
+                        <span class="lf-rate__label">{t(r.label)}</span>
+                        <span class="lf-rate__due mono">{t(r.due)}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <span class="lf-status mono" data-lf-card-status role="status" aria-live="polite" />
+                </div>
+              </div>
+            )}
+
+            {/* ═════════ Акт 7: export ═════════ */}
+            {a.id === "export" && (
+              <div class="lf-export">
+                <div class="lf-export__file" data-lf-file-card data-on="false">
+                  <span class="lf-export__name mono">dotlearn-progress-2026-06-30.json</span>
+                  <ul class="lf-export__rows" role="list">
+                    {exportRows.map((r, k) => (
+                      <li class="lf-export__row" data-row={k}>
+                        <span class="lf-export__check" aria-hidden="true" />
+                        {t(r)}
+                      </li>
+                    ))}
+                  </ul>
+                  <span class="lf-export__foot caption">version 4 · app: "dotlearn" · {t({ ru: "без аккаунта", en: "no account" })}</span>
+                </div>
+                <div class="lf-export__controls">
+                  <button class="lf-btn lf-btn--accent" type="button" data-lf-export>
+                    <span class="lf-btn__glyph lf-btn__glyph--down" aria-hidden="true" />
+                    <span>{t(sx.exportBtn)}</span>
+                  </button>
+                  <button class="lf-btn" type="button" data-lf-import>
+                    <span class="lf-btn__glyph lf-btn__glyph--up" aria-hidden="true" />
+                    <span>{t(sx.importBtn)}</span>
+                  </button>
+                  <span class="lf-status mono" data-lf-export-status role="status" aria-live="polite" />
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      ))
+    }
+
+    <!-- пейджер -->
+    <footer class="lf__pager">
+      <button class="lf__pager-btn" type="button" data-lf-prev aria-label={t(sx.prev)}>
+        <span aria-hidden="true">←</span>
+        <span class="lf__pager-word">{t(sx.prev)}</span>
+      </button>
+      <span class="lf__pager-step mono" data-lf-step>{`01 / 0${acts.length}`}</span>
+      <button class="lf__pager-btn lf__pager-btn--next" type="button" data-lf-next aria-label={t(sx.next)}>
+        <span class="lf__pager-word">{t(sx.next)}</span>
+        <span aria-hidden="true">→</span>
+      </button>
+    </footer>
   </div>
 </section>
 
 <style>
   .lf {
     --lf-accent: var(--project-accent, var(--accent-learn));
-    --lf-line: color-mix(in srgb, var(--lf-accent) 38%, transparent);
-    --lf-glow: color-mix(in srgb, var(--lf-accent) 15%, transparent);
-    --lf-soft: color-mix(in srgb, var(--lf-accent) 12%, transparent);
-    --lf-faint: color-mix(in srgb, var(--lf-accent) 6%, transparent);
+    --lf-line: color-mix(in srgb, var(--lf-accent) 40%, transparent);
+    --lf-glow: color-mix(in srgb, var(--lf-accent) 16%, transparent);
+    --lf-soft: color-mix(in srgb, var(--lf-accent) 13%, transparent);
+    --lf-faint: color-mix(in srgb, var(--lf-accent) 7%, transparent);
     --lf-err: color-mix(in srgb, var(--state-error) 72%, var(--text-muted));
-    --lf-err-soft: color-mix(in srgb, var(--lf-err) 13%, transparent);
+    --lf-err-soft: color-mix(in srgb, var(--lf-err) 14%, transparent);
     --lf-warn: color-mix(in srgb, var(--state-warn) 72%, var(--text-muted));
     --lf-ok: color-mix(in srgb, var(--state-ok, var(--lf-accent)) 72%, var(--text-muted));
+    --lf-frac: 0;
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: var(--sp-4);
+    gap: var(--sp-6);
   }
 
   .lf__intro {
-    font-size: var(--fs-16);
+    font-size: var(--fs-17);
     line-height: var(--lh-normal);
     color: var(--text-secondary);
-    max-width: 72ch;
+    max-width: 74ch;
     margin: 0;
   }
 
   /* ── statline ── */
-  .lf__statline {
+  .lf__stats {
     list-style: none;
     margin: 0;
     padding: 0;
     display: flex;
     flex-wrap: wrap;
-    gap: var(--sp-2) var(--sp-3);
+    gap: var(--sp-3) var(--sp-5);
   }
   .lf__stat {
     display: inline-flex;
     align-items: baseline;
-    gap: 5px;
+    gap: 7px;
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     color: var(--text-muted);
   }
   .lf__stat b {
-    font-size: var(--fs-15);
+    font-size: var(--fs-22);
     font-weight: var(--fw-bold);
     color: var(--lf-accent);
+    line-height: 1;
   }
   .lf__stat--plain {
     color: var(--text-faint);
   }
 
-  /* ── navigator: рейка + сцена ── */
-  .lf__nav {
-    display: grid;
-    grid-template-columns: minmax(180px, 0.62fr) minmax(0, 2fr);
-    gap: var(--sp-4);
-    align-items: start;
+  /* ═══════════ горизонтальный маршрут ═══════════ */
+  .lf__journey {
+    width: 100%;
+    min-width: 0;
   }
-
-  .lf__rail {
+  .lf__spine {
     list-style: none;
     margin: 0;
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
     position: relative;
   }
-  .lf__rail::before {
+  /* трек-линия и заливка прогресса — на высоте центра узла */
+  .lf__spine::before,
+  .lf__spine::after {
     content: "";
     position: absolute;
-    left: 17px;
-    top: 18px;
-    bottom: 18px;
-    width: var(--bw-thin);
+    top: 23px;
+    height: 2px;
+    left: calc(100% / 14);
+    right: calc(100% / 14);
+    border-radius: 2px;
+  }
+  .lf__spine::before {
     background: var(--border);
   }
-  .lf__step {
-    position: relative;
+  .lf__spine::after {
+    right: auto;
+    width: calc((100% - 100% / 7) * var(--lf-frac));
+    background: var(--lf-accent);
+    transition: width var(--dur-slow) var(--ease-soft);
+  }
+  .lf__station {
+    min-width: 0;
+  }
+  .lf__st {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: var(--sp-3);
+    gap: var(--sp-2);
     width: 100%;
-    min-height: var(--tap-min);
-    padding: var(--sp-2) var(--sp-3);
+    padding: 0 var(--sp-1) var(--sp-1);
     border: 0;
-    border-radius: var(--r-sm);
     background: transparent;
     color: var(--text-muted);
-    text-align: left;
     cursor: pointer;
-    transition:
-      color var(--dur-fast) var(--ease-standard),
-      background-color var(--dur-fast) var(--ease-standard);
+    text-align: center;
+    transition: color var(--dur-fast) var(--ease-standard);
   }
-  .lf__step:hover {
+  .lf__st:hover {
     color: var(--text-secondary);
-    background: var(--lf-faint);
   }
-  .lf__step-n {
-    flex: none;
+  .lf__st-node {
+    position: relative;
+    z-index: 1;
     display: grid;
     place-items: center;
-    width: 26px;
-    height: 26px;
-    border: var(--bw-thin) solid var(--border);
+    width: 46px;
+    height: 46px;
+    border: var(--bw-med) solid var(--border);
     border-radius: 50%;
     background: var(--bg-elevated);
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-12);
-    color: var(--text-muted);
     transition:
-      color var(--dur-fast) var(--ease-standard),
-      border-color var(--dur-fast) var(--ease-standard),
-      background-color var(--dur-fast) var(--ease-standard),
-      transform var(--dur-fast) var(--ease-spring);
+      border-color var(--dur-med) var(--ease-standard),
+      background-color var(--dur-med) var(--ease-standard),
+      transform var(--dur-med) var(--ease-spring);
   }
-  .lf__step-label {
+  .lf__st-num {
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-16);
+    font-weight: var(--fw-semibold);
+    color: var(--text-muted);
+    transition: opacity var(--dur-fast) var(--ease-standard);
+  }
+  /* галочка для пройденных */
+  .lf__st-check {
+    position: absolute;
+    width: 16px;
+    height: 9px;
+    border-left: var(--bw-thick) solid var(--lf-accent);
+    border-bottom: var(--bw-thick) solid var(--lf-accent);
+    transform: rotate(-45deg) translateY(-1px) scale(0.6);
+    opacity: 0;
+    transition:
+      opacity var(--dur-fast) var(--ease-standard),
+      transform var(--dur-med) var(--ease-spring);
+  }
+  .lf__st-label {
     font-family: var(--font-stack-display);
     font-size: var(--fs-13);
     font-weight: var(--fw-medium);
     line-height: var(--lh-snug);
+    max-width: 14ch;
   }
-  .lf__step[aria-selected="true"] {
+  /* пройденная станция: контур + галочка, цифра скрыта */
+  .lf__st[data-done="true"] .lf__st-node {
+    border-color: var(--lf-line);
+    background: var(--bg-elevated);
+  }
+  .lf__st[data-done="true"] .lf__st-num {
+    opacity: 0;
+  }
+  .lf__st[data-done="true"] .lf__st-check {
+    opacity: 1;
+    transform: rotate(-45deg) translateY(-1px) scale(1);
+  }
+  /* активная станция: залитый акцентом узел — однозначно доминирует */
+  .lf__st[aria-selected="true"] {
     color: var(--text);
   }
-  .lf__step[aria-selected="true"] .lf__step-n {
-    color: var(--lf-accent);
-    border-color: var(--lf-line);
-    background: var(--lf-soft);
-    transform: scale(1.04);
+  .lf__st[aria-selected="true"] .lf__st-label {
+    font-weight: var(--fw-semibold);
   }
-  .lf__step[data-done="true"] .lf__step-n {
-    color: var(--lf-accent);
-    border-color: var(--lf-line);
+  .lf__st[aria-selected="true"] .lf__st-node {
+    border-color: var(--lf-accent);
+    background: var(--lf-accent);
+    transform: scale(1.18);
+    box-shadow: 0 0 0 5px var(--lf-faint);
   }
-  .lf__step:focus-visible {
+  .lf__st[aria-selected="true"] .lf__st-num {
+    color: var(--bg-deep);
+  }
+  .lf__st:focus-visible {
+    outline: none;
+  }
+  .lf__st:focus-visible .lf__st-node {
     outline: var(--ring-width) solid var(--ring-focus);
-    outline-offset: 2px;
+    outline-offset: 3px;
   }
 
-  /* ── сцена ── */
+  /* ═══════════ stage ═══════════ */
   .lf__stage {
     display: flex;
     flex-direction: column;
-    min-height: 0;
+    min-width: 0;
     border: var(--bw-thin) solid var(--glass-edge);
-    border-radius: var(--r-lg);
+    border-radius: var(--r-xl);
     background:
-      radial-gradient(120% 80% at 100% 0%, var(--lf-glow), transparent 56%),
+      radial-gradient(130% 90% at 100% 0%, var(--lf-glow), transparent 58%),
       var(--bg-elevated);
+    box-shadow: var(--shadow-2);
     overflow: hidden;
   }
-
   .lf-act {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-4);
-    padding: var(--sp-5);
+    gap: var(--sp-5);
+    padding: var(--sp-7) var(--sp-7) var(--sp-6);
   }
   .lf-act[hidden] {
     display: none;
@@ -809,45 +848,47 @@ sBundle.locale = locale;
   .lf-act__head {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-1);
+    gap: var(--sp-2);
   }
   .lf-act__eyebrow {
     display: inline-flex;
     align-items: center;
     gap: var(--sp-2);
-    color: var(--lf-accent);
-    letter-spacing: var(--ls-eyebrow, 0.04em);
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-12);
+    letter-spacing: var(--ls-eyebrow);
     text-transform: uppercase;
+    color: var(--lf-accent);
   }
   .lf-act__eyebrow-n {
-    font-family: var(--font-stack-mono);
     color: var(--text-faint);
   }
   .lf-act__title {
     margin: 0;
     font-family: var(--font-stack-display);
-    font-size: var(--fs-20);
+    font-size: clamp(var(--fs-22), 2.6vw, var(--fs-32));
     font-weight: var(--fw-semibold);
     line-height: var(--lh-snug);
+    letter-spacing: var(--ls-tight);
     color: var(--text);
   }
   .lf-act__lede {
     margin: 0;
-    font-size: var(--fs-14);
+    font-size: var(--fs-17);
     line-height: var(--lh-normal);
     color: var(--text-secondary);
-    max-width: 64ch;
+    max-width: 66ch;
   }
   .lf-act__body {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-3);
+    gap: var(--sp-4);
   }
   .lf-act__run {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: var(--sp-3);
+    gap: var(--sp-3) var(--sp-4);
   }
 
   /* ── общие: кнопки / чипы / статус ── */
@@ -857,13 +898,13 @@ sBundle.locale = locale;
     justify-content: center;
     gap: var(--sp-2);
     min-height: var(--tap-min);
-    padding: var(--sp-2) var(--sp-4);
-    border: var(--bw-thin) solid var(--border);
+    padding: var(--sp-3) var(--sp-5);
+    border: var(--bw-thin) solid var(--border-hover);
     border-radius: var(--r-pill);
     background: var(--surface);
     color: var(--text);
     font-family: var(--font-stack-display);
-    font-size: var(--fs-14);
+    font-size: var(--fs-15);
     font-weight: var(--fw-semibold);
     cursor: pointer;
     transition:
@@ -892,20 +933,20 @@ sBundle.locale = locale;
     width: 0;
     height: 0;
     border-style: solid;
-    border-width: 5px 0 5px 9px;
+    border-width: 6px 0 6px 10px;
     border-color: transparent transparent transparent var(--lf-accent);
   }
   .lf-btn__glyph--spark {
-    width: 12px;
-    height: 12px;
+    width: 13px;
+    height: 13px;
     background:
-      linear-gradient(to bottom, var(--lf-accent) 0 100%) center / 2px 12px no-repeat,
-      linear-gradient(to right, var(--lf-accent) 0 100%) center / 12px 2px no-repeat;
+      linear-gradient(to bottom, var(--lf-accent) 0 100%) center / 2px 13px no-repeat,
+      linear-gradient(to right, var(--lf-accent) 0 100%) center / 13px 2px no-repeat;
   }
   .lf-btn__glyph--down,
   .lf-btn__glyph--up {
-    width: 10px;
-    height: 10px;
+    width: 11px;
+    height: 11px;
     border-right: 2px solid var(--lf-accent);
     border-bottom: 2px solid var(--lf-accent);
   }
@@ -918,13 +959,13 @@ sBundle.locale = locale;
 
   .lf-chip {
     min-height: var(--tap-min);
-    padding: var(--sp-2) var(--sp-3);
+    padding: var(--sp-2) var(--sp-4);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-pill);
     background: var(--surface);
     color: var(--text-secondary);
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     cursor: pointer;
     transition:
       color var(--dur-fast) var(--ease-standard),
@@ -946,7 +987,7 @@ sBundle.locale = locale;
   }
 
   .lf-status {
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     color: var(--text-muted);
   }
   .lf-status[data-tone="ok"] {
@@ -959,13 +1000,13 @@ sBundle.locale = locale;
   .lf-toggle {
     align-self: flex-start;
     min-height: var(--tap-min);
-    padding: var(--sp-2) var(--sp-3);
+    padding: var(--sp-2) var(--sp-4);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-pill);
     background: transparent;
     color: var(--text-muted);
     font-family: var(--font-stack-display);
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     cursor: pointer;
     transition:
       color var(--dur-fast) var(--ease-standard),
@@ -984,59 +1025,59 @@ sBundle.locale = locale;
     outline-offset: 2px;
   }
 
-  /* появление кода/строк */
   @keyframes lf-fade {
-    from { opacity: 0; transform: translate3d(0, 6px, 0); }
+    from { opacity: 0; transform: translate3d(0, 8px, 0); }
     to { opacity: 1; transform: none; }
   }
   @keyframes lf-slide {
-    from { opacity: 0; transform: translate3d(-10px, 0, 0); }
+    from { opacity: 0; transform: translate3d(-12px, 0, 0); }
     to { opacity: 1; transform: none; }
   }
   @keyframes lf-pop {
     0% { opacity: 0; transform: scale(0.8); }
-    60% { transform: scale(1.06); }
+    60% { transform: scale(1.05); }
     100% { opacity: 1; transform: scale(1); }
   }
 
   /* ════════ Акт 1: clone ════════ */
   .lf-clone {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--sp-3);
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: var(--sp-5);
+    align-items: start;
   }
   .lf-term {
     border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-sm);
+    border-radius: var(--r-md);
     background: var(--bg-deep);
     overflow: hidden;
   }
   .lf-term__bar {
     display: flex;
-    gap: 6px;
-    padding: var(--sp-2) var(--sp-3);
+    gap: 7px;
+    padding: var(--sp-3) var(--sp-4);
     border-bottom: var(--bw-thin) solid var(--border);
     background: var(--surface);
   }
   .lf-term__bar i {
-    width: 9px;
-    height: 9px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     background: var(--surface-3);
   }
   .lf-term__body {
-    margin: 0;
-    padding: var(--sp-3);
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    font-size: var(--fs-13);
-    line-height: 1.6;
-    color: var(--text-secondary);
+    padding: var(--sp-4);
+    font-size: var(--fs-14);
+    line-height: 1.5;
   }
   .lf-term__line {
     display: flex;
+    align-items: baseline;
     gap: var(--sp-2);
+    padding: 3px 0;
+    white-space: nowrap;
     opacity: 0;
   }
   .lf-term__line.is-show {
@@ -1046,15 +1087,22 @@ sBundle.locale = locale;
     animation: lf-fade var(--dur-med) var(--ease-soft) both;
   }
   .lf-term__sigil {
+    flex: none;
     color: var(--lf-accent);
   }
-  .lf-term__line--ok {
+  .lf-term__cmd {
+    min-width: 0;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lf-term__line--ok .lf-term__cmd {
     color: var(--lf-accent);
   }
   .lf-ask {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-2);
+    gap: var(--sp-3);
   }
   .lf-ask__cap {
     color: var(--text-muted);
@@ -1063,16 +1111,16 @@ sBundle.locale = locale;
     display: flex;
     align-items: baseline;
     gap: var(--sp-2);
-    padding: var(--sp-3);
+    padding: var(--sp-3) var(--sp-4);
     border: var(--bw-thin) solid var(--lf-line);
     border-radius: var(--r-sm) var(--r-md) var(--r-md) var(--r-md);
     background: var(--lf-faint);
     color: var(--text);
-    font-size: var(--fs-14);
+    font-size: var(--fs-15);
+    line-height: var(--lh-snug);
   }
   .lf-ask__sigil {
     flex: none;
-    font-family: var(--font-stack-mono);
     font-weight: var(--fw-bold);
     color: var(--lf-accent);
   }
@@ -1081,20 +1129,23 @@ sBundle.locale = locale;
   .lf-forge {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-    gap: var(--sp-3);
+    gap: var(--sp-4);
+    align-items: start;
   }
   .lf-plan,
   .lf-files {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-2);
-    padding: var(--sp-3);
+    gap: var(--sp-3);
+    padding: var(--sp-4);
     border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-sm);
+    border-radius: var(--r-md);
     background: var(--surface);
   }
   .lf-plan {
-    transition: border-color var(--dur-med) var(--ease-standard), background-color var(--dur-med) var(--ease-standard);
+    transition:
+      border-color var(--dur-med) var(--ease-standard),
+      background-color var(--dur-med) var(--ease-standard);
   }
   .lf-plan[data-state="approved"] {
     border-color: var(--lf-line);
@@ -1113,13 +1164,13 @@ sBundle.locale = locale;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: var(--sp-2);
   }
   .lf-plan__item {
     display: flex;
     align-items: center;
     gap: var(--sp-2);
-    font-size: var(--fs-13);
+    font-size: var(--fs-14);
     color: var(--text-secondary);
   }
   .lf-plan__item[data-plan="3"] {
@@ -1128,8 +1179,8 @@ sBundle.locale = locale;
   }
   .lf-plan__dot {
     flex: none;
-    width: 5px;
-    height: 5px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background: var(--lf-accent);
     opacity: 0.5;
@@ -1143,15 +1194,15 @@ sBundle.locale = locale;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--sp-1);
+    gap: var(--sp-2);
   }
   .lf-file {
     display: flex;
     align-items: baseline;
     gap: var(--sp-2);
-    padding: 6px var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
     border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-xs);
+    border-radius: var(--r-sm);
     background: var(--bg-deep);
     opacity: 0;
   }
@@ -1164,19 +1215,19 @@ sBundle.locale = locale;
   .lf-file__dot {
     flex: none;
     align-self: center;
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 2px;
     background: var(--lf-accent);
   }
   .lf-file__name {
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     color: var(--text);
     word-break: break-word;
   }
   .lf-file__kind {
     margin-left: auto;
-    font-size: var(--fs-11);
+    font-size: var(--fs-12);
     color: var(--text-muted);
     text-align: right;
   }
@@ -1185,17 +1236,18 @@ sBundle.locale = locale;
   .lf-contract {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-3);
+    gap: var(--sp-4);
   }
   .lf-schema {
     display: flex;
     flex-direction: column;
-    gap: 1px;
-    padding: var(--sp-3);
+    gap: 2px;
+    padding: var(--sp-4);
     border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-sm);
+    border-radius: var(--r-md);
     background: var(--bg-deep);
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
+    line-height: 1.5;
     color: var(--text-secondary);
     overflow-x: auto;
   }
@@ -1210,7 +1262,7 @@ sBundle.locale = locale;
     color: var(--lf-accent);
   }
   .lf-schema__line--infer {
-    margin-top: 3px;
+    margin-top: 4px;
     color: var(--text-muted);
   }
   .lf-schema__line--bad {
@@ -1227,26 +1279,26 @@ sBundle.locale = locale;
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: var(--sp-3);
+    gap: var(--sp-3) var(--sp-4);
   }
   .lf-gate {
     display: inline-flex;
     align-items: center;
     gap: var(--sp-2);
-    padding: var(--sp-2) var(--sp-3);
+    padding: var(--sp-2) var(--sp-4);
     border: var(--bw-thin) solid var(--lf-line);
     border-radius: var(--r-pill);
     background: var(--lf-soft);
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     color: var(--text);
     transition:
       border-color var(--dur-med) var(--ease-standard),
       background-color var(--dur-med) var(--ease-standard);
   }
   .lf-gate__icon {
-    width: 9px;
-    height: 9px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     background: var(--lf-accent);
     transition:
@@ -1266,11 +1318,11 @@ sBundle.locale = locale;
   }
   @keyframes lf-shake {
     0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-4px); }
-    75% { transform: translateX(4px); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
   }
   .lf-validate {
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     color: var(--text-muted);
   }
 
@@ -1278,10 +1330,10 @@ sBundle.locale = locale;
   .lf-ide {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-3);
+    gap: var(--sp-4);
     border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-md);
-    padding: var(--sp-3);
+    border-radius: var(--r-lg);
+    padding: var(--sp-4);
     background: var(--surface);
   }
   .lf-ide__tabs {
@@ -1294,9 +1346,9 @@ sBundle.locale = locale;
     display: inline-flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 1px;
+    gap: 2px;
     min-height: var(--tap-min);
-    padding: var(--sp-2) var(--sp-3);
+    padding: var(--sp-2) var(--sp-4);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-sm);
     background: transparent;
@@ -1313,11 +1365,11 @@ sBundle.locale = locale;
     color: var(--lf-accent);
   }
   .lf-ide__tab .mono {
-    font-size: var(--fs-13);
+    font-size: var(--fs-14);
     color: var(--text);
   }
   .lf-ide__tab-sub {
-    font-size: var(--fs-11);
+    font-size: var(--fs-12);
     color: var(--text-muted);
   }
   .lf-ide__tab:focus-visible {
@@ -1329,7 +1381,7 @@ sBundle.locale = locale;
     color: var(--text-muted);
   }
   .lf-ide__editor {
-    padding: var(--sp-3);
+    padding: var(--sp-4);
     border: var(--bw-thin) solid var(--lf-line);
     border-radius: var(--r-sm);
     background: var(--bg-deep);
@@ -1337,8 +1389,8 @@ sBundle.locale = locale;
   }
   .lf-ide__code {
     margin: 0;
-    font-size: var(--fs-13);
-    line-height: 1.7;
+    font-size: var(--fs-14);
+    line-height: 1.75;
     color: var(--text-secondary);
     white-space: pre;
     tab-size: 2;
@@ -1356,7 +1408,7 @@ sBundle.locale = locale;
   }
   .lf-ide__out {
     border-top: var(--bw-thin) solid var(--border);
-    padding-top: var(--sp-3);
+    padding-top: var(--sp-4);
   }
   .lf-ide__out[data-state="idle"] .lf-ide__table-wrap,
   .lf-ide__out[data-state="idle"] .lf-ide__cases {
@@ -1367,13 +1419,13 @@ sBundle.locale = locale;
     align-items: center;
     justify-content: space-between;
     gap: var(--sp-3);
-    margin-bottom: var(--sp-2);
+    margin-bottom: var(--sp-3);
   }
   .lf-ide__out-head .caption {
     color: var(--text-muted);
   }
   .lf-ide__verdict {
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     font-weight: var(--fw-semibold);
     color: var(--text-muted);
     transition: color var(--dur-med) var(--ease-standard);
@@ -1396,9 +1448,9 @@ sBundle.locale = locale;
   }
   .lf-ide__table :global(th),
   .lf-ide__table :global(td) {
-    padding: var(--sp-1) var(--sp-3);
+    padding: var(--sp-2) var(--sp-4);
     border: var(--bw-thin) solid var(--border);
-    font-size: var(--fs-13);
+    font-size: var(--fs-14);
     text-align: left;
     white-space: nowrap;
   }
@@ -1409,6 +1461,9 @@ sBundle.locale = locale;
   }
   .lf-ide__table :global(td) {
     color: var(--text);
+  }
+  .lf-ide__table :global(td.is-null) {
+    color: var(--text-faint);
   }
   .lf-ide__table :global(tr[data-bad="1"] td) {
     color: var(--lf-err);
@@ -1424,7 +1479,7 @@ sBundle.locale = locale;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--sp-1);
+    gap: var(--sp-2);
     transition: opacity var(--dur-med) var(--ease-standard);
   }
   .lf-ide__cases[hidden] {
@@ -1433,18 +1488,18 @@ sBundle.locale = locale;
   .lf-ide__case {
     display: flex;
     align-items: center;
-    gap: var(--sp-2);
-    padding: 5px var(--sp-2);
+    gap: var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
     border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-xs);
+    border-radius: var(--r-sm);
     background: var(--bg-deep);
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     color: var(--text-secondary);
   }
   .lf-ide__case-mark {
     flex: none;
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     border: var(--bw-thin) solid var(--border);
   }
@@ -1456,7 +1511,7 @@ sBundle.locale = locale;
   }
   .lf.is-inview .lf-ide__case.is-pass {
     animation: lf-pop var(--dur-med) var(--ease-spring) both;
-    animation-delay: calc(var(--i, 0) * 110ms);
+    animation-delay: calc(var(--ci, 0) * 110ms);
   }
   .lf-ide__case-eq {
     margin-left: auto;
@@ -1467,7 +1522,7 @@ sBundle.locale = locale;
   .lf-theory {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-3);
+    gap: var(--sp-4);
   }
   .lf-theory__chips {
     list-style: none;
@@ -1478,12 +1533,12 @@ sBundle.locale = locale;
     gap: var(--sp-2);
   }
   .lf-vchip {
-    padding: 5px var(--sp-3);
+    padding: var(--sp-2) var(--sp-4);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-pill);
     background: var(--surface);
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     color: var(--text-muted);
   }
   .lf-vchip.is-lit {
@@ -1497,10 +1552,10 @@ sBundle.locale = locale;
   .lf-quiz {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-2);
-    padding: var(--sp-4);
+    gap: var(--sp-3);
+    padding: var(--sp-5);
     border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-md);
+    border-radius: var(--r-lg);
     background: var(--surface);
   }
   .lf-quiz__cap {
@@ -1508,8 +1563,9 @@ sBundle.locale = locale;
   }
   .lf-quiz__prompt {
     margin: 0;
-    font-size: var(--fs-15);
+    font-size: var(--fs-17);
     font-weight: var(--fw-semibold);
+    line-height: var(--lh-snug);
     color: var(--text);
   }
   .lf-quiz__choices {
@@ -1523,16 +1579,17 @@ sBundle.locale = locale;
   .lf-quiz__choice {
     display: flex;
     align-items: flex-start;
-    gap: var(--sp-2);
+    gap: var(--sp-3);
     width: 100%;
     min-height: var(--tap-min);
-    padding: var(--sp-2) var(--sp-3);
+    padding: var(--sp-3) var(--sp-4);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-sm);
     background: var(--bg-deep);
     color: var(--text-secondary);
     text-align: left;
-    font-size: var(--fs-13);
+    font-size: var(--fs-14);
+    line-height: var(--lh-snug);
     cursor: pointer;
     transition:
       color var(--dur-fast) var(--ease-standard),
@@ -1556,12 +1613,12 @@ sBundle.locale = locale;
     flex: none;
     display: grid;
     place-items: center;
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-xs);
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-11);
+    font-size: var(--fs-12);
     color: var(--text-muted);
   }
   .lf-quiz__choice[aria-pressed="true"] .lf-quiz__mark {
@@ -1589,9 +1646,9 @@ sBundle.locale = locale;
   }
   .lf-quiz__explain {
     margin: 0;
-    padding: var(--sp-2) var(--sp-3);
-    border-left: 2px solid var(--lf-line);
-    font-size: var(--fs-13);
+    padding: var(--sp-3) var(--sp-4);
+    border-left: 3px solid var(--lf-line);
+    font-size: var(--fs-14);
     line-height: var(--lh-normal);
     color: var(--text-secondary);
   }
@@ -1605,40 +1662,40 @@ sBundle.locale = locale;
   /* ════════ Акт 6: habit ════════ */
   .lf-habit {
     display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-    gap: var(--sp-3);
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: var(--sp-4);
     align-items: start;
   }
   .lf-streak {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-2);
-    padding: var(--sp-3);
+    gap: var(--sp-3);
+    padding: var(--sp-4);
     border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-md);
+    border-radius: var(--r-lg);
     background: var(--surface);
   }
   .lf-streak__head {
     display: flex;
     align-items: baseline;
-    gap: var(--sp-2);
+    gap: var(--sp-3);
   }
   .lf-streak__num {
     font-family: var(--font-stack-display);
-    font-size: var(--fs-28);
+    font-size: var(--fs-40);
     font-weight: var(--fw-bold);
     color: var(--lf-accent);
     line-height: 1;
   }
   .lf-streak__cap {
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     color: var(--text-muted);
   }
   .lf-heat {
     display: grid;
     grid-template-columns: repeat(var(--cols), 1fr);
     grid-auto-rows: 1fr;
-    gap: 3px;
+    gap: 4px;
   }
   .lf-heat__cell {
     aspect-ratio: 1;
@@ -1647,9 +1704,9 @@ sBundle.locale = locale;
     opacity: 0;
     transform: scale(0.6);
   }
-  .lf-heat__cell[data-lvl="1"] { background: color-mix(in srgb, var(--lf-accent) 22%, var(--surface-3)); }
-  .lf-heat__cell[data-lvl="2"] { background: color-mix(in srgb, var(--lf-accent) 44%, var(--surface-3)); }
-  .lf-heat__cell[data-lvl="3"] { background: color-mix(in srgb, var(--lf-accent) 68%, var(--surface-3)); }
+  .lf-heat__cell[data-lvl="1"] { background: color-mix(in srgb, var(--lf-accent) 24%, var(--surface-3)); }
+  .lf-heat__cell[data-lvl="2"] { background: color-mix(in srgb, var(--lf-accent) 46%, var(--surface-3)); }
+  .lf-heat__cell[data-lvl="3"] { background: color-mix(in srgb, var(--lf-accent) 70%, var(--surface-3)); }
   .lf-heat__cell[data-lvl="4"] { background: var(--lf-accent); }
   .lf-heat__cell.is-on {
     opacity: 1;
@@ -1659,21 +1716,20 @@ sBundle.locale = locale;
     transition:
       opacity var(--dur-med) var(--ease-soft),
       transform var(--dur-med) var(--ease-spring);
-    transition-delay: calc(var(--i, 0) * 7ms);
+    transition-delay: calc(var(--ci, 0) * 6ms);
   }
   .lf-heat__cap {
     color: var(--text-faint);
   }
-
   .lf-card {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-2);
-    padding: var(--sp-3);
+    gap: var(--sp-3);
+    padding: var(--sp-4);
     border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-md);
+    border-radius: var(--r-lg);
     background:
-      radial-gradient(120% 80% at 0% 0%, var(--lf-glow), transparent 60%),
+      radial-gradient(130% 90% at 0% 0%, var(--lf-glow), transparent 62%),
       var(--surface);
   }
   .lf-card__cap {
@@ -1686,7 +1742,7 @@ sBundle.locale = locale;
     background: transparent;
     padding: 0;
     cursor: pointer;
-    perspective: 900px;
+    perspective: 1000px;
   }
   .lf-card__flip:focus-visible {
     outline: var(--ring-width) solid var(--ring-focus);
@@ -1696,7 +1752,7 @@ sBundle.locale = locale;
   .lf-card__inner {
     position: relative;
     display: block;
-    min-height: 88px;
+    min-height: 104px;
     transform-style: preserve-3d;
     transition: transform var(--dur-slow) var(--ease-spring);
   }
@@ -1708,12 +1764,13 @@ sBundle.locale = locale;
     inset: 0;
     display: grid;
     place-items: center;
-    padding: var(--sp-3);
+    padding: var(--sp-4);
     border: var(--bw-thin) solid var(--lf-line);
-    border-radius: var(--r-sm);
+    border-radius: var(--r-md);
     background: var(--bg-deep);
     text-align: center;
-    font-size: var(--fs-14);
+    font-size: var(--fs-15);
+    line-height: var(--lh-snug);
     color: var(--text);
     backface-visibility: hidden;
   }
@@ -1724,7 +1781,7 @@ sBundle.locale = locale;
   .lf-card__ratings {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: var(--sp-1);
+    gap: var(--sp-2);
   }
   .lf-card__ratings[data-armed="false"] {
     opacity: 0.4;
@@ -1734,9 +1791,9 @@ sBundle.locale = locale;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1px;
+    gap: 2px;
     min-height: var(--tap-min);
-    padding: var(--sp-1) var(--sp-1);
+    padding: var(--sp-2);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-sm);
     background: var(--surface);
@@ -1755,12 +1812,12 @@ sBundle.locale = locale;
   }
   .lf-rate__label {
     font-family: var(--font-stack-display);
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     font-weight: var(--fw-semibold);
     color: var(--text);
   }
   .lf-rate__due {
-    font-size: var(--fs-10);
+    font-size: var(--fs-11);
     color: var(--text-muted);
   }
   .lf-rate[data-tone="err"]:hover { border-color: color-mix(in srgb, var(--lf-err) 50%, transparent); }
@@ -1771,20 +1828,20 @@ sBundle.locale = locale;
   /* ════════ Акт 7: export ════════ */
   .lf-export {
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
-    gap: var(--sp-3);
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
+    gap: var(--sp-4);
     align-items: start;
   }
   .lf-export__file {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-2);
-    padding: var(--sp-3);
+    gap: var(--sp-3);
+    padding: var(--sp-4);
     border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-md);
+    border-radius: var(--r-lg);
     background: var(--bg-deep);
     opacity: 0.4;
-    transform: translate3d(0, 6px, 0);
+    transform: translate3d(0, 8px, 0);
     transition:
       opacity var(--dur-med) var(--ease-soft),
       transform var(--dur-med) var(--ease-spring),
@@ -1796,7 +1853,7 @@ sBundle.locale = locale;
     border-color: var(--lf-line);
   }
   .lf-export__name {
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     color: var(--lf-accent);
     word-break: break-all;
   }
@@ -1806,13 +1863,13 @@ sBundle.locale = locale;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--sp-2);
   }
   .lf-export__row {
     display: flex;
     align-items: center;
     gap: var(--sp-2);
-    font-size: var(--fs-13);
+    font-size: var(--fs-14);
     color: var(--text-secondary);
   }
   .lf-export__file[data-on="true"] .lf-export__row {
@@ -1820,12 +1877,12 @@ sBundle.locale = locale;
   }
   .lf.is-inview .lf-export__file[data-on="true"] .lf-export__row {
     animation: lf-slide var(--dur-med) var(--ease-soft) both;
-    animation-delay: calc(var(--i, 0) * 90ms);
+    animation-delay: calc(var(--ri, 0) * 90ms);
   }
   .lf-export__check {
     flex: none;
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     border: var(--bw-thin) solid var(--lf-line);
     background:
@@ -1839,8 +1896,11 @@ sBundle.locale = locale;
   .lf-export__controls {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-2);
-    align-items: flex-start;
+    gap: var(--sp-3);
+    align-items: stretch;
+  }
+  .lf-export__controls .lf-btn {
+    justify-content: flex-start;
   }
 
   /* ── пейджер ── */
@@ -1849,21 +1909,23 @@ sBundle.locale = locale;
     align-items: center;
     justify-content: space-between;
     gap: var(--sp-3);
-    margin-top: auto;
-    padding: var(--sp-3) var(--sp-5);
+    padding: var(--sp-4) var(--sp-7);
     border-top: var(--bw-thin) solid var(--border);
     background: var(--surface);
   }
   .lf__pager-btn {
-    display: grid;
-    place-items: center;
-    width: var(--tap-min);
-    height: var(--tap-min);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    min-height: var(--tap-min);
+    padding: var(--sp-2) var(--sp-4);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-pill);
     background: var(--bg-elevated);
     color: var(--text-secondary);
-    font-size: var(--fs-16);
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-14);
+    font-weight: var(--fw-medium);
     cursor: pointer;
     transition:
       color var(--dur-fast) var(--ease-standard),
@@ -1875,75 +1937,58 @@ sBundle.locale = locale;
     border-color: var(--lf-accent);
   }
   .lf__pager-btn:active {
-    transform: scale(0.92);
+    transform: scale(0.96);
   }
   .lf__pager-btn:focus-visible {
     outline: var(--ring-width) solid var(--ring-focus);
     outline-offset: 2px;
   }
   .lf__pager-btn[disabled] {
-    opacity: 0.3;
+    opacity: 0.32;
     pointer-events: none;
   }
-  .lf__dots {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    gap: var(--sp-2);
-  }
-  .lf__dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--surface-3);
-    transition:
-      background-color var(--dur-fast) var(--ease-standard),
-      transform var(--dur-fast) var(--ease-spring);
-  }
-  .lf__dot[data-on="true"] {
-    background: var(--lf-accent);
-    transform: scale(1.25);
+  .lf__pager-step {
+    font-size: var(--fs-14);
+    font-weight: var(--fw-semibold);
+    color: var(--lf-accent);
+    letter-spacing: var(--ls-wide);
   }
 
   /* ════════ Responsive ════════ */
-  @media (max-width: 860px) {
-    .lf__nav {
-      grid-template-columns: 1fr;
-      gap: var(--sp-3);
-    }
-    /* рейка → горизонтальная лента */
-    .lf__rail {
-      flex-direction: row;
-      gap: var(--sp-2);
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      padding-bottom: var(--sp-1);
-    }
-    .lf__rail::before {
-      display: none;
-    }
-    .lf__step {
-      flex: none;
-      flex-direction: column;
-      gap: var(--sp-1);
-      width: auto;
-      min-width: 84px;
-      text-align: center;
-    }
-    .lf__step-label {
-      font-size: var(--fs-11);
-    }
-  }
-
-  @media (max-width: 640px) {
-    .lf-act {
-      padding: var(--sp-4);
-    }
+  @media (max-width: 880px) {
+    .lf-clone,
     .lf-forge,
     .lf-habit,
     .lf-export {
       grid-template-columns: 1fr;
+    }
+    .lf-act {
+      padding: var(--sp-6) var(--sp-5) var(--sp-5);
+    }
+    /* маршрут: горизонтальная лента со скроллом */
+    .lf__spine {
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(96px, 1fr);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-bottom: var(--sp-1);
+    }
+    .lf__spine::-webkit-scrollbar {
+      display: none;
+    }
+    .lf__spine::before,
+    .lf__spine::after {
+      display: none;
+    }
+    .lf__st-label {
+      font-size: var(--fs-12);
+    }
+  }
+
+  @media (max-width: 560px) {
+    .lf-act {
+      padding: var(--sp-5) var(--sp-4) var(--sp-4);
     }
     .lf-act__run .lf-btn {
       flex: 1 1 100%;
@@ -1951,9 +1996,9 @@ sBundle.locale = locale;
     .lf__pager {
       padding: var(--sp-3) var(--sp-4);
     }
-  }
-
-  @media (max-width: 420px) {
+    .lf__pager-word {
+      display: none;
+    }
     .lf-card__ratings {
       grid-template-columns: repeat(2, 1fr);
     }
@@ -1974,17 +2019,16 @@ sBundle.locale = locale;
     .lf-gate.is-shake {
       animation: none !important;
     }
-    .lf-card__inner {
-      transition: none !important;
-    }
-    .lf-heat__cell.is-on {
+    .lf-card__inner,
+    .lf-heat__cell.is-on,
+    .lf__spine::after {
       transition: none !important;
     }
   }
 </style>
 
 <script>
-  /* LearnForge — история-навигатор «как живёт DotLearn».
+  /* LearnForge — история-навигатор «маршрут продукта» (.учёба).
    *
    * Движение: только transform/opacity. Постоянного rAF нет — демо ведётся
    * через setTimeout (массив timers), которые чистятся за экраном / на скрытой
@@ -2003,7 +2047,6 @@ sBundle.locale = locale;
     }
     const s = (k: string): string => S[k] ?? "";
 
-    /* таймеры */
     const timers: number[] = [];
     const after = (ms: number, fn: () => void): void => {
       timers.push(window.setTimeout(fn, reduced ? 0 : ms));
@@ -2012,18 +2055,21 @@ sBundle.locale = locale;
       for (const id of timers.splice(0)) window.clearTimeout(id);
     };
 
-    /* ── навигатор: табы + панели + пейджер ── */
+    /* ── навигатор: станции + панели + пейджер ── */
     const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-lf-tab]"));
     const panels = Array.from(root.querySelectorAll<HTMLElement>("[data-lf-panel]"));
-    const dots = Array.from(root.querySelectorAll<HTMLElement>("[data-dot]"));
+    const stepEl = root.querySelector<HTMLElement>("[data-lf-step]");
     const prevBtn = root.querySelector<HTMLButtonElement>("[data-lf-prev]");
     const nextBtn = root.querySelector<HTMLButtonElement>("[data-lf-next]");
     const ids = tabs.map((t) => t.dataset.lfTab ?? "");
+    const n = panels.length;
     let current = 0;
     const played = new Set<string>();
 
+    const pad2 = (x: number): string => (x < 10 ? `0${x}` : String(x));
+
     const select = (i: number, focus = false): void => {
-      current = Math.max(0, Math.min(panels.length - 1, i));
+      current = Math.max(0, Math.min(n - 1, i));
       tabs.forEach((t, k) => {
         const on = k === current;
         t.setAttribute("aria-selected", on ? "true" : "false");
@@ -2036,9 +2082,10 @@ sBundle.locale = locale;
         p.classList.toggle("is-active", on);
         p.hidden = !on;
       });
-      dots.forEach((d, k) => d.setAttribute("data-on", k === current ? "true" : "false"));
+      root.style.setProperty("--lf-frac", n > 1 ? String(current / (n - 1)) : "0");
+      if (stepEl) stepEl.textContent = `${pad2(current + 1)} / ${pad2(n)}`;
       if (prevBtn) prevBtn.disabled = current === 0;
-      if (nextBtn) nextBtn.disabled = current === panels.length - 1;
+      if (nextBtn) nextBtn.disabled = current === n - 1;
       if (focus) tabs[current]?.focus();
       clearTimers();
       if (root.classList.contains("is-inview")) play(ids[current] ?? "");
@@ -2047,14 +2094,14 @@ sBundle.locale = locale;
     tabs.forEach((t, k) => {
       t.addEventListener("click", () => select(k));
       t.addEventListener("keydown", (e: KeyboardEvent) => {
-        let n = -1;
-        if (e.key === "ArrowDown" || e.key === "ArrowRight") n = (k + 1) % tabs.length;
-        else if (e.key === "ArrowUp" || e.key === "ArrowLeft") n = (k - 1 + tabs.length) % tabs.length;
-        else if (e.key === "Home") n = 0;
-        else if (e.key === "End") n = tabs.length - 1;
-        if (n < 0) return;
+        let m = -1;
+        if (e.key === "ArrowRight" || e.key === "ArrowDown") m = (k + 1) % tabs.length;
+        else if (e.key === "ArrowLeft" || e.key === "ArrowUp") m = (k - 1 + tabs.length) % tabs.length;
+        else if (e.key === "Home") m = 0;
+        else if (e.key === "End") m = tabs.length - 1;
+        if (m < 0) return;
         e.preventDefault();
-        select(n, true);
+        select(m, true);
       });
     });
     prevBtn?.addEventListener("click", () => select(current - 1));
@@ -2071,7 +2118,7 @@ sBundle.locale = locale;
         cloneStatus.textContent = "";
         cloneStatus.removeAttribute("data-tone");
       }
-      termLineEls.forEach((l, i) => after(360 * (i + 1), () => l.classList.add("is-show")));
+      termLineEls.forEach((l, i) => after(300 * (i + 1), () => l.classList.add("is-show")));
     };
     cloneRun?.addEventListener("click", () => {
       clearTimers();
@@ -2081,7 +2128,7 @@ sBundle.locale = locale;
         cloneStatus.textContent = s("agentBusy");
         cloneStatus.removeAttribute("data-tone");
       }
-      after(360 * (termLineEls.length + 1) + 200, () => {
+      after(300 * (termLineEls.length + 1) + 200, () => {
         if (cloneLabel) cloneLabel.textContent = s("runAgent");
         if (cloneStatus) {
           cloneStatus.textContent = s("agentDone");
@@ -2223,13 +2270,10 @@ sBundle.locale = locale;
         const tr = document.createElement("tr");
         tr.className = "is-row";
         tr.style.setProperty("--ri", String(ri));
-        if (!v.ok && ri === v.rows.length - 1 && variant === 1) {
-          /* подсветку аномалии для INNER не делаем — там нет «лишней» строки */
-        }
         for (const cell of row) {
           const td = document.createElement("td");
           td.textContent = cell;
-          if (cell === "NULL") td.style.color = "var(--text-faint)";
+          if (cell === "NULL") td.classList.add("is-null");
           tr.appendChild(td);
         }
         frag.appendChild(tr);
@@ -2239,7 +2283,10 @@ sBundle.locale = locale;
       if (verdictEl) verdictEl.textContent = v.ok ? s("okGold") : s("badGold");
     };
     const renderPy = (): void => {
-      caseEls.forEach((c) => c.classList.remove("is-pass"));
+      caseEls.forEach((c, i) => {
+        c.classList.remove("is-pass");
+        c.style.setProperty("--ci", String(i));
+      });
       caseEls.forEach((c, i) => after(120 * (i + 1), () => c.classList.add("is-pass")));
       out?.setAttribute("data-state", "ok");
       if (verdictEl) verdictEl.textContent = s("casesPass");
@@ -2336,7 +2383,7 @@ sBundle.locale = locale;
     const rateBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-lf-rate]"));
     const cardStatus = root.querySelector<HTMLElement>("[data-lf-card-status]");
     const TARGET_STREAK = 23;
-    ratingsWrap?.setAttribute("data-armed", "false");
+    heatCells.forEach((c, i) => c.style.setProperty("--ci", String(i)));
     flipBtn?.addEventListener("click", () => {
       const flipped = cardEl?.dataset.flipped === "true";
       cardEl?.setAttribute("data-flipped", flipped ? "false" : "true");
@@ -2361,7 +2408,6 @@ sBundle.locale = locale;
         return;
       }
       heatCells.forEach((c) => c.classList.add("is-on"));
-      /* счётчик стрика */
       let v = 0;
       const tick = (): void => {
         v += 1;
@@ -2423,6 +2469,7 @@ sBundle.locale = locale;
     /* ── начальное состояние ── */
     selectRt(0);
     renderGate(false);
+    select(0);
 
     /* reduced / нет IO: собранный кадр */
     if (reduced || !("IntersectionObserver" in window)) {
@@ -2456,7 +2503,7 @@ sBundle.locale = locale;
           }
         }
       },
-      { threshold: 0.2 },
+      { threshold: 0.15 },
     );
     io.observe(root);
 
