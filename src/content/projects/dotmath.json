@@ -65,10 +65,10 @@
   ],
   "overview": {
     "ru": [
-      "Двуязычный Telegram-тренажёр устного счёта, построенный вокруг удержания: серии дней, напоминания и рейтинг, который читает один и тот же результат с четырёх сторон - стрик, решено, точность и взвешенные очки, где сложное стоит дороже."
+      "Двуязычный Telegram-тренажёр устного счёта, построенный вокруг удержания: серии дней, напоминания и рейтинг, который читает один и тот же результат с четырёх сторон - стрик, решено, точность и взвешенные очки, где сложное стоит дороже. Общий челлендж дня сравнивает всех на одном наборе задач, а работа над ошибками собирает отдельную сессию из того, что не далось."
     ],
     "en": [
-      "A bilingual Telegram mental-math trainer built around retention: day-streaks, reminders, and a leaderboard that reads the same result four ways - streak, solved, accuracy, and a weighted score where harder problems count more."
+      "A bilingual Telegram mental-math trainer built around retention: day-streaks, reminders, and a leaderboard that reads the same result four ways - streak, solved, accuracy, and a weighted score where harder problems count more. A shared daily challenge pits everyone against the same set, and retry-mistakes assembles a separate session from whatever you missed."
     ]
   },
   "metrics": [
@@ -103,9 +103,9 @@
   ],
   "stackGroups": {
     "language": ["Python 3.12"],
-    "framework": ["aiogram 3.15", "SQLAlchemy 2", "APScheduler 3.10"],
+    "framework": ["aiogram 3.15", "SQLAlchemy 2.0", "Pydantic 2", "APScheduler 3.10"],
     "data": ["PostgreSQL 16", "Redis", "asyncpg"],
-    "infra": ["Alembic", "Docker", "pg_dump backups", "testcontainers"],
+    "infra": ["Alembic 1.14", "Docker", "GitHub Actions", "pg_dump backups", "testcontainers"],
     "client": ["Telegram Bot API"]
   },
   "architectureNodes": [
@@ -270,41 +270,87 @@
         "en": "Drills"
       },
       "description": {
-        "ru": "Семь типов операций (от сложения до степеней и корней) на трёх уровнях, плюс быстрый старт с любимым режимом.",
-        "en": "Seven operation types (from addition to powers and roots) across three levels, plus a quick start with a favorite mode."
+        "ru": "Семь типов операций - от сложения до степеней и квадратных корней - на трёх уровнях сложности. Можно выбирать ответ из вариантов или писать его сам.",
+        "en": "Seven operation types - from addition to powers and square roots - across three difficulty levels. Pick an answer from the choices or type it yourself."
+      },
+      "detail": {
+        "ru": "Уровень меняет и диапазон чисел, и размер набора: лёгкий - 5 примеров и 2 варианта, средний - 7 и 3, сложный - 10 и 4. Неверные варианты - правдоподобные соседи (гауссов разброс вокруг ответа), а в режиме «Напиши ответ сам» ответ вводится с клавиатуры.",
+        "en": "The level changes both the number range and the set size: easy - 5 problems and 2 choices, medium - 7 and 3, hard - 10 and 4. Wrong choices are plausible neighbours (a Gaussian spread around the answer), and in the type-the-answer mode you enter the result yourself."
+      }
+    },
+    {
+      "icon": "stack",
+      "title": {
+        "ru": "Челлендж дня",
+        "en": "Daily challenge"
+      },
+      "description": {
+        "ru": "Общий для всех набор из 10 задач на календарный день, один зачёт на человека и отдельный дневной рейтинг по верным ответам и времени.",
+        "en": "One shared set of 10 problems for the calendar day, a single attempt per person, and a separate daily leaderboard by correct answers and time."
+      },
+      "detail": {
+        "ru": "Набор детерминирован seed-ом, поэтому у всех он одинаковый. UNIQUE по дате и ON CONFLICT DO NOTHING делают первый клик безопасным при гонке, а UNIQUE по паре «пользователь + дата» гарантирует ровно одну попытку. Граница дня - Europe/Moscow.",
+        "en": "The set is seeded, so everyone gets the same one. UNIQUE on the date with ON CONFLICT DO NOTHING makes the first click race-safe, and UNIQUE on (user, date) enforces exactly one attempt. The day boundary is Europe/Moscow."
       }
     },
     {
       "icon": "user",
       "title": {
-        "ru": "Профиль и рейтинг",
-        "en": "Profile & leaderboard"
+        "ru": "Рейтинг в четыре среза",
+        "en": "A four-way leaderboard"
       },
       "description": {
-        "ru": "Личный прогресс, серии дней и место в рейтинге по четырём критериям: стрик, решено, точность и взвешенные очки.",
-        "en": "Personal progress, day-streaks, and ranking across four criteria: streak, solved, accuracy, and weighted points."
+        "ru": "Один и тот же результат читается с четырёх сторон: серия, всего решено, точность и взвешенные очки, где сложное стоит дороже.",
+        "en": "The same result reads four ways: streak, total solved, accuracy, and weighted points where harder problems count more."
+      },
+      "detail": {
+        "ru": "Взвешенные очки: лёгкое × 1, среднее × 2, сложное × 3 по верным ответам - в каждом срезе может лидировать свой человек. Имя в топе можно скрыть, список листается постранично.",
+        "en": "Weighted points: easy × 1, medium × 2, hard × 3 over correct answers - a different person can lead each cut. You can hide your name in the top, and the list paginates."
       }
     },
     {
       "icon": "rocket",
       "title": {
-        "ru": "Привычка",
-        "en": "Habit"
+        "ru": "Привычка и удержание",
+        "en": "Habit and retention"
       },
       "description": {
-        "ru": "Настраиваемые напоминания (утро, обед, вечер или своё время) в том же процессе и серии дней, которые держат темп тренировок.",
-        "en": "Configurable reminders (morning, lunch, evening, or a custom time) in the same process, plus day-streaks that keep the pace going."
+        "ru": "Серия дней держится, пока не пропустишь день; настраиваемые напоминания возвращают к тренировке, а быстрый старт запускает любимый режим одной кнопкой.",
+        "en": "A day-streak holds until you skip a day; configurable reminders bring you back, and Quick Start launches your favorite mode in one tap."
+      },
+      "detail": {
+        "ru": "День с хотя бы одним верным ответом продлевает серию; пропуск её обнуляет, а второй подход за день ничего не меняет. Напоминания - пресеты (утро, обед, вечер или три раза в день) и своё время на APScheduler в том же процессе.",
+        "en": "A day with at least one correct answer extends the streak; a skip resets it, and a second session that day does nothing. Reminders are presets (morning, lunch, evening, or three times a day) plus custom times on an in-process APScheduler."
+      }
+    },
+    {
+      "icon": "spark",
+      "title": {
+        "ru": "Работа над ошибками",
+        "en": "Retry mistakes"
+      },
+      "description": {
+        "ru": "Отдельная сессия собирается только из задач, в которых ты ошибся или пропустил, - правильные ответы во время неё не показываются.",
+        "en": "A separate session is assembled only from the problems you got wrong or skipped - correct answers stay hidden during it."
+      },
+      "detail": {
+        "ru": "Каждая задача сохраняется со своим форматом и метаданными (остаток, показатель степени, подкоренное число), поэтому перерешивание восстанавливает её точь-в-точь, а не как «144 √ 0».",
+        "en": "Every problem is stored with its formatting and metadata (remainder, exponent, radicand), so retry rebuilds it exactly rather than as garbage like \"144 √ 0\"."
       }
     },
     {
       "icon": "globe",
       "title": {
-        "ru": "RU + EN на лету",
-        "en": "RU + EN on the fly"
+        "ru": "RU + EN и стойкость к рестарту",
+        "en": "RU + EN and restart resilience"
       },
       "description": {
-        "ru": "Полная локализация и переключение языка без рестарта диалога; в режиме «напиши ответ сам» примеры решаешь вводом, а не выбором.",
-        "en": "Full localization and a language switch without restarting the dialog; in the type-the-answer mode you solve by entering the result, not picking it."
+        "ru": "Полная локализация с переключением языка на лету, состояние активной тренировки в Redis и ежесуточные бэкапы базы.",
+        "en": "Full localization with an on-the-fly language switch, active-training state in Redis, and daily database backups."
+      },
+      "detail": {
+        "ru": "FSM активной тренировки лежит в Redis с AOF, поэтому сессия переживает рестарт контейнера; без Redis - MemoryStorage для локальной разработки. pg_dump пишет дамп каждые 12 часов и хранит последние 20.",
+        "en": "The active-training FSM lives in Redis with AOF, so a session survives a container restart; without Redis it falls back to MemoryStorage for local dev. pg_dump writes a dump every 12 hours and keeps the last 20."
       }
     }
   ],
@@ -316,30 +362,52 @@
         "en": ".schet kickoff"
       },
       "description": {
-        "ru": "MVP: 7 операций × 3 уровня, напоминания (APScheduler), рейтинг, режим «Напиши ответ сам».",
-        "en": "MVP: 7 operations × 3 levels, reminders via APScheduler, leaderboard, and type-the-answer mode."
+        "ru": "MVP за день: 7 операций × 3 уровня, режим «Напиши ответ сам», рейтинг с сортировкой и напоминания на APScheduler (пресеты + своё время).",
+        "en": "MVP in a day: 7 operations × 3 levels, the type-the-answer mode, a sorted leaderboard, and APScheduler reminders (presets + custom times)."
       }
     },
     {
       "date": "4 Mar 2026",
       "title": {
-        "ru": "Админ-панель и рейтинг",
-        "en": "Admin panel and leaderboard"
+        "ru": "Админ-панель и приватность рейтинга",
+        "en": "Admin panel and leaderboard privacy"
       },
       "description": {
-        "ru": "Панель администратора, приватность рейтинга с pagination, pg_dump-бэкапы.",
-        "en": "Admin panel, leaderboard privacy with pagination, and pg_dump backups."
+        "ru": "Панель администратора, скрытие имени в топе и pagination, выгрузка бэкапа из чата по паролю.",
+        "en": "Admin panel, name-hiding in the top with pagination, and password-gated backup export from chat."
       }
     },
     {
       "date": "13 May 2026",
       "title": {
-        "ru": "PostgreSQL и прод-обвязка",
-        "en": "PostgreSQL and production wiring"
+        "ru": "SQLite → PostgreSQL",
+        "en": "SQLite → PostgreSQL"
       },
       "description": {
-        "ru": "SQLite → PostgreSQL, Redis FSM, Docker, CI, daily challenge, UX-рефактор на CallbackData.",
-        "en": "SQLite → PostgreSQL migration, Redis FSM, Docker and CI, daily challenge, and CallbackData UX refactor."
+        "ru": "Полный переезд на PostgreSQL, pg_dump-бэкапы каждые 12 часов и рефактор интерфейса.",
+        "en": "Full migration to PostgreSQL, pg_dump backups every 12 hours, and a UI refactor."
+      }
+    },
+    {
+      "date": "30 May 2026",
+      "title": {
+        "ru": "Челлендж дня, работа над ошибками, прод-обвязка",
+        "en": "Daily challenge, mistake review, production wiring"
+      },
+      "description": {
+        "ru": "Общий челлендж дня и перерешивание ошибок, быстрый старт с любимым режимом, anchor-message UX на CallbackData; Redis FSM, Docker и CI.",
+        "en": "A shared daily challenge and retry-mistakes, Quick Start with a favorite mode, anchor-message UX on CallbackData; Redis FSM, Docker, and CI."
+      }
+    },
+    {
+      "date": "Jun 2026",
+      "title": {
+        "ru": "Postgres-only и хардненинг",
+        "en": "Postgres-only and hardening"
+      },
+      "description": {
+        "ru": "Отказ от SQLite-тулинга (только PostgreSQL), хардненинг контейнера, права CI и timing-safe проверка пароля бэкапа.",
+        "en": "Dropped SQLite tooling (PostgreSQL-only), container hardening, CI permissions, and a timing-safe backup-password check."
       }
     }
   ]
