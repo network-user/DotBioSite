@@ -9,10 +9,10 @@
  * Один источник (Spamhaus) отвечает таймаутом, но досье всё равно собирается —
  * это и есть asyncio.gather(return_exceptions=True) на простом языке.
  *
- * Главный экран намеренно чистый: одно понятное действие. Движок (скан списком)
- * и прокси-guard вынесены в опциональный блок «Под капотом», экспорт — в слим-
- * ряд под карточкой. Так обычный человек сразу понимает суть, а интересующийся
- * докапывается до механики.
+ * Главный экран — карточка досье (одно понятное действие). Ниже: «Сохранить
+ * досье» (тот же результат в 4 форматах, как настоящий файл) и «Под капотом» —
+ * два механизма, делающие .след рабочим инструментом: прокси-приватность и
+ * скан целого списка.
  *
  * Движение: только transform/opacity, конечные CSS-переходы. Постоянного rAF
  * нет — анимация ведётся одним setTimeout-конвейером later(), который чистится
@@ -216,35 +216,73 @@ const fields: { id: string; label: Bi }[] = [
 ];
 
 // Экспорт: 4 формата.
-const exports: { fmt: string; note: Bi }[] = [
-  { fmt: "TXT", note: { ru: "построчно во время скана", en: "line by line during the scan" } },
-  { fmt: "JSON", note: { ru: "полный объект на адрес", en: "full object per address" } },
-  { fmt: "CSV", note: { ru: "столбцы для таблиц", en: "columns for spreadsheets" } },
+const exports: { fmt: string; ext: string; note: Bi }[] = [
+  {
+    fmt: "TXT",
+    ext: "txt",
+    note: { ru: "пишется построчно прямо во время скана", en: "written line by line during the scan" },
+  },
+  {
+    fmt: "JSON",
+    ext: "json",
+    note: { ru: "полный объект на каждый адрес — для кода и API", en: "a full object per address — for code and APIs" },
+  },
+  {
+    fmt: "CSV",
+    ext: "csv",
+    note: { ru: "столбцы для Excel и Google Таблиц", en: "columns for Excel and Google Sheets" },
+  },
   {
     fmt: "HTML",
-    note: { ru: "самодостаточный отчёт, сортируется по столбцам", en: "self-contained report, sortable" },
+    ext: "html",
+    note: {
+      ru: "самодостаточный отчёт: открыл в браузере — сортируется по столбцам",
+      en: "a self-contained report: open it in a browser and sort by columns",
+    },
   },
 ];
 
 const ui = {
   pick: { ru: "Адрес из логов SSH/RDP-брутфорса:", en: "An address from SSH/RDP brute-force logs:" },
+  pickHint: { ru: "выберите любой", en: "pick any" },
   trace: { ru: "Проследить", en: "Trace" },
-  subject: { ru: "субъект", en: "subject" },
+  subject: { ru: "адрес", en: "subject" },
   idle: { ru: "не собрано", en: "not assembled" },
   threat: { ru: "Уровень угрозы", en: "Threat level" },
+  srcCap: { ru: "Шесть источников — нажмите, чтобы узнать, что даёт каждый:", en: "Six sources — tap to see what each one returns:" },
   exportCap: { ru: "Сохранить досье", en: "Save the dossier" },
+  exportSub: {
+    ru: "Один и тот же результат в любом формате — для глаз, таблиц или браузера.",
+    en: "The same result in any format — for the eye, spreadsheets, or a browser.",
+  },
   under: { ru: "Под капотом", en: "Under the hood" },
+  underTeaser: { ru: "приватность и масштаб", en: "privacy & scale" },
+  underIntro: {
+    ru: "Два механизма, которые делают .след рабочим инструментом, а не игрушкой.",
+    en: "Two mechanisms that make .след a real tool, not a toy.",
+  },
   // прокси
-  proxyTitle: { ru: "Скрытно: через прокси", en: "Stealth: via proxy" },
+  proxyTitle: { ru: "Скрытно — через прокси", en: "Stealth — via proxy" },
+  proxyDesc: {
+    ru: "Как .след ходит к источникам и почему реальный IP не утекает, даже когда прокси сломан.",
+    en: "How .след reaches the sources and why the real IP never leaks, even when the proxy breaks.",
+  },
   direct: { ru: "Прямо", en: "Direct" },
   proxied: { ru: "Через прокси", en: "Via proxy" },
   pool: { ru: "пул: HTTP · SOCKS4 · SOCKS5 · креды скрыты", en: "pool: HTTP · SOCKS4 · SOCKS5 · creds masked" },
   breakProxy: { ru: "Сломать прокси", en: "Break proxy" },
-  httpGroup: { ru: "HTTP-источники", en: "HTTP sources" },
-  dnsGroup: { ru: "DNS и RDAP", en: "DNS & RDAP" },
+  httpGroup: { ru: "HTTP-источники (через прокси)", en: "HTTP sources (via proxy)" },
+  dnsGroup: { ru: "DNS и RDAP (всегда напрямую)", en: "DNS & RDAP (always direct)" },
   // скан списком
-  bulkTitle: { ru: "Скан списком", en: "List scan" },
+  bulkTitle: { ru: "Скан целым списком", en: "Scan a whole list" },
+  bulkDesc: {
+    ru: "Как из тысяч строк в логе за один проход всплывают самые опасные адреса.",
+    en: "How a single pass over thousands of log lines surfaces the most dangerous addresses.",
+  },
   bulkRun: { ru: "Прогнать список", en: "Run the list" },
+  bulkColIp: { ru: "адрес", en: "address" },
+  bulkColCc: { ru: "страна", en: "country" },
+  bulkColThreat: { ru: "уровень угрозы", en: "threat level" },
 };
 
 // HTTP-источники (идут через прокси) и прямые — для прокси-демо.
@@ -252,12 +290,19 @@ const httpVias = ["ip-api", "AbuseIPDB", "bgpview"];
 const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
 ---
 
-<section class="td" data-td aria-label={t({ ru: "Досье на IP-адрес — DotTraceIP", en: "IP dossier — DotTraceIP" })}>
+<section
+  class="td"
+  id="trace-dossier"
+  data-td
+  aria-label={t({ ru: "Досье на IP-адрес — DotTraceIP", en: "IP dossier — DotTraceIP" })}
+>
   <p class="td__intro">{t(intro)}</p>
 
   <!-- ===================== ВЫБОР АДРЕСА ===================== -->
   <div class="td__pick">
-    <span class="td__pick-cap caption">{t(ui.pick)}</span>
+    <span class="td__pick-cap">
+      {t(ui.pick)} <span class="td__pick-hint">{t(ui.pickHint)}</span>
+    </span>
     <div class="td__chips" role="group" aria-label={t(ui.pick)}>
       {
         dossiers.map((d, i) => (
@@ -313,7 +358,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     <!-- центральная карточка-досье -->
     <article class="td__card" data-td-card>
       <header class="td__card-head">
-        <span class="td__card-sub caption">{t(ui.subject)}</span>
+        <span class="td__card-sub">{t(ui.subject)}</span>
         <span class="td__card-ip mono" data-td-ip>{dossiers[0]!.ip}</span>
         <span class="td__card-status" data-td-status>{t(ui.idle)}</span>
       </header>
@@ -335,7 +380,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
 
       <div class="td__threat" data-td-threat data-band="idle">
         <div class="td__threat-top">
-          <span class="td__threat-cap caption">{t(ui.threat)}</span>
+          <span class="td__threat-cap">{t(ui.threat)}</span>
           <span class="td__threat-score mono" data-td-score>—</span>
           <span class="td__threat-verdict" data-td-verdict hidden></span>
         </div>
@@ -380,11 +425,17 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
   </div>
 
   <!-- подсказка по тапнутому источнику -->
-  <p class="td__hint" data-td-hint aria-live="polite"></p>
+  <p class="td__hint" data-td-hint>
+    <span class="td__hint-ic" aria-hidden="true">i</span>
+    <span class="td__hint-t" data-td-hint-t>{t(ui.srcCap)}</span>
+  </p>
 
   <!-- ===================== ЭКСПОРТ ДОСЬЕ ===================== -->
   <div class="td__export" data-td-export>
-    <span class="td__export-cap caption">{t(ui.exportCap)}</span>
+    <div class="td__export-head">
+      <span class="td__export-cap">{t(ui.exportCap)}</span>
+      <span class="td__export-sub">{t(ui.exportSub)}</span>
+    </div>
     <div class="td__export-chips" role="group" aria-label={t(ui.exportCap)}>
       {
         exports.map((e, k) => (
@@ -392,6 +443,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
             class={`td__fmt${k === 0 ? " is-on" : ""}`}
             type="button"
             data-td-fmt={e.fmt}
+            data-ext={e.ext}
             data-note={t(e.note)}
             aria-pressed={k === 0 ? "true" : "false"}
           >
@@ -400,74 +452,111 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
         ))
       }
     </div>
-    <pre class="td__export-preview mono" data-td-export-preview aria-live="polite"></pre>
+    <div class="td__file">
+      <div class="td__file-bar">
+        <span class="td__file-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="td__file-name mono" data-td-file>results.txt</span>
+        <span class="td__file-note" data-td-file-note></span>
+      </div>
+      <pre class="td__file-body mono" data-td-export-preview aria-live="polite"></pre>
+    </div>
   </div>
 
   <!-- ===================== ПОД КАПОТОМ ===================== -->
   <div class="td__under">
     <button class="td__under-toggle" type="button" data-td-under-toggle aria-expanded="true" aria-controls="td-under">
       <span class="td__under-chevron" aria-hidden="true"></span>
-      <span>{t(ui.under)}</span>
+      <span class="td__under-label">{t(ui.under)}</span>
+      <span class="td__under-teaser">{t(ui.underTeaser)}</span>
     </button>
 
     <div class="td__under-box" id="td-under">
       <div class="td__under-inner">
-        <!-- ---------- (A) ПРОКСИ-GUARD ---------- -->
-        <div class="td__panel" data-td-proxy data-mode="direct">
-          <h4 class="td__panel-title">{t(ui.proxyTitle)}</h4>
-          <div class="td__seg" role="group" aria-label={t(ui.proxyTitle)}>
-            <button class="td__seg-btn is-on" type="button" data-td-mode="direct" aria-pressed="true">
-              {t(ui.direct)}
-            </button>
-            <button class="td__seg-btn" type="button" data-td-mode="proxied" aria-pressed="false">
-              {t(ui.proxied)}
-            </button>
-            <button class="td__break" type="button" data-td-break disabled>{t(ui.breakProxy)}</button>
-          </div>
-          <span class="td__pool mono" data-td-pool aria-hidden="true">{t(ui.pool)}</span>
+        <p class="td__under-intro">{t(ui.underIntro)}</p>
 
-          <div class="td__routes">
-            <div class="td__route" data-route="http">
-              <span class="td__route-cap caption">{t(ui.httpGroup)}</span>
-              <div class="td__route-pills">
-                {httpVias.map((v) => <span class="td__pill mono" data-td-http-pill>{v}</span>)}
+        <div class="td__panels">
+          <!-- ---------- (A) ПРОКСИ-GUARD ---------- -->
+          <div class="td__panel td__panel--proxy" data-td-proxy data-mode="direct">
+            <div class="td__panel-h">
+              <h4 class="td__panel-title">{t(ui.proxyTitle)}</h4>
+              <p class="td__panel-desc">{t(ui.proxyDesc)}</p>
+            </div>
+
+            <div class="td__seg" role="group" aria-label={t(ui.proxyTitle)}>
+              <button class="td__seg-btn is-on" type="button" data-td-mode="direct" aria-pressed="true">
+                {t(ui.direct)}
+              </button>
+              <button class="td__seg-btn" type="button" data-td-mode="proxied" aria-pressed="false">
+                {t(ui.proxied)}
+              </button>
+              <button class="td__break" type="button" data-td-break disabled>
+                <span class="td__break-ic" aria-hidden="true">⚡</span>{t(ui.breakProxy)}
+              </button>
+            </div>
+            <span class="td__pool mono" data-td-pool>{t(ui.pool)}</span>
+
+            <div class="td__routes">
+              <div class="td__route" data-route="http">
+                <span class="td__route-cap">{t(ui.httpGroup)}</span>
+                <div class="td__route-pills">
+                  {httpVias.map((v) => <span class="td__pill mono" data-td-http-pill>{v}</span>)}
+                </div>
+              </div>
+              <div class="td__route" data-route="dns">
+                <span class="td__route-cap">{t(ui.dnsGroup)}</span>
+                <div class="td__route-pills">
+                  {dnsVias.map((v) => <span class="td__pill td__pill--dns mono">{v}</span>)}
+                </div>
               </div>
             </div>
-            <div class="td__route" data-route="dns">
-              <span class="td__route-cap caption">{t(ui.dnsGroup)}</span>
-              <div class="td__route-pills">
-                {dnsVias.map((v) => <span class="td__pill td__pill--dns mono">{v}</span>)}
-              </div>
+
+            <div class="td__verdict-box" data-td-proxy-verdict>
+              <span class="td__verdict-dot" aria-hidden="true"></span>
+              <p class="td__verdict-text" data-td-proxy-note aria-live="polite"></p>
             </div>
           </div>
 
-          <p class="td__panel-note" data-td-proxy-note aria-live="polite"></p>
-        </div>
+          <!-- ---------- (B) СКАН СПИСКОМ ---------- -->
+          <div class="td__panel td__panel--bulk" data-td-bulk>
+            <div class="td__panel-h">
+              <h4 class="td__panel-title">{t(ui.bulkTitle)}</h4>
+              <p class="td__panel-desc">{t(ui.bulkDesc)}</p>
+            </div>
 
-        <!-- ---------- (B) СКАН СПИСКОМ ---------- -->
-        <div class="td__panel" data-td-bulk>
-          <h4 class="td__panel-title">{t(ui.bulkTitle)}</h4>
-          <div class="td__bulk-controls">
-            <button class="td__bulk-run" type="button" data-td-bulk-run>{t(ui.bulkRun)}</button>
-            <span class="td__sem mono" data-td-sem aria-hidden="true"></span>
+            <div class="td__bulk-controls">
+              <button class="td__bulk-run" type="button" data-td-bulk-run>{t(ui.bulkRun)}</button>
+              <span class="td__sem mono" data-td-sem aria-hidden="true"></span>
+            </div>
+
+            <div class="td__bulk-table">
+              <div class="td__bulk-head" aria-hidden="true">
+                <span>{t(ui.bulkColIp)}</span>
+                <span>{t(ui.bulkColCc)}</span>
+                <span class="td__bulk-head-threat">{t(ui.bulkColThreat)}</span>
+              </div>
+              <ul class="td__bulk-list" data-td-bulk-list>
+                {
+                  [...dossiers]
+                    .sort((a, b) => b.abuse - a.abuse)
+                    .map((d, i) => (
+                      <li class="td__bulk-row is-in" data-td-bulk-row={i} style={`--i:${i}`}>
+                        <span class="td__bulk-ip mono">{d.ip}</span>
+                        <span class="td__bulk-cc mono">{d.cc}</span>
+                        <span class="td__bulk-bar" aria-hidden="true">
+                          <span
+                            class="td__bulk-fill"
+                            style={`--score:${d.abuse / 100}`}
+                            data-band={d.abuse >= 80 ? "high" : d.abuse >= 40 ? "mid" : "low"}
+                          />
+                        </span>
+                        <span class="td__bulk-num mono">{d.abuse}</span>
+                      </li>
+                    ))
+                }
+              </ul>
+            </div>
+            <p class="td__panel-note" data-td-bulk-note aria-live="polite"></p>
           </div>
-          <ul class="td__bulk-list" data-td-bulk-list>
-            {
-              [...dossiers]
-                .sort((a, b) => b.abuse - a.abuse)
-                .map((d, i) => (
-                  <li class="td__bulk-row" data-td-bulk-row={i} style={`--i:${i}`}>
-                    <span class="td__bulk-ip mono">{d.ip}</span>
-                    <span class="td__bulk-cc mono">{d.cc}</span>
-                    <span class="td__bulk-bar" aria-hidden="true">
-                      <span class="td__bulk-fill" style={`--score:${d.abuse / 100}`} data-abuse={d.abuse} />
-                    </span>
-                    <span class="td__bulk-num mono">{d.abuse}</span>
-                  </li>
-                ))
-            }
-          </ul>
-          <p class="td__panel-note" data-td-bulk-note aria-live="polite"></p>
         </div>
       </div>
     </div>
@@ -477,24 +566,24 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
 <style>
   .td {
     --td-accent: var(--project-accent);
-    --td-line: color-mix(in srgb, var(--td-accent) 38%, transparent);
-    --td-soft: color-mix(in srgb, var(--td-accent) 13%, transparent);
+    --td-line: color-mix(in srgb, var(--td-accent) 42%, transparent);
+    --td-soft: color-mix(in srgb, var(--td-accent) 14%, transparent);
     --td-faint: color-mix(in srgb, var(--td-accent) 8%, transparent);
-    --td-glow: color-mix(in srgb, var(--td-accent) 18%, transparent);
+    --td-glow: color-mix(in srgb, var(--td-accent) 20%, transparent);
     --td-err: var(--state-error);
     --td-warn: var(--state-warn);
     --td-ok: var(--state-ok);
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: var(--sp-5);
+    gap: var(--sp-6);
   }
 
   .td__intro {
     font-size: var(--fs-16);
     line-height: var(--lh-normal);
     color: var(--text-secondary);
-    max-width: 68ch;
+    max-width: 70ch;
   }
 
   /* ---------- выбор адреса ---------- */
@@ -504,7 +593,12 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     gap: var(--sp-2);
   }
   .td__pick-cap {
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+  .td__pick-hint {
     color: var(--text-muted);
+    font-size: var(--fs-12);
   }
   .td__chips {
     display: flex;
@@ -527,6 +621,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
   }
   .td__chip:hover {
     border-color: var(--border-hover);
+    color: var(--text);
   }
   .td__chip:active {
     transform: scale(0.97);
@@ -554,7 +649,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     border: var(--bw-thin) solid var(--glass-edge);
     border-radius: var(--r-lg);
     background:
-      radial-gradient(130% 120% at 50% 0%, var(--td-glow), transparent 60%),
+      radial-gradient(130% 120% at 50% 0%, var(--td-glow), transparent 62%),
       var(--glass-tint-frost);
     box-shadow: var(--shadow-2);
   }
@@ -574,16 +669,16 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: var(--sp-2);
+    gap: var(--sp-3);
     width: 100%;
     min-height: var(--tap-min);
-    padding: var(--sp-2) var(--sp-3);
+    padding: var(--sp-3);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-sm);
     background: var(--surface);
     text-align: left;
     cursor: pointer;
-    opacity: 0.55;
+    opacity: 0.62;
     transition:
       opacity var(--dur-med) var(--ease-standard),
       border-color var(--dur-med) var(--ease-standard),
@@ -592,7 +687,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
   }
   .td__src:hover {
     border-color: var(--border-hover);
-    opacity: 0.95;
+    opacity: 1;
   }
   .td__src:focus-visible {
     outline: var(--ring-width) solid var(--ring-focus);
@@ -606,32 +701,34 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
   }
   /* короткий импульс к карточке при отчёте */
   .td.is-inview .td__src.is-report {
-    animation: td-report var(--dur-slow) var(--ease-soft);
+    animation: td-report 720ms var(--ease-soft);
   }
   @keyframes td-report {
     40% {
-      transform: translateY(-2px) scale(1.015);
+      transform: translateY(-3px) scale(1.02);
     }
   }
   /* молчащая нода (Spamhaus) */
   .td__src.is-silent-on {
-    opacity: 0.5;
-    border-color: color-mix(in srgb, var(--td-err) 36%, transparent);
+    opacity: 0.6;
+    border-color: color-mix(in srgb, var(--td-err) 40%, transparent);
     background: transparent;
   }
 
   .td__src-dot {
-    width: 9px;
-    height: 9px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     background: var(--text-faint);
     transition:
       background-color var(--dur-med) var(--ease-standard),
-      transform var(--dur-med) var(--ease-spring);
+      transform var(--dur-med) var(--ease-spring),
+      box-shadow var(--dur-med) var(--ease-standard);
   }
   .td__src.is-on .td__src-dot {
     background: var(--td-accent);
-    transform: scale(1.2);
+    transform: scale(1.25);
+    box-shadow: 0 0 0 4px var(--td-faint);
   }
   .td__src.is-silent-on .td__src-dot {
     background: transparent;
@@ -641,24 +738,24 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
   .td__src-body {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 2px;
     min-width: 0;
   }
   .td__src-label {
     font-family: var(--font-stack-display);
-    font-weight: var(--fw-medium);
-    font-size: var(--fs-13);
+    font-weight: var(--fw-semibold);
+    font-size: var(--fs-14);
     color: var(--text);
   }
   .td__src-via {
-    font-size: var(--fs-10);
-    color: var(--text-faint);
-    letter-spacing: var(--ls-wide);
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+    letter-spacing: var(--ls-snug);
     overflow-wrap: anywhere;
   }
   .td__src-state {
     justify-self: end;
-    font-size: var(--fs-10);
+    font-size: var(--fs-11);
     color: var(--td-accent);
     opacity: 0;
     transition: opacity var(--dur-med) var(--ease-standard);
@@ -670,7 +767,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
   .td__src.is-silent-on .td__src-state {
     color: var(--td-warn);
   }
-  /* прокси-режим: HTTP-ноды помечены, в blocked — гаснут */
+  /* прокси-режим blocked: HTTP-ноды гаснут */
   .td__stage[data-mode="blocked"] .td__src[data-http="1"] {
     opacity: 0.4;
     border-color: color-mix(in srgb, var(--td-err) 30%, transparent);
@@ -681,11 +778,13 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: var(--sp-3);
-    padding: var(--sp-4);
-    border: var(--bw-thin) solid var(--td-line);
+    gap: var(--sp-4);
+    padding: var(--sp-5);
+    border: var(--bw-med) solid var(--td-line);
     border-radius: var(--r-md);
-    background: var(--bg-deep);
+    background:
+      radial-gradient(140% 90% at 50% 0%, var(--td-faint), transparent 70%), var(--bg-deep);
+    box-shadow: var(--shadow-3);
     overflow: hidden;
   }
   /* тонкий «скан»-блик во время трассировки */
@@ -700,19 +799,19 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     transform: translateY(0);
   }
   .td.is-inview .td__stage[data-state="tracing"] .td__card::after {
-    animation: td-scan 1.1s var(--ease-standard) infinite;
+    animation: td-scan 1.7s var(--ease-standard) infinite;
   }
   @keyframes td-scan {
     0% {
       opacity: 0;
       transform: translateY(0);
     }
-    20% {
-      opacity: 0.8;
+    18% {
+      opacity: 0.7;
     }
     100% {
       opacity: 0;
-      transform: translateY(220px);
+      transform: translateY(280px);
     }
   }
 
@@ -731,7 +830,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     font-size: var(--fs-10);
   }
   .td__card-ip {
-    font-size: var(--fs-22);
+    font-size: var(--fs-24);
     font-weight: var(--fw-semibold);
     color: var(--text);
     letter-spacing: var(--ls-tight);
@@ -740,25 +839,30 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     margin-left: auto;
     font-size: var(--fs-11);
     color: var(--text-muted);
-    padding: 2px var(--sp-2);
+    padding: 3px var(--sp-2);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-pill);
     white-space: nowrap;
   }
+  .td__card-status.is-scan {
+    color: var(--td-accent);
+    border-color: var(--td-line);
+  }
   .td__card-status.is-done {
     color: var(--td-accent);
     border-color: var(--td-line);
+    background: var(--td-faint);
   }
 
   .td__fields {
     display: grid;
     grid-template-columns: 1fr;
-    gap: var(--sp-2);
+    gap: var(--sp-3);
     margin: 0;
   }
   .td__field {
     display: grid;
-    grid-template-columns: minmax(72px, auto) minmax(0, 1fr);
+    grid-template-columns: minmax(80px, auto) minmax(0, 1fr);
     align-items: baseline;
     gap: var(--sp-3);
   }
@@ -771,7 +875,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
   .td__field-v {
     margin: 0;
     min-width: 0;
-    font-size: var(--fs-14);
+    font-size: var(--fs-15);
     color: var(--text-faint);
     overflow-wrap: anywhere;
     transition: color var(--dur-med) var(--ease-standard);
@@ -786,9 +890,10 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
   .td__cc {
     display: inline-block;
     margin-right: var(--sp-2);
-    padding: 0 var(--sp-1);
+    padding: 1px var(--sp-2);
     border: var(--bw-thin) solid var(--td-line);
     border-radius: var(--r-xs);
+    background: var(--td-faint);
     font-family: var(--font-stack-display);
     font-size: var(--fs-11);
     font-weight: var(--fw-semibold);
@@ -805,16 +910,18 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     display: flex;
     flex-direction: column;
     gap: var(--sp-2);
-    padding: var(--sp-3);
+    padding: var(--sp-4);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-sm);
-    background: color-mix(in srgb, var(--surface) 40%, transparent);
+    background: color-mix(in srgb, var(--surface) 50%, transparent);
   }
   .td__threat[data-band="high"] {
     --bandc: var(--td-err);
+    border-color: color-mix(in srgb, var(--td-err) 38%, transparent);
   }
   .td__threat[data-band="mid"] {
     --bandc: var(--td-warn);
+    border-color: color-mix(in srgb, var(--td-warn) 34%, transparent);
   }
   .td__threat[data-band="low"] {
     --bandc: var(--td-warn);
@@ -828,29 +935,33 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     gap: var(--sp-2) var(--sp-3);
   }
   .td__threat-cap {
-    color: var(--text-muted);
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: var(--ls-wide);
   }
   .td__threat-score {
     margin-left: auto;
-    font-size: var(--fs-18);
-    font-weight: var(--fw-semibold);
+    font-size: var(--fs-20);
+    font-weight: var(--fw-bold);
     color: var(--bandc);
     font-variant-numeric: tabular-nums;
   }
   .td__threat-verdict {
-    font-size: var(--fs-11);
-    font-weight: var(--fw-medium);
+    font-size: var(--fs-12);
+    font-weight: var(--fw-semibold);
     color: var(--bandc);
-    padding: 2px var(--sp-2);
-    border: var(--bw-thin) solid color-mix(in srgb, var(--bandc) 42%, transparent);
+    padding: 3px var(--sp-3);
+    border: var(--bw-thin) solid color-mix(in srgb, var(--bandc) 46%, transparent);
     border-radius: var(--r-pill);
+    background: color-mix(in srgb, var(--bandc) 12%, transparent);
     white-space: nowrap;
   }
   .td__threat-verdict[hidden] {
     display: none;
   }
   .td__gauge {
-    height: 8px;
+    height: 10px;
     border-radius: var(--r-pill);
     background: var(--surface);
     border: var(--bw-thin) solid var(--border);
@@ -863,7 +974,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     background: var(--bandc);
     transform: scaleX(var(--score, 0));
     transform-origin: left center;
-    transition: transform var(--dur-slower) var(--ease-soft);
+    transition: transform 1.1s var(--ease-soft);
   }
 
   /* ---------- футер карточки ---------- */
@@ -871,7 +982,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: var(--sp-2) var(--sp-3);
+    gap: var(--sp-3);
   }
   .td__trace {
     display: inline-flex;
@@ -884,7 +995,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     background: var(--td-soft);
     color: var(--text);
     font-family: var(--font-stack-display);
-    font-size: var(--fs-14);
+    font-size: var(--fs-15);
     font-weight: var(--fw-medium);
     cursor: pointer;
     transition:
@@ -894,6 +1005,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
   }
   .td__trace:hover {
     border-color: var(--td-accent);
+    background: color-mix(in srgb, var(--td-accent) 20%, transparent);
   }
   .td__trace:active {
     transform: scale(0.96);
@@ -921,7 +1033,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     border-radius: 50%;
   }
   .td.is-inview .td__stage[data-state="tracing"] .td__trace-glyph {
-    animation: td-spin 700ms linear infinite;
+    animation: td-spin 720ms linear infinite;
   }
   @keyframes td-spin {
     to {
@@ -929,33 +1041,58 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     }
   }
   .td__note {
-    flex: 1 1 200px;
+    flex: 1 1 220px;
     min-width: 0;
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     color: var(--text-secondary);
     line-height: var(--lh-snug);
   }
 
   /* ---------- подсказка по источнику ---------- */
   .td__hint {
-    min-height: 1.4em;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--sp-2);
     font-size: var(--fs-13);
-    color: var(--text-muted);
+    color: var(--text-secondary);
     line-height: var(--lh-snug);
-    opacity: 0;
-    transition: opacity var(--dur-med) var(--ease-standard);
   }
-  .td__hint.is-on {
-    opacity: 1;
+  .td__hint-ic {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    border-radius: 50%;
+    border: var(--bw-thin) solid var(--td-line);
+    color: var(--td-accent);
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-11);
+    font-style: italic;
+    font-weight: var(--fw-semibold);
   }
 
   /* ---------- экспорт ---------- */
   .td__export {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-2);
+    gap: var(--sp-3);
+  }
+  .td__export-head {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
   .td__export-cap {
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-semibold);
+    font-size: var(--fs-16);
+    color: var(--text);
+  }
+  .td__export-sub {
+    font-size: var(--fs-13);
     color: var(--text-muted);
   }
   .td__export-chips {
@@ -965,7 +1102,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
   }
   .td__fmt {
     min-height: var(--tap-min);
-    padding: var(--sp-2) var(--sp-3);
+    padding: var(--sp-2) var(--sp-4);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-pill);
     background: var(--surface);
@@ -990,22 +1127,71 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     background: var(--td-soft);
   }
   .td__fmt .mono {
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     color: var(--text);
     letter-spacing: var(--ls-wide);
   }
-  .td__export-preview {
-    margin: 0;
-    min-height: 2.4em;
-    padding: var(--sp-3);
+  /* файл-отчёт */
+  .td__file {
     border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-sm);
+    border-radius: var(--r-md);
+    overflow: hidden;
     background: var(--bg-deep);
+  }
+  .td__file-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
+    border-bottom: var(--bw-thin) solid var(--border);
+    background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  }
+  .td__file-dots {
+    display: inline-flex;
+    gap: 5px;
+    flex: none;
+  }
+  .td__file-dots i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--surface-3);
+    border: var(--bw-thin) solid var(--border);
+  }
+  .td__file-dots i:first-child {
+    background: var(--td-faint);
+    border-color: var(--td-line);
+  }
+  .td__file-name {
+    font-size: var(--fs-12);
+    color: var(--td-accent);
+    flex: none;
+  }
+  .td__file-note {
+    margin-left: auto;
     font-size: var(--fs-11);
-    line-height: var(--lh-snug);
+    color: var(--text-muted);
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+  .td__file-body {
+    margin: 0;
+    padding: var(--sp-4);
+    font-size: var(--fs-12);
+    line-height: 1.7;
     color: var(--text-secondary);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+    min-height: 7em;
+  }
+  .td__file-body :global(.td-k) {
+    color: var(--text-muted);
+  }
+  .td__file-body :global(.td-v) {
+    color: var(--text);
+  }
+  .td__file-body :global(.td-accent) {
+    color: var(--td-accent);
   }
 
   /* ---------- под капотом ---------- */
@@ -1013,6 +1199,8 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     display: flex;
     flex-direction: column;
     gap: var(--sp-3);
+    padding-top: var(--sp-2);
+    border-top: var(--bw-thin) solid var(--border);
   }
   .td__under-toggle {
     align-self: flex-start;
@@ -1023,26 +1211,36 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     background: transparent;
     border: 0;
     cursor: pointer;
-    color: var(--text-muted);
-    font-family: var(--font-stack-display);
-    font-size: var(--fs-12);
-    font-weight: var(--fw-medium);
-    text-transform: uppercase;
-    letter-spacing: var(--ls-wide);
-  }
-  .td__under-toggle:hover {
     color: var(--text);
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-15);
+    font-weight: var(--fw-semibold);
+  }
+  .td__under-toggle:hover .td__under-label {
+    color: var(--td-accent);
   }
   .td__under-toggle:focus-visible {
     outline: var(--ring-width) solid var(--ring-focus);
     outline-offset: 3px;
     border-radius: var(--r-xs);
   }
+  .td__under-label {
+    transition: color var(--dur-fast) var(--ease-standard);
+  }
+  .td__under-teaser {
+    font-family: var(--font-stack-body);
+    font-weight: var(--fw-regular);
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+    padding-left: var(--sp-2);
+    border-left: var(--bw-thin) solid var(--border);
+  }
   .td__under-chevron {
     position: relative;
     flex: none;
-    width: 10px;
-    height: 10px;
+    width: 11px;
+    height: 11px;
+    color: var(--td-accent);
   }
   .td__under-chevron::before,
   .td__under-chevron::after {
@@ -1050,7 +1248,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     position: absolute;
     top: 50%;
     left: 0;
-    width: 10px;
+    width: 11px;
     height: 1.5px;
     border-radius: 1px;
     background: currentColor;
@@ -1074,9 +1272,9 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
   .td__under-inner {
     min-height: 0;
     overflow: hidden;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--sp-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
   }
   .td.is-enhanced .td__under-box {
     grid-template-rows: 0fr;
@@ -1089,27 +1287,49 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
       transition: grid-template-rows var(--dur-med) var(--ease-standard);
     }
   }
+  .td__under-intro {
+    font-size: var(--fs-14);
+    color: var(--text-secondary);
+    max-width: 64ch;
+  }
+  .td__panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-4);
+  }
 
   .td__panel {
     display: flex;
     flex-direction: column;
     gap: var(--sp-3);
-    padding: var(--sp-4);
-    border: var(--bw-thin) solid var(--border);
+    padding: var(--sp-5);
+    border: var(--bw-thin) solid var(--glass-edge);
     border-radius: var(--r-md);
-    background: var(--surface);
+    background:
+      radial-gradient(120% 90% at 0% 0%, var(--td-faint), transparent 55%), var(--surface);
     min-width: 0;
+  }
+  .td__panel-h {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
   }
   .td__panel-title {
     font-family: var(--font-stack-display);
-    font-weight: var(--fw-semibold);
-    font-size: var(--fs-15);
+    font-weight: var(--fw-bold);
+    font-size: var(--fs-17);
     color: var(--text);
+    letter-spacing: var(--ls-tight);
   }
-  .td__panel-note {
-    font-size: var(--fs-12);
+  .td__panel-desc {
+    font-size: var(--fs-13);
     color: var(--text-secondary);
     line-height: var(--lh-snug);
+  }
+  .td__panel-note {
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+    line-height: var(--lh-normal);
     overflow-wrap: anywhere;
   }
 
@@ -1122,7 +1342,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
   }
   .td__seg-btn {
     min-height: var(--tap-min);
-    padding: var(--sp-1) var(--sp-3);
+    padding: var(--sp-1) var(--sp-4);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-pill);
     background: var(--surface);
@@ -1145,8 +1365,12 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     background: var(--td-soft);
   }
   .td__break {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     min-height: var(--tap-min);
     padding: var(--sp-1) var(--sp-3);
+    margin-left: auto;
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-pill);
     background: transparent;
@@ -1159,73 +1383,120 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
       border-color var(--dur-fast) var(--ease-standard),
       opacity var(--dur-fast) var(--ease-standard);
   }
+  .td__break-ic {
+    font-size: var(--fs-12);
+  }
   .td__break:hover:not(:disabled) {
-    color: var(--text);
-    border-color: color-mix(in srgb, var(--td-err) 42%, transparent);
+    color: var(--td-err);
+    border-color: color-mix(in srgb, var(--td-err) 46%, transparent);
   }
   .td__break:disabled {
-    opacity: 0.35;
+    opacity: 0.32;
     cursor: not-allowed;
   }
   .td__pool {
     font-size: var(--fs-11);
     color: var(--text-faint);
-    letter-spacing: var(--ls-wide);
-    opacity: 0.4;
+    letter-spacing: var(--ls-snug);
+    opacity: 0.45;
     transition: opacity var(--dur-med) var(--ease-standard);
     overflow-wrap: anywhere;
   }
-  .td__proxy[data-mode="proxied"] .td__pool,
-  .td__proxy[data-mode="blocked"] .td__pool {
+  .td__panel--proxy[data-mode="proxied"] .td__pool,
+  .td__panel--proxy[data-mode="blocked"] .td__pool {
     opacity: 1;
+    color: var(--text-muted);
   }
   .td__routes {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-2);
+    gap: var(--sp-3);
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--bg-deep);
   }
   .td__route {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-1);
+    gap: var(--sp-2);
   }
   .td__route-cap {
     color: var(--text-muted);
-    font-size: var(--fs-10);
+    font-size: var(--fs-11);
     text-transform: uppercase;
     letter-spacing: var(--ls-wide);
+  }
+  .td__route[data-route="http"] .td__route-cap {
+    color: var(--td-accent);
   }
   .td__route-pills {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--sp-1);
+    gap: var(--sp-2);
   }
   .td__pill {
-    font-size: var(--fs-11);
-    color: var(--text-muted);
-    padding: 2px var(--sp-2);
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
+    padding: 3px var(--sp-3);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-pill);
+    background: var(--surface);
     transition:
       color var(--dur-med) var(--ease-standard),
       border-color var(--dur-med) var(--ease-standard),
       opacity var(--dur-med) var(--ease-standard);
   }
-  .td__pill--dns {
-    color: var(--text-secondary);
-  }
   /* proxied: HTTP-пилюли подсвечены акцентом */
-  .td__proxy[data-mode="proxied"] .td__pill[data-td-http-pill] {
+  .td__panel--proxy[data-mode="proxied"] .td__pill[data-td-http-pill] {
     color: var(--td-accent);
     border-color: var(--td-line);
+    background: var(--td-soft);
   }
   /* blocked: HTTP заблокированы, DNS идут */
-  .td__proxy[data-mode="blocked"] .td__pill[data-td-http-pill] {
+  .td__panel--proxy[data-mode="blocked"] .td__pill[data-td-http-pill] {
     color: var(--td-err);
-    border-color: color-mix(in srgb, var(--td-err) 42%, transparent);
-    opacity: 0.6;
+    border-color: color-mix(in srgb, var(--td-err) 44%, transparent);
+    opacity: 0.7;
     text-decoration: line-through;
     text-decoration-color: color-mix(in srgb, var(--td-err) 60%, transparent);
+  }
+  /* вердикт */
+  .td__verdict-box {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--sp-3);
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-left: 3px solid var(--text-muted);
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+  }
+  .td__panel--proxy[data-mode="proxied"] .td__verdict-box {
+    border-left-color: var(--td-accent);
+  }
+  .td__panel--proxy[data-mode="blocked"] .td__verdict-box {
+    border-left-color: var(--td-err);
+    background: color-mix(in srgb, var(--td-err) 8%, var(--surface-2));
+  }
+  .td__verdict-dot {
+    flex: none;
+    width: 9px;
+    height: 9px;
+    margin-top: 5px;
+    border-radius: 50%;
+    background: var(--text-muted);
+  }
+  .td__panel--proxy[data-mode="proxied"] .td__verdict-dot {
+    background: var(--td-accent);
+  }
+  .td__panel--proxy[data-mode="blocked"] .td__verdict-dot {
+    background: var(--td-err);
+  }
+  .td__verdict-text {
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+    line-height: var(--lh-snug);
   }
 
   /* скан списком */
@@ -1243,7 +1514,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     background: var(--td-soft);
     color: var(--text);
     font-family: var(--font-stack-display);
-    font-size: var(--fs-13);
+    font-size: var(--fs-14);
     font-weight: var(--fw-medium);
     cursor: pointer;
     transition:
@@ -1261,8 +1532,31 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     outline-offset: 2px;
   }
   .td__sem {
-    font-size: var(--fs-11);
+    font-size: var(--fs-12);
     color: var(--td-accent);
+  }
+  .td__bulk-table {
+    display: flex;
+    flex-direction: column;
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-sm);
+    overflow: hidden;
+  }
+  .td__bulk-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) auto minmax(64px, 1.2fr) auto;
+    align-items: center;
+    gap: var(--sp-2) var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
+    border-bottom: var(--bw-thin) solid var(--border);
+    background: var(--surface-2);
+    font-size: var(--fs-10);
+    text-transform: uppercase;
+    letter-spacing: var(--ls-wide);
+    color: var(--text-muted);
+  }
+  .td__bulk-head-threat {
+    grid-column: 3 / span 2;
   }
   .td__bulk-list {
     list-style: none;
@@ -1270,19 +1564,18 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--sp-1);
   }
   .td__bulk-row {
     display: grid;
-    grid-template-columns: minmax(0, 1.5fr) auto minmax(60px, 1.2fr) auto;
+    grid-template-columns: minmax(0, 1.5fr) auto minmax(64px, 1.2fr) auto;
     align-items: center;
     gap: var(--sp-2) var(--sp-3);
-    padding: var(--sp-2) var(--sp-3);
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-xs);
-    background: var(--surface-2);
+    padding: var(--sp-3);
     opacity: 0;
     transform: translate3d(-8px, 0, 0);
+  }
+  .td__bulk-row:nth-child(odd) {
+    background: color-mix(in srgb, var(--surface) 50%, transparent);
   }
   .td__bulk-row.is-in {
     opacity: 1;
@@ -1292,7 +1585,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
       transform var(--dur-med) var(--ease-soft);
   }
   .td__bulk-ip {
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     color: var(--text);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1303,7 +1596,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     color: var(--td-accent);
   }
   .td__bulk-bar {
-    height: 6px;
+    height: 8px;
     border-radius: var(--r-pill);
     background: var(--surface);
     border: var(--bw-thin) solid var(--border);
@@ -1321,12 +1614,18 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
   .td__bulk-row.is-in .td__bulk-fill {
     transform: scaleX(var(--score, 0));
   }
-  .td__bulk-fill[data-abuse="100"],
-  .td__bulk-fill[data-abuse="92"] {
+  .td__bulk-fill[data-band="high"] {
     background: var(--td-err);
   }
+  .td__bulk-fill[data-band="mid"] {
+    background: var(--td-warn);
+  }
+  .td__bulk-fill[data-band="low"] {
+    background: var(--td-accent);
+  }
   .td__bulk-num {
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
+    font-weight: var(--fw-semibold);
     color: var(--text);
     font-variant-numeric: tabular-nums;
     text-align: right;
@@ -1335,9 +1634,6 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
   /* ====================== Появление сцены ====================== */
   .td.is-inview .td__src {
     animation: td-rise var(--dur-slow) var(--ease-soft) both;
-  }
-  .td.is-inview .td__col--l .td__src {
-    animation-delay: calc(var(--i, 0) * 1ms);
   }
   @keyframes td-rise {
     from {
@@ -1349,10 +1645,10 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
   /* ====================== Адаптив ====================== */
   @media (min-width: 760px) {
     .td__stage {
-      grid-template-columns: minmax(0, 1fr) minmax(300px, 1.55fr) minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 1.7fr) minmax(0, 1fr);
       gap: var(--sp-4);
       align-items: center;
-      padding: var(--sp-5);
+      padding: var(--sp-6);
     }
     .td__col {
       display: flex;
@@ -1366,16 +1662,12 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     }
   }
 
-  @media (max-width: 759px) {
-    /* карточка во всю ширину, ноды — 2 колонки под ней */
-    .td__bulk-row {
-      grid-template-columns: minmax(0, 1.4fr) auto minmax(48px, 1fr) auto;
-    }
-  }
-
-  @media (max-width: 600px) {
-    .td__under-inner {
+  @media (max-width: 640px) {
+    .td__panels {
       grid-template-columns: 1fr;
+    }
+    .td__break {
+      margin-left: 0;
     }
   }
 
@@ -1423,9 +1715,17 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     const traceBtn = root.querySelector<HTMLButtonElement>("[data-td-trace]");
     const traceT = root.querySelector<HTMLElement>("[data-td-trace-t]");
     const noteEl = root.querySelector<HTMLElement>("[data-td-note]");
-    const hintEl = root.querySelector<HTMLElement>("[data-td-hint]");
+    const hintT = root.querySelector<HTMLElement>("[data-td-hint-t]");
 
     if (!stage || !ipEl) return;
+
+    // Темп анимации (мс). Намеренно неспешный — чтобы было видно, как каждый
+    // источник по очереди «отчитывается».
+    const START = 500;
+    const STEP = 540;
+    const REP = 640;
+    const SILENT = 1000;
+    const FINAL = 760;
 
     type Dos = {
       ip: string;
@@ -1480,7 +1780,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
       return { band: "clean", verdict: tr("низкий риск", "low risk") };
     };
 
-    // ---- значение поля карточки (country с бейджем cc, operator с ASN) ----
+    // ---- значение поля карточки ----
     const fieldValue = (id: string, d: Dos): string => {
       if (id === "country") {
         const city = d.city && d.city !== "—" ? ` · ${d.city}` : "";
@@ -1508,7 +1808,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
       if (on) {
         const b = band(current.abuse);
         threatEl.dataset.band = b.band;
-        scoreEl.textContent = String(current.abuse);
+        scoreEl.textContent = `${current.abuse} / 100`;
         verdictEl.textContent = b.verdict;
         verdictEl.hidden = false;
         gaugeEl.style.setProperty("--score", (current.abuse / 100).toFixed(2));
@@ -1539,7 +1839,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
       ipEl.textContent = current.ip;
       if (statusEl) {
         statusEl.textContent = tr("не собрано", "not assembled");
-        statusEl.classList.remove("is-done");
+        statusEl.classList.remove("is-done", "is-scan");
       }
       fieldEls.forEach((f) => setField(f.dataset.tdField ?? "", false));
       setThreat(false);
@@ -1552,6 +1852,11 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
       tracing = state === "running";
       if (traceT) traceT.textContent = state === "running" ? tr("Слежу…", "Tracing…") : tr("Проследить заново", "Trace again");
       if (traceBtn) traceBtn.disabled = state === "running";
+      if (statusEl && state === "running") {
+        statusEl.textContent = tr("сканирую…", "scanning…");
+        statusEl.classList.add("is-scan");
+        statusEl.classList.remove("is-done");
+      }
     };
 
     // порядок отчёта источников (последний — молчащий Spamhaus)
@@ -1571,14 +1876,13 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
       setTraceUI("running");
 
       const blocked = stage.dataset.mode === "blocked";
-      let ms = 0;
+      let ms = START;
       let answered = 0;
 
       order.forEach((id) => {
         const silent = id === "dnsbl";
-        // в blocked-режиме HTTP-источники не отвечают (guard приватности)
         const isHttp = srcEls.find((s) => s.dataset.tdSrc === id)?.dataset.http === "1";
-        ms += silent ? 620 : 220;
+        ms += silent ? SILENT : id === "rep" ? REP : STEP;
         later(() => {
           if (silent) {
             lightSrc(id, "silent");
@@ -1599,8 +1903,9 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
       later(() => {
         setTraceUI("idle");
         if (statusEl) {
-          statusEl.textContent = tr(`${answered}/6 источников`, `${answered}/6 sources`);
+          statusEl.textContent = tr(`собрано · ${answered}/6`, `assembled · ${answered}/6`);
           statusEl.classList.add("is-done");
+          statusEl.classList.remove("is-scan");
         }
         if (noteEl) {
           noteEl.textContent = blocked
@@ -1613,7 +1918,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
                 "Done: 5 of 6 answered. Spamhaus is silent, but via asyncio.gather(return_exceptions=True) that's a value, not a crash — the dossier is assembled.",
               );
         }
-      }, D(ms + 320));
+      }, D(ms + FINAL));
     };
 
     // мгновенное финальное состояние (reduced / офскрин-старт)
@@ -1635,8 +1940,9 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
         answered += 1;
       });
       if (statusEl) {
-        statusEl.textContent = tr(`${answered}/6 источников`, `${answered}/6 sources`);
+        statusEl.textContent = tr(`собрано · ${answered}/6`, `assembled · ${answered}/6`);
         statusEl.classList.add("is-done");
+        statusEl.classList.remove("is-scan");
       }
       setTraceUI("idle");
     };
@@ -1663,41 +1969,85 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     chips.forEach((c, i) => c.addEventListener("click", () => selectChip(i, true)));
 
     // ---- тап по источнику: подсказка ----
+    const srcDefaultHint = hintT?.textContent ?? "";
     srcEls.forEach((s) => {
       s.addEventListener("click", () => {
         const text = s.dataset.hint ?? "";
-        if (!hintEl) return;
-        const same = hintEl.textContent === text && hintEl.classList.contains("is-on");
-        if (same) {
-          hintEl.classList.remove("is-on");
-        } else {
-          hintEl.textContent = text;
-          hintEl.classList.add("is-on");
-        }
+        if (!hintT) return;
+        const same = hintT.textContent === text;
+        hintT.textContent = same ? srcDefaultHint : text;
       });
     });
 
     // ---- экспорт ----
     const fmtChips = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-td-fmt]"));
     const exportPre = root.querySelector<HTMLElement>("[data-td-export-preview]");
+    const fileNameEl = root.querySelector<HTMLElement>("[data-td-file]");
+    const fileNoteEl = root.querySelector<HTMLElement>("[data-td-file-note]");
     const asnNum = (asn: string): string => asn.replace(/\D/g, "");
+    const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
     const buildPreview = (fmt: string, d: Dos): string => {
-      const host = d.host && d.host !== "—" ? d.host : "";
-      if (fmt === "TXT") return `${d.ip}   ${d.cc}  ${d.asn}  ${d.net}  abuse=${d.abuse}  host=${host || "-"}`;
-      if (fmt === "JSON")
-        return `{\n  "ip": "${d.ip}",\n  "country": "${d.cc}",\n  "asn": ${asnNum(d.asn)},\n  "network": "${d.net}",\n  "abuse": ${d.abuse}\n}`;
-      if (fmt === "CSV") return `ip,country,asn,network,abuse,host\n${d.ip},${d.cc},${asnNum(d.asn)},${d.net},${d.abuse},${host}`;
-      return `<tr data-ip="${d.ip}">\n  <td>${d.ip}</td><td>${d.cc}</td><td>${d.asn}</td>\n  <td>${d.net}</td><td>${d.abuse}</td>\n</tr>  ${tr("<!-- сортируется по клику на столбец -->", "<!-- sortable on column click -->")}`;
+      const host = d.host && d.host !== "—" ? d.host : tr("нет PTR", "no PTR");
+      const cityPart = d.city && d.city !== "—" ? `, ${d.city}` : "";
+      if (fmt === "TXT") {
+        const L = isEn
+          ? { ip: "IP", country: "Country", asn: "ASN", net: "Network", host: "Hostname", threat: "Threat" }
+          : { ip: "IP", country: "Страна", asn: "ASN", net: "Сеть", host: "Хост", threat: "Угроза" };
+        const pad = (k: string): string => (k + ":").padEnd(9, " ");
+        const rows = [
+          `<span class="td-k">${pad(L.ip)}</span><span class="td-v">${d.ip}</span>`,
+          `<span class="td-k">${pad(L.country)}</span><span class="td-v">${d.cc} — ${esc(d.country)}${esc(cityPart)}</span>`,
+          `<span class="td-k">${pad(L.asn)}</span><span class="td-v">${d.asn} — ${esc(d.op)}</span>`,
+          `<span class="td-k">${pad(L.net)}</span><span class="td-v">${d.net}</span>`,
+          `<span class="td-k">${pad(L.host)}</span><span class="td-v">${esc(host)}</span>`,
+          `<span class="td-k">${pad(L.threat)}</span><span class="td-accent">${d.abuse} / 100</span>`,
+        ];
+        return rows.join("\n");
+      }
+      if (fmt === "JSON") {
+        return [
+          "{",
+          `  <span class="td-k">"ip"</span>: <span class="td-v">"${d.ip}"</span>,`,
+          `  <span class="td-k">"country"</span>: <span class="td-v">"${d.cc}"</span>,`,
+          `  <span class="td-k">"asn"</span>: <span class="td-v">${asnNum(d.asn)}</span>,`,
+          `  <span class="td-k">"network"</span>: <span class="td-v">"${d.net}"</span>,`,
+          `  <span class="td-k">"hostname"</span>: <span class="td-v">"${esc(host)}"</span>,`,
+          `  <span class="td-k">"abuse"</span>: <span class="td-accent">${d.abuse}</span>`,
+          "}",
+        ].join("\n");
+      }
+      if (fmt === "CSV") {
+        return [
+          `<span class="td-k">ip,country,asn,network,hostname,abuse</span>`,
+          `${d.ip},${d.cc},${asnNum(d.asn)},${d.net},${esc(host)},<span class="td-accent">${d.abuse}</span>`,
+        ].join("\n");
+      }
+      // HTML
+      return [
+        `<span class="td-k">&lt;tr&gt;</span>`,
+        `  &lt;td&gt;<span class="td-v">${d.ip}</span>&lt;/td&gt;`,
+        `  &lt;td&gt;<span class="td-v">${d.cc}</span>&lt;/td&gt;`,
+        `  &lt;td&gt;<span class="td-v">${d.asn}</span>&lt;/td&gt;`,
+        `  &lt;td&gt;<span class="td-v">${d.net}</span>&lt;/td&gt;`,
+        `  &lt;td class="abuse"&gt;<span class="td-accent">${d.abuse}</span>&lt;/td&gt;`,
+        `<span class="td-k">&lt;/tr&gt;</span>`,
+      ].join("\n");
     };
+
     let curFmt = "TXT";
+    let curExt = "txt";
     const updateExport = (): void => {
       if (!exportPre) return;
+      exportPre.innerHTML = buildPreview(curFmt, current);
+      if (fileNameEl) fileNameEl.textContent = `results.${curExt}`;
       const note = fmtChips.find((c) => c.dataset.tdFmt === curFmt)?.dataset.note ?? "";
-      exportPre.textContent = `# ${curFmt} — ${note}\n${buildPreview(curFmt, current)}`;
+      if (fileNoteEl) fileNoteEl.textContent = note;
     };
     fmtChips.forEach((c) => {
       c.addEventListener("click", () => {
         curFmt = c.dataset.tdFmt ?? "TXT";
+        curExt = c.dataset.ext ?? "txt";
         fmtChips.forEach((x) => {
           const on = x === c;
           x.classList.toggle("is-on", on);
@@ -1708,10 +2058,10 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     });
     updateExport();
 
-    // ---- под капотом: раскрытие ----
+    // ---- под капотом: раскрытие (по умолчанию открыто) ----
     root.classList.add("is-enhanced");
     const underToggle = root.querySelector<HTMLButtonElement>("[data-td-under-toggle]");
-    let underOpen = false;
+    let underOpen = true;
     const syncUnder = (): void => {
       root.classList.toggle("is-under-open", underOpen);
       underToggle?.setAttribute("aria-expanded", underOpen ? "true" : "false");
@@ -1747,8 +2097,8 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
                   "Requests go through an HTTP/SOCKS pool, credentials masked. The real IP is hidden.",
                 )
               : tr(
-                  "Коннектор не собрался. HTTP-источники не уходят в прямое соединение — реальный IP не утёк.",
-                  "The connector failed to build. HTTP sources don't fall back to direct — the real IP never leaked.",
+                  "Коннектор не собрался. HTTP-источники не уходят в прямое соединение — реальный IP не утёк. Идут только DNS и RDAP.",
+                  "The connector failed to build. HTTP sources don't fall back to direct — the real IP never leaked. Only DNS and RDAP run.",
                 );
       }
     };
@@ -1774,7 +2124,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
       if (bulkNote) bulkNote.textContent = "";
       if (bulkSem) bulkSem.textContent = tr(`семафор: до ${SEM} одновременно`, `semaphore: up to ${SEM} at once`);
       bulkRows.forEach((r, i) => {
-        later(() => r.classList.add("is-in"), D(260) * (i + 1));
+        later(() => r.classList.add("is-in"), D(420) * (i + 1));
       });
       later(
         () => {
@@ -1784,7 +2134,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
               "asyncio.gather queries 6 sources per address, the semaphore caps the load. A failing source never breaks the scan — the worst offenders surface straight from the logs. Sorted by threat level.",
             );
         },
-        D(260) * (bulkRows.length + 1),
+        D(420) * (bulkRows.length + 1),
       );
     };
     const bulkInstant = (): void => {
@@ -1800,7 +2150,6 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     };
 
     const onEnter = (): void => {
-      // автозапуск трассировки при первом показе
       if (reduced) {
         fillInstant();
         bulkInstant();
