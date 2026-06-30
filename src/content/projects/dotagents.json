@@ -47,31 +47,31 @@
     {
       "value": "local",
       "label": {
-        "ru": "код не уходит наружу",
-        "en": "code stays local"
+        "ru": "код не уходит с машины",
+        "en": "code never leaves the machine"
       }
     },
     {
       "value": "3",
       "label": {
-        "ru": "AI-агента",
-        "en": "AI agents"
+        "ru": "AI-агента: Cursor · Claude Code · Antigravity",
+        "en": "AI agents: Cursor · Claude Code · Antigravity"
       }
     },
     {
-      "value": "HMAC",
+      "value": "fail-closed",
       "label": {
-        "ru": "безопасные callbacks",
-        "en": "secure callbacks"
+        "ru": "тишина = deny по умолчанию",
+        "en": "silence = deny by default"
       }
     }
   ],
   "overview": {
     "ru": [
-      "Локальный security-first демон, который превращает Telegram в пульт управления AI-агентами в IDE (Cursor, Claude Code, Antigravity): live-статус, approve/deny рискованных вызовов и follow-up - с телефона. Канал управления уходит в Telegram, а код, approvals и transcript физически не покидают машину."
+      "Cursor или Claude Code работает на твоей машине — DotAgents стоит рядом и отдаёт тебе контроль через Telegram. Живое сообщение с тем, что агент делает прямо сейчас. Запрос на approve, когда он тянется к рискованной команде. Follow-up в очередь, пока ты в дороге. Всё локально: облачного релея нет, код с машины не уходит."
     ],
     "en": [
-      "A local, security-first daemon that turns Telegram into a remote control for AI coding agents in your IDE (Cursor, Claude Code, Antigravity): live status, approve/deny for risky calls, and follow-ups - from your phone. The control channel goes to Telegram, while code, approvals, and transcript never leave the machine."
+      "Cursor or Claude Code runs on your machine — DotAgents sits beside it and hands you control through Telegram. A live message showing what the agent is doing right now. An approve request the moment it reaches for a risky command. A follow-up queued while you're away. All local: no cloud relay, code never leaves the machine."
     ]
   },
   "metrics": [
@@ -293,12 +293,12 @@
     {
       "icon": "telegram",
       "title": {
-        "ru": "Live-контроль в Telegram",
-        "en": "Live control in Telegram"
+        "ru": "Live-статус в Telegram",
+        "en": "Live status in Telegram"
       },
       "description": {
-        "ru": "Один редактируемый статус на сессию: последний инструмент, изменённые файлы, ответ агента и быстрые действия.",
-        "en": "One edited live status per session: latest tool, changed files, the agent's response, and quick actions."
+        "ru": "Пока агент работает, в чате живёт одно редактируемое сообщение: что он делает прямо сейчас, какие файлы трогает, последний ответ. Стоп-кнопка — там же. Не надо открывать IDE.",
+        "en": "While the agent runs, one live message stays updated in the chat: what it's doing right now, which files it's touching, the latest reply. A stop button is right there — no IDE needed."
       }
     },
     {
@@ -308,8 +308,8 @@
         "en": "Approve / deny"
       },
       "description": {
-        "ru": "Shell- и MCP-вызовы ждут решения владельца (таймаут fail-closed → deny); три режима remote, readonly и standby меняют политику на лету.",
-        "en": "Shell and MCP calls wait for the owner's decision (timeout fails closed to deny); three modes - remote, readonly, standby - switch the policy on the fly."
+        "ru": "Агент занёс руку над рискованной командой — хук останавливает выполнение и присылает запрос в Telegram. Allow — запускается, Deny — нет. Молчание — deny автоматически: fail-closed по умолчанию.",
+        "en": "The agent is about to run a risky command — the hook freezes it and sends a request to Telegram. Allow it and it runs, deny it and it doesn't. Silence auto-denies after timeout: fail-closed by default."
       }
     },
     {
@@ -319,8 +319,8 @@
         "en": "Follow-ups and tail"
       },
       "description": {
-        "ru": "Команда в очередь FIFO, которая прилетит агенту, когда он остановится; чтение хвоста transcript прямо из чата.",
-        "en": "A FIFO follow-up that fires when the agent stops; read the tail of the transcript straight from the chat."
+        "ru": "Отправь следующую задачу прямо из чата — она встанет в FIFO-очередь и прилетит агенту, как только он остановится. Или прочитай хвост транскрипта: последние мысли и инструменты без IDE.",
+        "en": "Send the next task from the chat — it queues and reaches the agent the moment it stops. Or read the transcript tail right in the conversation: the latest thoughts and tool calls, no IDE."
       }
     },
     {
@@ -330,8 +330,8 @@
         "en": "Security-first"
       },
       "description": {
-        "ru": "Passcode-auth, whitelist владельца, argon2id, HMAC+nonce callbacks, audit-log и API только на 127.0.0.1.",
-        "en": "Passcode auth, owner whitelist, argon2id, HMAC+nonce callbacks, an audit log, and an API bound to 127.0.0.1 only."
+        "ru": "Argon2id на входе, HMAC+nonce на каждом callback, whitelist владельца, полный audit-log, API только на 127.0.0.1. Replay-атака и подделка callback не пройдут.",
+        "en": "Argon2id at the gate, HMAC+nonce on every callback, owner whitelist, full audit log, and an API bound to 127.0.0.1 only. Replay attacks and callback forgery don't get through."
       }
     }
   ],

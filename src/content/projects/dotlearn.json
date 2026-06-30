@@ -14,8 +14,8 @@
     "en": "A learning workbench that AI extends on its own - content and interactivity alike."
   },
   "description": {
-    "ru": "Платформа обучения программированию (local-first), где каждая тема - не строка в базе, а типобезопасный код-модуль: теория в MDX, упражнения в YAML, опциональный кастомный sandbox. Поэтому AI-агент может вводить и новый контент, и новые виды интерактивности. Скилл lesson-forge генерирует темы, валидирует их против Zod-контракта и прогоняет решения в браузерном sandbox. Код запускается прямо в браузере: SQL через sql.js, Python через Pyodide.",
-    "en": "A local-first platform for learning to code, where each topic is not a database row but a type-safe code module: theory in MDX, exercises in YAML, an optional custom sandbox. That's why an AI agent can introduce both new content and new kinds of interactivity. The lesson-forge skill generates topics, validates them against a Zod contract, and runs solutions in a browser sandbox. Code executes right in the browser: SQL via sql.js, Python via Pyodide."
+    "ru": "Платформа для обучения коду, где AI-агент генерирует темы на любой запрос и упаковывает их в типобезопасные код-модули. Запускается локально - сервер и аккаунт не нужны. Код учащегося исполняется в изолированном браузерном sandbox с заблокированными сетевыми API: написанное никуда не передаётся, прогресс хранится в браузере.",
+    "en": "A coding education platform where an AI agent generates topics on any subject and packages them as type-safe code modules. Runs locally - no server, no account required. Learner code executes in an isolated browser sandbox with network APIs blocked: nothing you write is sent anywhere, and progress lives in the browser."
   },
   "stack": [
     "TypeScript 5",
@@ -48,7 +48,7 @@
   "accent": "var(--accent-learn)",
   "highlights": [
     {
-      "value": "22",
+      "value": "34",
       "label": {
         "ru": "темы в каталоге",
         "en": "topics in the catalog"
@@ -71,10 +71,12 @@
   ],
   "overview": {
     "ru": [
-      "Платформа обучения коду, где каждая тема - не строка в базе, а типобезопасный код-модуль. Поэтому AI-агент сам добавляет и новый контент, и новые виды интерактива, а код учащегося исполняется прямо в браузере: SQL через sql.js, Python через Pyodide, без сервера."
+      "lesson-forge принимает запрос на тему, проверяет конфликты с каталогом и генерирует пакет: MDX-теория и YAML-задачи, прошедшие автоматическую валидацию в браузерном рантайме. Всё это коммитится в репо, а не записывается в базу - поэтому тему можно форкнуть, расширить или исправить обычным pull request.",
+      "Код выполняется в Web Worker, где при старте нейтрализуются 15 сетевых API: fetch, WebSocket, RTCPeerConnection, BroadcastChannel и другие. Написанный код не может ни отправить данные, ни открыть скрытый канал - это не политика, это архитектура. Прогресс, заметки, закладки и FSRS-карточки для интервального повторения живут в IndexedDB; бэкенд опционален, платформа ставится как PWA и работает офлайн. Из настроек: язык контента (RU/EN на лету), сложность упражнений, дневная цель, шрифт, размер текста и параметры Monaco-редактора."
     ],
     "en": [
-      "A platform for learning to code where every topic is not a database row but a type-safe code module. That lets an AI agent add both new content and new kinds of interactivity, while learner code runs right in the browser - SQL via sql.js, Python via Pyodide, with no server."
+      "lesson-forge takes a topic request, checks for conflicts with the existing catalog, and generates a package: MDX theory and YAML exercises that are automatically validated in the browser runtime. Everything gets committed to the repo, not written to a database - which means any topic can be forked, extended, or fixed with a normal pull request.",
+      "Code runs in a Web Worker where 15 network APIs are neutralized at startup: fetch, WebSocket, RTCPeerConnection, BroadcastChannel, and others. What you write cannot send data out or open a hidden channel - that's architecture, not policy. Progress, notes, bookmarks, and FSRS flashcards live in IndexedDB; the backend is optional and the platform installs as a PWA for full offline use. Configurable settings include content language (RU/EN on the fly), exercise difficulty, daily goal, font, text size, and Monaco editor preferences."
     ]
   },
   "metrics": [
@@ -86,17 +88,17 @@
       }
     },
     {
-      "value": "22",
+      "value": "34",
       "label": {
         "ru": "темы в каталоге",
         "en": "topics in the catalog"
       }
     },
     {
-      "value": "6",
+      "value": "7",
       "label": {
-        "ru": "типов упражнений · 2 рантайма в браузере",
-        "en": "exercise types · 2 in-browser runtimes"
+        "ru": "типов упражнений · sql.js + Pyodide в WASM",
+        "en": "exercise types · sql.js + Pyodide in WASM"
       }
     }
   ],
@@ -294,8 +296,8 @@
         "en": "Code in the browser"
       },
       "description": {
-        "ru": "sql.js и Pyodide в Web Workers, Monaco-редактор и шесть типов упражнений. Реальное исполнение без сервера.",
-        "en": "sql.js and Pyodide in Web Workers, a Monaco editor, and six exercise types. Real execution, no server."
+        "ru": "sql.js и Pyodide в Web Workers, Monaco-редактор и семь типов упражнений. Реальное исполнение без сервера.",
+        "en": "sql.js and Pyodide in Web Workers, a Monaco editor, and seven exercise types. Real execution, no server."
       }
     },
     {

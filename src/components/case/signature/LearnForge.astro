@@ -2,41 +2,41 @@
 /**
  * LearnForge.astro — сигнатурная визуализация .учёба (DotLearn).
  *
- * ПОЛНЫЙ РЕБИЛД (был отклонён нумерованный «степпер»). Теперь это ОДНА цельная
- * сцена-верстак: мини-IDE урока слева и ИИ-«кузница» (forge) справа. Метафора
- * взята из самой природы продукта — тема в .учёба это типобезопасный МОДУЛЬ-КОД
- * (theory.mdx + exercises.yaml), а не строка в БД; код реально исполняется в
- * браузере (sql.js / Pyodide в Web Worker); общий Zod-контракт валидирует форму.
+ * ПОЛНЫЙ РЕБИЛД (был «двухпанельный верстак», слишком плотный для новичка).
+ * Теперь это ОДНА связная история-навигатор «как живёт продукт» — 7 актов,
+ * по которым пользователь идёт пейджером ←/→ (или клавишами). В фокусе всегда
+ * один шаг, остальные приглушены; активная сцена сама проигрывает короткое демо.
+ * Цель — чтобы человек, мало знакомый с программированием, протыкал интерактив
+ * и понял продукт целиком: от `git clone` до экспорта прогресса.
  *
- * Что можно «потрогать» (живой верстак, не слайды):
- *  ЛЕВО — редактор урока:
- *   · вкладка рантайма SQL (sql.js) ↔ Python (Pyodide), оба «в Web Worker»;
- *   · 2-3 варианта запроса/решения (один верный, остальные — нет);
- *   · кнопка Run → мок-движок «исполняет» и рисует РЕЗУЛЬТАТ-ТАБЛИЦУ
- *     (верный вариант = совпало с gold, неверный = расхождение).
- *  ПРАВО — рейка ИИ-кузницы (forge):
- *   · чип-промпт «add a topic on SQL JOIN» + кнопка Forge → модуль темы
- *     собирается по файлам (topics/sql-joins/ → theory.mdx + exercises.yaml);
- *   · Zod-гейт контракта: тогл «лишнее поле» → REJECT (красный) / PASS (акцент),
- *     одна схема на web И api, типы через z.infer;
- *   · после PASS gold-решение «прогоняется в песочнице» и открывается PR;
- *   · чип BYOK: ключи к ИИ остаются в браузере.
+ * Акты (каждый опирается на реальные артефакты репозитория DotLearn):
+ *  1 · Клонируй и попроси — `git clone … && pnpm dev:web`, затем словами просишь
+ *      ИИ-агента: «добавь тему по SQL JOIN». Активируется скилл lesson-forge.
+ *  2 · Кузница кует урок — lesson-forge: план программы (ждёт твоё «ок») → manifest →
+ *      theory.mdx + exercises.yaml + flashcards. Тема собирается как набор файлов.
+ *  3 · Контракт проверяет форму — общий Zod-контракт (`topic.schema.ts`, .strict()):
+ *      тогл «лишнее поле» → REJECT; одна схема валидирует и темы, и заявки (web+api);
+ *      `pnpm validate` реально прогоняет gold-SQL в sql.js.
+ *  4 · Решаешь в браузере — мини-IDE: реальный урок JOIN (author/book) на sql.js и
+ *      python-function (Vector.length) на Pyodide, Run → исполнение в Web Worker.
+ *  5 · Интерактивная теория — не стена текста: живые визуализации (40+ компонентов)
+ *      + проверочный theory-quiz прямо в чтении, мгновенная проверка.
+ *  6 · Привычка и карточки — стрик + GitHub-heatmap в IndexedDB; FSRS-карточка с
+ *      переворотом и оценками «Снова/Трудно/Хорошо/Легко».
+ *  7 · Унеси с собой — экспорт/импорт всего прогресса одним JSON (бэкап и перенос).
  *
  * Бюджет анимации (строго): анимируются ТОЛЬКО transform и opacity. Постоянного
- * rAF нет — автосборка форджа ведётся цепочкой setTimeout, которые ЧИСТЯТСЯ за
- * экраном. Всё движение под классом .is-inview (IntersectionObserver на корне) и
- * гасится за экраном, на скрытой вкладке (visibilitychange) и на pagehide.
- * prefers-reduced-motion → финальный читаемый статичный кадр; все кнопки/тоглы
- * работают. Любая «infinite»-анимация скоупится под .lf.is-inview.
+ * rAF нет — демо ведётся цепочками setTimeout (массив timers), которые ЧИСТЯТСЯ
+ * за экраном / на скрытой вкладке (visibilitychange) / на pagehide. Всё движение
+ * под классом .is-inview (IntersectionObserver на корне) и гасится вне кадра.
+ * prefers-reduced-motion → финальный читаемый кадр; все кнопки/тоглы работают.
  *
- * Факты сверены по репозиторию DotLearn (точно):
- *  · тема = типобезопасный модуль-код: theory.mdx + exercises.yaml;
- *  · Zod-контракт в packages/contracts, общий для web+api, типы через z.infer;
- *  · sql.js + Pyodide исполняются в Web Workers;
- *  · 6 типов упражнений; 22 темы в каталоге;
- *  · local-first через import.meta.glob (бэкенд не требуется);
- *  · BYOK: OpenAI / Anthropic / Ollama / OpenRouter;
- *  · прогресс — ts-fsrs + IndexedDB.
+ * Факты сверены по репозиторию DotLearn (точно): 34 темы; 7 типов упражнений
+ * (theory-quiz, sql-query, python-function, javascript-function, fill-in-blanks,
+ * predict-output, git-challenge); рантаймы sql.js / Pyodide / JS / git в Web
+ * Workers; Zod-контракт в packages/contracts общий для web+api, типы через
+ * z.infer; lesson-forge — офлайн-скилл (.cursor/.claude), РАНТАЙМ-AI НЕТ;
+ * прогресс/heatmap/стрик — Dexie/IndexedDB; карточки — ts-fsrs; экспорт — version 4.
  */
 import type { Locale } from "../../../lib/i18n";
 
@@ -46,365 +46,610 @@ interface Props {
 const { locale } = Astro.props;
 
 type Bi = { ru: string; en: string };
-const t = (b: Bi) => b[locale];
+const t = (b: Bi): string => b[locale];
 
 const intro: Bi = {
-  ru: "Не слайды, а живой верстак урока .учёба: слева — мини-IDE, где код реально «исполняется» в браузере, справа — ИИ-кузница, что собирает новую тему как типобезопасный модуль и прогоняет её через общий Zod-контракт. Тыкайте: переключайте рантайм, меняйте вариант запроса, жмите Run и Forge.",
-  en: "Not slides but a live lesson workbench from .учёба: a mini-IDE on the left where code really “runs” in the browser, and an AI forge on the right that assembles a new topic as a type-safe module and pushes it through one shared Zod contract. Poke it: switch runtime, change the query variant, hit Run and Forge.",
+  ru: "Не слайды, а сквозной путь продукта: клонируешь репозиторий, просишь ИИ-агента собрать тему, смотришь как урок рождается из файлов, решаешь код прямо в браузере и копишь прогресс. Иди по шагам стрелками ←/→ — каждая сцена показывает себя сама.",
+  en: "Not slides but the product end to end: you clone the repo, ask an AI agent to forge a topic, watch a lesson born from files, solve code right in the browser and build up progress. Step through with ←/→ — each scene plays itself.",
 };
 
-/* ── ЛЕВО: рантаймы редактора (вкладки) ───────────────────────────────── */
-const runtimes: { id: string; lang: string; engine: Bi }[] = [
-  { id: "sql", lang: "sql.js", engine: { ru: "SQLite в WASM", en: "SQLite in WASM" } },
-  { id: "py", lang: "Pyodide", engine: { ru: "Python в WASM", en: "Python in WASM" } },
+const stats: { v: string; label: Bi; plain?: boolean }[] = [
+  { v: "34", label: { ru: "темы в каталоге", en: "topics" } },
+  { v: "7", label: { ru: "типов упражнений", en: "exercise types" } },
+  { v: "40+", label: { ru: "живых визуализаций", en: "live visualizations" } },
+  { v: "", label: { ru: "local-first · без бэкенда", en: "local-first · no backend" }, plain: true },
 ];
 
-/* Варианты решения: 0 — верный (совпадёт с gold), 1/2 — нет. */
-type Variant = {
-  label: Bi;
-  ok: boolean;
-  /* строки кода редактора (faux line numbers) */
-  sql: string[];
-  py: string[];
-  /* мок-результат прогона: колонки + строки */
-  cols: string[];
-  rows: string[][];
-  note: Bi;
-};
-
-const variants: Variant[] = [
+/* ── Акты истории (шапки для рейки и заголовка сцены) ─────────────────── */
+type Act = { id: string; eyebrow: Bi; title: Bi; lede: Bi };
+const acts: Act[] = [
   {
-    label: { ru: "INNER JOIN", en: "INNER JOIN" },
-    ok: true,
-    sql: [
-      "SELECT o.id, u.name",
-      "FROM orders o",
-      "JOIN users u ON u.id = o.user_id",
-      "ORDER BY o.id;",
-    ],
-    py: [
-      "rows = sql(db, '''",
-      "  SELECT o.id, u.name FROM orders o",
-      "  JOIN users u ON u.id = o.user_id''')",
-      "print(rows)",
-    ],
-    cols: ["id", "name"],
-    rows: [
-      ["1001", "nova"],
-      ["1002", "mira"],
-      ["1003", "keto"],
-    ],
-    note: { ru: "совпало с gold-решением", en: "matches the gold solution" },
-  },
-  {
-    label: { ru: "LEFT JOIN", en: "LEFT JOIN" },
-    ok: false,
-    sql: [
-      "SELECT o.id, u.name",
-      "FROM orders o",
-      "LEFT JOIN users u ON u.id = o.user_id",
-      "ORDER BY o.id;",
-    ],
-    py: [
-      "rows = sql(db, '''",
-      "  SELECT o.id, u.name FROM orders o",
-      "  LEFT JOIN users u ON u.id = o.user_id''')",
-      "print(rows)",
-    ],
-    cols: ["id", "name"],
-    rows: [
-      ["1001", "nova"],
-      ["1002", "mira"],
-      ["1003", "keto"],
-      ["1004", "NULL"],
-    ],
-    note: {
-      ru: "лишняя строка NULL — расходится с gold",
-      en: "extra NULL row — differs from gold",
+    id: "clone",
+    eyebrow: { ru: "Клонируй и попроси", en: "Clone and ask" },
+    title: { ru: "Запускаешь локально и просишь словами", en: "Run it locally, ask in plain words" },
+    lede: {
+      ru: "Скачал репозиторий, поднял плеер одной командой — и прямо в редакторе попросил ИИ-агента собрать тему. Без форм и кода: обычным языком.",
+      en: "Clone the repo, bring up the player with one command, and ask the AI agent right in your editor. No forms, no code — just plain language.",
     },
   },
   {
-    label: { ru: "CROSS JOIN", en: "CROSS JOIN" },
-    ok: false,
-    sql: ["SELECT o.id, u.name", "FROM orders o", "CROSS JOIN users u", "ORDER BY o.id;"],
-    py: [
-      "rows = sql(db, '''",
-      "  SELECT o.id, u.name",
-      "  FROM orders o CROSS JOIN users u''')",
-      "print(rows)",
-    ],
-    cols: ["id", "name"],
-    rows: [
-      ["1001", "nova"],
-      ["1001", "mira"],
-      ["1001", "keto"],
-      ["…", "9 rows"],
-    ],
-    note: { ru: "декартово произведение — не то", en: "cartesian product — not it" },
+    id: "forge",
+    eyebrow: { ru: "Кузница кует урок", en: "The forge builds a lesson" },
+    title: { ru: "ИИ собирает тему как набор файлов", en: "AI assembles the topic as files" },
+    lede: {
+      ru: "Скилл lesson-forge сначала показывает план программы и ждёт твоё «ок», потом пишет манифест, теорию и задачи — по одному файлу. Тема это код, а не строка в базе.",
+      en: "The lesson-forge skill first shows a curriculum plan and waits for your OK, then writes the manifest, theory and exercises — file by file. A topic is code, not a database row.",
+    },
+  },
+  {
+    id: "contract",
+    eyebrow: { ru: "Контракт проверяет форму", en: "The contract checks the shape" },
+    title: { ru: "Одна Zod-схема — единый стандарт", en: "One Zod schema — a single standard" },
+    lede: {
+      ru: "Кривую тему не пропустят: общий Zod-контракт валидирует и сайт, и сервер. Лишнее поле — отказ. Затем gold-решения реально прогоняются в sql.js.",
+      en: "A malformed topic won't pass: one shared Zod contract validates both web and server. An extra field means rejection. Then gold solutions actually run in sql.js.",
+    },
+  },
+  {
+    id: "solve",
+    eyebrow: { ru: "Решаешь в браузере", en: "You solve in the browser" },
+    title: { ru: "Код исполняется прямо на странице", en: "Code runs right on the page" },
+    lede: {
+      ru: "SQL через sql.js, Python через Pyodide — оба в Web Worker, без сервера. Пишешь решение, жмёшь Run и сразу видишь результат: таблицу или прогон тестов.",
+      en: "SQL via sql.js, Python via Pyodide — both in a Web Worker, no server. Write a solution, hit Run, and see the result at once: a table or a test run.",
+    },
+  },
+  {
+    id: "theory",
+    eyebrow: { ru: "Интерактивная теория", en: "Interactive theory" },
+    title: { ru: "Не стена текста, а живые схемы", en: "Not a wall of text, but live diagrams" },
+    lede: {
+      ru: "В теорию встроены 40+ визуализаций — от JOIN и хеш-таблиц до attention и градиентного спуска. И проверочные вопросы прямо по ходу чтения.",
+      en: "Theory embeds 40+ visualizations — from JOINs and hash tables to attention and gradient descent. Plus quick check questions as you read.",
+    },
+  },
+  {
+    id: "habit",
+    eyebrow: { ru: "Привычка и карточки", en: "Habit and flashcards" },
+    title: { ru: "Прогресс копится, карточки возвращают", en: "Progress builds, cards bring it back" },
+    lede: {
+      ru: "Стрик и тепловая карта активности живут в браузере (IndexedDB), без аккаунта. А флэшкарды по алгоритму FSRS сами решают, когда показать тему снова.",
+      en: "A streak and an activity heatmap live in the browser (IndexedDB), no account. And FSRS flashcards decide on their own when to resurface a topic.",
+    },
+  },
+  {
+    id: "export",
+    eyebrow: { ru: "Унеси с собой", en: "Take it with you" },
+    title: { ru: "Весь прогресс — один файл", en: "All your progress — one file" },
+    lede: {
+      ru: "Прогресс, карточки, заметки и закладки выгружаются одним JSON. Бэкап и перенос между устройствами — без сервера и без аккаунта.",
+      en: "Progress, cards, notes and bookmarks export as one JSON. Back up and move between devices — no server, no account.",
+    },
   },
 ];
 
-/* ── ПРАВО: файлы, которые кузница собирает по одному ──────────────────── */
-const forgeFiles: { name: string; kind: Bi }[] = [
-  { name: "topics/sql-joins/", kind: { ru: "папка модуля", en: "module folder" } },
-  { name: "theory.mdx", kind: { ru: "теория в MDX", en: "theory in MDX" } },
-  { name: "exercises.yaml", kind: { ru: "задачи в YAML", en: "exercises in YAML" } },
+/* ── Акт 1: терминал + промпт агенту ─────────────────────────────────── */
+const termLines: { text: string; kind: string }[] = [
+  { text: "git clone …/dotlearn.git", kind: "cmd" },
+  { text: "pnpm install", kind: "cmd" },
+  { text: "pnpm dev:web", kind: "cmd" },
+  { text: "VITE ready · http://localhost:5173", kind: "ok" },
 ];
-
-/* Поля Zod-контракта манифеста темы. */
-const schemaFields: { key: string; type: string }[] = [
-  { key: "slug", type: "z.string()" },
-  { key: "title", type: "z.string()" },
-  { key: "theory", type: "z.string()" },
-  { key: "exercises", type: "z.array(Exercise)" },
-];
-
-/* Первый (верный) вариант — заполняет редактор и таблицу по умолчанию. */
-const firstVariant = variants[0];
-const initialCode = (firstVariant?.sql ?? []).join("\n");
-
-const ui = {
-  run: { ru: "Запустить", en: "Run" },
-  forge: { ru: "Сковать тему", en: "Forge topic" },
-  reset: { ru: "Сброс", en: "Reset" },
-  badField: { ru: "Внедрить лишнее поле", en: "Inject extra field" },
-  fixField: { ru: "Убрать поле", en: "Remove field" },
-  worker: { ru: "в Web Worker", en: "in a Web Worker" },
-  editorTitle: { ru: "exercise.sql · урок SQL JOIN", en: "exercise.sql · SQL JOIN lesson" },
-  forgeTitle: { ru: "ИИ-кузница темы", en: "Topic AI forge" },
-  variantsLabel: { ru: "Вариант решения", en: "Solution variant" },
-  runtimeLabel: { ru: "Рантайм", en: "Runtime" },
+const agentPrompt: Bi = {
+  ru: "Используй lesson-forge: добавь тему по SQL JOIN для новичка",
+  en: "Use lesson-forge: add a beginner topic on SQL JOIN",
 };
+
+/* ── Акт 2: план программы + файлы темы ──────────────────────────────── */
+const planConcepts: Bi[] = [
+  { ru: "SELECT и фильтрация", en: "SELECT and filtering" },
+  { ru: "ORDER BY и LIMIT", en: "ORDER BY and LIMIT" },
+  { ru: "Агрегация: COUNT, SUM, AVG", en: "Aggregation: COUNT, SUM, AVG" },
+  { ru: "JOIN-ы", en: "JOINs" },
+  { ru: "GROUP BY и HAVING", en: "GROUP BY and HAVING" },
+  { ru: "Подзапросы и CTE", en: "Subqueries and CTEs" },
+];
+const forgeFiles: { name: string; kind: Bi }[] = [
+  { name: "manifest.json", kind: { ru: "структурный контракт темы", en: "topic structural contract" } },
+  { name: "theory/04-joins.ru.mdx", kind: { ru: "теория-лонгрид с визуализацией", en: "longread theory with a viz" } },
+  { name: "exercises/04-joins.ru.yaml", kind: { ru: "задачи с gold-решением", en: "exercises with a gold solution" } },
+  { name: "flashcards/04-joins.ru.yaml", kind: { ru: "карточки для повторения", en: "flashcards for review" } },
+];
+
+/* ── Акт 3: Zod-контракт ─────────────────────────────────────────────── */
+const schemaFields: { key: string; type: string }[] = [
+  { key: "slug", type: "z.string().regex(SLUG)" },
+  { key: "title", type: "z.string().min(3)" },
+  { key: "runtime", type: "z.enum(['sql.js','pyodide',…])" },
+  { key: "difficulty", type: "z.enum(['beginner',…])" },
+  { key: "concepts", type: "z.array(Concept).min(1)" },
+  { key: "author", type: "{ kind:'agent', model }" },
+];
+
+/* ── Акт 4: упражнения двух рантаймов ────────────────────────────────── */
+type SqlVariant = {
+  ok: boolean;
+  label: Bi;
+  code: string[];
+  rows: string[][];
+  note: Bi;
+};
+const sqlVariants: SqlVariant[] = [
+  {
+    ok: true,
+    label: { ru: "LEFT JOIN", en: "LEFT JOIN" },
+    code: [
+      "SELECT a.name, b.title",
+      "FROM author a",
+      "LEFT JOIN book b ON b.author_id = a.id",
+      "ORDER BY a.name, b.title;",
+    ],
+    rows: [
+      ["Ada", "Analytical engine"],
+      ["Grace", "NULL"],
+      ["Linus", "Kernel notes"],
+    ],
+    note: { ru: "совпало с gold: Grace осталась с NULL", en: "matches gold: Grace kept with NULL" },
+  },
+  {
+    ok: false,
+    label: { ru: "INNER JOIN", en: "INNER JOIN" },
+    code: [
+      "SELECT a.name, b.title",
+      "FROM author a",
+      "JOIN book b ON b.author_id = a.id",
+      "ORDER BY a.name;",
+    ],
+    rows: [
+      ["Ada", "Analytical engine"],
+      ["Linus", "Kernel notes"],
+    ],
+    note: { ru: "Grace без книги потерялась — не то", en: "Grace with no book is lost — not it" },
+  },
+];
+const pyCases: { call: string; expect: string }[] = [
+  { call: "Vector(3, 4).length()", expect: "5.0" },
+  { call: "Vector(0, 0).length()", expect: "0.0" },
+  { call: "Vector(1, 1).length()", expect: "1.4142" },
+];
+
+/* ── Акт 5: теория-виз + проверочный вопрос ──────────────────────────── */
+const vizChips: Bi[] = [
+  { ru: "JOIN", en: "JOIN" },
+  { ru: "хеш-таблица", en: "hash table" },
+  { ru: "attention", en: "attention" },
+  { ru: "градиентный спуск", en: "gradient descent" },
+  { ru: "токенизация", en: "tokenization" },
+];
+const quizPrompt: Bi = {
+  ru: "Какие утверждения об INNER JOIN и LEFT JOIN верны?",
+  en: "Which statements about INNER JOIN and LEFT JOIN are true?",
+};
+const quizChoices: { id: string; text: Bi; correct: boolean }[] = [
+  { id: "a", text: { ru: "INNER JOIN оставляет только строки с совпадением с обеих сторон.", en: "INNER JOIN keeps only rows matched on both sides." }, correct: true },
+  { id: "b", text: { ru: "LEFT JOIN сохраняет каждую строку правой таблицы.", en: "LEFT JOIN keeps every row of the right table." }, correct: false },
+  { id: "c", text: { ru: "LEFT JOIN заполняет отсутствующие колонки справа значением NULL.", en: "LEFT JOIN fills missing right-side columns with NULL." }, correct: true },
+  { id: "d", text: { ru: "Только INNER JOIN использует условие ON.", en: "Only INNER JOIN uses the ON condition." }, correct: false },
+];
+const quizExplain: Bi = {
+  ru: "INNER отбрасывает несовпадения; LEFT сохраняет левую сторону и заполняет NULL справа. ON используют оба JOIN-а.",
+  en: "INNER drops non-matches; LEFT keeps the left side and fills NULL on the right. Both JOINs use ON.",
+};
+
+/* ── Акт 6: heatmap + стрик + карточка FSRS ──────────────────────────── */
+/* детерминированная (build-time) тепловая карта 7×14, без Math.random */
+const HM_COLS = 14;
+const HM_ROWS = 7;
+const heatmap: number[] = Array.from({ length: HM_COLS * HM_ROWS }, (_, i) => {
+  const col = Math.floor(i / HM_ROWS);
+  const row = i % HM_ROWS;
+  const wave = (col * 5 + row * 3 + ((col * row) % 7)) % 11;
+  if (col > HM_COLS - 3 && row > 4) return 0; /* «будущее» пусто */
+  return wave > 8 ? 4 : wave > 6 ? 3 : wave > 4 ? 2 : wave > 2 ? 1 : 0;
+});
+const flashcard = {
+  front: { ru: "Что станет с автором без книги при LEFT JOIN?", en: "What happens to an author with no book under LEFT JOIN?" } as Bi,
+  back: { ru: "Строка автора останется, колонки книги будут NULL.", en: "The author row stays; the book columns become NULL." } as Bi,
+};
+const fsrsRatings: { key: string; label: Bi; due: Bi; tone: string }[] = [
+  { key: "again", label: { ru: "Снова", en: "Again" }, due: { ru: "<10 мин", en: "<10 min" }, tone: "err" },
+  { key: "hard", label: { ru: "Трудно", en: "Hard" }, due: { ru: "1 дн", en: "1 d" }, tone: "warn" },
+  { key: "good", label: { ru: "Хорошо", en: "Good" }, due: { ru: "4 дн", en: "4 d" }, tone: "accent" },
+  { key: "easy", label: { ru: "Легко", en: "Easy" }, due: { ru: "9 дн", en: "9 d" }, tone: "ok" },
+];
+
+/* ── Акт 7: содержимое экспорта ──────────────────────────────────────── */
+const exportRows: Bi[] = [
+  { ru: "прогресс и попытки", en: "progress and attempts" },
+  { ru: "повторения карточек (FSRS)", en: "flashcard reviews (FSRS)" },
+  { ru: "заметки и закладки", en: "notes and bookmarks" },
+  { ru: "выделения и достижения", en: "highlights and achievements" },
+];
+
+/* ── Строки для скрипта (единый источник, без дублей в JS) ────────────── */
+const sx = {
+  runAgent: { ru: "Запустить агента", en: "Run the agent" },
+  agentBusy: { ru: "lesson-forge активируется…", en: "lesson-forge activating…" },
+  agentDone: { ru: "скилл активирован — куёт тему", en: "skill activated — forging" },
+  approve: { ru: "Утвердить план", en: "Approve the plan" },
+  forge: { ru: "Сковать тему", en: "Forge the topic" },
+  forging: { ru: "Куётся…", en: "Forging…" },
+  forged: { ru: "тема собрана", en: "topic assembled" },
+  planWait: { ru: "план ждёт твоего «ок»", en: "plan awaits your OK" },
+  inject: { ru: "Внедрить лишнее поле", en: "Inject an extra field" },
+  fix: { ru: "Убрать поле", en: "Remove the field" },
+  pass: { ru: "PASS · форма валидна для web и api", en: "PASS · valid for web and api" },
+  reject: { ru: "REJECT · ZodError: unrecognized key — отклонено web И api", en: "REJECT · ZodError: unrecognized key — rejected by web AND api" },
+  validate: { ru: "pnpm validate · gold-SQL прогнан в sql.js ✓", en: "pnpm validate · gold SQL ran in sql.js ✓" },
+  run: { ru: "Запустить", en: "Run" },
+  running: { ru: "исполняю в Web Worker…", en: "executing in a Web Worker…" },
+  ready: { ru: "готово к запуску", en: "ready to run" },
+  okGold: { ru: "✓ совпало с gold", en: "✓ matches gold" },
+  badGold: { ru: "✗ расходится с gold", en: "✗ differs from gold" },
+  casesPass: { ru: "3/3 кейса пройдено ✓", en: "3/3 cases passed ✓" },
+  check: { ru: "Проверить", en: "Check" },
+  quizRight: { ru: "верно — a и c", en: "correct — a and c" },
+  quizWrong: { ru: "не совсем — верны a и c", en: "not quite — a and c are right" },
+  flip: { ru: "Перевернуть карточку", en: "Flip the card" },
+  nextDue: { ru: "следующий показ через", en: "next review in" },
+  exportBtn: { ru: "Экспорт", en: "Export" },
+  importBtn: { ru: "Импорт", en: "Import" },
+  exported: { ru: "выгружен один JSON", en: "one JSON exported" },
+  imported: { ru: "Импортировано записей: 1 248", en: "Imported records: 1,248" },
+  prev: { ru: "Назад", en: "Back" },
+  next: { ru: "Далее", en: "Next" },
+};
+const sBundle = Object.fromEntries(Object.entries(sx).map(([k, v]) => [k, t(v)]));
+sBundle.locale = locale;
 ---
 
 <section
   class="lf"
   data-lf
-  data-lf-locale={locale}
-  aria-label={t({ ru: "Верстак урока DotLearn", en: "DotLearn lesson workbench" })}
+  data-lf-bundle={JSON.stringify(sBundle)}
+  aria-label={t({ ru: "Как живёт DotLearn — интерактивная история", en: "How DotLearn lives — an interactive story" })}
 >
   <p class="lf__intro">{t(intro)}</p>
 
-  <!-- statline: живые факты экосистемы -->
-  <ul class="lf__statline" role="list" aria-hidden="true">
-    <li class="lf__stat"><b>22</b> {t({ ru: "темы", en: "topics" })}</li>
-    <li class="lf__stat"><b>6</b> {t({ ru: "типов упражнений", en: "exercise types" })}</li>
-    <li class="lf__stat"><b>2</b> {t({ ru: "рантайма в WASM", en: "WASM runtimes" })}</li>
-    <li class="lf__stat lf__stat--local">
-      {t({ ru: "local-first · import.meta.glob", en: "local-first · import.meta.glob" })}
-    </li>
+  <ul class="lf__statline" role="list">
+    {
+      stats.map((s) => (
+        <li class:list={["lf__stat", s.plain && "lf__stat--plain"]}>
+          {s.v && <b>{s.v}</b>}
+          <span>{t(s.label)}</span>
+        </li>
+      ))
+    }
   </ul>
 
-  <div class="lf__bench">
-    <!-- ═══════════ ЛЕВО: мини-IDE урока ═══════════ -->
-    <div class="lf-ide" data-lf-ide>
-      <header class="lf-ide__bar">
-        <span class="lf-ide__dots" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="lf-ide__file mono" data-lf-file>{t(ui.editorTitle)}</span>
-      </header>
-
-      <!-- вкладки рантайма: sql.js ↔ Pyodide -->
-      <div class="lf-ide__runtimes" role="tablist" aria-label={t(ui.runtimeLabel)}>
-        {
-          runtimes.map((r, k) => (
+  <div class="lf__nav">
+    <!-- рейка актов -->
+    <ol class="lf__rail" role="tablist" aria-label={t({ ru: "Шаги истории", en: "Story steps" })}>
+      {
+        acts.map((a, i) => (
+          <li>
             <button
-              class="lf-ide__runtime"
+              class="lf__step"
               type="button"
               role="tab"
-              id={`lf-rt-${k}`}
-              data-lf-runtime={k}
-              aria-selected={k === 0 ? "true" : "false"}
-              tabindex={k === 0 ? 0 : -1}
+              id={`lf-tab-${a.id}`}
+              aria-controls={`lf-panel-${a.id}`}
+              aria-selected={i === 0 ? "true" : "false"}
+              tabindex={i === 0 ? 0 : -1}
+              data-lf-tab={a.id}
+              data-i={i}
             >
-              <span class="lf-ide__runtime-lang mono">{r.lang}</span>
-              <span class="lf-ide__runtime-engine">{t(r.engine)}</span>
+              <span class="lf__step-n" aria-hidden="true">{i + 1}</span>
+              <span class="lf__step-label">{t(a.eyebrow)}</span>
             </button>
-          ))
-        }
-        <span class="lf-ide__worker caption" aria-hidden="true">{t(ui.worker)}</span>
-      </div>
+          </li>
+        ))
+      }
+    </ol>
 
-      <!-- редактор: faux line numbers + код активного варианта -->
-      <div class="lf-ide__editor" data-lf-editor>
-        <pre
-          class="lf-ide__gutter mono"
-          aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span></pre>
-        <pre
-          class="lf-ide__code mono"
-          data-lf-code
-          aria-live="polite"><code>{initialCode}</code></pre>
-      </div>
-
-      <!-- селектор варианта решения -->
-      <div class="lf-ide__variants" role="radiogroup" aria-label={t(ui.variantsLabel)}>
-        {
-          variants.map((v, k) => (
-            <button
-              class="lf-ide__variant"
-              type="button"
-              role="radio"
-              data-lf-variant={k}
-              data-ok={v.ok ? "1" : "0"}
-              aria-checked={k === 0 ? "true" : "false"}
-              tabindex={k === 0 ? 0 : -1}
-            >
-              {t(v.label)}
-            </button>
-          ))
-        }
-      </div>
-
-      <!-- кнопка Run + панель результата -->
-      <div class="lf-ide__run">
-        <button class="lf-ide__runbtn" type="button" data-lf-run>
-          <span class="lf-ide__runbtn-glyph" aria-hidden="true"></span>
-          <span>{t(ui.run)}</span>
-        </button>
-        <span class="lf-ide__status mono" data-lf-runstatus role="status" aria-live="polite">
-          {t({ ru: "готово к запуску", en: "ready to run" })}
-        </span>
-      </div>
-
-      <div class="lf-ide__result" data-lf-result data-state="idle">
-        <div class="lf-ide__result-head">
-          <span class="lf-ide__result-cap caption"
-            >{t({ ru: "результат прогона", en: "run output" })}</span
+    <!-- сцена -->
+    <div class="lf__stage">
+      {
+        acts.map((a, i) => (
+          <section
+            class:list={["lf-act", i === 0 && "is-active"]}
+            id={`lf-panel-${a.id}`}
+            role="tabpanel"
+            aria-labelledby={`lf-tab-${a.id}`}
+            data-lf-panel={a.id}
+            hidden={i !== 0}
           >
-          <span class="lf-ide__verdict mono" data-lf-verdict></span>
-        </div>
-        <div class="lf-ide__table-wrap">
-          <table class="lf-ide__table" data-lf-table>
-            <thead data-lf-thead></thead>
-            <tbody data-lf-tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══════════ ПРАВО: рейка ИИ-кузницы ═══════════ -->
-    <aside class="lf-forge" data-lf-forge aria-label={t(ui.forgeTitle)}>
-      <header class="lf-forge__head">
-        <span class="lf-forge__spark" aria-hidden="true"></span>
-        <span class="lf-forge__title">{t(ui.forgeTitle)}</span>
-      </header>
-
-      <!-- промпт-чип + Forge -->
-      <div class="lf-forge__prompt">
-        <span class="lf-forge__chip mono">
-          <span class="lf-forge__chip-sigil" aria-hidden="true">/</span>add a topic on SQL JOIN
-        </span>
-        <button class="lf-forge__btn" type="button" data-lf-forge-btn>
-          <span class="lf-forge__btn-glyph" aria-hidden="true"></span>
-          <span data-lf-forge-label>{t(ui.forge)}</span>
-        </button>
-      </div>
-
-      <!-- 1. сборка файлов модуля по одному -->
-      <div class="lf-forge__stage" data-lf-stage="files" data-on="false">
-        <span class="lf-forge__stage-cap caption"
-          >{t({ ru: "1 · тема собирается как код", en: "1 · topic assembles as code" })}</span
-        >
-        <ul class="lf-forge__files" role="list">
-          {
-            forgeFiles.map((f, k) => (
-              <li class="lf-forge__file" data-file={k} style={`--i:${k}`}>
-                <span class="lf-forge__file-dot" aria-hidden="true" />
-                <span class="lf-forge__file-name mono">{f.name}</span>
-                <span class="lf-forge__file-kind">{t(f.kind)}</span>
-              </li>
-            ))
-          }
-        </ul>
-      </div>
-
-      <!-- 2. Zod-гейт контракта -->
-      <div class="lf-forge__stage" data-lf-stage="zod" data-on="false">
-        <span class="lf-forge__stage-cap caption">
-          {
-            t({
-              ru: "2 · общий Zod-контракт (web + api)",
-              en: "2 · shared Zod contract (web + api)",
-            })
-          }
-        </span>
-        <div class="lf-forge__schema mono" data-state="pass" data-lf-schema aria-hidden="true">
-          <span class="lf-forge__sline lf-forge__sline--head">topicSchema = z.object(&#123;</span>
-          {
-            schemaFields.map((f) => (
-              <span class="lf-forge__sline">
-                {"  "}
-                {f.key}: <em>{f.type}</em>,
+            <header class="lf-act__head">
+              <span class="lf-act__eyebrow caption">
+                <span class="lf-act__eyebrow-n">{`0${i + 1}`}</span>
+                {t(a.eyebrow)}
               </span>
-            ))
-          }
-          <span class="lf-forge__sline lf-forge__sline--bad" data-lf-badline
-            >{"  "}_inject: <em>z.any()</em>,</span
-          >
-          <span class="lf-forge__sline lf-forge__sline--head">&#125;)</span>
-          <span class="lf-forge__sline lf-forge__sline--infer"
-            >type Topic = z.infer&lt;typeof topicSchema&gt;</span
-          >
-        </div>
-        <div class="lf-forge__gate" data-lf-gate data-state="pass" role="status" aria-live="polite">
-          <span class="lf-forge__gate-icon" aria-hidden="true"></span>
-          <span class="lf-forge__gate-text" data-lf-gatetext
-            >{
-              t({
-                ru: "PASS · форма валидна для web и api",
-                en: "PASS · shape valid for web and api",
-              })
-            }</span
-          >
-        </div>
-        <button class="lf-forge__toggle" type="button" data-lf-badfield aria-pressed="false">
-          {t(ui.badField)}
-        </button>
-      </div>
+              <h3 class="lf-act__title">{t(a.title)}</h3>
+              <p class="lf-act__lede">{t(a.lede)}</p>
+            </header>
 
-      <!-- 3. прогон в песочнице → PR -->
-      <div class="lf-forge__stage" data-lf-stage="pr" data-on="false">
-        <span class="lf-forge__stage-cap caption"
-          >{t({ ru: "3 · gold-прогон → pull request", en: "3 · gold run → pull request" })}</span
-        >
-        <ul class="lf-forge__pipe" role="list">
-          <li class="lf-forge__pipe-step" data-pipe="0">
-            <span class="lf-forge__pipe-dot" aria-hidden="true"></span>
-            {t({ ru: "gold-решение прогнано в песочнице", en: "gold solution ran in the sandbox" })}
-          </li>
-          <li class="lf-forge__pipe-step" data-pipe="1">
-            <span class="lf-forge__pipe-dot" aria-hidden="true"></span>
-            <span class="mono">topic/sql-joins → main</span>
-          </li>
-        </ul>
-        <div class="lf-forge__pr mono" data-lf-pr>
-          <span class="lf-forge__pr-state">PR #142 · open</span>
-        </div>
-      </div>
+            <div class="lf-act__body">
+              {/* ═════════ Акт 1: clone ═════════ */}
+              {a.id === "clone" && (
+                <div class="lf-clone">
+                  <div class="lf-term" data-lf-term aria-hidden="true">
+                    <span class="lf-term__bar"><i /><i /><i /></span>
+                    <pre class="lf-term__body mono">
+                      {termLines.map((l, k) => (
+                        <span class:list={["lf-term__line", `lf-term__line--${l.kind}`]} data-term={k}>
+                          {l.kind === "cmd" && <span class="lf-term__sigil">$</span>}
+                          {l.text}
+                        </span>
+                      ))}
+                    </pre>
+                  </div>
+                  <div class="lf-ask">
+                    <span class="lf-ask__cap caption">
+                      {t({ ru: "в редакторе (Cursor / Claude Code):", en: "in your editor (Cursor / Claude Code):" })}
+                    </span>
+                    <div class="lf-ask__bubble">
+                      <span class="lf-ask__sigil" aria-hidden="true">/</span>
+                      <span class="lf-ask__text">{t(agentPrompt)}</span>
+                    </div>
+                    <div class="lf-act__run">
+                      <button class="lf-btn lf-btn--accent" type="button" data-lf-clone-run>
+                        <span class="lf-btn__glyph lf-btn__glyph--play" aria-hidden="true" />
+                        <span data-lf-clone-label>{t(sx.runAgent)}</span>
+                      </button>
+                      <span class="lf-status mono" data-lf-clone-status role="status" aria-live="polite" />
+                    </div>
+                  </div>
+                </div>
+              )}
 
-      <!-- BYOK + стек -->
-      <footer class="lf-forge__foot">
-        <button class="lf-forge__byok" type="button" data-lf-byok aria-expanded="false">
-          <span class="lf-forge__byok-key" aria-hidden="true"></span>
-          <span>{t({ ru: "BYOK · ключи в браузере", en: "BYOK · keys in the browser" })}</span>
+              {/* ═════════ Акт 2: forge ═════════ */}
+              {a.id === "forge" && (
+                <div class="lf-forge">
+                  <div class="lf-plan" data-lf-plan>
+                    <span class="lf-plan__cap caption">
+                      {t({ ru: "план программы · 6 концептов", en: "curriculum plan · 6 concepts" })}
+                    </span>
+                    <ol class="lf-plan__list">
+                      {planConcepts.map((c, k) => (
+                        <li class="lf-plan__item" data-plan={k} style={`--i:${k}`}>
+                          <span class="lf-plan__dot" aria-hidden="true" />
+                          {t(c)}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                  <div class="lf-files" data-lf-files>
+                    <span class="lf-files__cap caption">topics/sql-joins/</span>
+                    <ul class="lf-files__list" role="list">
+                      {forgeFiles.map((f, k) => (
+                        <li class="lf-file" data-file={k} style={`--i:${k}`}>
+                          <span class="lf-file__dot" aria-hidden="true" />
+                          <span class="lf-file__name mono">{f.name}</span>
+                          <span class="lf-file__kind">{t(f.kind)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div class="lf-act__run">
+                    <button class="lf-btn lf-btn--accent" type="button" data-lf-forge-run>
+                      <span class="lf-btn__glyph lf-btn__glyph--spark" aria-hidden="true" />
+                      <span data-lf-forge-label>{t(sx.approve)}</span>
+                    </button>
+                    <span class="lf-status mono" data-lf-forge-status role="status" aria-live="polite">
+                      {t(sx.planWait)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* ═════════ Акт 3: contract ═════════ */}
+              {a.id === "contract" && (
+                <div class="lf-contract">
+                  <div class="lf-schema mono" data-lf-schema data-state="pass" aria-hidden="true">
+                    <span class="lf-schema__line lf-schema__line--head">topicSchema = z.object(&#123;</span>
+                    {schemaFields.map((f) => (
+                      <span class="lf-schema__line">{"  "}{f.key}: <em>{f.type}</em>,</span>
+                    ))}
+                    <span class="lf-schema__line lf-schema__line--bad" data-lf-badline>{"  "}_inject: <em>z.any()</em>,</span>
+                    <span class="lf-schema__line lf-schema__line--head">&#125;).strict()</span>
+                    <span class="lf-schema__line lf-schema__line--infer">type Topic = z.infer&lt;typeof topicSchema&gt;</span>
+                  </div>
+                  <div class="lf-gate__wrap">
+                    <div class="lf-gate" data-lf-gate data-state="pass" role="status" aria-live="polite">
+                      <span class="lf-gate__icon" aria-hidden="true" />
+                      <span class="lf-gate__text" data-lf-gate-text>{t(sx.pass)}</span>
+                    </div>
+                    <span class="lf-validate mono">{t(sx.validate)}</span>
+                  </div>
+                  <button class="lf-toggle" type="button" data-lf-inject aria-pressed="false">
+                    {t(sx.inject)}
+                  </button>
+                </div>
+              )}
+
+              {/* ═════════ Акт 4: solve ═════════ */}
+              {a.id === "solve" && (
+                <div class="lf-ide" data-lf-ide>
+                  <div class="lf-ide__tabs" role="tablist" aria-label={t({ ru: "Рантайм", en: "Runtime" })}>
+                    <button class="lf-ide__tab" type="button" role="tab" data-lf-rt="sql" aria-selected="true" tabindex="0">
+                      <span class="mono">sql.js</span>
+                      <span class="lf-ide__tab-sub">{t({ ru: "SQLite в WASM", en: "SQLite in WASM" })}</span>
+                    </button>
+                    <button class="lf-ide__tab" type="button" role="tab" data-lf-rt="py" aria-selected="false" tabindex="-1">
+                      <span class="mono">Pyodide</span>
+                      <span class="lf-ide__tab-sub">{t({ ru: "Python в WASM", en: "Python in WASM" })}</span>
+                    </button>
+                    <span class="lf-ide__worker caption">{t({ ru: "в Web Worker", en: "in a Web Worker" })}</span>
+                  </div>
+
+                  <div class="lf-ide__editor">
+                    <pre class="lf-ide__code mono" data-lf-code aria-live="polite"><code>{sqlVariants[0]!.code.join("\n")}</code></pre>
+                  </div>
+
+                  <div class="lf-ide__variants" data-lf-variants role="radiogroup" aria-label={t({ ru: "Вариант решения", en: "Solution variant" })}>
+                    {sqlVariants.map((v, k) => (
+                      <button class="lf-chip" type="button" role="radio" data-lf-variant={k} aria-checked={k === 0 ? "true" : "false"} tabindex={k === 0 ? 0 : -1}>
+                        {t(v.label)}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div class="lf-act__run">
+                    <button class="lf-btn lf-btn--accent" type="button" data-lf-run>
+                      <span class="lf-btn__glyph lf-btn__glyph--play" aria-hidden="true" />
+                      <span>{t(sx.run)}</span>
+                    </button>
+                    <span class="lf-status mono" data-lf-run-status role="status" aria-live="polite">{t(sx.ready)}</span>
+                  </div>
+
+                  <div class="lf-ide__out" data-lf-out data-kind="sql" data-state="idle">
+                    <div class="lf-ide__out-head">
+                      <span class="caption">{t({ ru: "результат прогона", en: "run output" })}</span>
+                      <span class="lf-ide__verdict mono" data-lf-verdict />
+                    </div>
+                    <div class="lf-ide__table-wrap" data-lf-sqlout>
+                      <table class="lf-ide__table"><thead data-lf-thead /><tbody data-lf-tbody /></table>
+                    </div>
+                    <ul class="lf-ide__cases" data-lf-pyout hidden>
+                      {pyCases.map((c, k) => (
+                        <li class="lf-ide__case" data-case={k} style={`--i:${k}`}>
+                          <span class="lf-ide__case-mark" aria-hidden="true" />
+                          <span class="mono">{c.call}</span>
+                          <span class="lf-ide__case-eq mono">→ {c.expect}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* ═════════ Акт 5: theory ═════════ */}
+              {a.id === "theory" && (
+                <div class="lf-theory">
+                  <ul class="lf-theory__chips" data-lf-viz role="list" aria-label={t({ ru: "Визуализации в теории", en: "Theory visualizations" })}>
+                    {vizChips.map((c, k) => (
+                      <li class="lf-vchip" data-viz={k} style={`--i:${k}`}>{t(c)}</li>
+                    ))}
+                  </ul>
+                  <div class="lf-quiz" data-lf-quiz>
+                    <span class="lf-quiz__cap caption">{t({ ru: "проверочный вопрос · theory-quiz", en: "check question · theory-quiz" })}</span>
+                    <p class="lf-quiz__prompt">{t(quizPrompt)}</p>
+                    <ul class="lf-quiz__choices" role="list">
+                      {quizChoices.map((c) => (
+                        <li>
+                          <button class="lf-quiz__choice" type="button" data-lf-choice={c.id} data-correct={c.correct ? "1" : "0"} aria-pressed="false">
+                            <span class="lf-quiz__mark" aria-hidden="true">{c.id}</span>
+                            <span>{t(c.text)}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <div class="lf-act__run">
+                      <button class="lf-btn lf-btn--accent" type="button" data-lf-quiz-check>{t(sx.check)}</button>
+                      <span class="lf-status mono" data-lf-quiz-status role="status" aria-live="polite" />
+                    </div>
+                    <p class="lf-quiz__explain" data-lf-quiz-explain hidden>{t(quizExplain)}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* ═════════ Акт 6: habit ═════════ */}
+              {a.id === "habit" && (
+                <div class="lf-habit">
+                  <div class="lf-streak">
+                    <div class="lf-streak__head">
+                      <span class="lf-streak__num" data-lf-streak>0</span>
+                      <span class="lf-streak__cap">{t({ ru: "стрик · подряд идущих дней", en: "streak · consecutive days" })}</span>
+                    </div>
+                    <div class="lf-heat" data-lf-heat aria-hidden="true" style={`--cols:${HM_COLS}; --rows:${HM_ROWS}`}>
+                      {heatmap.map((lvl, k) => (
+                        <span class="lf-heat__cell" data-lvl={lvl} data-k={k} style={`--i:${k}`} />
+                      ))}
+                    </div>
+                    <span class="lf-heat__cap caption">{t({ ru: "тепловая карта активности · IndexedDB", en: "activity heatmap · IndexedDB" })}</span>
+                  </div>
+
+                  <div class="lf-card" data-lf-card>
+                    <span class="lf-card__cap caption">{t({ ru: "интервальное повторение · FSRS", en: "spaced repetition · FSRS" })}</span>
+                    <button class="lf-card__flip" type="button" data-lf-flip aria-label={t(sx.flip)}>
+                      <span class="lf-card__inner" data-lf-card-inner>
+                        <span class="lf-card__face lf-card__face--front">{t(flashcard.front)}</span>
+                        <span class="lf-card__face lf-card__face--back">{t(flashcard.back)}</span>
+                      </span>
+                    </button>
+                    <div class="lf-card__ratings" data-lf-ratings>
+                      {fsrsRatings.map((r) => (
+                        <button class="lf-rate" type="button" data-lf-rate={r.key} data-tone={r.tone}>
+                          <span class="lf-rate__label">{t(r.label)}</span>
+                          <span class="lf-rate__due mono">{t(r.due)}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <span class="lf-status mono" data-lf-card-status role="status" aria-live="polite" />
+                  </div>
+                </div>
+              )}
+
+              {/* ═════════ Акт 7: export ═════════ */}
+              {a.id === "export" && (
+                <div class="lf-export">
+                  <div class="lf-export__file" data-lf-file-card data-on="false">
+                    <span class="lf-export__name mono">dotlearn-progress-2026-06-30.json</span>
+                    <ul class="lf-export__rows" role="list">
+                      {exportRows.map((r, k) => (
+                        <li class="lf-export__row" data-row={k} style={`--i:${k}`}>
+                          <span class="lf-export__check" aria-hidden="true" />
+                          {t(r)}
+                        </li>
+                      ))}
+                    </ul>
+                    <span class="lf-export__foot caption">version 4 · app: "dotlearn" · {t({ ru: "без аккаунта", en: "no account" })}</span>
+                  </div>
+                  <div class="lf-export__controls">
+                    <button class="lf-btn lf-btn--accent" type="button" data-lf-export>
+                      <span class="lf-btn__glyph lf-btn__glyph--down" aria-hidden="true" />
+                      <span>{t(sx.exportBtn)}</span>
+                    </button>
+                    <button class="lf-btn" type="button" data-lf-import>
+                      <span class="lf-btn__glyph lf-btn__glyph--up" aria-hidden="true" />
+                      <span>{t(sx.importBtn)}</span>
+                    </button>
+                    <span class="lf-status mono" data-lf-export-status role="status" aria-live="polite" />
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        ))
+      }
+
+      <!-- пейджер -->
+      <footer class="lf__pager">
+        <button class="lf__pager-btn" type="button" data-lf-prev aria-label={t(sx.prev)}>
+          <span aria-hidden="true">←</span>
         </button>
-        <p class="lf-forge__byok-note mono" data-lf-byok-note hidden>
-          OpenAI · Anthropic · Ollama · OpenRouter
-        </p>
-        <span class="lf-forge__stack caption">ts-fsrs · IndexedDB</span>
+        <ol class="lf__dots" aria-hidden="true">
+          {acts.map((_, i) => <li class="lf__dot" data-dot={i} data-on={i === 0 ? "true" : "false"} />)}
+        </ol>
+        <button class="lf__pager-btn" type="button" data-lf-next aria-label={t(sx.next)}>
+          <span aria-hidden="true">→</span>
+        </button>
       </footer>
-    </aside>
+    </div>
   </div>
 </section>
 
 <style>
   .lf {
-    --lf-accent: var(--project-accent);
+    --lf-accent: var(--project-accent, var(--accent-learn));
     --lf-line: color-mix(in srgb, var(--lf-accent) 38%, transparent);
-    --lf-glow: color-mix(in srgb, var(--lf-accent) 16%, transparent);
+    --lf-glow: color-mix(in srgb, var(--lf-accent) 15%, transparent);
     --lf-soft: color-mix(in srgb, var(--lf-accent) 12%, transparent);
     --lf-faint: color-mix(in srgb, var(--lf-accent) 6%, transparent);
-    --lf-err: color-mix(in srgb, var(--state-error) 70%, var(--text-muted));
+    --lf-err: color-mix(in srgb, var(--state-error) 72%, var(--text-muted));
     --lf-err-soft: color-mix(in srgb, var(--lf-err) 13%, transparent);
+    --lf-warn: color-mix(in srgb, var(--state-warn) 72%, var(--text-muted));
+    --lf-ok: color-mix(in srgb, var(--state-ok, var(--lf-accent)) 72%, var(--text-muted));
     position: relative;
     display: flex;
     flex-direction: column;
@@ -415,7 +660,8 @@ const ui = {
     font-size: var(--fs-16);
     line-height: var(--lh-normal);
     color: var(--text-secondary);
-    max-width: 70ch;
+    max-width: 72ch;
+    margin: 0;
   }
 
   /* ── statline ── */
@@ -427,198 +673,250 @@ const ui = {
     flex-wrap: wrap;
     gap: var(--sp-2) var(--sp-3);
   }
-
   .lf__stat {
     display: inline-flex;
     align-items: baseline;
     gap: 5px;
+    font-family: var(--font-stack-mono);
     font-size: var(--fs-12);
     color: var(--text-muted);
-    font-family: var(--font-stack-mono);
   }
-
   .lf__stat b {
     font-size: var(--fs-15);
     font-weight: var(--fw-bold);
     color: var(--lf-accent);
   }
-
-  .lf__stat--local {
-    color: var(--text-muted);
+  .lf__stat--plain {
+    color: var(--text-faint);
   }
 
-  /* ── верстак: два столбца ── */
-  .lf__bench {
+  /* ── navigator: рейка + сцена ── */
+  .lf__nav {
     display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    grid-template-columns: minmax(180px, 0.62fr) minmax(0, 2fr);
     gap: var(--sp-4);
     align-items: start;
   }
 
-  /* ════════════════ ЛЕВО: мини-IDE ════════════════ */
-  .lf-ide {
+  .lf__rail {
+    list-style: none;
+    margin: 0;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    border: var(--bw-thin) solid var(--glass-edge);
-    border-radius: var(--r-lg);
-    background:
-      radial-gradient(130% 80% at 0% 0%, var(--lf-glow), transparent 52%), var(--bg-elevated);
-    overflow: hidden;
+    gap: 2px;
+    position: relative;
   }
-
-  .lf-ide__bar {
+  .lf__rail::before {
+    content: "";
+    position: absolute;
+    left: 17px;
+    top: 18px;
+    bottom: 18px;
+    width: var(--bw-thin);
+    background: var(--border);
+  }
+  .lf__step {
+    position: relative;
     display: flex;
     align-items: center;
     gap: var(--sp-3);
-    padding: var(--sp-3) var(--sp-4);
-    border-bottom: var(--bw-thin) solid var(--border);
-    background: var(--surface);
-  }
-
-  .lf-ide__dots {
-    display: inline-flex;
-    gap: 6px;
-  }
-
-  .lf-ide__dots i {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--surface-3);
-  }
-
-  .lf-ide__file {
-    font-size: var(--fs-12);
-    color: var(--text-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* вкладки рантайма */
-  .lf-ide__runtimes {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--sp-2);
-    padding: var(--sp-3) var(--sp-4) 0;
-  }
-
-  .lf-ide__runtime {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1px;
+    width: 100%;
     min-height: var(--tap-min);
     padding: var(--sp-2) var(--sp-3);
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-sm) var(--r-sm) 0 0;
-    border-bottom: 0;
+    border: 0;
+    border-radius: var(--r-sm);
     background: transparent;
+    color: var(--text-muted);
+    text-align: left;
     cursor: pointer;
     transition:
       color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard);
+  }
+  .lf__step:hover {
+    color: var(--text-secondary);
+    background: var(--lf-faint);
+  }
+  .lf__step-n {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border: var(--bw-thin) solid var(--border);
+    border-radius: 50%;
+    background: var(--bg-elevated);
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+    transition:
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard),
       background-color var(--dur-fast) var(--ease-standard),
-      border-color var(--dur-fast) var(--ease-standard);
+      transform var(--dur-fast) var(--ease-spring);
   }
-
-  .lf-ide__runtime:hover {
-    border-color: var(--border-hover);
+  .lf__step-label {
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    line-height: var(--lh-snug);
   }
-
-  .lf-ide__runtime[aria-selected="true"] {
+  .lf__step[aria-selected="true"] {
+    color: var(--text);
+  }
+  .lf__step[aria-selected="true"] .lf__step-n {
+    color: var(--lf-accent);
     border-color: var(--lf-line);
     background: var(--lf-soft);
+    transform: scale(1.04);
   }
-
-  .lf-ide__runtime:focus-visible {
+  .lf__step[data-done="true"] .lf__step-n {
+    color: var(--lf-accent);
+    border-color: var(--lf-line);
+  }
+  .lf__step:focus-visible {
     outline: var(--ring-width) solid var(--ring-focus);
     outline-offset: 2px;
   }
 
-  .lf-ide__runtime-lang {
-    font-size: var(--fs-13);
-    color: var(--text);
-  }
-
-  .lf-ide__runtime[aria-selected="true"] .lf-ide__runtime-lang {
-    color: var(--lf-accent);
-  }
-
-  .lf-ide__runtime-engine {
-    font-size: var(--fs-11);
-    color: var(--text-muted);
-  }
-
-  .lf-ide__worker {
-    margin-left: auto;
-    color: var(--text-muted);
-  }
-
-  /* редактор: gutter + код */
-  .lf-ide__editor {
-    display: flex;
-    gap: var(--sp-3);
-    margin: 0 var(--sp-4);
-    padding: var(--sp-3);
-    border: var(--bw-thin) solid var(--lf-line);
-    border-radius: 0 var(--r-sm) var(--r-sm) var(--r-sm);
-    background: var(--bg-deep);
-    overflow-x: auto;
-  }
-
-  .lf-ide__gutter {
+  /* ── сцена ── */
+  .lf__stage {
     display: flex;
     flex-direction: column;
-    gap: 0;
-    margin: 0;
-    padding-right: var(--sp-3);
-    border-right: var(--bw-thin) solid var(--border);
-    font-size: var(--fs-13);
-    line-height: 1.7;
-    color: var(--text-faint);
-    user-select: none;
-    text-align: right;
+    min-height: 0;
+    border: var(--bw-thin) solid var(--glass-edge);
+    border-radius: var(--r-lg);
+    background:
+      radial-gradient(120% 80% at 100% 0%, var(--lf-glow), transparent 56%),
+      var(--bg-elevated);
+    overflow: hidden;
   }
 
-  .lf-ide__code {
-    margin: 0;
-    font-size: var(--fs-13);
-    line-height: 1.7;
-    color: var(--text-secondary);
-    white-space: pre;
-    tab-size: 2;
+  .lf-act {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+    padding: var(--sp-5);
   }
-
-  .lf-ide__code code {
-    color: inherit;
+  .lf-act[hidden] {
+    display: none;
   }
-
-  /* появление кода при смене варианта/рантайма */
-  .lf.is-inview .lf-ide__code.is-swap {
+  .lf.is-inview .lf-act.is-active {
     animation: lf-fade var(--dur-med) var(--ease-soft) both;
   }
 
-  @keyframes lf-fade {
-    from {
-      opacity: 0;
-      transform: translate3d(0, 5px, 0);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-
-  /* селектор варианта */
-  .lf-ide__variants {
+  .lf-act__head {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: var(--sp-1);
+  }
+  .lf-act__eyebrow {
+    display: inline-flex;
+    align-items: center;
     gap: var(--sp-2);
-    padding: var(--sp-4) var(--sp-4) 0;
+    color: var(--lf-accent);
+    letter-spacing: var(--ls-eyebrow, 0.04em);
+    text-transform: uppercase;
+  }
+  .lf-act__eyebrow-n {
+    font-family: var(--font-stack-mono);
+    color: var(--text-faint);
+  }
+  .lf-act__title {
+    margin: 0;
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-20);
+    font-weight: var(--fw-semibold);
+    line-height: var(--lh-snug);
+    color: var(--text);
+  }
+  .lf-act__lede {
+    margin: 0;
+    font-size: var(--fs-14);
+    line-height: var(--lh-normal);
+    color: var(--text-secondary);
+    max-width: 64ch;
+  }
+  .lf-act__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+  }
+  .lf-act__run {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sp-3);
   }
 
-  .lf-ide__variant {
+  /* ── общие: кнопки / чипы / статус ── */
+  .lf-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-2);
+    min-height: var(--tap-min);
+    padding: var(--sp-2) var(--sp-4);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-pill);
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-14);
+    font-weight: var(--fw-semibold);
+    cursor: pointer;
+    transition:
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-spring);
+  }
+  .lf-btn--accent {
+    border-color: var(--lf-line);
+    background: var(--lf-soft);
+  }
+  .lf-btn:hover {
+    border-color: var(--lf-accent);
+  }
+  .lf-btn:active {
+    transform: scale(0.96);
+  }
+  .lf-btn:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  .lf-btn__glyph {
+    flex: none;
+  }
+  .lf-btn__glyph--play {
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 5px 0 5px 9px;
+    border-color: transparent transparent transparent var(--lf-accent);
+  }
+  .lf-btn__glyph--spark {
+    width: 12px;
+    height: 12px;
+    background:
+      linear-gradient(to bottom, var(--lf-accent) 0 100%) center / 2px 12px no-repeat,
+      linear-gradient(to right, var(--lf-accent) 0 100%) center / 12px 2px no-repeat;
+  }
+  .lf-btn__glyph--down,
+  .lf-btn__glyph--up {
+    width: 10px;
+    height: 10px;
+    border-right: 2px solid var(--lf-accent);
+    border-bottom: 2px solid var(--lf-accent);
+  }
+  .lf-btn__glyph--down {
+    transform: rotate(45deg) translate(-1px, -1px);
+  }
+  .lf-btn__glyph--up {
+    transform: rotate(-135deg) translate(-1px, -1px);
+  }
+
+  .lf-chip {
     min-height: var(--tap-min);
     padding: var(--sp-2) var(--sp-3);
     border: var(--bw-thin) solid var(--border);
@@ -633,479 +931,32 @@ const ui = {
       border-color var(--dur-fast) var(--ease-standard),
       background-color var(--dur-fast) var(--ease-standard);
   }
-
-  .lf-ide__variant:hover {
+  .lf-chip:hover {
     color: var(--text);
     border-color: var(--border-hover);
   }
-
-  .lf-ide__variant[aria-checked="true"] {
+  .lf-chip[aria-checked="true"] {
     color: var(--text);
     border-color: var(--lf-line);
     background: var(--lf-soft);
   }
-
-  .lf-ide__variant:focus-visible {
+  .lf-chip:focus-visible {
     outline: var(--ring-width) solid var(--ring-focus);
     outline-offset: 2px;
   }
 
-  /* run row */
-  .lf-ide__run {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-3);
-    padding: var(--sp-4);
-  }
-
-  .lf-ide__runbtn {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--sp-2);
-    min-height: var(--tap-min);
-    padding: var(--sp-2) var(--sp-4);
-    border: var(--bw-thin) solid var(--lf-line);
-    border-radius: var(--r-pill);
-    background: var(--lf-soft);
-    color: var(--text);
-    font-family: var(--font-stack-display);
-    font-size: var(--fs-14);
-    font-weight: var(--fw-semibold);
-    cursor: pointer;
-    transition:
-      border-color var(--dur-fast) var(--ease-standard),
-      transform var(--dur-fast) var(--ease-spring);
-  }
-
-  .lf-ide__runbtn:hover {
-    border-color: var(--lf-accent);
-  }
-
-  .lf-ide__runbtn:active {
-    transform: scale(0.96);
-  }
-
-  .lf-ide__runbtn:focus-visible {
-    outline: var(--ring-width) solid var(--ring-focus);
-    outline-offset: 2px;
-  }
-
-  .lf-ide__runbtn-glyph {
-    width: 0;
-    height: 0;
-    border-style: solid;
-    border-width: 5px 0 5px 9px;
-    border-color: transparent transparent transparent var(--lf-accent);
-  }
-
-  /* во время «прогона» глиф пульсирует масштабом (только в кадре) */
-  .lf-ide[data-busy="true"] .lf-ide__runbtn-glyph {
-    border-color: transparent transparent transparent var(--text-muted);
-  }
-
-  .lf.is-inview .lf-ide[data-busy="true"] .lf-ide__runbtn-glyph {
-    animation: lf-pulse 600ms var(--ease-standard) infinite;
-  }
-
-  @keyframes lf-pulse {
-    0%,
-    100% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    50% {
-      transform: scale(0.6);
-      opacity: 0.5;
-    }
-  }
-
-  .lf-ide__status {
+  .lf-status {
     font-size: var(--fs-12);
     color: var(--text-muted);
   }
-
-  /* результат */
-  .lf-ide__result {
-    border-top: var(--bw-thin) solid var(--border);
-    padding: var(--sp-4);
-    background: var(--bg-deep);
-  }
-
-  .lf-ide__result[data-state="idle"] .lf-ide__table-wrap {
-    opacity: 0.32;
-  }
-
-  .lf-ide__result-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--sp-3);
-    margin-bottom: var(--sp-3);
-  }
-
-  .lf-ide__result-cap {
-    color: var(--text-muted);
-  }
-
-  .lf-ide__verdict {
-    font-size: var(--fs-12);
-    font-weight: var(--fw-semibold);
-    color: var(--text-muted);
-    text-align: right;
-    transition: color var(--dur-med) var(--ease-standard);
-  }
-
-  .lf-ide__result[data-state="ok"] .lf-ide__verdict {
+  .lf-status[data-tone="ok"] {
     color: var(--lf-accent);
   }
-
-  .lf-ide__result[data-state="bad"] .lf-ide__verdict {
+  .lf-status[data-tone="bad"] {
     color: var(--lf-err);
   }
 
-  .lf-ide__table-wrap {
-    overflow-x: auto;
-    transition: opacity var(--dur-med) var(--ease-standard);
-  }
-
-  .lf-ide__table {
-    border-collapse: collapse;
-    width: max-content;
-    min-width: 100%;
-    font-family: var(--font-stack-mono);
-  }
-
-  .lf-ide__table :global(th),
-  .lf-ide__table :global(td) {
-    padding: var(--sp-1) var(--sp-3);
-    border: var(--bw-thin) solid var(--border);
-    font-size: var(--fs-13);
-    text-align: left;
-    white-space: nowrap;
-  }
-
-  .lf-ide__table :global(th) {
-    color: var(--lf-accent);
-    background: var(--surface);
-    font-weight: var(--fw-semibold);
-  }
-
-  .lf-ide__table :global(td) {
-    color: var(--text);
-  }
-
-  /* строка-аномалия неверного варианта подсвечивается */
-  .lf-ide__table :global(tr[data-bad="1"] td) {
-    color: var(--lf-err);
-    background: var(--lf-err-soft);
-  }
-
-  /* стаггер появления строк результата */
-  .lf.is-inview .lf-ide__table :global(tr.is-row) {
-    animation: lf-fade var(--dur-med) var(--ease-soft) both;
-    animation-delay: calc(var(--ri, 0) * 90ms);
-  }
-
-  /* ════════════════ ПРАВО: кузница ════════════════ */
-  .lf-forge {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-3);
-    padding: var(--sp-4);
-    border: var(--bw-thin) solid var(--glass-edge);
-    border-radius: var(--r-lg);
-    background:
-      radial-gradient(120% 70% at 100% 0%, var(--lf-glow), transparent 55%), var(--glass-tint-frost);
-  }
-
-  .lf-forge__head {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-2);
-  }
-
-  .lf-forge__spark {
-    width: 14px;
-    height: 14px;
-    background:
-      linear-gradient(to bottom, var(--lf-accent) 0 100%) center / 2px 14px no-repeat,
-      linear-gradient(to right, var(--lf-accent) 0 100%) center / 14px 2px no-repeat;
-    transform: rotate(0deg);
-  }
-
-  .lf.is-inview .lf-forge[data-forging="true"] .lf-forge__spark {
-    animation: lf-spin 900ms var(--ease-standard) infinite;
-  }
-
-  @keyframes lf-spin {
-    to {
-      transform: rotate(180deg);
-    }
-  }
-
-  .lf-forge__title {
-    font-family: var(--font-stack-display);
-    font-size: var(--fs-16);
-    font-weight: var(--fw-semibold);
-    color: var(--text);
-  }
-
-  /* промпт-чип + кнопка */
-  .lf-forge__prompt {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-2);
-  }
-
-  .lf-forge__chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: var(--sp-2) var(--sp-3);
-    border: var(--bw-thin) solid var(--lf-line);
-    border-radius: var(--r-sm);
-    background: var(--surface-2);
-    color: var(--text);
-    font-size: var(--fs-12);
-    word-break: break-word;
-  }
-
-  .lf-forge__chip-sigil {
-    color: var(--lf-accent);
-    font-weight: var(--fw-bold);
-  }
-
-  .lf-forge__btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--sp-2);
-    min-height: var(--tap-min);
-    padding: var(--sp-2) var(--sp-4);
-    border: var(--bw-thin) solid var(--lf-line);
-    border-radius: var(--r-pill);
-    background: var(--lf-soft);
-    color: var(--text);
-    font-family: var(--font-stack-display);
-    font-size: var(--fs-14);
-    font-weight: var(--fw-semibold);
-    cursor: pointer;
-    transition:
-      border-color var(--dur-fast) var(--ease-standard),
-      transform var(--dur-fast) var(--ease-spring);
-  }
-
-  .lf-forge__btn:hover {
-    border-color: var(--lf-accent);
-  }
-
-  .lf-forge__btn:active {
-    transform: scale(0.97);
-  }
-
-  .lf-forge__btn:focus-visible {
-    outline: var(--ring-width) solid var(--ring-focus);
-    outline-offset: 2px;
-  }
-
-  .lf-forge__btn-glyph {
-    width: 10px;
-    height: 10px;
-    border-radius: 2px;
-    background: var(--lf-accent);
-    transform: rotate(45deg);
-  }
-
-  /* стадии форджа: свёрнуты до forging */
-  .lf-forge__stage {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-2);
-    opacity: 0.35;
-    transition: opacity var(--dur-med) var(--ease-standard);
-  }
-
-  .lf-forge__stage[data-on="true"] {
-    opacity: 1;
-  }
-
-  .lf-forge__stage-cap {
-    color: var(--text-muted);
-  }
-
-  /* список файлов */
-  .lf-forge__files {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-1);
-  }
-
-  .lf-forge__file {
-    display: flex;
-    align-items: baseline;
-    gap: var(--sp-2);
-    padding: 6px var(--sp-3);
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-xs);
-    background: var(--surface);
-  }
-
-  .lf-forge__file[data-file="0"] {
-    border-color: var(--lf-line);
-  }
-
-  /* появление файлов по одному (классы вешает скрипт) */
-  .lf-forge__stage[data-on="true"] .lf-forge__file {
-    opacity: 0;
-  }
-
-  .lf.is-inview .lf-forge__stage[data-on="true"] .lf-forge__file.is-show {
-    animation: lf-slide var(--dur-slow) var(--ease-soft) both;
-  }
-
-  /* без js-классов (reduced/no-io) файлы видимы */
-  .lf-forge__stage[data-on="true"] .lf-forge__file.is-show {
-    opacity: 1;
-  }
-
-  @keyframes lf-slide {
-    from {
-      opacity: 0;
-      transform: translate3d(-10px, 0, 0);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-
-  .lf-forge__file-dot {
-    flex: none;
-    align-self: center;
-    width: 6px;
-    height: 6px;
-    border-radius: 2px;
-    background: var(--lf-accent);
-  }
-
-  .lf-forge__file-name {
-    font-size: var(--fs-13);
-    color: var(--text);
-    word-break: break-word;
-  }
-
-  .lf-forge__file-kind {
-    margin-left: auto;
-    font-size: var(--fs-11);
-    color: var(--text-muted);
-    white-space: nowrap;
-  }
-
-  /* Zod-схема */
-  .lf-forge__schema {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    padding: var(--sp-3);
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-sm);
-    background: var(--bg-deep);
-    font-size: var(--fs-12);
-    color: var(--text-secondary);
-    overflow-x: auto;
-  }
-
-  .lf-forge__sline {
-    white-space: pre;
-  }
-
-  .lf-forge__sline--head {
-    color: var(--text);
-  }
-
-  .lf-forge__sline em {
-    font-style: normal;
-    color: var(--lf-accent);
-  }
-
-  .lf-forge__sline--infer {
-    margin-top: 3px;
-    color: var(--text-muted);
-  }
-
-  /* лишняя строка скрыта в pass, видна в fail */
-  .lf-forge__sline--bad {
-    display: none;
-    color: var(--lf-err);
-  }
-
-  .lf-forge__sline--bad em {
-    color: var(--lf-err);
-  }
-
-  .lf-forge__schema[data-state="fail"] .lf-forge__sline--bad {
-    display: block;
-  }
-
-  /* gate */
-  .lf-forge__gate {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--sp-2);
-    align-self: flex-start;
-    padding: var(--sp-2) var(--sp-3);
-    border: var(--bw-thin) solid var(--lf-line);
-    border-radius: var(--r-pill);
-    background: var(--lf-soft);
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-12);
-    color: var(--text);
-    transition:
-      border-color var(--dur-med) var(--ease-standard),
-      background-color var(--dur-med) var(--ease-standard);
-  }
-
-  .lf-forge__gate-icon {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--lf-accent);
-    transition:
-      background-color var(--dur-med) var(--ease-standard),
-      border-radius var(--dur-med) var(--ease-standard);
-  }
-
-  .lf-forge__gate[data-state="fail"] {
-    border-color: color-mix(in srgb, var(--lf-err) 55%, transparent);
-    background: var(--lf-err-soft);
-  }
-
-  .lf-forge__gate[data-state="fail"] .lf-forge__gate-icon {
-    background: var(--lf-err);
-    border-radius: 1px;
-  }
-
-  .lf.is-inview .lf-forge__gate[data-state="fail"].is-shake {
-    animation: lf-shake var(--dur-slow) var(--ease-standard);
-  }
-
-  @keyframes lf-shake {
-    0%,
-    100% {
-      transform: translateX(0);
-    }
-    25% {
-      transform: translateX(-4px);
-    }
-    75% {
-      transform: translateX(4px);
-    }
-  }
-
-  .lf-forge__toggle {
+  .lf-toggle {
     align-self: flex-start;
     min-height: var(--tap-min);
     padding: var(--sp-2) var(--sp-3);
@@ -1120,24 +971,548 @@ const ui = {
       color var(--dur-fast) var(--ease-standard),
       border-color var(--dur-fast) var(--ease-standard);
   }
-
-  .lf-forge__toggle:hover {
+  .lf-toggle:hover {
     color: var(--text);
     border-color: var(--border-hover);
   }
-
-  .lf-forge__toggle[aria-pressed="true"] {
+  .lf-toggle[aria-pressed="true"] {
     color: var(--text);
     border-color: color-mix(in srgb, var(--lf-err) 50%, transparent);
   }
-
-  .lf-forge__toggle:focus-visible {
+  .lf-toggle:focus-visible {
     outline: var(--ring-width) solid var(--ring-focus);
     outline-offset: 2px;
   }
 
-  /* пайп → PR */
-  .lf-forge__pipe {
+  /* появление кода/строк */
+  @keyframes lf-fade {
+    from { opacity: 0; transform: translate3d(0, 6px, 0); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes lf-slide {
+    from { opacity: 0; transform: translate3d(-10px, 0, 0); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes lf-pop {
+    0% { opacity: 0; transform: scale(0.8); }
+    60% { transform: scale(1.06); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  /* ════════ Акт 1: clone ════════ */
+  .lf-clone {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--sp-3);
+  }
+  .lf-term {
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--bg-deep);
+    overflow: hidden;
+  }
+  .lf-term__bar {
+    display: flex;
+    gap: 6px;
+    padding: var(--sp-2) var(--sp-3);
+    border-bottom: var(--bw-thin) solid var(--border);
+    background: var(--surface);
+  }
+  .lf-term__bar i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--surface-3);
+  }
+  .lf-term__body {
+    margin: 0;
+    padding: var(--sp-3);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: var(--fs-13);
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+  .lf-term__line {
+    display: flex;
+    gap: var(--sp-2);
+    opacity: 0;
+  }
+  .lf-term__line.is-show {
+    opacity: 1;
+  }
+  .lf.is-inview .lf-term__line.is-show {
+    animation: lf-fade var(--dur-med) var(--ease-soft) both;
+  }
+  .lf-term__sigil {
+    color: var(--lf-accent);
+  }
+  .lf-term__line--ok {
+    color: var(--lf-accent);
+  }
+  .lf-ask {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+  .lf-ask__cap {
+    color: var(--text-muted);
+  }
+  .lf-ask__bubble {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-2);
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--lf-line);
+    border-radius: var(--r-sm) var(--r-md) var(--r-md) var(--r-md);
+    background: var(--lf-faint);
+    color: var(--text);
+    font-size: var(--fs-14);
+  }
+  .lf-ask__sigil {
+    flex: none;
+    font-family: var(--font-stack-mono);
+    font-weight: var(--fw-bold);
+    color: var(--lf-accent);
+  }
+
+  /* ════════ Акт 2: forge ════════ */
+  .lf-forge {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    gap: var(--sp-3);
+  }
+  .lf-plan,
+  .lf-files {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+  }
+  .lf-plan {
+    transition: border-color var(--dur-med) var(--ease-standard), background-color var(--dur-med) var(--ease-standard);
+  }
+  .lf-plan[data-state="approved"] {
+    border-color: var(--lf-line);
+    background: var(--lf-faint);
+  }
+  .lf-plan__cap,
+  .lf-files__cap {
+    color: var(--text-muted);
+  }
+  .lf-files__cap {
+    font-family: var(--font-stack-mono);
+  }
+  .lf-plan__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .lf-plan__item {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+  .lf-plan__item[data-plan="3"] {
+    color: var(--text);
+    font-weight: var(--fw-semibold);
+  }
+  .lf-plan__dot {
+    flex: none;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--lf-accent);
+    opacity: 0.5;
+  }
+  .lf-plan__item[data-plan="3"] .lf-plan__dot {
+    opacity: 1;
+  }
+  .lf-files__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+  }
+  .lf-file {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-2);
+    padding: 6px var(--sp-2);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-xs);
+    background: var(--bg-deep);
+    opacity: 0;
+  }
+  .lf-file.is-show {
+    opacity: 1;
+  }
+  .lf.is-inview .lf-file.is-show {
+    animation: lf-slide var(--dur-slow) var(--ease-soft) both;
+  }
+  .lf-file__dot {
+    flex: none;
+    align-self: center;
+    width: 6px;
+    height: 6px;
+    border-radius: 2px;
+    background: var(--lf-accent);
+  }
+  .lf-file__name {
+    font-size: var(--fs-12);
+    color: var(--text);
+    word-break: break-word;
+  }
+  .lf-file__kind {
+    margin-left: auto;
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+    text-align: right;
+  }
+
+  /* ════════ Акт 3: contract ════════ */
+  .lf-contract {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+  }
+  .lf-schema {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--bg-deep);
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
+    overflow-x: auto;
+  }
+  .lf-schema__line {
+    white-space: pre;
+  }
+  .lf-schema__line--head {
+    color: var(--text);
+  }
+  .lf-schema__line em {
+    font-style: normal;
+    color: var(--lf-accent);
+  }
+  .lf-schema__line--infer {
+    margin-top: 3px;
+    color: var(--text-muted);
+  }
+  .lf-schema__line--bad {
+    display: none;
+    color: var(--lf-err);
+  }
+  .lf-schema__line--bad em {
+    color: var(--lf-err);
+  }
+  .lf-schema[data-state="fail"] .lf-schema__line--bad {
+    display: block;
+  }
+  .lf-gate__wrap {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+  }
+  .lf-gate {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
+    border: var(--bw-thin) solid var(--lf-line);
+    border-radius: var(--r-pill);
+    background: var(--lf-soft);
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-12);
+    color: var(--text);
+    transition:
+      border-color var(--dur-med) var(--ease-standard),
+      background-color var(--dur-med) var(--ease-standard);
+  }
+  .lf-gate__icon {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--lf-accent);
+    transition:
+      background-color var(--dur-med) var(--ease-standard),
+      border-radius var(--dur-med) var(--ease-standard);
+  }
+  .lf-gate[data-state="fail"] {
+    border-color: color-mix(in srgb, var(--lf-err) 55%, transparent);
+    background: var(--lf-err-soft);
+  }
+  .lf-gate[data-state="fail"] .lf-gate__icon {
+    background: var(--lf-err);
+    border-radius: 1px;
+  }
+  .lf.is-inview .lf-gate[data-state="fail"].is-shake {
+    animation: lf-shake var(--dur-slow) var(--ease-standard);
+  }
+  @keyframes lf-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+  .lf-validate {
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
+
+  /* ════════ Акт 4: solve ════════ */
+  .lf-ide {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-md);
+    padding: var(--sp-3);
+    background: var(--surface);
+  }
+  .lf-ide__tabs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+  .lf-ide__tab {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    min-height: var(--tap-min);
+    padding: var(--sp-2) var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-sm);
+    background: transparent;
+    cursor: pointer;
+    transition:
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard);
+  }
+  .lf-ide__tab[aria-selected="true"] {
+    border-color: var(--lf-line);
+    background: var(--lf-soft);
+  }
+  .lf-ide__tab[aria-selected="true"] .mono {
+    color: var(--lf-accent);
+  }
+  .lf-ide__tab .mono {
+    font-size: var(--fs-13);
+    color: var(--text);
+  }
+  .lf-ide__tab-sub {
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+  }
+  .lf-ide__tab:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  .lf-ide__worker {
+    margin-left: auto;
+    color: var(--text-muted);
+  }
+  .lf-ide__editor {
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--lf-line);
+    border-radius: var(--r-sm);
+    background: var(--bg-deep);
+    overflow-x: auto;
+  }
+  .lf-ide__code {
+    margin: 0;
+    font-size: var(--fs-13);
+    line-height: 1.7;
+    color: var(--text-secondary);
+    white-space: pre;
+    tab-size: 2;
+  }
+  .lf.is-inview .lf-ide__code.is-swap {
+    animation: lf-fade var(--dur-med) var(--ease-soft) both;
+  }
+  .lf-ide__variants {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+  .lf-ide__variants[hidden] {
+    display: none;
+  }
+  .lf-ide__out {
+    border-top: var(--bw-thin) solid var(--border);
+    padding-top: var(--sp-3);
+  }
+  .lf-ide__out[data-state="idle"] .lf-ide__table-wrap,
+  .lf-ide__out[data-state="idle"] .lf-ide__cases {
+    opacity: 0.32;
+  }
+  .lf-ide__out-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    margin-bottom: var(--sp-2);
+  }
+  .lf-ide__out-head .caption {
+    color: var(--text-muted);
+  }
+  .lf-ide__verdict {
+    font-size: var(--fs-12);
+    font-weight: var(--fw-semibold);
+    color: var(--text-muted);
+    transition: color var(--dur-med) var(--ease-standard);
+  }
+  .lf-ide__out[data-state="ok"] .lf-ide__verdict {
+    color: var(--lf-accent);
+  }
+  .lf-ide__out[data-state="bad"] .lf-ide__verdict {
+    color: var(--lf-err);
+  }
+  .lf-ide__table-wrap {
+    overflow-x: auto;
+    transition: opacity var(--dur-med) var(--ease-standard);
+  }
+  .lf-ide__table {
+    border-collapse: collapse;
+    width: max-content;
+    min-width: 100%;
+    font-family: var(--font-stack-mono);
+  }
+  .lf-ide__table :global(th),
+  .lf-ide__table :global(td) {
+    padding: var(--sp-1) var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    font-size: var(--fs-13);
+    text-align: left;
+    white-space: nowrap;
+  }
+  .lf-ide__table :global(th) {
+    color: var(--lf-accent);
+    background: var(--surface);
+    font-weight: var(--fw-semibold);
+  }
+  .lf-ide__table :global(td) {
+    color: var(--text);
+  }
+  .lf-ide__table :global(tr[data-bad="1"] td) {
+    color: var(--lf-err);
+    background: var(--lf-err-soft);
+  }
+  .lf.is-inview .lf-ide__table :global(tr.is-row) {
+    animation: lf-fade var(--dur-med) var(--ease-soft) both;
+    animation-delay: calc(var(--ri, 0) * 80ms);
+  }
+  .lf-ide__cases {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+    transition: opacity var(--dur-med) var(--ease-standard);
+  }
+  .lf-ide__cases[hidden] {
+    display: none;
+  }
+  .lf-ide__case {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: 5px var(--sp-2);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-xs);
+    background: var(--bg-deep);
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
+  }
+  .lf-ide__case-mark {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: var(--bw-thin) solid var(--border);
+  }
+  .lf-ide__case.is-pass .lf-ide__case-mark {
+    border-color: var(--lf-line);
+    background:
+      linear-gradient(45deg, transparent 44%, var(--lf-accent) 44% 56%, transparent 56%),
+      linear-gradient(-45deg, transparent 48%, var(--lf-accent) 48% 52%, transparent 52%);
+  }
+  .lf.is-inview .lf-ide__case.is-pass {
+    animation: lf-pop var(--dur-med) var(--ease-spring) both;
+    animation-delay: calc(var(--i, 0) * 110ms);
+  }
+  .lf-ide__case-eq {
+    margin-left: auto;
+    color: var(--lf-accent);
+  }
+
+  /* ════════ Акт 5: theory ════════ */
+  .lf-theory {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+  }
+  .lf-theory__chips {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+  .lf-vchip {
+    padding: 5px var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-pill);
+    background: var(--surface);
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
+  .lf-vchip.is-lit {
+    color: var(--lf-accent);
+    border-color: var(--lf-line);
+    background: var(--lf-soft);
+  }
+  .lf.is-inview .lf-vchip.is-lit {
+    animation: lf-pop var(--dur-med) var(--ease-spring) both;
+  }
+  .lf-quiz {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    padding: var(--sp-4);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--surface);
+  }
+  .lf-quiz__cap {
+    color: var(--text-muted);
+  }
+  .lf-quiz__prompt {
+    margin: 0;
+    font-size: var(--fs-15);
+    font-weight: var(--fw-semibold);
+    color: var(--text);
+  }
+  .lf-quiz__choices {
     list-style: none;
     margin: 0;
     padding: 0;
@@ -1145,473 +1520,767 @@ const ui = {
     flex-direction: column;
     gap: var(--sp-2);
   }
+  .lf-quiz__choice {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--sp-2);
+    width: 100%;
+    min-height: var(--tap-min);
+    padding: var(--sp-2) var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--bg-deep);
+    color: var(--text-secondary);
+    text-align: left;
+    font-size: var(--fs-13);
+    cursor: pointer;
+    transition:
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard);
+  }
+  .lf-quiz__choice:hover {
+    border-color: var(--border-hover);
+    color: var(--text);
+  }
+  .lf-quiz__choice[aria-pressed="true"] {
+    color: var(--text);
+    border-color: var(--lf-line);
+    background: var(--lf-soft);
+  }
+  .lf-quiz__choice:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  .lf-quiz__mark {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-xs);
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+  }
+  .lf-quiz__choice[aria-pressed="true"] .lf-quiz__mark {
+    color: var(--lf-accent);
+    border-color: var(--lf-line);
+  }
+  .lf-quiz[data-checked="true"] .lf-quiz__choice[data-correct="1"] {
+    border-color: var(--lf-line);
+    background: var(--lf-soft);
+    color: var(--text);
+  }
+  .lf-quiz[data-checked="true"] .lf-quiz__choice[data-correct="1"] .lf-quiz__mark {
+    color: var(--lf-accent);
+    border-color: var(--lf-line);
+    background: var(--lf-soft);
+  }
+  .lf-quiz[data-checked="true"] .lf-quiz__choice[aria-pressed="true"][data-correct="0"] {
+    border-color: color-mix(in srgb, var(--lf-err) 50%, transparent);
+    background: var(--lf-err-soft);
+    color: var(--lf-err);
+  }
+  .lf-quiz[data-checked="true"] .lf-quiz__choice[aria-pressed="true"][data-correct="0"] .lf-quiz__mark {
+    color: var(--lf-err);
+    border-color: color-mix(in srgb, var(--lf-err) 50%, transparent);
+  }
+  .lf-quiz__explain {
+    margin: 0;
+    padding: var(--sp-2) var(--sp-3);
+    border-left: 2px solid var(--lf-line);
+    font-size: var(--fs-13);
+    line-height: var(--lh-normal);
+    color: var(--text-secondary);
+  }
+  .lf-quiz__explain[hidden] {
+    display: none;
+  }
+  .lf.is-inview .lf-quiz__explain {
+    animation: lf-fade var(--dur-med) var(--ease-soft) both;
+  }
 
-  .lf-forge__pipe-step {
+  /* ════════ Акт 6: habit ════════ */
+  .lf-habit {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: var(--sp-3);
+    align-items: start;
+  }
+  .lf-streak {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--surface);
+  }
+  .lf-streak__head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-2);
+  }
+  .lf-streak__num {
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-28);
+    font-weight: var(--fw-bold);
+    color: var(--lf-accent);
+    line-height: 1;
+  }
+  .lf-streak__cap {
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
+  .lf-heat {
+    display: grid;
+    grid-template-columns: repeat(var(--cols), 1fr);
+    grid-auto-rows: 1fr;
+    gap: 3px;
+  }
+  .lf-heat__cell {
+    aspect-ratio: 1;
+    border-radius: 2px;
+    background: var(--surface-3);
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  .lf-heat__cell[data-lvl="1"] { background: color-mix(in srgb, var(--lf-accent) 22%, var(--surface-3)); }
+  .lf-heat__cell[data-lvl="2"] { background: color-mix(in srgb, var(--lf-accent) 44%, var(--surface-3)); }
+  .lf-heat__cell[data-lvl="3"] { background: color-mix(in srgb, var(--lf-accent) 68%, var(--surface-3)); }
+  .lf-heat__cell[data-lvl="4"] { background: var(--lf-accent); }
+  .lf-heat__cell.is-on {
+    opacity: 1;
+    transform: scale(1);
+  }
+  .lf.is-inview .lf-heat__cell.is-on {
+    transition:
+      opacity var(--dur-med) var(--ease-soft),
+      transform var(--dur-med) var(--ease-spring);
+    transition-delay: calc(var(--i, 0) * 7ms);
+  }
+  .lf-heat__cap {
+    color: var(--text-faint);
+  }
+
+  .lf-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-md);
+    background:
+      radial-gradient(120% 80% at 0% 0%, var(--lf-glow), transparent 60%),
+      var(--surface);
+  }
+  .lf-card__cap {
+    color: var(--text-muted);
+  }
+  .lf-card__flip {
+    display: block;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    perspective: 900px;
+  }
+  .lf-card__flip:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 3px;
+    border-radius: var(--r-sm);
+  }
+  .lf-card__inner {
+    position: relative;
+    display: block;
+    min-height: 88px;
+    transform-style: preserve-3d;
+    transition: transform var(--dur-slow) var(--ease-spring);
+  }
+  .lf-card[data-flipped="true"] .lf-card__inner {
+    transform: rotateY(180deg);
+  }
+  .lf-card__face {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--lf-line);
+    border-radius: var(--r-sm);
+    background: var(--bg-deep);
+    text-align: center;
+    font-size: var(--fs-14);
+    color: var(--text);
+    backface-visibility: hidden;
+  }
+  .lf-card__face--back {
+    transform: rotateY(180deg);
+    color: var(--lf-accent);
+  }
+  .lf-card__ratings {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--sp-1);
+  }
+  .lf-card__ratings[data-armed="false"] {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+  .lf-rate {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    min-height: var(--tap-min);
+    padding: var(--sp-1) var(--sp-1);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    cursor: pointer;
+    transition:
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-spring);
+  }
+  .lf-rate:active {
+    transform: scale(0.94);
+  }
+  .lf-rate:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  .lf-rate__label {
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-12);
+    font-weight: var(--fw-semibold);
+    color: var(--text);
+  }
+  .lf-rate__due {
+    font-size: var(--fs-10);
+    color: var(--text-muted);
+  }
+  .lf-rate[data-tone="err"]:hover { border-color: color-mix(in srgb, var(--lf-err) 50%, transparent); }
+  .lf-rate[data-tone="warn"]:hover { border-color: color-mix(in srgb, var(--lf-warn) 50%, transparent); }
+  .lf-rate[data-tone="accent"]:hover { border-color: var(--lf-line); }
+  .lf-rate[data-tone="ok"]:hover { border-color: color-mix(in srgb, var(--lf-ok) 50%, transparent); }
+
+  /* ════════ Акт 7: export ════════ */
+  .lf-export {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    gap: var(--sp-3);
+    align-items: start;
+  }
+  .lf-export__file {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--bg-deep);
+    opacity: 0.4;
+    transform: translate3d(0, 6px, 0);
+    transition:
+      opacity var(--dur-med) var(--ease-soft),
+      transform var(--dur-med) var(--ease-spring),
+      border-color var(--dur-med) var(--ease-standard);
+  }
+  .lf-export__file[data-on="true"] {
+    opacity: 1;
+    transform: none;
+    border-color: var(--lf-line);
+  }
+  .lf-export__name {
+    font-size: var(--fs-12);
+    color: var(--lf-accent);
+    word-break: break-all;
+  }
+  .lf-export__rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .lf-export__row {
     display: flex;
     align-items: center;
     gap: var(--sp-2);
     font-size: var(--fs-13);
     color: var(--text-secondary);
   }
-
-  .lf-forge__pipe-dot {
+  .lf-export__file[data-on="true"] .lf-export__row {
+    opacity: 0;
+  }
+  .lf.is-inview .lf-export__file[data-on="true"] .lf-export__row {
+    animation: lf-slide var(--dur-med) var(--ease-soft) both;
+    animation-delay: calc(var(--i, 0) * 90ms);
+  }
+  .lf-export__check {
     flex: none;
     width: 14px;
     height: 14px;
     border-radius: 50%;
     border: var(--bw-thin) solid var(--lf-line);
     background:
-      linear-gradient(45deg, transparent 42%, var(--lf-accent) 42% 58%, transparent 58%),
-      linear-gradient(-45deg, transparent 46%, var(--lf-accent) 46% 54%, transparent 54%);
+      linear-gradient(45deg, transparent 44%, var(--lf-accent) 44% 56%, transparent 56%),
+      linear-gradient(-45deg, transparent 48%, var(--lf-accent) 48% 52%, transparent 52%);
   }
-
-  .lf-forge__pr {
-    display: inline-flex;
-    align-self: flex-start;
-    padding: var(--sp-2) var(--sp-3);
-    border: var(--bw-thin) solid var(--lf-line);
-    border-radius: var(--r-sm);
-    background: var(--surface);
+  .lf-export__foot {
+    color: var(--text-faint);
+    font-family: var(--font-stack-mono);
   }
-
-  .lf-forge__pr-state {
-    font-size: var(--fs-13);
-    font-weight: var(--fw-semibold);
-    color: var(--lf-accent);
-  }
-
-  /* footer / BYOK */
-  .lf-forge__foot {
+  .lf-export__controls {
     display: flex;
     flex-direction: column;
     gap: var(--sp-2);
-    margin-top: auto;
-    padding-top: var(--sp-3);
-    border-top: var(--bw-thin) solid var(--border);
+    align-items: flex-start;
   }
 
-  .lf-forge__byok {
-    display: inline-flex;
+  /* ── пейджер ── */
+  .lf__pager {
+    display: flex;
     align-items: center;
-    gap: var(--sp-2);
-    align-self: flex-start;
-    min-height: var(--tap-min);
-    padding: var(--sp-2) var(--sp-3);
+    justify-content: space-between;
+    gap: var(--sp-3);
+    margin-top: auto;
+    padding: var(--sp-3) var(--sp-5);
+    border-top: var(--bw-thin) solid var(--border);
+    background: var(--surface);
+  }
+  .lf__pager-btn {
+    display: grid;
+    place-items: center;
+    width: var(--tap-min);
+    height: var(--tap-min);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-pill);
-    background: var(--surface);
+    background: var(--bg-elevated);
     color: var(--text-secondary);
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-12);
+    font-size: var(--fs-16);
     cursor: pointer;
     transition:
       color var(--dur-fast) var(--ease-standard),
-      border-color var(--dur-fast) var(--ease-standard);
+      border-color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-spring);
   }
-
-  .lf-forge__byok:hover {
+  .lf__pager-btn:hover {
     color: var(--text);
-    border-color: var(--border-hover);
+    border-color: var(--lf-accent);
   }
-
-  .lf-forge__byok[aria-expanded="true"] {
-    color: var(--text);
-    border-color: var(--lf-line);
+  .lf__pager-btn:active {
+    transform: scale(0.92);
   }
-
-  .lf-forge__byok:focus-visible {
+  .lf__pager-btn:focus-visible {
     outline: var(--ring-width) solid var(--ring-focus);
     outline-offset: 2px;
   }
-
-  .lf-forge__byok-key {
-    flex: none;
-    width: 12px;
-    height: 7px;
-    border: var(--bw-thin) solid var(--lf-accent);
-    border-radius: var(--r-pill);
+  .lf__pager-btn[disabled] {
+    opacity: 0.3;
+    pointer-events: none;
   }
-
-  .lf-forge__byok-note {
+  .lf__dots {
+    list-style: none;
     margin: 0;
-    font-size: var(--fs-12);
-    color: var(--text);
+    padding: 0;
+    display: flex;
+    gap: var(--sp-2);
+  }
+  .lf__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--surface-3);
+    transition:
+      background-color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-spring);
+  }
+  .lf__dot[data-on="true"] {
+    background: var(--lf-accent);
+    transform: scale(1.25);
   }
 
-  .lf-forge__byok-note[hidden] {
-    display: none;
-  }
-
-  .lf-forge__stack {
-    color: var(--text-faint);
-  }
-
-  /* ════════════════ Responsive ════════════════ */
-  @media (max-width: 760px) {
-    /* верстак — одна колонка */
-    .lf__bench {
+  /* ════════ Responsive ════════ */
+  @media (max-width: 860px) {
+    .lf__nav {
       grid-template-columns: 1fr;
+      gap: var(--sp-3);
     }
-
-    /* «в Web Worker» переносится на отдельную строку */
-    .lf-ide__worker {
-      flex-basis: 100%;
-      margin-left: 0;
-    }
-
-    /* вкладки рантайма: заполняют ширину, тач-таргет явный */
-    .lf-ide__runtimes {
+    /* рейка → горизонтальная лента */
+    .lf__rail {
+      flex-direction: row;
       gap: var(--sp-2);
-      padding-bottom: 0;
-    }
-
-    .lf-ide__runtime {
-      flex: 1 1 auto;
-      min-height: 44px;
-    }
-
-    /* редактор: код не вылезает за компонент, внутри блока прокрутка */
-    .lf-ide__editor {
-      margin: 0 var(--sp-3);
-      /* горизонтальный скролл внутри блока кода — допустим */
-      overflow-x: auto;
-    }
-
-    .lf-ide__code {
-      /* минимальный читаемый размер на мобильном */
-      font-size: max(12px, var(--fs-12));
-    }
-
-    .lf-ide__gutter {
-      font-size: max(12px, var(--fs-12));
-    }
-
-    /* варианты решения: растягиваются равномерно */
-    .lf-ide__variants {
-      gap: var(--sp-2);
-    }
-
-    .lf-ide__variant {
-      flex: 1 1 auto;
-      min-height: 44px;
-      text-align: center;
-    }
-
-    /* строка Run: кнопка на всю ширину, статус под ней */
-    .lf-ide__run {
-      flex-wrap: wrap;
-      gap: var(--sp-2);
-    }
-
-    .lf-ide__runbtn {
-      flex: 1 1 100%;
-      min-height: 44px;
-      justify-content: center;
-    }
-
-    .lf-ide__status {
-      flex-basis: 100%;
-    }
-
-    /* панель результата: таблица прокручивается внутри */
-    .lf-ide__table-wrap {
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
-      /* не даём таблице раздувать компонент */
-      max-width: 100%;
+      padding-bottom: var(--sp-1);
     }
-
-    /* кузница: промпт-чип занимает всю ширину */
-    .lf-forge__chip {
-      width: 100%;
-      box-sizing: border-box;
+    .lf__rail::before {
+      display: none;
     }
-
-    /* кнопка Forge — на всю ширину */
-    .lf-forge__btn {
-      width: 100%;
-      min-height: 44px;
-    }
-
-    /* gate и toggle — на всю ширину на мобильном */
-    .lf-forge__gate {
-      align-self: stretch;
-      max-width: 100%;
-    }
-
-    .lf-forge__toggle {
-      align-self: stretch;
-      min-height: 44px;
+    .lf__step {
+      flex: none;
+      flex-direction: column;
+      gap: var(--sp-1);
+      width: auto;
+      min-width: 84px;
       text-align: center;
     }
-
-    /* BYOK кнопка — на всю ширину */
-    .lf-forge__byok {
-      align-self: stretch;
-      min-height: 44px;
-    }
-
-    /* PR-чип тоже растягивается */
-    .lf-forge__pr {
-      align-self: stretch;
-      justify-content: center;
+    .lf__step-label {
+      font-size: var(--fs-11);
     }
   }
 
-  @media (max-width: 400px) {
-    .lf-ide__editor {
-      margin: 0 var(--sp-2);
+  @media (max-width: 640px) {
+    .lf-act {
+      padding: var(--sp-4);
     }
-
-    .lf-ide__runtimes,
-    .lf-ide__variants,
-    .lf-ide__run,
-    .lf-ide__result {
-      padding-left: var(--sp-3);
-      padding-right: var(--sp-3);
+    .lf-forge,
+    .lf-habit,
+    .lf-export {
+      grid-template-columns: 1fr;
     }
-
-    /* на очень узких — варианты в колонку, если не влезают */
-    .lf-ide__variant {
-      flex-basis: 100%;
+    .lf-act__run .lf-btn {
+      flex: 1 1 100%;
+    }
+    .lf__pager {
+      padding: var(--sp-3) var(--sp-4);
     }
   }
 
-  /* ════════════════ Reduced motion: статичный читаемый кадр ════════════════ */
+  @media (max-width: 420px) {
+    .lf-card__ratings {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  /* ════════ Reduced motion: статичный читаемый кадр ════════ */
   @media (prefers-reduced-motion: reduce) {
+    .lf-act.is-active,
+    .lf-term__line.is-show,
+    .lf-file.is-show,
     .lf-ide__code.is-swap,
     .lf-ide__table tr.is-row,
-    .lf-forge__file.is-show,
-    .lf-forge__gate.is-shake,
-    .lf-ide[data-busy="true"] .lf-ide__runbtn-glyph,
-    .lf-forge[data-forging="true"] .lf-forge__spark {
+    .lf-ide__case.is-pass,
+    .lf-vchip.is-lit,
+    .lf-quiz__explain,
+    .lf-heat__cell.is-on,
+    .lf-export__file[data-on="true"] .lf-export__row,
+    .lf-gate.is-shake {
       animation: none !important;
     }
-    .lf-forge__stage {
-      opacity: 1;
+    .lf-card__inner {
+      transition: none !important;
     }
-    .lf-forge__stage[data-on="true"] .lf-forge__file,
-    .lf-forge__file.is-show {
-      opacity: 1;
-    }
-    .lf-ide__result[data-state="idle"] .lf-ide__table-wrap {
-      opacity: 1;
+    .lf-heat__cell.is-on {
+      transition: none !important;
     }
   }
 </style>
 
 <script>
-  /* LearnForge — мини-IDE урока + ИИ-кузница. Один цельный верстак.
+  /* LearnForge — история-навигатор «как живёт DotLearn».
    *
-   * Движение: только transform/opacity. Постоянного rAF нет — автосборка
-   * форджа ведётся через setTimeout (массив timers), которые чистятся за
-   * экраном / на скрытой вкладке / на pagehide. Класс .is-inview на корне
-   * включает CSS-анимации; вне кадра «infinite»-анимации (spark, pulse) не
-   * крутятся, потому что их селекторы скоупятся под .lf.is-inview.
-   * prefers-reduced-motion → собранный читаемый кадр, тоглы/кнопки работают. */
+   * Движение: только transform/opacity. Постоянного rAF нет — демо ведётся
+   * через setTimeout (массив timers), которые чистятся за экраном / на скрытой
+   * вкладке / на pagehide. Класс .is-inview на корне включает CSS-анимации.
+   * prefers-reduced-motion → собранный читаемый кадр; интерактив жив. */
   (() => {
     const root = document.querySelector<HTMLElement>("[data-lf]");
     if (!root) return;
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const isEn = root.dataset.lfLocale === "en";
-    const tr = (ru: string, en: string): string => (isEn ? en : ru);
+    let S: Record<string, string> = {};
+    try {
+      S = JSON.parse(root.dataset.lfBundle ?? "{}");
+    } catch {
+      S = {};
+    }
+    const s = (k: string): string => S[k] ?? "";
 
-    /* ── данные вариантов (зеркало серверного const) ── */
-    type Row = string[];
-    type VariantData = {
-      ok: boolean;
-      sql: string[];
-      py: string[];
-      cols: string[];
-      rows: Row[];
-      note: string;
-    };
-    const variants: VariantData[] = [
-      {
-        ok: true,
-        sql: [
-          "SELECT o.id, u.name",
-          "FROM orders o",
-          "JOIN users u ON u.id = o.user_id",
-          "ORDER BY o.id;",
-        ],
-        py: [
-          "rows = sql(db, '''",
-          "  SELECT o.id, u.name FROM orders o",
-          "  JOIN users u ON u.id = o.user_id''')",
-          "print(rows)",
-        ],
-        cols: ["id", "name"],
-        rows: [
-          ["1001", "nova"],
-          ["1002", "mira"],
-          ["1003", "keto"],
-        ],
-        note: tr("совпало с gold-решением", "matches the gold solution"),
-      },
-      {
-        ok: false,
-        sql: [
-          "SELECT o.id, u.name",
-          "FROM orders o",
-          "LEFT JOIN users u ON u.id = o.user_id",
-          "ORDER BY o.id;",
-        ],
-        py: [
-          "rows = sql(db, '''",
-          "  SELECT o.id, u.name FROM orders o",
-          "  LEFT JOIN users u ON u.id = o.user_id''')",
-          "print(rows)",
-        ],
-        cols: ["id", "name"],
-        rows: [
-          ["1001", "nova"],
-          ["1002", "mira"],
-          ["1003", "keto"],
-          ["1004", "NULL"],
-        ],
-        note: tr("лишняя строка NULL — расходится с gold", "extra NULL row — differs from gold"),
-      },
-      {
-        ok: false,
-        sql: ["SELECT o.id, u.name", "FROM orders o", "CROSS JOIN users u", "ORDER BY o.id;"],
-        py: [
-          "rows = sql(db, '''",
-          "  SELECT o.id, u.name",
-          "  FROM orders o CROSS JOIN users u''')",
-          "print(rows)",
-        ],
-        cols: ["id", "name"],
-        rows: [
-          ["1001", "nova"],
-          ["1001", "mira"],
-          ["1001", "keto"],
-          ["…", "9 rows"],
-        ],
-        note: tr("декартово произведение — не то", "cartesian product — not it"),
-      },
-    ];
-
-    /* ── общий таймер-менеджер ── */
+    /* таймеры */
     const timers: number[] = [];
     const after = (ms: number, fn: () => void): void => {
-      timers.push(window.setTimeout(fn, ms));
+      timers.push(window.setTimeout(fn, reduced ? 0 : ms));
     };
     const clearTimers = (): void => {
       for (const id of timers.splice(0)) window.clearTimeout(id);
     };
 
-    /* ───────────────── ЛЕВО: мини-IDE ───────────────── */
+    /* ── навигатор: табы + панели + пейджер ── */
+    const tabs = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-lf-tab]"));
+    const panels = Array.from(root.querySelectorAll<HTMLElement>("[data-lf-panel]"));
+    const dots = Array.from(root.querySelectorAll<HTMLElement>("[data-dot]"));
+    const prevBtn = root.querySelector<HTMLButtonElement>("[data-lf-prev]");
+    const nextBtn = root.querySelector<HTMLButtonElement>("[data-lf-next]");
+    const ids = tabs.map((t) => t.dataset.lfTab ?? "");
+    let current = 0;
+    const played = new Set<string>();
+
+    const select = (i: number, focus = false): void => {
+      current = Math.max(0, Math.min(panels.length - 1, i));
+      tabs.forEach((t, k) => {
+        const on = k === current;
+        t.setAttribute("aria-selected", on ? "true" : "false");
+        t.tabIndex = on ? 0 : -1;
+        if (k < current) t.dataset.done = "true";
+        else delete t.dataset.done;
+      });
+      panels.forEach((p, k) => {
+        const on = k === current;
+        p.classList.toggle("is-active", on);
+        p.hidden = !on;
+      });
+      dots.forEach((d, k) => d.setAttribute("data-on", k === current ? "true" : "false"));
+      if (prevBtn) prevBtn.disabled = current === 0;
+      if (nextBtn) nextBtn.disabled = current === panels.length - 1;
+      if (focus) tabs[current]?.focus();
+      clearTimers();
+      if (root.classList.contains("is-inview")) play(ids[current] ?? "");
+    };
+
+    tabs.forEach((t, k) => {
+      t.addEventListener("click", () => select(k));
+      t.addEventListener("keydown", (e: KeyboardEvent) => {
+        let n = -1;
+        if (e.key === "ArrowDown" || e.key === "ArrowRight") n = (k + 1) % tabs.length;
+        else if (e.key === "ArrowUp" || e.key === "ArrowLeft") n = (k - 1 + tabs.length) % tabs.length;
+        else if (e.key === "Home") n = 0;
+        else if (e.key === "End") n = tabs.length - 1;
+        if (n < 0) return;
+        e.preventDefault();
+        select(n, true);
+      });
+    });
+    prevBtn?.addEventListener("click", () => select(current - 1));
+    nextBtn?.addEventListener("click", () => select(current + 1));
+
+    /* ════════ Акт 1: clone ════════ */
+    const cloneRun = root.querySelector<HTMLButtonElement>("[data-lf-clone-run]");
+    const cloneLabel = root.querySelector<HTMLElement>("[data-lf-clone-label]");
+    const cloneStatus = root.querySelector<HTMLElement>("[data-lf-clone-status]");
+    const termLineEls = Array.from(root.querySelectorAll<HTMLElement>("[data-term]"));
+    const playClone = (): void => {
+      termLineEls.forEach((l) => l.classList.remove("is-show"));
+      if (cloneStatus) {
+        cloneStatus.textContent = "";
+        cloneStatus.removeAttribute("data-tone");
+      }
+      termLineEls.forEach((l, i) => after(360 * (i + 1), () => l.classList.add("is-show")));
+    };
+    cloneRun?.addEventListener("click", () => {
+      clearTimers();
+      playClone();
+      if (cloneLabel) cloneLabel.textContent = s("agentBusy");
+      if (cloneStatus) {
+        cloneStatus.textContent = s("agentBusy");
+        cloneStatus.removeAttribute("data-tone");
+      }
+      after(360 * (termLineEls.length + 1) + 200, () => {
+        if (cloneLabel) cloneLabel.textContent = s("runAgent");
+        if (cloneStatus) {
+          cloneStatus.textContent = s("agentDone");
+          cloneStatus.setAttribute("data-tone", "ok");
+        }
+      });
+    });
+
+    /* ════════ Акт 2: forge ════════ */
+    const planEl = root.querySelector<HTMLElement>("[data-lf-plan]");
+    const forgeRun = root.querySelector<HTMLButtonElement>("[data-lf-forge-run]");
+    const forgeLabel = root.querySelector<HTMLElement>("[data-lf-forge-label]");
+    const forgeStatus = root.querySelector<HTMLElement>("[data-lf-forge-status]");
+    const fileEls = Array.from(root.querySelectorAll<HTMLElement>("[data-file]"));
+    let forging = false;
+    const playForge = (): void => {
+      forging = true;
+      fileEls.forEach((f) => f.classList.remove("is-show"));
+      planEl?.setAttribute("data-state", "approved");
+      if (forgeLabel) forgeLabel.textContent = s("forging");
+      if (forgeStatus) {
+        forgeStatus.textContent = s("forging");
+        forgeStatus.removeAttribute("data-tone");
+      }
+      const step = 300;
+      fileEls.forEach((f, i) => after(step * (i + 1), () => f.classList.add("is-show")));
+      after(step * (fileEls.length + 1) + 200, () => {
+        forging = false;
+        if (forgeLabel) forgeLabel.textContent = s("forge");
+        if (forgeStatus) {
+          forgeStatus.textContent = s("forged");
+          forgeStatus.setAttribute("data-tone", "ok");
+        }
+      });
+    };
+    forgeRun?.addEventListener("click", () => {
+      if (forging) return;
+      clearTimers();
+      playForge();
+    });
+
+    /* ════════ Акт 3: contract ════════ */
+    const schemaEl = root.querySelector<HTMLElement>("[data-lf-schema]");
+    const gateEl = root.querySelector<HTMLElement>("[data-lf-gate]");
+    const gateText = root.querySelector<HTMLElement>("[data-lf-gate-text]");
+    const injectBtn = root.querySelector<HTMLButtonElement>("[data-lf-inject]");
+    let injected = false;
+    const renderGate = (shake = false): void => {
+      schemaEl?.setAttribute("data-state", injected ? "fail" : "pass");
+      gateEl?.setAttribute("data-state", injected ? "fail" : "pass");
+      if (gateText) gateText.textContent = injected ? s("reject") : s("pass");
+      if (injectBtn) {
+        injectBtn.setAttribute("aria-pressed", injected ? "true" : "false");
+        injectBtn.textContent = injected ? s("fix") : s("inject");
+      }
+      if (injected && shake && !reduced && gateEl) {
+        gateEl.classList.remove("is-shake");
+        void gateEl.offsetWidth;
+        gateEl.classList.add("is-shake");
+      }
+    };
+    injectBtn?.addEventListener("click", () => {
+      injected = !injected;
+      renderGate(true);
+    });
+
+    /* ════════ Акт 4: solve ════════ */
     const ide = root.querySelector<HTMLElement>("[data-lf-ide]");
+    const rtTabs = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-lf-rt]"));
     const codeEl = root.querySelector<HTMLElement>("[data-lf-code]");
-    const runtimeBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-lf-runtime]"));
+    const variantsWrap = root.querySelector<HTMLElement>("[data-lf-variants]");
     const variantBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-lf-variant]"));
     const runBtn = root.querySelector<HTMLButtonElement>("[data-lf-run]");
-    const runStatus = root.querySelector<HTMLElement>("[data-lf-runstatus]");
-    const result = root.querySelector<HTMLElement>("[data-lf-result]");
+    const runStatus = root.querySelector<HTMLElement>("[data-lf-run-status]");
+    const out = root.querySelector<HTMLElement>("[data-lf-out]");
+    const sqlOut = root.querySelector<HTMLElement>("[data-lf-sqlout]");
+    const pyOut = root.querySelector<HTMLElement>("[data-lf-pyout]");
     const theadEl = root.querySelector<HTMLElement>("[data-lf-thead]");
     const tbodyEl = root.querySelector<HTMLElement>("[data-lf-tbody]");
     const verdictEl = root.querySelector<HTMLElement>("[data-lf-verdict]");
+    const caseEls = Array.from(root.querySelectorAll<HTMLElement>("[data-case]"));
 
-    let runtime = 0; /* 0 = sql.js, 1 = Pyodide */
+    const sqlVariants = [
+      {
+        ok: true,
+        code: "SELECT a.name, b.title\nFROM author a\nLEFT JOIN book b ON b.author_id = a.id\nORDER BY a.name, b.title;",
+        rows: [["Ada", "Analytical engine"], ["Grace", "NULL"], ["Linus", "Kernel notes"]],
+      },
+      {
+        ok: false,
+        code: "SELECT a.name, b.title\nFROM author a\nJOIN book b ON b.author_id = a.id\nORDER BY a.name;",
+        rows: [["Ada", "Analytical engine"], ["Linus", "Kernel notes"]],
+      },
+    ];
+    const pyCode =
+      "class Vector:\n    def __init__(self, x, y):\n        self.x, self.y = x, y\n    def length(self):\n        return (self.x**2 + self.y**2) ** 0.5";
+    const sqlCols = ["name", "title"];
+    let runtime: "sql" | "py" = "sql";
     let variant = 0;
 
     const swapCode = (): void => {
       if (!codeEl) return;
-      const v = variants[variant];
-      if (!v) return;
-      const lines = runtime === 0 ? v.sql : v.py;
-      codeEl.textContent = lines.join("\n");
+      codeEl.textContent = runtime === "sql" ? (sqlVariants[variant]?.code ?? "") : pyCode;
       if (!reduced) {
         codeEl.classList.remove("is-swap");
         void codeEl.offsetWidth;
         codeEl.classList.add("is-swap");
       }
     };
-
-    const resetResult = (): void => {
+    const resetOut = (): void => {
+      out?.setAttribute("data-state", "idle");
+      out?.setAttribute("data-kind", runtime);
+      if (sqlOut) sqlOut.hidden = runtime !== "sql";
+      if (pyOut) pyOut.hidden = runtime !== "py";
+      if (variantsWrap) variantsWrap.hidden = runtime !== "sql";
       if (theadEl) theadEl.replaceChildren();
       if (tbodyEl) tbodyEl.replaceChildren();
-      if (result) result.setAttribute("data-state", "idle");
+      caseEls.forEach((c) => c.classList.remove("is-pass"));
       if (verdictEl) verdictEl.textContent = "";
-      if (runStatus) runStatus.textContent = tr("готово к запуску", "ready to run");
+      if (runStatus) {
+        runStatus.textContent = s("ready");
+        runStatus.removeAttribute("data-tone");
+      }
       ide?.setAttribute("data-busy", "false");
     };
-
-    const renderTable = (): void => {
-      const v = variants[variant];
+    const renderSql = (): void => {
+      const v = sqlVariants[variant];
       if (!v || !theadEl || !tbodyEl) return;
       const hr = document.createElement("tr");
-      for (const c of v.cols) {
+      for (const c of sqlCols) {
         const th = document.createElement("th");
         th.scope = "col";
         th.textContent = c;
         hr.appendChild(th);
       }
       theadEl.replaceChildren(hr);
-
-      const body = document.createDocumentFragment();
+      const frag = document.createDocumentFragment();
       v.rows.forEach((row, ri) => {
-        const trEl = document.createElement("tr");
-        trEl.className = "is-row";
-        trEl.style.setProperty("--ri", String(ri));
-        /* пометить аномальную строку неверного варианта */
-        const isExtra = !v.ok && ri >= 3;
-        if (isExtra) trEl.dataset.bad = "1";
+        const tr = document.createElement("tr");
+        tr.className = "is-row";
+        tr.style.setProperty("--ri", String(ri));
+        if (!v.ok && ri === v.rows.length - 1 && variant === 1) {
+          /* подсветку аномалии для INNER не делаем — там нет «лишней» строки */
+        }
         for (const cell of row) {
           const td = document.createElement("td");
           td.textContent = cell;
-          trEl.appendChild(td);
+          if (cell === "NULL") td.style.color = "var(--text-faint)";
+          tr.appendChild(td);
         }
-        body.appendChild(trEl);
+        frag.appendChild(tr);
       });
-      tbodyEl.replaceChildren(body);
-
-      if (result) result.setAttribute("data-state", v.ok ? "ok" : "bad");
-      if (verdictEl) {
-        verdictEl.textContent = v.ok
-          ? tr("✓ совпало с gold", "✓ matches gold")
-          : tr("✗ расходится с gold", "✗ differs from gold");
-      }
+      tbodyEl.replaceChildren(frag);
+      out?.setAttribute("data-state", v.ok ? "ok" : "bad");
+      if (verdictEl) verdictEl.textContent = v.ok ? s("okGold") : s("badGold");
     };
-
+    const renderPy = (): void => {
+      caseEls.forEach((c) => c.classList.remove("is-pass"));
+      caseEls.forEach((c, i) => after(120 * (i + 1), () => c.classList.add("is-pass")));
+      out?.setAttribute("data-state", "ok");
+      if (verdictEl) verdictEl.textContent = s("casesPass");
+    };
     const run = (): void => {
-      const v = variants[variant];
-      if (!v) return;
+      clearTimers();
       ide?.setAttribute("data-busy", "true");
-      const eng = runtime === 0 ? "sql.js" : "Pyodide";
+      const eng = runtime === "sql" ? "sql.js" : "Pyodide";
       if (runStatus) {
-        runStatus.textContent = tr(
-          `${eng}: исполняю в Web Worker…`,
-          `${eng}: executing in a Web Worker…`,
-        );
+        runStatus.textContent = `${eng}: ${s("running")}`;
+        runStatus.removeAttribute("data-tone");
       }
+      out?.setAttribute("data-state", "idle");
       if (theadEl) theadEl.replaceChildren();
       if (tbodyEl) tbodyEl.replaceChildren();
-      if (result) result.setAttribute("data-state", "idle");
-      if (verdictEl) verdictEl.textContent = "";
-
-      const delay = reduced ? 0 : 520;
-      after(delay, () => {
+      caseEls.forEach((c) => c.classList.remove("is-pass"));
+      after(520, () => {
         ide?.setAttribute("data-busy", "false");
-        renderTable();
+        if (runtime === "sql") renderSql();
+        else renderPy();
         if (runStatus) {
-          runStatus.textContent = `${eng} · ${v.note}`;
+          const okTone = runtime === "py" || sqlVariants[variant]?.ok;
+          runStatus.textContent = `${eng} ✓`;
+          runStatus.setAttribute("data-tone", okTone ? "ok" : "bad");
         }
       });
     };
-
-    const selectRuntime = (k: number): void => {
-      runtime = k;
-      runtimeBtns.forEach((b, i) => {
+    const selectRt = (k: number): void => {
+      runtime = k === 1 ? "py" : "sql";
+      rtTabs.forEach((b, i) => {
         b.setAttribute("aria-selected", i === k ? "true" : "false");
         b.tabIndex = i === k ? 0 : -1;
       });
+      variant = 0;
+      variantBtns.forEach((b, i) => {
+        b.setAttribute("aria-checked", i === 0 ? "true" : "false");
+        b.tabIndex = i === 0 ? 0 : -1;
+      });
       swapCode();
-      resetResult();
+      resetOut();
     };
-
     const selectVariant = (k: number): void => {
       variant = k;
       variantBtns.forEach((b, i) => {
@@ -1619,161 +2288,170 @@ const ui = {
         b.tabIndex = i === k ? 0 : -1;
       });
       swapCode();
-      resetResult();
+      resetOut();
     };
-
-    runtimeBtns.forEach((b, k) => b.addEventListener("click", () => selectRuntime(k)));
+    rtTabs.forEach((b, k) => b.addEventListener("click", () => selectRt(k)));
     variantBtns.forEach((b, k) => b.addEventListener("click", () => selectVariant(k)));
     runBtn?.addEventListener("click", run);
 
-    /* клавиатура для радиогрупп (стрелки) */
-    const wireArrows = (
-      list: HTMLButtonElement[],
-      pick: (k: number) => void,
-      getIdx: () => number,
-    ): void => {
-      list.forEach((b) => {
-        b.addEventListener("keydown", (e: KeyboardEvent) => {
-          if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-          e.preventDefault();
-          const n = list.length;
-          const cur = getIdx();
-          const next = e.key === "ArrowRight" ? (cur + 1) % n : (cur - 1 + n) % n;
-          pick(next);
-          list[next]?.focus();
-        });
+    /* ════════ Акт 5: theory ════════ */
+    const vizEls = Array.from(root.querySelectorAll<HTMLElement>("[data-viz]"));
+    const quizEl = root.querySelector<HTMLElement>("[data-lf-quiz]");
+    const choiceBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-lf-choice]"));
+    const quizCheck = root.querySelector<HTMLButtonElement>("[data-lf-quiz-check]");
+    const quizStatus = root.querySelector<HTMLElement>("[data-lf-quiz-status]");
+    const quizExplain = root.querySelector<HTMLElement>("[data-lf-quiz-explain]");
+    choiceBtns.forEach((b) => {
+      b.addEventListener("click", () => {
+        if (quizEl?.dataset.checked === "true") return;
+        const on = b.getAttribute("aria-pressed") === "true";
+        b.setAttribute("aria-pressed", on ? "false" : "true");
       });
-    };
-    wireArrows(runtimeBtns, selectRuntime, () => runtime);
-    wireArrows(variantBtns, selectVariant, () => variant);
-
-    /* ───────────────── ПРАВО: кузница ───────────────── */
-    const forge = root.querySelector<HTMLElement>("[data-lf-forge]");
-    const forgeBtn = root.querySelector<HTMLButtonElement>("[data-lf-forge-btn]");
-    const forgeLabel = root.querySelector<HTMLElement>("[data-lf-forge-label]");
-    const fileEls = Array.from(root.querySelectorAll<HTMLElement>(".lf-forge__file"));
-    const stageEls = Array.from(root.querySelectorAll<HTMLElement>("[data-lf-stage]"));
-    const schemaEl = root.querySelector<HTMLElement>("[data-lf-schema]");
-    const gateEl = root.querySelector<HTMLElement>("[data-lf-gate]");
-    const gateText = root.querySelector<HTMLElement>("[data-lf-gatetext]");
-    const badFieldBtn = root.querySelector<HTMLButtonElement>("[data-lf-badfield]");
-
-    const stage = (name: string): HTMLElement | undefined =>
-      stageEls.find((s) => s.dataset.lfStage === name);
-
-    const setStageOn = (name: string, on: boolean): void => {
-      stage(name)?.setAttribute("data-on", on ? "true" : "false");
+    });
+    quizCheck?.addEventListener("click", () => {
+      quizEl?.setAttribute("data-checked", "true");
+      let ok = true;
+      choiceBtns.forEach((b) => {
+        const picked = b.getAttribute("aria-pressed") === "true";
+        const correct = b.dataset.correct === "1";
+        if (picked !== correct) ok = false;
+      });
+      if (quizStatus) {
+        quizStatus.textContent = ok ? s("quizRight") : s("quizWrong");
+        quizStatus.setAttribute("data-tone", ok ? "ok" : "bad");
+      }
+      if (quizExplain) quizExplain.hidden = false;
+    });
+    const playTheory = (): void => {
+      vizEls.forEach((v) => v.classList.remove("is-lit"));
+      vizEls.forEach((v, i) => after(140 * (i + 1), () => v.classList.add("is-lit")));
     };
 
-    let badField = false;
-
-    const renderGate = (): void => {
-      const failed = badField;
-      schemaEl?.setAttribute("data-state", failed ? "fail" : "pass");
-      gateEl?.setAttribute("data-state", failed ? "fail" : "pass");
-      if (gateText) {
-        gateText.textContent = failed
-          ? tr(
-              "REJECT · ZodError: unrecognized key — отклонено web И api",
-              "REJECT · ZodError: unrecognized key — rejected by web AND api",
-            )
-          : tr("PASS · форма валидна для web и api", "PASS · shape valid for web and api");
+    /* ════════ Акт 6: habit ════════ */
+    const streakNum = root.querySelector<HTMLElement>("[data-lf-streak]");
+    const heatCells = Array.from(root.querySelectorAll<HTMLElement>("[data-lf-heat] .lf-heat__cell"));
+    const cardEl = root.querySelector<HTMLElement>("[data-lf-card]");
+    const flipBtn = root.querySelector<HTMLButtonElement>("[data-lf-flip]");
+    const ratingsWrap = root.querySelector<HTMLElement>("[data-lf-ratings]");
+    const rateBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-lf-rate]"));
+    const cardStatus = root.querySelector<HTMLElement>("[data-lf-card-status]");
+    const TARGET_STREAK = 23;
+    ratingsWrap?.setAttribute("data-armed", "false");
+    flipBtn?.addEventListener("click", () => {
+      const flipped = cardEl?.dataset.flipped === "true";
+      cardEl?.setAttribute("data-flipped", flipped ? "false" : "true");
+      if (!flipped) ratingsWrap?.setAttribute("data-armed", "true");
+    });
+    rateBtns.forEach((b) => {
+      b.addEventListener("click", () => {
+        const due = b.querySelector(".lf-rate__due")?.textContent ?? "";
+        if (cardStatus) {
+          cardStatus.textContent = `${s("nextDue")} ${due}`;
+          cardStatus.setAttribute("data-tone", "ok");
+        }
+        cardEl?.setAttribute("data-flipped", "false");
+        ratingsWrap?.setAttribute("data-armed", "false");
+      });
+    });
+    const playHabit = (): void => {
+      heatCells.forEach((c) => c.classList.remove("is-on"));
+      if (reduced) {
+        heatCells.forEach((c) => c.classList.add("is-on"));
+        if (streakNum) streakNum.textContent = String(TARGET_STREAK);
+        return;
       }
-      if (badFieldBtn) {
-        badFieldBtn.setAttribute("aria-pressed", failed ? "true" : "false");
-        badFieldBtn.textContent = failed
-          ? tr("Убрать поле", "Remove field")
-          : tr("Внедрить лишнее поле", "Inject extra field");
-      }
-      if (failed && !reduced && gateEl) {
-        gateEl.classList.remove("is-shake");
-        void gateEl.offsetWidth;
-        gateEl.classList.add("is-shake");
-      }
+      heatCells.forEach((c) => c.classList.add("is-on"));
+      /* счётчик стрика */
+      let v = 0;
+      const tick = (): void => {
+        v += 1;
+        if (streakNum) streakNum.textContent = String(v);
+        if (v < TARGET_STREAK) after(34, tick);
+      };
+      after(120, tick);
     };
 
-    /* собрать форж: файлы по одному → стадии включаются */
-    let forging = false;
-    const forgeTopic = (): void => {
+    /* ════════ Акт 7: export ════════ */
+    const fileCard = root.querySelector<HTMLElement>("[data-lf-file-card]");
+    const exportBtn = root.querySelector<HTMLButtonElement>("[data-lf-export]");
+    const importBtn = root.querySelector<HTMLButtonElement>("[data-lf-import]");
+    const exportStatus = root.querySelector<HTMLElement>("[data-lf-export-status]");
+    const playExport = (): void => {
+      fileCard?.setAttribute("data-on", "true");
+    };
+    exportBtn?.addEventListener("click", () => {
       clearTimers();
-      forging = true;
-      forge?.setAttribute("data-forging", "true");
-      if (forgeLabel) forgeLabel.textContent = tr("Куётся…", "Forging…");
+      fileCard?.setAttribute("data-on", "false");
+      void fileCard?.offsetWidth;
+      after(40, () => fileCard?.setAttribute("data-on", "true"));
+      if (exportStatus) {
+        exportStatus.textContent = s("exported");
+        exportStatus.setAttribute("data-tone", "ok");
+      }
+    });
+    importBtn?.addEventListener("click", () => {
+      fileCard?.setAttribute("data-on", "true");
+      if (exportStatus) {
+        exportStatus.textContent = s("imported");
+        exportStatus.setAttribute("data-tone", "ok");
+      }
+    });
 
-      /* сброс */
-      fileEls.forEach((f) => f.classList.remove("is-show"));
-      setStageOn("files", true);
-      setStageOn("zod", false);
-      setStageOn("pr", false);
-
-      const stepMs = reduced ? 0 : 260;
-      fileEls.forEach((f, i) => {
-        after(stepMs * (i + 1), () => f.classList.add("is-show"));
-      });
-      after(stepMs * (fileEls.length + 1), () => {
-        setStageOn("zod", true);
-        renderGate();
-      });
-      after(stepMs * (fileEls.length + 2), () => setStageOn("pr", true));
-      after(stepMs * (fileEls.length + 3) + 200, () => {
-        forging = false;
-        forge?.setAttribute("data-forging", "false");
-        if (forgeLabel) forgeLabel.textContent = tr("Сковать заново", "Forge again");
-      });
+    /* ── автопроигрыш активной сцены (один раз на акт) ── */
+    const play = (id: string): void => {
+      if (!id) return;
+      if (id === "contract") {
+        renderGate(false);
+        return;
+      }
+      if (id === "solve") {
+        if (!played.has(id)) {
+          played.add(id);
+          after(260, run);
+        }
+        return;
+      }
+      if (played.has(id)) return;
+      played.add(id);
+      if (id === "clone") after(260, playClone);
+      else if (id === "forge") after(260, playForge);
+      else if (id === "theory") after(200, playTheory);
+      else if (id === "habit") after(200, playHabit);
+      else if (id === "export") after(300, playExport);
     };
-
-    forgeBtn?.addEventListener("click", () => {
-      if (forging) return;
-      forgeTopic();
-    });
-
-    badFieldBtn?.addEventListener("click", () => {
-      badField = !badField;
-      renderGate();
-    });
-
-    /* BYOK */
-    const byokBtn = root.querySelector<HTMLButtonElement>("[data-lf-byok]");
-    const byokNote = root.querySelector<HTMLElement>("[data-lf-byok-note]");
-    byokBtn?.addEventListener("click", () => {
-      const open = byokBtn.getAttribute("aria-expanded") === "true";
-      byokBtn.setAttribute("aria-expanded", open ? "false" : "true");
-      if (byokNote) byokNote.hidden = open;
-    });
 
     /* ── начальное состояние ── */
-    selectRuntime(0);
-    selectVariant(0);
-    renderGate();
+    selectRt(0);
+    renderGate(false);
 
-    /* reduced / нет IO: собранный читаемый кадр без движения */
+    /* reduced / нет IO: собранный кадр */
     if (reduced || !("IntersectionObserver" in window)) {
+      root.classList.add("is-inview");
+      termLineEls.forEach((l) => l.classList.add("is-show"));
+      planEl?.setAttribute("data-state", "approved");
       fileEls.forEach((f) => f.classList.add("is-show"));
-      setStageOn("files", true);
-      setStageOn("zod", true);
-      setStageOn("pr", true);
-      renderTable(); /* показать результат верного варианта */
-      if (runStatus && variants[0]) {
-        runStatus.textContent = `sql.js · ${variants[0].note}`;
+      vizEls.forEach((v) => v.classList.add("is-lit"));
+      heatCells.forEach((c) => c.classList.add("is-on"));
+      if (streakNum) streakNum.textContent = String(23);
+      fileCard?.setAttribute("data-on", "true");
+      renderSql();
+      if (runStatus) {
+        runStatus.textContent = "sql.js ✓";
+        runStatus.setAttribute("data-tone", "ok");
       }
       return;
     }
 
     /* ── IntersectionObserver: гейтит всё движение ── */
-    let armed = false;
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
           if (e.isIntersecting) {
             root.classList.add("is-inview");
-            if (!armed) {
-              armed = true;
-              after(360, () => forgeTopic()); /* авто-проигрыш сборки один раз */
-            }
+            play(ids[current] ?? "");
           } else {
             root.classList.remove("is-inview");
             clearTimers();
-            forge?.setAttribute("data-forging", "false");
             ide?.setAttribute("data-busy", "false");
           }
         }
@@ -1785,11 +2463,9 @@ const ui = {
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
         clearTimers();
-        forge?.setAttribute("data-forging", "false");
         ide?.setAttribute("data-busy", "false");
       }
     });
-
     window.addEventListener(
       "pagehide",
       () => {
