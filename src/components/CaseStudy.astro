@@ -60,6 +60,27 @@ const SIGNATURE_SLUGS = new Set([
   "dottraceip",
 ]);
 const hasSignature = SIGNATURE_SLUGS.has(p.slug);
+
+// Лид к секции «Платформа изнутри»: по slug, чтобы вступление совпадало с
+// концепцией конкретной сигнатуры. Фолбэк - общий «выбери домен».
+const signatureLedes: Record<string, { ru: string; en: string }> = {
+  dotlearn: {
+    ru: "Семь шагов одной историей - от клонирования репозитория до экспорта прогресса. Иди стрелками ←/→ и смотри, как всё работает изнутри.",
+    en: "Seven steps as one story - from cloning the repo to exporting your progress. Step through with ←/→ and watch how it works inside.",
+  },
+  dottraceip: {
+    ru: "Не список полей, а живое досье на адрес. Выберите IP из логов брутфорса и нажмите «Проследить» - и посмотрите, как всё работает изнутри.",
+    en: "Not a list of fields but a live dossier on an address. Pick an IP from the brute-force logs, hit “Trace”, and see how it works inside.",
+  },
+  dotagents: {
+    ru: "Телефон становится пультом к AI-агенту на твоей машине: видно, что он делает, и рискованное можно остановить одним тапом. Потрогай интерактив - и поймёшь, как устроен контроль.",
+    en: "Your phone becomes the remote for an AI agent on your machine: see what it's doing and stop anything risky with one tap. Play with it to see how the control loop works.",
+  },
+};
+const signatureLede = (signatureLedes[p.slug] ?? {
+  ru: "Интерактивный разбор ключевых механик. Выбери домен - увидишь, как всё работает изнутри.",
+  en: "An interactive breakdown of the core mechanics. Pick a domain to see how it works inside.",
+})[locale];
 ---
 
 <article class="case" style={`--project-accent: ${accent};`}>
@@ -211,15 +232,7 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
         <section class="case__section case__section--bleed" data-reveal>
           <header class="case__h">
             <h2 class="eyebrow">{locale === "ru" ? "Платформа изнутри" : "Under the hood"}</h2>
-            <p class="case__h-lede subtitle">
-              {p.slug === "dottraceip"
-                ? locale === "ru"
-                  ? "Не список полей, а живое досье на адрес. Выберите IP из логов брутфорса и нажмите «Проследить» - и посмотрите, как всё работает изнутри."
-                  : "Not a list of fields but a live dossier on an address. Pick an IP from the brute-force logs, hit “Trace”, and see how it works inside."
-                : locale === "ru"
-                  ? "Интерактивный разбор ключевых механик. Выбери домен - увидишь, как всё работает изнутри."
-                  : "An interactive breakdown of the core mechanics. Pick a domain to see how it works inside."}
-            </p>
+            <p class="case__h-lede subtitle">{signatureLede}</p>
           </header>
           <ProjectSignature slug={p.slug} locale={locale} />
         </section>
