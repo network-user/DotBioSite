@@ -69,7 +69,7 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
     <div class="container case__hero-inner">
       <div class="case__hero-copy">
         <a href={backHref} class="case__back">
-          <Icon name="arrow-right" size={16} class="case__back-arrow" />
+          <Icon name="arrow-left" size={16} class="case__back-arrow" />
           <span>{t("case.back")}</span>
         </a>
 
@@ -212,9 +212,13 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
           <header class="case__h">
             <h2 class="eyebrow">{locale === "ru" ? "Платформа изнутри" : "Under the hood"}</h2>
             <p class="case__h-lede subtitle">
-              {locale === "ru"
-                ? "Интерактивный разбор ключевых механик. Выбери домен - увидишь, как всё работает изнутри."
-                : "An interactive breakdown of the core mechanics. Pick a domain to see how it works inside."}
+              {p.slug === "dottraceip"
+                ? locale === "ru"
+                  ? "Не список полей, а живое досье на адрес. Выберите IP из логов брутфорса и нажмите «Проследить» - и посмотрите, как всё работает изнутри."
+                  : "Not a list of fields but a live dossier on an address. Pick an IP from the brute-force logs, hit “Trace”, and see how it works inside."
+                : locale === "ru"
+                  ? "Интерактивный разбор ключевых механик. Выбери домен - увидишь, как всё работает изнутри."
+                  : "An interactive breakdown of the core mechanics. Pick a domain to see how it works inside."}
             </p>
           </header>
           <ProjectSignature slug={p.slug} locale={locale} />
@@ -501,10 +505,6 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
     padding: var(--sp-2) 0;
     margin-block-end: var(--sp-3);
     width: max-content;
-  }
-
-  .case__back-arrow {
-    transform: rotate(180deg);
   }
 
   .case__back:hover {

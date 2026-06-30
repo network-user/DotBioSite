@@ -2,40 +2,34 @@
 /**
  * TraceScan.astro — сигнатурная визуализация .след (DotTraceIP).
  *
- * Метафора: ЖИВОЙ СКАН-ТЕРМИНАЛ, в котором крутится сам CLI. Один связный
- * «терминал» (тайтлбар, строка-приглашение с командой dottraceip --format html
- * target_ips.txt, потоковый вывод, сетка из 6 параллельных проб-нод и
- * сортируемая таблица результатов). Это НЕ нумерованный степпер: нет вкладок
- * шагов и «Шаг N из M» — посетитель жмёт Run, тыкает ноды, заголовки таблицы,
- * чипы экспорта и тоггл прокси, и вся консоль откликается как живая.
+ * Концепт: ДОСЬЕ НА АДРЕС. Голый IP из логов брутфорса превращается в живую
+ * карточку-досье. Посетитель выбирает адрес, жмёт «Проследить» — и шесть
+ * источников опрашиваются параллельно, сходясь в одну карточку: страна,
+ * оператор/ASN, сеть, имя хоста и крупный индикатор угрозы с вердиктом.
+ * Один источник (Spamhaus) отвечает таймаутом, но досье всё равно собирается —
+ * это и есть asyncio.gather(return_exceptions=True) на простом языке.
  *
- * Сигнатурный момент: по фокус-IP идёт fan-out к 6 источникам через
- * asyncio.gather(return_exceptions=True). Один источник (Spamhaus) видимо
- * падает по таймауту — но это становится значением, а не падением: его поля
- * остаются дефолтами empty_info(ip), нода гаснет, остальные пять дозаполняют
- * строку. Прокси-guard: «сломать сборку прокси» → HTTP-источники НЕ откатятся
- * в прямой коннект, реальный IP не утечёт (состояние blocked).
+ * Главный экран намеренно чистый: одно понятное действие. Движок (скан списком)
+ * и прокси-guard вынесены в опциональный блок «Под капотом», экспорт — в слим-
+ * ряд под карточкой. Так обычный человек сразу понимает суть, а интересующийся
+ * докапывается до механики.
  *
- * Движение: только transform/opacity, конечные CSS-анимации. Постоянного rAF
- * нет — стрим вывода и fan-out ведутся одним setTimeout-конвейером, который
- * ОЧИЩАЕТСЯ за кадром / на скрытой вкладке / при pagehide; единственные
- * infinite-анимации (мигающая каретка, спиннер Run, ротация пула) scoped под
- * .ts.is-inview и замирают офскрин. Всё гейтится IntersectionObserver. При
- * prefers-reduced-motion — финальное статичное читаемое состояние, все
- * интеракции работают.
+ * Движение: только transform/opacity, конечные CSS-переходы. Постоянного rAF
+ * нет — анимация ведётся одним setTimeout-конвейером later(), который чистится
+ * офскрин / на скрытой вкладке / при pagehide. Всё гейтится IntersectionObserver
+ * (.td.is-inview). prefers-reduced-motion → финальный статичный кадр, интеракции
+ * работают.
  *
- * Факты сверены по репозиторию DotTraceIP (точные имена/числа):
- *  - 6 источников на IP: ip-api (geo + ASN), Team Cymru по DNS → bgpview.io
- *    (HTTP-фолбэк, BGP-префикс + имя AS), RDAP (сеть владельца / CIDR),
- *    reverse DNS (PTR), AbuseIPDB (репутация), Spamhaus DNSBL.
- *  - движок: asyncio + aiohttp; per-IP сбор — asyncio.gather(return_exceptions
- *    =True), HTTP через aiohttp, блокирующие DNS/RDAP — в thread pool.
- *  - сбой источника → значение, поля остаются дефолтами empty_info(ip).
- *  - семафор ограничивает конкурентность (несколько IP одновременно).
- *  - 4 формата экспорта: TXT/JSON/CSV/HTML. 3 типа прокси: HTTP/SOCKS4/SOCKS5.
- *  - guard приватности: прокси запрошен, но коннектор не построился → прямого
- *    HTTP-коннекта нет, реальный IP не утекает.
- *  - 64 теста pytest-asyncio + mypy в CI.
+ * Факты сверены по репозиторию DotTraceIP:
+ *  - 6 источников на IP через asyncio.gather: ip-api (geo+ASN), Team Cymru DNS →
+ *    bgpview HTTP (BGP-префикс/ASN), RDAP (CIDR владельца), reverse DNS (PTR),
+ *    AbuseIPDB (репутация), Spamhaus DNSBL. Сбой одного → дефолты empty_info.
+ *  - семафор ограничивает конкурентность по IP; as_completed + Rich Live.
+ *  - прокси HTTP/SOCKS4/SOCKS5, ротация пула, маскировка кредов; guard: если
+ *    коннектор не собрался — HTTP-источники не уходят в direct, реальный IP не
+ *    утекает (идут только DNS/RDAP в thread-pool).
+ *  - экспорт TXT (построчно в скане) + JSON/CSV/HTML (самодостаточный, сортируемый).
+ *  - 64 теста pytest-asyncio + ruff + mypy в CI.
  */
 import type { Locale } from "../../../lib/i18n";
 
@@ -48,285 +42,432 @@ type Bi = { ru: string; en: string };
 const t = (b: Bi): string => b[locale];
 
 const intro: Bi = {
-  ru: "Это живой терминал .след: запустите скан списка IP. Для каждого адреса движок разворачивается к шести источникам параллельно — тыкайте ноды, сортируйте таблицу, переключайте прокси и смотрите, как один источник падает, а результат всё равно собирается.",
-  en: "This is the live .след terminal: run a scan over a list of IPs. For each address the engine fans out to six sources in parallel — poke the nodes, sort the table, flip the proxy, and watch one source fail while the result still assembles.",
+  ru: "Выберите IP из логов брутфорса и нажмите «Проследить». Шесть источников опрашиваются параллельно и собирают из голого адреса досье: страна, оператор, сеть, имя хоста и уровень угрозы. Если один источник молчит, досье всё равно собирается.",
+  en: "Pick an IP from the brute-force logs and hit “Trace”. Six sources are queried in parallel and turn a bare address into a dossier: country, operator, network, hostname, and a threat level. If one source goes silent, the dossier still assembles.",
 };
 
-// --- Команда в строке-приглашении ---
-const cmd = "dottraceip --format html target_ips.txt";
-
-// --- Целевые адреса (стримятся в очередь под семафором) ---
-const targetIps = [
-  "185.220.101.4",
-  "45.155.205.233",
-  "193.32.162.7",
-  "104.244.76.13",
-  "5.188.206.18",
+// --- Адреса-«улики»: реальные по форме IP из логов SSH/RDP-брутфорса. ---
+// Поля локализованы на build-time; band угрозы считается в скрипте по abuse.
+type Dossier = {
+  ip: string;
+  cc: string;
+  country: Bi;
+  city: Bi;
+  asn: string;
+  operator: Bi;
+  network: string;
+  host: string;
+  abuse: number;
+};
+const dossiers: Dossier[] = [
+  {
+    ip: "185.220.101.4",
+    cc: "DE",
+    country: { ru: "Германия", en: "Germany" },
+    city: { ru: "Франкфурт", en: "Frankfurt" },
+    asn: "AS205100",
+    operator: { ru: "Tor-сеть · выходной узел", en: "Tor network · exit node" },
+    network: "185.220.100.0/22",
+    host: "tor-exit.relay",
+    abuse: 100,
+  },
+  {
+    ip: "45.155.205.233",
+    cc: "RU",
+    country: { ru: "Россия", en: "Russia" },
+    city: { ru: "Москва", en: "Moscow" },
+    asn: "AS49505",
+    operator: { ru: "облачный хостинг", en: "cloud hosting" },
+    network: "45.155.204.0/23",
+    host: "—",
+    abuse: 92,
+  },
+  {
+    ip: "193.32.162.7",
+    cc: "NL",
+    country: { ru: "Нидерланды", en: "Netherlands" },
+    city: { ru: "Амстердам", en: "Amsterdam" },
+    asn: "AS209605",
+    operator: { ru: "хостинг / VPS", en: "hosting / VPS" },
+    network: "193.32.162.0/24",
+    host: "scan-07.probe",
+    abuse: 64,
+  },
+  {
+    ip: "104.244.76.13",
+    cc: "US",
+    country: { ru: "США", en: "USA" },
+    city: { ru: "Лас-Вегас", en: "Las Vegas" },
+    asn: "AS53667",
+    operator: { ru: "VPS-провайдер", en: "VPS provider" },
+    network: "104.244.76.0/24",
+    host: "tor.exit.us",
+    abuse: 31,
+  },
+  {
+    ip: "5.188.206.18",
+    cc: "SC",
+    country: { ru: "Сейшелы", en: "Seychelles" },
+    city: { ru: "—", en: "—" },
+    asn: "AS35048",
+    operator: { ru: "офшорный хостинг", en: "offshore hosting" },
+    network: "5.188.206.0/23",
+    host: "—",
+    abuse: 8,
+  },
 ];
-const SEM = 3; // семафор: до 3 IP одновременно
-const FOCUS = targetIps[0]; // фокус-IP для fan-out
 
-// --- Шесть источников на один IP (точные имена/назначения; Spamhaus падает) ---
-const sources: { key: string; via: Bi; note: Bi; fail?: boolean }[] = [
+// --- Шесть источников-нод. side: колонка; fills: какое поле карточки заполняет
+//     (null = «молчит», демонстрирует отказоустойчивость). http: идёт через прокси. ---
+type Src = {
+  id: string;
+  side: "l" | "r";
+  label: Bi;
+  via: string;
+  fills: string | null;
+  http: boolean;
+  silent?: boolean;
+  hint: Bi;
+};
+const sources: Src[] = [
   {
-    key: "ip-api",
-    via: { ru: "aiohttp", en: "aiohttp" },
-    note: { ru: "geo + ASN", en: "geo + ASN" },
+    id: "geo",
+    side: "l",
+    label: { ru: "Геолокация", en: "Geolocation" },
+    via: "ip-api",
+    fills: "country",
+    http: true,
+    hint: {
+      ru: "Страна, город и интернет-провайдер. HTTP-запрос к ip-api.",
+      en: "Country, city, and ISP. An HTTP request to ip-api.",
+    },
   },
   {
-    key: "Team Cymru → bgpview",
-    via: { ru: "dns → http", en: "dns → http" },
-    note: { ru: "BGP-префикс + имя AS", en: "BGP prefix + AS name" },
+    id: "asn",
+    side: "l",
+    label: { ru: "Сеть и ASN", en: "Network & ASN" },
+    via: "Team Cymru → bgpview",
+    fills: "operator",
+    http: true,
+    hint: {
+      ru: "Номер и имя автономной системы плюс BGP-префикс. Сначала по DNS (Team Cymru), если молчит — по HTTP (bgpview).",
+      en: "AS number and name plus the BGP prefix. DNS first (Team Cymru), HTTP fallback (bgpview).",
+    },
   },
   {
-    key: "RDAP",
-    via: { ru: "thread-pool", en: "thread-pool" },
-    note: { ru: "сеть владельца (CIDR)", en: "owner network (CIDR)" },
+    id: "owner",
+    side: "l",
+    label: { ru: "Владелец сети", en: "Network owner" },
+    via: "RDAP",
+    fills: "network",
+    http: false,
+    hint: {
+      ru: "Диапазон сети владельца (CIDR) из официальных регистраторов через RDAP.",
+      en: "The owner's network range (CIDR) from official registries via RDAP.",
+    },
   },
   {
-    key: "reverse DNS",
-    via: { ru: "thread-pool", en: "thread-pool" },
-    note: { ru: "PTR-запись", en: "PTR record" },
+    id: "host",
+    side: "r",
+    label: { ru: "Имя хоста", en: "Hostname" },
+    via: "reverse DNS",
+    fills: "host",
+    http: false,
+    hint: {
+      ru: "Обратный DNS: PTR-запись, какое имя стоит за адресом.",
+      en: "Reverse DNS: the PTR record — the name behind the address.",
+    },
   },
   {
-    key: "AbuseIPDB",
-    via: { ru: "aiohttp", en: "aiohttp" },
-    note: { ru: "репутация", en: "reputation" },
+    id: "rep",
+    side: "r",
+    label: { ru: "Репутация", en: "Reputation" },
+    via: "AbuseIPDB",
+    fills: "threat",
+    http: true,
+    hint: {
+      ru: "Оценка опасности и число жалоб из AbuseIPDB (нужен бесплатный ключ).",
+      en: "An abuse score and report count from AbuseIPDB (a free key is needed).",
+    },
   },
   {
-    key: "Spamhaus DNSBL",
-    via: { ru: "dns", en: "dns" },
-    note: { ru: "DNSBL — таймаут", en: "DNSBL — timeout" },
-    fail: true,
+    id: "dnsbl",
+    side: "r",
+    label: { ru: "Чёрные списки", en: "Blocklists" },
+    via: "Spamhaus DNSBL",
+    fills: null,
+    http: false,
+    silent: true,
+    hint: {
+      ru: "Spamhaus DNSBL: в спам- и ботнет-списках ли адрес. В демо отвечает таймаутом, и досье всё равно собирается.",
+      en: "Spamhaus DNSBL: is the address in spam/botnet lists? It times out in the demo, and the dossier still assembles.",
+    },
   },
 ];
+const leftSrc = sources.filter((s) => s.side === "l");
+const rightSrc = sources.filter((s) => s.side === "r");
 
-// --- Строки результатов (сортируемая таблица) ---
-type Row = { ip: string; cc: string; asn: number; net: string; abuse: number };
-const rows: Row[] = [
-  { ip: "185.220.101.4", cc: "DE", asn: 205100, net: "185.220.100.0/22", abuse: 100 },
-  { ip: "45.155.205.233", cc: "RU", asn: 49505, net: "45.155.204.0/23", abuse: 92 },
-  { ip: "193.32.162.7", cc: "NL", asn: 209605, net: "193.32.162.0/24", abuse: 64 },
-  { ip: "104.244.76.13", cc: "US", asn: 53667, net: "104.244.76.0/24", abuse: 31 },
-  { ip: "5.188.206.18", cc: "SC", asn: 35048, net: "5.188.206.0/23", abuse: 8 },
+// Поля карточки в порядке заполнения.
+const fields: { id: string; label: Bi }[] = [
+  { id: "country", label: { ru: "Страна", en: "Country" } },
+  { id: "operator", label: { ru: "Оператор", en: "Operator" } },
+  { id: "network", label: { ru: "Сеть", en: "Network" } },
+  { id: "host", label: { ru: "Имя хоста", en: "Hostname" } },
 ];
 
-const cols: { key: keyof Row; label: Bi; num?: boolean }[] = [
-  { key: "ip", label: { ru: "IP", en: "IP" } },
-  { key: "cc", label: { ru: "страна", en: "country" } },
-  { key: "asn", label: { ru: "ASN", en: "ASN" }, num: true },
-  { key: "net", label: { ru: "сеть", en: "network" } },
-  { key: "abuse", label: { ru: "abuse", en: "abuse" }, num: true },
-];
-
-// --- Форматы экспорта (4 штуки) с превью-телом ---
-const exports: { fmt: string; note: Bi; preview: string }[] = [
-  {
-    fmt: "TXT",
-    note: { ru: "построчно во время скана", en: "line by line during the scan" },
-    preview:
-      "185.220.101.4   DE  AS205100  185.220.100.0/22  abuse=100\n45.155.205.233  RU  AS49505   45.155.204.0/23   abuse=92",
-  },
-  {
-    fmt: "JSON",
-    note: { ru: "полный объект на адрес", en: "full object per address" },
-    preview:
-      '{\n  "ip": "185.220.101.4",\n  "country": "DE",\n  "asn": 205100,\n  "network": "185.220.100.0/22",\n  "abuse": 100\n}',
-  },
-  {
-    fmt: "CSV",
-    note: { ru: "столбцы для таблиц", en: "columns for spreadsheets" },
-    preview: "ip,country,asn,network,abuse\n185.220.101.4,DE,205100,185.220.100.0/22,100",
-  },
+// Экспорт: 4 формата.
+const exports: { fmt: string; note: Bi }[] = [
+  { fmt: "TXT", note: { ru: "построчно во время скана", en: "line by line during the scan" } },
+  { fmt: "JSON", note: { ru: "полный объект на адрес", en: "full object per address" } },
+  { fmt: "CSV", note: { ru: "столбцы для таблиц", en: "columns for spreadsheets" } },
   {
     fmt: "HTML",
-    note: { ru: "самодостаточный отчёт", en: "self-contained report" },
-    preview:
-      '<table id="report" data-sortable>\n  <thead>…</thead>\n  <tbody>…185.220.101.4…</tbody>\n</table>',
+    note: { ru: "самодостаточный отчёт, сортируется по столбцам", en: "self-contained report, sortable" },
   },
 ];
 
-// --- Типы прокси (3 штуки) для пула ротации ---
-const proxyTypes = ["HTTP", "SOCKS4", "SOCKS5"];
-
 const ui = {
-  run: { ru: "Запустить скан", en: "Run scan" },
-  exportLabel: { ru: "Экспорт", en: "Export" },
-  breakProxy: { ru: "Сломать сборку прокси", en: "Break proxy build" },
-  output: { ru: "поток вывода", en: "output stream" },
-  rack: { ru: "Шесть источников", en: "Six sources" },
-  results: { ru: "Результаты", en: "Results" },
-  semaphore: { ru: "семафор", en: "semaphore" },
-  focus: { ru: "fan-out · asyncio.gather", en: "fan-out · asyncio.gather" },
-  proxyOff: { ru: "Прокси: выкл", en: "Proxy: off" },
+  pick: { ru: "Адрес из логов SSH/RDP-брутфорса:", en: "An address from SSH/RDP brute-force logs:" },
+  trace: { ru: "Проследить", en: "Trace" },
+  subject: { ru: "субъект", en: "subject" },
+  idle: { ru: "не собрано", en: "not assembled" },
+  threat: { ru: "Уровень угрозы", en: "Threat level" },
+  exportCap: { ru: "Сохранить досье", en: "Save the dossier" },
+  under: { ru: "Под капотом", en: "Under the hood" },
+  // прокси
+  proxyTitle: { ru: "Скрытно: через прокси", en: "Stealth: via proxy" },
+  direct: { ru: "Прямо", en: "Direct" },
+  proxied: { ru: "Через прокси", en: "Via proxy" },
+  pool: { ru: "пул: HTTP · SOCKS4 · SOCKS5 · креды скрыты", en: "pool: HTTP · SOCKS4 · SOCKS5 · creds masked" },
+  breakProxy: { ru: "Сломать прокси", en: "Break proxy" },
+  httpGroup: { ru: "HTTP-источники", en: "HTTP sources" },
+  dnsGroup: { ru: "DNS и RDAP", en: "DNS & RDAP" },
+  // скан списком
+  bulkTitle: { ru: "Скан списком", en: "List scan" },
+  bulkRun: { ru: "Прогнать список", en: "Run the list" },
 };
+
+// HTTP-источники (идут через прокси) и прямые — для прокси-демо.
+const httpVias = ["ip-api", "AbuseIPDB", "bgpview"];
+const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
 ---
 
-<section
-  class="ts"
-  data-ts
-  aria-label={t({ ru: "Живой скан-терминал DotTraceIP", en: "DotTraceIP live scan terminal" })}
->
-  <p class="ts__intro">{t(intro)}</p>
+<section class="td" data-td aria-label={t({ ru: "Досье на IP-адрес — DotTraceIP", en: "IP dossier — DotTraceIP" })}>
+  <p class="td__intro">{t(intro)}</p>
 
-  <!-- ===================== ТЕРМИНАЛ ===================== -->
-  <div class="ts__term" data-mode="direct" data-state="idle">
-    <!-- Тайтлбар окна -->
-    <div class="ts__bar">
-      <span class="ts__dots" aria-hidden="true"><i></i><i></i><i></i></span>
-      <span class="ts__bar-title mono">.след — dottraceip</span>
-      <span class="ts__sem mono">{t(ui.semaphore)} {SEM}/{targetIps.length}</span>
+  <!-- ===================== ВЫБОР АДРЕСА ===================== -->
+  <div class="td__pick">
+    <span class="td__pick-cap caption">{t(ui.pick)}</span>
+    <div class="td__chips" role="group" aria-label={t(ui.pick)}>
+      {
+        dossiers.map((d, i) => (
+          <button
+            class={`td__chip${i === 0 ? " is-on" : ""}`}
+            type="button"
+            data-td-chip={i}
+            data-ip={d.ip}
+            data-cc={d.cc}
+            data-country={t(d.country)}
+            data-city={t(d.city)}
+            data-asn={d.asn}
+            data-op={t(d.operator)}
+            data-net={d.network}
+            data-host={d.host}
+            data-abuse={d.abuse}
+            aria-pressed={i === 0 ? "true" : "false"}
+          >
+            <span class="mono">{d.ip}</span>
+          </button>
+        ))
+      }
     </div>
+  </div>
 
-    <!-- Строка-приглашение с командой + Run -->
-    <div class="ts__prompt">
-      <span class="ts__cwd mono" aria-hidden="true">~/intel</span>
-      <span class="ts__sigil mono" aria-hidden="true">$</span>
-      <code class="ts__cmd mono">{cmd}<span class="ts__caret" aria-hidden="true"></span></code>
-      <button class="ts__run" type="button" data-ts-run aria-label={t(ui.run)}>
-        <span class="ts__run-glyph" aria-hidden="true"></span>
-        <span class="ts__run-t" data-ts-run-t>{t(ui.run)}</span>
-      </button>
-    </div>
-
-    <!-- Контрольная панель: прокси-тоггл, break-proxy, чипы экспорта -->
-    <div class="ts__controls">
-      <button class="ts__toggle" type="button" data-ts-proxy aria-pressed="false">
-        <span class="ts__toggle-track" aria-hidden="true"
-          ><span class="ts__toggle-knob"></span></span
-        >
-        <span class="ts__toggle-t" data-ts-proxy-t>{t(ui.proxyOff)}</span>
-      </button>
-
-      <span class="ts__pool mono" data-ts-pool aria-hidden="true">
-        {
-          proxyTypes.map((p, k) => (
-            <span class="ts__ptype" data-ptype={k} style={`--i:${k}`}>
-              {p}
+  <!-- ===================== СЦЕНА: ИСТОЧНИКИ + ДОСЬЕ ===================== -->
+  <div class="td__stage" data-state="idle">
+    <!-- левая колонка источников -->
+    <div class="td__col td__col--l">
+      {
+        leftSrc.map((s) => (
+          <button
+            class="td__src"
+            type="button"
+            data-td-src={s.id}
+            data-fills={s.fills ?? ""}
+            data-http={s.http ? "1" : "0"}
+            data-silent={s.silent ? "1" : "0"}
+            data-hint={t(s.hint)}
+            aria-pressed="false"
+          >
+            <span class="td__src-dot" aria-hidden="true" />
+            <span class="td__src-body">
+              <span class="td__src-label">{t(s.label)}</span>
+              <span class="td__src-via mono">{s.via}</span>
             </span>
-          ))
-        }
-        <span class="ts__cred" data-ts-cred>user:••••@—</span>
-      </span>
+            <span class="td__src-state mono" data-td-src-state aria-hidden="true" />
+          </button>
+        ))
+      }
+    </div>
 
-      <button class="ts__break" type="button" data-ts-break disabled>{t(ui.breakProxy)}</button>
+    <!-- центральная карточка-досье -->
+    <article class="td__card" data-td-card>
+      <header class="td__card-head">
+        <span class="td__card-sub caption">{t(ui.subject)}</span>
+        <span class="td__card-ip mono" data-td-ip>{dossiers[0]!.ip}</span>
+        <span class="td__card-status" data-td-status>{t(ui.idle)}</span>
+      </header>
 
-      <div class="ts__exports" role="group" aria-label={t(ui.exportLabel)}>
-        <span class="ts__exports-cap caption" aria-hidden="true">{t(ui.exportLabel)}</span>
+      <dl class="td__fields">
         {
-          exports.map((e, k) => (
-            <button
-              class={`ts__chip${k === 0 ? " is-live" : ""}`}
-              type="button"
-              data-ts-export={k}
-              data-preview={e.preview}
-              data-note={t(e.note)}
-              aria-pressed={k === 0 ? "true" : "false"}
-            >
-              <span class="ts__chip-fmt mono">{e.fmt}</span>
-            </button>
+          fields.map((f) => (
+            <div class="td__field" data-td-field={f.id}>
+              <dt class="td__field-k">{t(f.label)}</dt>
+              <dd class="td__field-v" data-td-field-v>
+                <span class="td__field-ph" aria-hidden="true">
+                  —
+                </span>
+              </dd>
+            </div>
           ))
         }
+      </dl>
+
+      <div class="td__threat" data-td-threat data-band="idle">
+        <div class="td__threat-top">
+          <span class="td__threat-cap caption">{t(ui.threat)}</span>
+          <span class="td__threat-score mono" data-td-score>—</span>
+          <span class="td__threat-verdict" data-td-verdict hidden></span>
+        </div>
+        <div class="td__gauge" aria-hidden="true">
+          <span class="td__gauge-fill" data-td-gauge style="--score: 0"></span>
+        </div>
       </div>
+
+      <div class="td__card-foot">
+        <button class="td__trace" type="button" data-td-trace>
+          <span class="td__trace-glyph" aria-hidden="true"></span>
+          <span data-td-trace-t>{t(ui.trace)}</span>
+        </button>
+        <p class="td__note" data-td-note aria-live="polite"></p>
+      </div>
+    </article>
+
+    <!-- правая колонка источников -->
+    <div class="td__col td__col--r">
+      {
+        rightSrc.map((s) => (
+          <button
+            class={`td__src${s.silent ? " td__src--silent" : ""}`}
+            type="button"
+            data-td-src={s.id}
+            data-fills={s.fills ?? ""}
+            data-http={s.http ? "1" : "0"}
+            data-silent={s.silent ? "1" : "0"}
+            data-hint={t(s.hint)}
+            aria-pressed="false"
+          >
+            <span class="td__src-dot" aria-hidden="true" />
+            <span class="td__src-body">
+              <span class="td__src-label">{t(s.label)}</span>
+              <span class="td__src-via mono">{s.via}</span>
+            </span>
+            <span class="td__src-state mono" data-td-src-state aria-hidden="true" />
+          </button>
+        ))
+      }
     </div>
+  </div>
 
-    <!-- Тело: поток вывода + сетка источников -->
-    <div class="ts__body">
-      <div class="ts__stream-wrap">
-        <div class="ts__stream-head">
-          <span class="caption" data-ts-stream-cap>{t(ui.output)}</span>
-          <span class="ts__guard mono" data-ts-guard data-guard="direct">
-            <i class="ts__guard-dot" aria-hidden="true"></i>
-            <span data-ts-guard-t>{t({ ru: "прямое соединение", en: "direct connection" })}</span>
-          </span>
-        </div>
-        <pre class="ts__stream mono" data-ts-stream aria-live="polite" tabindex="0"></pre>
-      </div>
+  <!-- подсказка по тапнутому источнику -->
+  <p class="td__hint" data-td-hint aria-live="polite"></p>
 
-      <div class="ts__rack" aria-label={t(ui.rack)}>
-        <div class="ts__focus">
-          <span class="ts__focus-ip mono">{FOCUS}</span>
-          <span class="ts__focus-cap caption">{t(ui.focus)}</span>
-        </div>
-        <ul class="ts__probes">
-          {
-            sources.map((src, k) => (
-              <li>
-                <button
-                  class={`ts__probe${src.fail ? " is-fail" : ""}`}
-                  type="button"
-                  data-ts-probe={k}
-                  data-fail={src.fail ? "1" : "0"}
-                  style={`--i:${k}`}
-                  aria-pressed="false"
-                >
-                  <span class="ts__probe-dot" aria-hidden="true" />
-                  <span class="ts__probe-key mono">{src.key}</span>
-                  <span class="ts__probe-note">{t(src.note)}</span>
-                  <span class="ts__probe-via mono" aria-hidden="true">
-                    {t(src.via)}
-                  </span>
-                  <span class="ts__probe-state mono" data-ts-probe-state aria-hidden="true" />
-                </button>
-              </li>
-            ))
-          }
-        </ul>
-        <p class="ts__rack-hint">
-          {
-            t({
-              ru: "Тап по ноде — её ответ в поток. Spamhaus отвечает таймаутом → серый, но через return_exceptions=True это значение, а не падение.",
-              en: "Tap a node to print its return. Spamhaus times out → greyed, but via return_exceptions=True that's a value, not a crash.",
-            })
-          }
-        </p>
-      </div>
+  <!-- ===================== ЭКСПОРТ ДОСЬЕ ===================== -->
+  <div class="td__export" data-td-export>
+    <span class="td__export-cap caption">{t(ui.exportCap)}</span>
+    <div class="td__export-chips" role="group" aria-label={t(ui.exportCap)}>
+      {
+        exports.map((e, k) => (
+          <button
+            class={`td__fmt${k === 0 ? " is-on" : ""}`}
+            type="button"
+            data-td-fmt={e.fmt}
+            data-note={t(e.note)}
+            aria-pressed={k === 0 ? "true" : "false"}
+          >
+            <span class="mono">{e.fmt}</span>
+          </button>
+        ))
+      }
     </div>
+    <pre class="td__export-preview mono" data-td-export-preview aria-live="polite"></pre>
+  </div>
 
-    <!-- Сортируемая таблица результатов -->
-    <div class="ts__results">
-      <span class="caption ts__results-cap">{t(ui.results)}</span>
-      <div class="ts__table" role="table" aria-label={t(ui.results)}>
-        <div class="ts__trow ts__trow--head" role="row">
-          {
-            cols.map((c, k) => (
-              <button
-                class={`ts__th${c.num ? " is-num" : ""}`}
-                type="button"
-                role="columnheader"
-                data-ts-col={c.key}
-                data-num={c.num ? "1" : "0"}
-                aria-sort="none"
-                style={`--c:${k}`}
-              >
-                <span class="ts__th-label">{t(c.label)}</span>
-                <span class="ts__th-arrow mono" aria-hidden="true" />
-              </button>
-            ))
-          }
-        </div>
-        <div class="ts__tbody" data-ts-tbody>
-          {
-            rows.map((r, k) => (
-              <div class="ts__trow" role="row" data-ts-trow={k} style={`--i:${k}`}>
-                <span class="ts__td mono" role="cell">
-                  {r.ip}
-                </span>
-                <span class="ts__td" role="cell">
-                  {r.cc}
-                </span>
-                <span class="ts__td mono is-num" role="cell">
-                  AS{r.asn}
-                </span>
-                <span class="ts__td mono" role="cell">
-                  {r.net}
-                </span>
-                <span class="ts__td mono is-num" role="cell" data-abuse={r.abuse}>
-                  {r.abuse}
-                </span>
+  <!-- ===================== ПОД КАПОТОМ ===================== -->
+  <div class="td__under">
+    <button class="td__under-toggle" type="button" data-td-under-toggle aria-expanded="true" aria-controls="td-under">
+      <span class="td__under-chevron" aria-hidden="true"></span>
+      <span>{t(ui.under)}</span>
+    </button>
+
+    <div class="td__under-box" id="td-under">
+      <div class="td__under-inner">
+        <!-- ---------- (A) ПРОКСИ-GUARD ---------- -->
+        <div class="td__panel" data-td-proxy data-mode="direct">
+          <h4 class="td__panel-title">{t(ui.proxyTitle)}</h4>
+          <div class="td__seg" role="group" aria-label={t(ui.proxyTitle)}>
+            <button class="td__seg-btn is-on" type="button" data-td-mode="direct" aria-pressed="true">
+              {t(ui.direct)}
+            </button>
+            <button class="td__seg-btn" type="button" data-td-mode="proxied" aria-pressed="false">
+              {t(ui.proxied)}
+            </button>
+            <button class="td__break" type="button" data-td-break disabled>{t(ui.breakProxy)}</button>
+          </div>
+          <span class="td__pool mono" data-td-pool aria-hidden="true">{t(ui.pool)}</span>
+
+          <div class="td__routes">
+            <div class="td__route" data-route="http">
+              <span class="td__route-cap caption">{t(ui.httpGroup)}</span>
+              <div class="td__route-pills">
+                {httpVias.map((v) => <span class="td__pill mono" data-td-http-pill>{v}</span>)}
               </div>
-            ))
-          }
+            </div>
+            <div class="td__route" data-route="dns">
+              <span class="td__route-cap caption">{t(ui.dnsGroup)}</span>
+              <div class="td__route-pills">
+                {dnsVias.map((v) => <span class="td__pill td__pill--dns mono">{v}</span>)}
+              </div>
+            </div>
+          </div>
+
+          <p class="td__panel-note" data-td-proxy-note aria-live="polite"></p>
+        </div>
+
+        <!-- ---------- (B) СКАН СПИСКОМ ---------- -->
+        <div class="td__panel" data-td-bulk>
+          <h4 class="td__panel-title">{t(ui.bulkTitle)}</h4>
+          <div class="td__bulk-controls">
+            <button class="td__bulk-run" type="button" data-td-bulk-run>{t(ui.bulkRun)}</button>
+            <span class="td__sem mono" data-td-sem aria-hidden="true"></span>
+          </div>
+          <ul class="td__bulk-list" data-td-bulk-list>
+            {
+              [...dossiers]
+                .sort((a, b) => b.abuse - a.abuse)
+                .map((d, i) => (
+                  <li class="td__bulk-row" data-td-bulk-row={i} style={`--i:${i}`}>
+                    <span class="td__bulk-ip mono">{d.ip}</span>
+                    <span class="td__bulk-cc mono">{d.cc}</span>
+                    <span class="td__bulk-bar" aria-hidden="true">
+                      <span class="td__bulk-fill" style={`--score:${d.abuse / 100}`} data-abuse={d.abuse} />
+                    </span>
+                    <span class="td__bulk-num mono">{d.abuse}</span>
+                  </li>
+                ))
+            }
+          </ul>
+          <p class="td__panel-note" data-td-bulk-note aria-live="polite"></p>
         </div>
       </div>
     </div>
@@ -334,588 +475,106 @@ const ui = {
 </section>
 
 <style>
-  .ts {
-    --ts-accent: var(--project-accent);
-    --ts-line: color-mix(in srgb, var(--ts-accent) 36%, transparent);
-    --ts-glow: color-mix(in srgb, var(--ts-accent) 18%, transparent);
-    --ts-soft: color-mix(in srgb, var(--ts-accent) 12%, transparent);
-    --ts-faint: color-mix(in srgb, var(--ts-accent) 8%, transparent);
-    --ts-err: color-mix(in srgb, var(--state-error) 42%, transparent);
+  .td {
+    --td-accent: var(--project-accent);
+    --td-line: color-mix(in srgb, var(--td-accent) 38%, transparent);
+    --td-soft: color-mix(in srgb, var(--td-accent) 13%, transparent);
+    --td-faint: color-mix(in srgb, var(--td-accent) 8%, transparent);
+    --td-glow: color-mix(in srgb, var(--td-accent) 18%, transparent);
+    --td-err: var(--state-error);
+    --td-warn: var(--state-warn);
+    --td-ok: var(--state-ok);
     position: relative;
     display: flex;
     flex-direction: column;
     gap: var(--sp-5);
   }
 
-  .ts__intro {
+  .td__intro {
     font-size: var(--fs-16);
     line-height: var(--lh-normal);
     color: var(--text-secondary);
     max-width: 68ch;
   }
 
-  /* ====================== ОКНО ТЕРМИНАЛА ====================== */
-  .ts__term {
-    position: relative;
+  /* ---------- выбор адреса ---------- */
+  .td__pick {
     display: flex;
     flex-direction: column;
-    border: var(--bw-thin) solid var(--glass-edge);
-    border-radius: var(--r-lg);
-    background:
-      radial-gradient(130% 120% at 0% 0%, var(--ts-glow), transparent 50%), var(--glass-tint-frost);
-    box-shadow: var(--shadow-2);
-    overflow: hidden;
-  }
-
-  .ts__term::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-    background-size: 26px 26px;
-    mask-image: radial-gradient(140% 90% at 50% 0%, #000 24%, transparent 86%);
-    -webkit-mask-image: radial-gradient(140% 90% at 50% 0%, #000 24%, transparent 86%);
-    pointer-events: none;
-  }
-
-  .ts__term > * {
-    position: relative;
-    z-index: 1;
-  }
-
-  /* ---------- Тайтлбар ---------- */
-  .ts__bar {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-3);
-    padding: var(--sp-2) var(--sp-4);
-    border-bottom: var(--bw-thin) solid var(--border);
-    background: color-mix(in srgb, var(--surface-2) 70%, transparent);
-  }
-
-  .ts__dots {
-    display: inline-flex;
-    gap: 6px;
-    flex: none;
-  }
-
-  .ts__dots i {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--surface-3);
-    border: var(--bw-thin) solid var(--border);
-  }
-
-  .ts__dots i:first-child {
-    background: var(--ts-faint);
-    border-color: var(--ts-line);
-  }
-
-  .ts__bar-title {
-    font-size: var(--fs-12);
-    color: var(--text-muted);
-  }
-
-  .ts__sem {
-    margin-left: auto;
-    font-size: var(--fs-11);
-    color: var(--ts-accent);
-    padding: 2px var(--sp-2);
-    border: var(--bw-thin) solid var(--ts-line);
-    border-radius: var(--r-pill);
-    white-space: nowrap;
-  }
-
-  /* ---------- Строка-приглашение ---------- */
-  .ts__prompt {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--sp-2) var(--sp-3);
-    padding: var(--sp-4);
-    border-bottom: var(--bw-thin) solid var(--border);
-  }
-
-  .ts__cwd {
-    font-size: var(--fs-13);
-    color: var(--ts-accent);
-    flex: none;
-  }
-
-  .ts__sigil {
-    font-size: var(--fs-14);
-    color: var(--text-muted);
-    flex: none;
-  }
-
-  .ts__cmd {
-    flex: 1;
-    min-width: 0;
-    font-size: var(--fs-13);
-    color: var(--text);
-    overflow-wrap: anywhere;
-    word-break: break-word;
-  }
-
-  .ts__caret {
-    display: inline-block;
-    width: 8px;
-    height: 1.05em;
-    margin-left: 2px;
-    vertical-align: text-bottom;
-    background: var(--ts-accent);
-    opacity: 0;
-  }
-
-  /* мигающая каретка — только когда видно и в покое; opacity-only */
-  .ts.is-inview .ts__term[data-state="idle"] .ts__caret {
-    animation: ts-blink 1100ms steps(1, end) infinite;
-  }
-
-  @keyframes ts-blink {
-    0%,
-    50% {
-      opacity: 0.85;
-    }
-    51%,
-    100% {
-      opacity: 0;
-    }
-  }
-
-  .ts__run {
-    display: inline-flex;
-    align-items: center;
     gap: var(--sp-2);
-    min-height: var(--tap-min);
-    padding: var(--sp-2) var(--sp-4);
-    flex: none;
-    border: var(--bw-thin) solid var(--ts-line);
-    border-radius: var(--r-pill);
-    background: var(--ts-soft);
-    color: var(--text);
-    font-family: var(--font-stack-display);
-    font-size: var(--fs-14);
-    font-weight: var(--fw-medium);
-    cursor: pointer;
-    transition:
-      border-color var(--dur-fast) var(--ease-standard),
-      background-color var(--dur-fast) var(--ease-standard),
-      transform var(--dur-fast) var(--ease-soft);
   }
-
-  .ts__run:hover {
-    border-color: var(--ts-accent);
-  }
-
-  .ts__run:active {
-    transform: scale(0.96);
-  }
-
-  .ts__run:disabled {
-    cursor: progress;
-  }
-
-  .ts__run-glyph {
-    width: 0;
-    height: 0;
-    flex: none;
-    border-style: solid;
-    border-width: 5px 0 5px 9px;
-    border-color: transparent transparent transparent currentColor;
-  }
-
-  .ts__term[data-state="running"] .ts__run-glyph {
-    width: 11px;
-    height: 11px;
-    border: var(--bw-med) solid currentColor;
-    border-top-color: transparent;
-    border-radius: 50%;
-  }
-
-  .ts.is-inview .ts__term[data-state="running"] .ts__run-glyph {
-    animation: ts-spin 700ms linear infinite;
-  }
-
-  @keyframes ts-spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  /* ---------- Контрольная панель ---------- */
-  .ts__controls {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--sp-2) var(--sp-3);
-    padding: var(--sp-3) var(--sp-4);
-    border-bottom: var(--bw-thin) solid var(--border);
-    background: color-mix(in srgb, var(--surface) 40%, transparent);
-  }
-
-  .ts__toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--sp-2);
-    min-height: var(--tap-min);
-    padding: var(--sp-1) var(--sp-3);
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-pill);
-    background: var(--surface);
-    color: var(--text-secondary);
-    font-family: var(--font-stack-display);
-    font-size: var(--fs-13);
-    cursor: pointer;
-    transition:
-      color var(--dur-fast) var(--ease-standard),
-      border-color var(--dur-fast) var(--ease-standard);
-  }
-
-  .ts__toggle:hover {
-    border-color: var(--border-hover);
-    color: var(--text);
-  }
-
-  .ts__toggle[aria-pressed="true"] {
-    border-color: var(--ts-line);
-    color: var(--text);
-  }
-
-  .ts__toggle-track {
-    position: relative;
-    width: 34px;
-    height: 18px;
-    flex: none;
-    border-radius: var(--r-pill);
-    background: var(--surface-3);
-    transition: background-color var(--dur-med) var(--ease-standard);
-  }
-
-  .ts__toggle[aria-pressed="true"] .ts__toggle-track {
-    background: var(--ts-soft);
-  }
-
-  .ts__toggle-knob {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: var(--text-muted);
-    transform: translateX(0);
-    transition:
-      transform var(--dur-med) var(--ease-spring),
-      background-color var(--dur-med) var(--ease-standard);
-  }
-
-  .ts__toggle[aria-pressed="true"] .ts__toggle-knob {
-    transform: translateX(16px);
-    background: var(--ts-accent);
-  }
-
-  .ts__pool {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--sp-1);
-    opacity: 0.4;
-    transition: opacity var(--dur-med) var(--ease-standard);
-  }
-
-  .ts__term[data-mode="proxied"] .ts__pool,
-  .ts__term[data-mode="blocked"] .ts__pool {
-    opacity: 1;
-  }
-
-  .ts__ptype {
-    font-size: var(--fs-11);
+  .td__pick-cap {
     color: var(--text-muted);
-    padding: 2px var(--sp-2);
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-pill);
-    transition:
-      color var(--dur-med) var(--ease-standard),
-      border-color var(--dur-med) var(--ease-standard),
-      transform var(--dur-med) var(--ease-spring);
   }
-
-  .ts__ptype.is-active {
-    color: var(--ts-accent);
-    border-color: var(--ts-line);
-    transform: scale(1.08);
-  }
-
-  .ts__term[data-mode="blocked"] .ts__ptype {
-    color: var(--text-faint);
-    border-color: var(--border);
-    transform: none;
-  }
-
-  .ts__cred {
-    font-size: var(--fs-11);
-    color: var(--text-faint);
-    letter-spacing: var(--ls-wide);
-    overflow-wrap: anywhere;
-  }
-
-  .ts__break {
-    min-height: var(--tap-min);
-    padding: var(--sp-2) var(--sp-3);
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-pill);
-    background: transparent;
-    color: var(--text-muted);
-    font-family: var(--font-stack-display);
-    font-size: var(--fs-13);
-    cursor: pointer;
-    transition:
-      color var(--dur-fast) var(--ease-standard),
-      border-color var(--dur-fast) var(--ease-standard),
-      opacity var(--dur-fast) var(--ease-standard);
-  }
-
-  .ts__break:hover:not(:disabled) {
-    color: var(--text);
-    border-color: var(--ts-err);
-  }
-
-  .ts__break:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-  }
-
-  .ts__exports {
+  .td__chips {
     display: flex;
-    align-items: center;
     flex-wrap: wrap;
     gap: var(--sp-2);
-    margin-left: auto;
   }
-
-  .ts__exports-cap {
-    color: var(--text-muted);
-  }
-
-  .ts__chip {
-    display: inline-flex;
-    align-items: center;
+  .td__chip {
     min-height: var(--tap-min);
     padding: var(--sp-2) var(--sp-3);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-pill);
     background: var(--surface);
+    color: var(--text-secondary);
     cursor: pointer;
     transition:
+      color var(--dur-fast) var(--ease-standard),
       border-color var(--dur-fast) var(--ease-standard),
       background-color var(--dur-fast) var(--ease-standard),
       transform var(--dur-fast) var(--ease-soft);
   }
-
-  .ts__chip:hover {
+  .td__chip:hover {
     border-color: var(--border-hover);
   }
-
-  .ts__chip:active {
-    transform: scale(0.96);
+  .td__chip:active {
+    transform: scale(0.97);
   }
-
-  .ts__chip.is-live {
-    border-color: var(--ts-line);
-    background: var(--ts-soft);
-  }
-
-  .ts__chip[aria-pressed="true"] {
-    border-color: var(--ts-accent);
-    background: var(--ts-soft);
-  }
-
-  .ts__chip-fmt {
-    font-size: var(--fs-12);
-    color: var(--text);
-    letter-spacing: var(--ls-wide);
-  }
-
-  /* ---------- Тело: поток + сетка проб ---------- */
-  .ts__body {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: var(--sp-4);
-    padding: var(--sp-4);
-  }
-
-  .ts__stream-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-2);
-    min-width: 0;
-  }
-
-  .ts__stream-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--sp-2);
-    flex-wrap: wrap;
-  }
-
-  .ts__stream-head .caption {
-    color: var(--text-muted);
-  }
-
-  .ts__guard {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--sp-2);
-    font-size: var(--fs-11);
-    color: var(--text-muted);
-    padding: 2px var(--sp-2);
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-pill);
-    transition:
-      color var(--dur-med) var(--ease-standard),
-      border-color var(--dur-med) var(--ease-standard);
-  }
-
-  .ts__guard-dot {
-    width: 7px;
-    height: 7px;
-    flex: none;
-    border-radius: 50%;
-    background: var(--text-faint);
-  }
-
-  .ts__guard[data-guard="proxied"] {
-    color: var(--ts-accent);
-    border-color: var(--ts-line);
-  }
-
-  .ts__guard[data-guard="proxied"] .ts__guard-dot {
-    background: var(--ts-accent);
-  }
-
-  .ts__guard[data-guard="blocked"] {
-    color: var(--state-error);
-    border-color: var(--ts-err);
-  }
-
-  .ts__guard[data-guard="blocked"] .ts__guard-dot {
-    background: transparent;
-    border: 1.5px solid var(--state-error);
-  }
-
-  .ts.is-inview .ts__term[data-mode="blocked"] .ts__guard {
-    animation: ts-shake var(--dur-slow) var(--ease-standard);
-  }
-
-  @keyframes ts-shake {
-    0%,
-    100% {
-      transform: translateX(0);
-    }
-    25% {
-      transform: translateX(-3px);
-    }
-    75% {
-      transform: translateX(3px);
-    }
-  }
-
-  .ts__stream {
-    margin: 0;
-    height: 224px;
-    overflow: auto;
-    padding: var(--sp-3);
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-md);
-    background: var(--bg-deep);
-    font-size: var(--fs-12);
-    line-height: var(--lh-snug);
-    color: var(--text-secondary);
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-  }
-
-  .ts__stream:focus-visible {
+  .td__chip:focus-visible {
     outline: var(--ring-width) solid var(--ring-focus);
     outline-offset: 2px;
   }
-
-  .ts__stream :global(.ts-l) {
-    display: block;
-    opacity: 0;
-    transform: translateY(4px);
-  }
-
-  .ts__stream :global(.ts-l.is-in) {
-    opacity: 1;
-    transform: none;
-    transition:
-      opacity var(--dur-med) var(--ease-standard),
-      transform var(--dur-med) var(--ease-soft);
-  }
-
-  .ts__stream :global(.ts-acc) {
-    color: var(--ts-accent);
-  }
-
-  .ts__stream :global(.ts-dim) {
-    color: var(--text-faint);
-  }
-
-  .ts__stream :global(.ts-err) {
-    color: var(--state-error);
-  }
-
-  /* ---------- Сетка из 6 проб ---------- */
-  .ts__rack {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-3);
-    min-width: 0;
-  }
-
-  .ts__focus {
-    display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: var(--sp-1) var(--sp-3);
-    padding: var(--sp-2) var(--sp-3);
-    border: var(--bw-thin) solid var(--ts-line);
-    border-radius: var(--r-sm);
-    background: var(--surface);
-  }
-
-  .ts__focus-ip {
-    font-size: var(--fs-15);
-    font-weight: var(--fw-semibold);
+  .td__chip.is-on {
     color: var(--text);
+    border-color: var(--td-line);
+    background: var(--td-soft);
+  }
+  .td__chip .mono {
+    font-size: var(--fs-13);
   }
 
-  .ts__focus-cap {
-    color: var(--ts-accent);
-    font-size: var(--fs-11);
-  }
-
-  .ts__probes {
-    list-style: none;
-    margin: 0;
-    padding: 0;
+  /* ---------- сцена ---------- */
+  .td__stage {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: var(--sp-2);
+    gap: var(--sp-3);
+    align-items: start;
+    padding: var(--sp-4);
+    border: var(--bw-thin) solid var(--glass-edge);
+    border-radius: var(--r-lg);
+    background:
+      radial-gradient(130% 120% at 50% 0%, var(--td-glow), transparent 60%),
+      var(--glass-tint-frost);
+    box-shadow: var(--shadow-2);
   }
 
-  .ts__probe {
+  /* На мобиле колонки «растворяются» — их ноды попадают в общую 2-колоночную
+     сетку сцены, а карточка идёт первой (order). */
+  .td__col {
+    display: contents;
+  }
+  .td__card {
+    order: -1;
+    grid-column: 1 / -1;
+  }
+
+  /* ---------- источник-нода ---------- */
+  .td__src {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    grid-template-areas:
-      "dot key"
-      "dot note"
-      "via state";
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: 2px var(--sp-2);
+    gap: var(--sp-2);
     width: 100%;
     min-height: var(--tap-min);
     padding: var(--sp-2) var(--sp-3);
@@ -928,491 +587,881 @@ const ui = {
     transition:
       opacity var(--dur-med) var(--ease-standard),
       border-color var(--dur-med) var(--ease-standard),
-      background-color var(--dur-med) var(--ease-standard);
+      background-color var(--dur-med) var(--ease-standard),
+      transform var(--dur-med) var(--ease-soft);
   }
-
-  .ts__probe:hover {
+  .td__src:hover {
     border-color: var(--border-hover);
-    opacity: 0.9;
+    opacity: 0.95;
   }
-
-  .ts__probe.is-on {
+  .td__src:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  /* нода «отчиталась» */
+  .td__src.is-on {
     opacity: 1;
-    border-color: var(--ts-line);
-    background: var(--ts-soft);
+    border-color: var(--td-line);
+    background: var(--td-soft);
   }
-
-  /* сбойная нода: гаснет в серый, скан продолжается */
-  .ts__probe.is-fail.is-on {
-    border-color: var(--ts-err);
-    background: transparent;
+  /* короткий импульс к карточке при отчёте */
+  .td.is-inview .td__src.is-report {
+    animation: td-report var(--dur-slow) var(--ease-soft);
+  }
+  @keyframes td-report {
+    40% {
+      transform: translateY(-2px) scale(1.015);
+    }
+  }
+  /* молчащая нода (Spamhaus) */
+  .td__src.is-silent-on {
     opacity: 0.5;
+    border-color: color-mix(in srgb, var(--td-err) 36%, transparent);
+    background: transparent;
   }
 
-  .ts__probe-dot {
-    grid-area: dot;
-    width: 8px;
-    height: 8px;
+  .td__src-dot {
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
     background: var(--text-faint);
     transition:
       background-color var(--dur-med) var(--ease-standard),
       transform var(--dur-med) var(--ease-spring);
   }
-
-  .ts__probe.is-on .ts__probe-dot {
-    background: var(--ts-accent);
-    transform: scale(1.15);
+  .td__src.is-on .td__src-dot {
+    background: var(--td-accent);
+    transform: scale(1.2);
   }
-
-  .ts__probe.is-fail.is-on .ts__probe-dot {
+  .td__src.is-silent-on .td__src-dot {
     background: transparent;
-    border: 1.5px solid var(--text-faint);
+    border: 1.5px solid var(--td-err);
     transform: none;
   }
-
-  .ts__probe-key {
-    grid-area: key;
+  .td__src-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+  .td__src-label {
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-medium);
     font-size: var(--fs-13);
     color: var(--text);
-    overflow-wrap: anywhere;
   }
-
-  .ts__probe.is-fail.is-on .ts__probe-key {
-    color: var(--text-muted);
-    text-decoration: line-through;
-    text-decoration-color: var(--text-faint);
-  }
-
-  .ts__probe-note {
-    grid-area: note;
-    font-size: var(--fs-11);
-    color: var(--text-muted);
-  }
-
-  .ts__probe-via {
-    grid-area: via;
+  .td__src-via {
     font-size: var(--fs-10);
     color: var(--text-faint);
     letter-spacing: var(--ls-wide);
+    overflow-wrap: anywhere;
   }
-
-  .ts__probe-state {
-    grid-area: state;
+  .td__src-state {
     justify-self: end;
     font-size: var(--fs-10);
-    color: var(--ts-accent);
+    color: var(--td-accent);
     opacity: 0;
     transition: opacity var(--dur-med) var(--ease-standard);
   }
-
-  .ts__probe.is-on .ts__probe-state {
+  .td__src.is-on .td__src-state,
+  .td__src.is-silent-on .td__src-state {
     opacity: 1;
   }
-
-  .ts__probe.is-fail.is-on .ts__probe-state {
-    color: var(--state-warn);
+  .td__src.is-silent-on .td__src-state {
+    color: var(--td-warn);
+  }
+  /* прокси-режим: HTTP-ноды помечены, в blocked — гаснут */
+  .td__stage[data-mode="blocked"] .td__src[data-http="1"] {
+    opacity: 0.4;
+    border-color: color-mix(in srgb, var(--td-err) 30%, transparent);
   }
 
-  .ts__rack-hint {
-    font-size: var(--fs-12);
-    color: var(--text-muted);
-    line-height: var(--lh-snug);
-  }
-
-  /* ---------- Сортируемая таблица ---------- */
-  .ts__results {
+  /* ---------- карточка-досье ---------- */
+  .td__card {
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: var(--sp-2);
-    padding: 0 var(--sp-4) var(--sp-4);
-  }
-
-  .ts__results-cap {
-    color: var(--text-muted);
-  }
-
-  .ts__table {
-    display: flex;
-    flex-direction: column;
-    border: var(--bw-thin) solid var(--border);
+    gap: var(--sp-3);
+    padding: var(--sp-4);
+    border: var(--bw-thin) solid var(--td-line);
     border-radius: var(--r-md);
+    background: var(--bg-deep);
     overflow: hidden;
   }
-
-  .ts__trow {
-    display: grid;
-    grid-template-columns: 1.5fr 0.7fr 1fr 1.6fr 0.7fr;
-    align-items: center;
-    gap: var(--sp-2);
-    padding: var(--sp-2) var(--sp-3);
+  /* тонкий «скан»-блик во время трассировки */
+  .td__card::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--td-accent), transparent);
+    opacity: 0;
+    transform: translateY(0);
+  }
+  .td.is-inview .td__stage[data-state="tracing"] .td__card::after {
+    animation: td-scan 1.1s var(--ease-standard) infinite;
+  }
+  @keyframes td-scan {
+    0% {
+      opacity: 0;
+      transform: translateY(0);
+    }
+    20% {
+      opacity: 0.8;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(220px);
+    }
   }
 
-  .ts__trow--head {
-    background: var(--surface-2);
+  .td__card-head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: var(--sp-1) var(--sp-3);
+    padding-bottom: var(--sp-3);
     border-bottom: var(--bw-thin) solid var(--border);
   }
-
-  .ts__th {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--sp-1);
-    min-height: var(--tap-min);
-    padding: var(--sp-1);
-    margin: calc(-1 * var(--sp-1));
-    border: none;
-    background: transparent;
+  .td__card-sub {
     color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: var(--ls-wide);
+    font-size: var(--fs-10);
+  }
+  .td__card-ip {
+    font-size: var(--fs-22);
+    font-weight: var(--fw-semibold);
+    color: var(--text);
+    letter-spacing: var(--ls-tight);
+  }
+  .td__card-status {
+    margin-left: auto;
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+    padding: 2px var(--sp-2);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-pill);
+    white-space: nowrap;
+  }
+  .td__card-status.is-done {
+    color: var(--td-accent);
+    border-color: var(--td-line);
+  }
+
+  .td__fields {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--sp-2);
+    margin: 0;
+  }
+  .td__field {
+    display: grid;
+    grid-template-columns: minmax(72px, auto) minmax(0, 1fr);
+    align-items: baseline;
+    gap: var(--sp-3);
+  }
+  .td__field-k {
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: var(--ls-wide);
+  }
+  .td__field-v {
+    margin: 0;
+    min-width: 0;
+    font-size: var(--fs-14);
+    color: var(--text-faint);
+    overflow-wrap: anywhere;
+    transition: color var(--dur-med) var(--ease-standard);
+  }
+  .td__field.is-filled .td__field-v {
+    color: var(--text);
+  }
+  .td__field.is-filled .td__field-ph {
+    display: none;
+  }
+  /* код страны как мини-бейдж */
+  .td__cc {
+    display: inline-block;
+    margin-right: var(--sp-2);
+    padding: 0 var(--sp-1);
+    border: var(--bw-thin) solid var(--td-line);
+    border-radius: var(--r-xs);
     font-family: var(--font-stack-display);
     font-size: var(--fs-11);
     font-weight: var(--fw-semibold);
+    color: var(--td-accent);
     letter-spacing: var(--ls-wide);
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: color var(--dur-fast) var(--ease-standard);
+  }
+  .td__asn {
+    color: var(--text-secondary);
   }
 
-  .ts__th.is-num {
-    justify-content: flex-end;
+  /* ---------- индикатор угрозы ---------- */
+  .td__threat {
+    --bandc: var(--text-faint);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-sm);
+    background: color-mix(in srgb, var(--surface) 40%, transparent);
+  }
+  .td__threat[data-band="high"] {
+    --bandc: var(--td-err);
+  }
+  .td__threat[data-band="mid"] {
+    --bandc: var(--td-warn);
+  }
+  .td__threat[data-band="low"] {
+    --bandc: var(--td-warn);
+  }
+  .td__threat[data-band="clean"] {
+    --bandc: var(--td-ok);
+  }
+  .td__threat-top {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2) var(--sp-3);
+  }
+  .td__threat-cap {
+    color: var(--text-muted);
+  }
+  .td__threat-score {
+    margin-left: auto;
+    font-size: var(--fs-18);
+    font-weight: var(--fw-semibold);
+    color: var(--bandc);
+    font-variant-numeric: tabular-nums;
+  }
+  .td__threat-verdict {
+    font-size: var(--fs-11);
+    font-weight: var(--fw-medium);
+    color: var(--bandc);
+    padding: 2px var(--sp-2);
+    border: var(--bw-thin) solid color-mix(in srgb, var(--bandc) 42%, transparent);
+    border-radius: var(--r-pill);
+    white-space: nowrap;
+  }
+  .td__threat-verdict[hidden] {
+    display: none;
+  }
+  .td__gauge {
+    height: 8px;
+    border-radius: var(--r-pill);
+    background: var(--surface);
+    border: var(--bw-thin) solid var(--border);
+    overflow: hidden;
+  }
+  .td__gauge-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--bandc);
+    transform: scaleX(var(--score, 0));
+    transform-origin: left center;
+    transition: transform var(--dur-slower) var(--ease-soft);
   }
 
-  .ts__th:hover {
+  /* ---------- футер карточки ---------- */
+  .td__card-foot {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sp-2) var(--sp-3);
+  }
+  .td__trace {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    min-height: var(--tap-min);
+    padding: var(--sp-2) var(--sp-5);
+    border: var(--bw-thin) solid var(--td-line);
+    border-radius: var(--r-pill);
+    background: var(--td-soft);
     color: var(--text);
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-14);
+    font-weight: var(--fw-medium);
+    cursor: pointer;
+    transition:
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-soft);
+  }
+  .td__trace:hover {
+    border-color: var(--td-accent);
+  }
+  .td__trace:active {
+    transform: scale(0.96);
+  }
+  .td__trace:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  .td__trace:disabled {
+    cursor: progress;
+  }
+  .td__trace-glyph {
+    width: 0;
+    height: 0;
+    flex: none;
+    border-style: solid;
+    border-width: 5px 0 5px 9px;
+    border-color: transparent transparent transparent currentColor;
+  }
+  .td__stage[data-state="tracing"] .td__trace-glyph {
+    width: 11px;
+    height: 11px;
+    border: var(--bw-med) solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+  }
+  .td.is-inview .td__stage[data-state="tracing"] .td__trace-glyph {
+    animation: td-spin 700ms linear infinite;
+  }
+  @keyframes td-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .td__note {
+    flex: 1 1 200px;
+    min-width: 0;
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
+    line-height: var(--lh-snug);
   }
 
-  .ts__th[aria-sort="ascending"],
-  .ts__th[aria-sort="descending"] {
-    color: var(--ts-accent);
-  }
-
-  .ts__th-arrow {
-    font-size: var(--fs-10);
+  /* ---------- подсказка по источнику ---------- */
+  .td__hint {
+    min-height: 1.4em;
+    font-size: var(--fs-13);
+    color: var(--text-muted);
+    line-height: var(--lh-snug);
     opacity: 0;
-    transition: opacity var(--dur-fast) var(--ease-standard);
+    transition: opacity var(--dur-med) var(--ease-standard);
   }
-
-  .ts__th[aria-sort="ascending"] .ts__th-arrow,
-  .ts__th[aria-sort="descending"] .ts__th-arrow {
+  .td__hint.is-on {
     opacity: 1;
   }
 
-  .ts__th[aria-sort="ascending"] .ts__th-arrow::after {
-    content: "▲";
-  }
-
-  .ts__th[aria-sort="descending"] .ts__th-arrow::after {
-    content: "▼";
-  }
-
-  .ts__tbody {
-    position: relative;
+  /* ---------- экспорт ---------- */
+  .td__export {
     display: flex;
     flex-direction: column;
+    gap: var(--sp-2);
   }
-
-  /* строки переупорядочиваются ТОЛЬКО через translateY (transform), не reflow */
-  .ts__trow:not(.ts__trow--head) {
-    transition: transform var(--dur-slow) var(--ease-soft);
-    will-change: transform;
+  .td__export-cap {
+    color: var(--text-muted);
   }
-
-  .ts__trow:not(.ts__trow--head):nth-child(odd) {
-    background: color-mix(in srgb, var(--surface) 50%, transparent);
+  .td__export-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
   }
-
-  .ts__td {
+  .td__fmt {
+    min-height: var(--tap-min);
+    padding: var(--sp-2) var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-pill);
+    background: var(--surface);
+    cursor: pointer;
+    transition:
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-soft);
+  }
+  .td__fmt:hover {
+    border-color: var(--border-hover);
+  }
+  .td__fmt:active {
+    transform: scale(0.96);
+  }
+  .td__fmt:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  .td__fmt.is-on {
+    border-color: var(--td-line);
+    background: var(--td-soft);
+  }
+  .td__fmt .mono {
     font-size: var(--fs-12);
+    color: var(--text);
+    letter-spacing: var(--ls-wide);
+  }
+  .td__export-preview {
+    margin: 0;
+    min-height: 2.4em;
+    padding: var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--bg-deep);
+    font-size: var(--fs-11);
+    line-height: var(--lh-snug);
     color: var(--text-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
 
-  .ts__td.is-num {
-    text-align: right;
+  /* ---------- под капотом ---------- */
+  .td__under {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+  }
+  .td__under-toggle {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: 0;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-12);
+    font-weight: var(--fw-medium);
+    text-transform: uppercase;
+    letter-spacing: var(--ls-wide);
+  }
+  .td__under-toggle:hover {
     color: var(--text);
   }
-
-  .ts__td[data-abuse] {
+  .td__under-toggle:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 3px;
+    border-radius: var(--r-xs);
+  }
+  .td__under-chevron {
     position: relative;
+    flex: none;
+    width: 10px;
+    height: 10px;
+  }
+  .td__under-chevron::before,
+  .td__under-chevron::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 10px;
+    height: 1.5px;
+    border-radius: 1px;
+    background: currentColor;
+    transform: translateY(-50%);
+  }
+  .td__under-chevron::after {
+    transform: translateY(-50%) rotate(90deg);
+  }
+  .td__under-toggle[aria-expanded="true"] .td__under-chevron::after {
+    opacity: 0;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .td__under-chevron::after {
+      transition: opacity var(--dur-fast) var(--ease-standard);
+    }
+  }
+  .td__under-box {
+    display: grid;
+    grid-template-rows: 1fr;
+  }
+  .td__under-inner {
+    min-height: 0;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-3);
+  }
+  .td.is-enhanced .td__under-box {
+    grid-template-rows: 0fr;
+  }
+  .td.is-enhanced.is-under-open .td__under-box {
+    grid-template-rows: 1fr;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .td__under-box {
+      transition: grid-template-rows var(--dur-med) var(--ease-standard);
+    }
   }
 
-  /* ====================== Появление (под .is-run) ====================== */
-  .ts.is-run .ts__probe {
-    animation: ts-rise var(--dur-slow) var(--ease-soft) both;
-    animation-delay: calc(var(--i) * 80ms);
+  .td__panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    padding: var(--sp-4);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--surface);
+    min-width: 0;
+  }
+  .td__panel-title {
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-semibold);
+    font-size: var(--fs-15);
+    color: var(--text);
+  }
+  .td__panel-note {
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
+    line-height: var(--lh-snug);
+    overflow-wrap: anywhere;
   }
 
-  .ts.is-run .ts__trow:not(.ts__trow--head) {
-    animation: ts-rise var(--dur-slow) var(--ease-soft) both;
-    animation-delay: calc(var(--i) * 60ms);
+  /* прокси-сегмент */
+  .td__seg {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+  .td__seg-btn {
+    min-height: var(--tap-min);
+    padding: var(--sp-1) var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-pill);
+    background: var(--surface);
+    color: var(--text-secondary);
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-13);
+    cursor: pointer;
+    transition:
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard),
+      background-color var(--dur-fast) var(--ease-standard);
+  }
+  .td__seg-btn:hover {
+    border-color: var(--border-hover);
+    color: var(--text);
+  }
+  .td__seg-btn.is-on {
+    color: var(--text);
+    border-color: var(--td-line);
+    background: var(--td-soft);
+  }
+  .td__break {
+    min-height: var(--tap-min);
+    padding: var(--sp-1) var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-pill);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-13);
+    cursor: pointer;
+    transition:
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard),
+      opacity var(--dur-fast) var(--ease-standard);
+  }
+  .td__break:hover:not(:disabled) {
+    color: var(--text);
+    border-color: color-mix(in srgb, var(--td-err) 42%, transparent);
+  }
+  .td__break:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  .td__pool {
+    font-size: var(--fs-11);
+    color: var(--text-faint);
+    letter-spacing: var(--ls-wide);
+    opacity: 0.4;
+    transition: opacity var(--dur-med) var(--ease-standard);
+    overflow-wrap: anywhere;
+  }
+  .td__proxy[data-mode="proxied"] .td__pool,
+  .td__proxy[data-mode="blocked"] .td__pool {
+    opacity: 1;
+  }
+  .td__routes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+  .td__route {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+  }
+  .td__route-cap {
+    color: var(--text-muted);
+    font-size: var(--fs-10);
+    text-transform: uppercase;
+    letter-spacing: var(--ls-wide);
+  }
+  .td__route-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1);
+  }
+  .td__pill {
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+    padding: 2px var(--sp-2);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-pill);
+    transition:
+      color var(--dur-med) var(--ease-standard),
+      border-color var(--dur-med) var(--ease-standard),
+      opacity var(--dur-med) var(--ease-standard);
+  }
+  .td__pill--dns {
+    color: var(--text-secondary);
+  }
+  /* proxied: HTTP-пилюли подсвечены акцентом */
+  .td__proxy[data-mode="proxied"] .td__pill[data-td-http-pill] {
+    color: var(--td-accent);
+    border-color: var(--td-line);
+  }
+  /* blocked: HTTP заблокированы, DNS идут */
+  .td__proxy[data-mode="blocked"] .td__pill[data-td-http-pill] {
+    color: var(--td-err);
+    border-color: color-mix(in srgb, var(--td-err) 42%, transparent);
+    opacity: 0.6;
+    text-decoration: line-through;
+    text-decoration-color: color-mix(in srgb, var(--td-err) 60%, transparent);
   }
 
-  @keyframes ts-rise {
+  /* скан списком */
+  .td__bulk-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sp-2) var(--sp-3);
+  }
+  .td__bulk-run {
+    min-height: var(--tap-min);
+    padding: var(--sp-2) var(--sp-4);
+    border: var(--bw-thin) solid var(--td-line);
+    border-radius: var(--r-pill);
+    background: var(--td-soft);
+    color: var(--text);
+    font-family: var(--font-stack-display);
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    cursor: pointer;
+    transition:
+      border-color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-soft);
+  }
+  .td__bulk-run:hover {
+    border-color: var(--td-accent);
+  }
+  .td__bulk-run:active {
+    transform: scale(0.96);
+  }
+  .td__bulk-run:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  .td__sem {
+    font-size: var(--fs-11);
+    color: var(--td-accent);
+  }
+  .td__bulk-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+  }
+  .td__bulk-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) auto minmax(60px, 1.2fr) auto;
+    align-items: center;
+    gap: var(--sp-2) var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-xs);
+    background: var(--surface-2);
+    opacity: 0;
+    transform: translate3d(-8px, 0, 0);
+  }
+  .td__bulk-row.is-in {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity var(--dur-med) var(--ease-standard),
+      transform var(--dur-med) var(--ease-soft);
+  }
+  .td__bulk-ip {
+    font-size: var(--fs-12);
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .td__bulk-cc {
+    font-size: var(--fs-11);
+    color: var(--td-accent);
+  }
+  .td__bulk-bar {
+    height: 6px;
+    border-radius: var(--r-pill);
+    background: var(--surface);
+    border: var(--bw-thin) solid var(--border);
+    overflow: hidden;
+  }
+  .td__bulk-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--td-warn);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform var(--dur-slow) var(--ease-soft);
+  }
+  .td__bulk-row.is-in .td__bulk-fill {
+    transform: scaleX(var(--score, 0));
+  }
+  .td__bulk-fill[data-abuse="100"],
+  .td__bulk-fill[data-abuse="92"] {
+    background: var(--td-err);
+  }
+  .td__bulk-num {
+    font-size: var(--fs-12);
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  /* ====================== Появление сцены ====================== */
+  .td.is-inview .td__src {
+    animation: td-rise var(--dur-slow) var(--ease-soft) both;
+  }
+  .td.is-inview .td__col--l .td__src {
+    animation-delay: calc(var(--i, 0) * 1ms);
+  }
+  @keyframes td-rise {
     from {
       opacity: 0;
       transform: translate3d(0, 8px, 0);
     }
-    to {
-      opacity: 1;
-      transform: none;
-    }
   }
 
   /* ====================== Адаптив ====================== */
-  @media (max-width: 760px) {
-    /* Тело: поток + rack в одну колонку */
-    .ts__body {
-      grid-template-columns: minmax(0, 1fr);
+  @media (min-width: 760px) {
+    .td__stage {
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 1.55fr) minmax(0, 1fr);
+      gap: var(--sp-4);
+      align-items: center;
+      padding: var(--sp-5);
     }
-
-    .ts__stream {
-      height: 184px;
+    .td__col {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-3);
+      min-width: 0;
     }
-
-    /* Контрольная панель: вся ширина, перенос элементов */
-    .ts__controls {
-      padding: var(--sp-3);
-      gap: var(--sp-2);
-    }
-
-    /* Break-proxy: тач-таргет */
-    .ts__break {
-      min-height: var(--tap-min);
-    }
-
-    /* Экспорт-чипы: убираем прижатие вправо, горизонтальная лента с прокруткой */
-    .ts__exports {
-      margin-left: 0;
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      max-width: 100%;
-      /* скрываем полосу прокрутки визуально, но оставляем прокрутку */
-      scrollbar-width: none;
-    }
-
-    .ts__exports::-webkit-scrollbar {
-      display: none;
-    }
-
-    /* Таблица: горизонтальная прокрутка внутри обёртки,
-       чтобы компонент не раздувал страницу вбок */
-    .ts__results {
-      padding-left: var(--sp-3);
-      padding-right: var(--sp-3);
-    }
-
-    .ts__table {
-      /* Снимаем overflow:hidden с контейнера чтобы добавить горизонтальный скролл */
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    /* Строки таблицы: фиксируем минимальную ширину для читаемости,
-       скролл идёт внутри .ts__table */
-    .ts__trow {
-      min-width: 480px;
-    }
-
-    /* Шрифты ячеек читаемые */
-    .ts__td {
-      font-size: var(--fs-12);
-    }
-
-    /* Строка-приглашение: команда переносится, Run-кнопка на всю строку не уезжает */
-    .ts__prompt {
-      gap: var(--sp-2);
-      padding: var(--sp-3);
-    }
-
-    /* Тайтлбар: семафор не обрезается */
-    .ts__bar {
-      padding: var(--sp-2) var(--sp-3);
+    .td__card {
+      order: 0;
+      grid-column: auto;
     }
   }
 
-  @media (max-width: 460px) {
-    /* Ноды: одна колонка */
-    .ts__probes {
-      grid-template-columns: minmax(0, 1fr);
+  @media (max-width: 759px) {
+    /* карточка во всю ширину, ноды — 2 колонки под ней */
+    .td__bulk-row {
+      grid-template-columns: minmax(0, 1.4fr) auto minmax(48px, 1fr) auto;
     }
+  }
 
-    /* Таблица: на очень узких экранах убираем min-width,
-       скрываем второстепенные колонки вместо прокрутки */
-    .ts__trow {
-      grid-template-columns: 1.6fr 0.9fr 0.7fr;
-      gap: var(--sp-1) var(--sp-2);
-      min-width: 0;
-    }
-
-    /* на узком экране прячем «страна» и «сеть», оставляя IP / ASN / abuse */
-    .ts__th[data-ts-col="cc"],
-    .ts__th[data-ts-col="net"],
-    .ts__td:nth-child(2),
-    .ts__td:nth-child(4) {
-      display: none;
-    }
-
-    /* Пул прокси: слишком широкий для узкого экрана, скрываем */
-    .ts__pool {
-      display: none;
-    }
-
-    /* Контрольная панель: стек вместо ленты */
-    .ts__controls {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    /* Break-proxy и toggle: на всю ширину */
-    .ts__break,
-    .ts__toggle {
-      width: 100%;
-      justify-content: flex-start;
-    }
-
-    /* Экспорты: снова разрешаем перенос (колонок немного — влезут) */
-    .ts__exports {
-      flex-wrap: wrap;
-      overflow-x: visible;
-      width: 100%;
-    }
-
-    /* Строка-приглашение: Run-кнопка на всю строку */
-    .ts__run {
-      width: 100%;
-      justify-content: center;
-    }
-
-    .ts__prompt {
-      padding: var(--sp-2) var(--sp-3);
+  @media (max-width: 600px) {
+    .td__under-inner {
+      grid-template-columns: 1fr;
     }
   }
 
   /* ====================== prefers-reduced-motion ====================== */
   @media (prefers-reduced-motion: reduce) {
-    .ts__caret {
-      opacity: 0.85;
+    .td.is-inview .td__src,
+    .td__src.is-report {
       animation: none;
     }
-
-    .ts.is-run .ts__probe,
-    .ts.is-run .ts__trow:not(.ts__trow--head) {
-      animation: none;
+    .td__card::after {
+      animation: none !important;
     }
-
-    .ts__stream :global(.ts-l) {
-      opacity: 1;
-      transform: none;
-      transition: none;
-    }
-
-    .ts__trow:not(.ts__trow--head) {
+    .td__gauge-fill,
+    .td__bulk-fill,
+    .td__bulk-row {
       transition: none;
     }
   }
 </style>
 
 <script>
-  // Оркестратор живого скан-терминала .след. Один связный «терминал»; нет
-  // степпера. Нет постоянного rAF: стрим вывода и fan-out ведёт ОДИН
-  // setTimeout-конвейер (очередь шагов), который полностью чистится за кадром /
-  // на скрытой вкладке / при pagehide. Единственные infinite-CSS (мигающая
-  // каретка, спиннер Run, ротация пула) scoped под .ts.is-inview и замирают
-  // офскрин. Всё движение гейтится IntersectionObserver. При prefers-reduced-
-  // motion — финальное статичное читаемое состояние, все интеракции работают.
+  // Оркестратор досье .след. Без степпера и без постоянного rAF: трассировка и
+  // скан списком ведутся одним setTimeout-конвейером later(), который чистится
+  // офскрин / на скрытой вкладке / при pagehide. Индикатор угрозы — CSS-переход
+  // (composited). Всё гейтится IntersectionObserver. prefers-reduced-motion —
+  // финальный статичный кадр, интеракции работают.
   (() => {
-    const root = document.querySelector<HTMLElement>("[data-ts]");
+    const root = document.querySelector<HTMLElement>("[data-td]");
     if (!root) return;
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const isEn = document.documentElement.dataset.locale === "en";
     const tr = (ru: string, en: string): string => (isEn ? en : ru);
 
-    const term = root.querySelector<HTMLElement>(".ts__term");
-    const runBtn = root.querySelector<HTMLButtonElement>("[data-ts-run]");
-    const runT = root.querySelector<HTMLElement>("[data-ts-run-t]");
-    const stream = root.querySelector<HTMLElement>("[data-ts-stream]");
-    const streamCap = root.querySelector<HTMLElement>("[data-ts-stream-cap]");
-    const probes = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-ts-probe]"));
-    const proxyBtn = root.querySelector<HTMLButtonElement>("[data-ts-proxy]");
-    const proxyT = root.querySelector<HTMLElement>("[data-ts-proxy-t]");
-    const breakBtn = root.querySelector<HTMLButtonElement>("[data-ts-break]");
-    const ptypes = Array.from(root.querySelectorAll<HTMLElement>("[data-ptype]"));
-    const credEl = root.querySelector<HTMLElement>("[data-ts-cred]");
-    const guard = root.querySelector<HTMLElement>("[data-ts-guard]");
-    const guardT = root.querySelector<HTMLElement>("[data-ts-guard-t]");
-    const chips = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-ts-export]"));
-    const headers = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-ts-col]"));
-    const tbody = root.querySelector<HTMLElement>("[data-ts-tbody]");
-    const trows = Array.from(root.querySelectorAll<HTMLElement>("[data-ts-trow]"));
+    const stage = root.querySelector<HTMLElement>(".td__stage");
+    const chips = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-td-chip]"));
+    const srcEls = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-td-src]"));
+    const ipEl = root.querySelector<HTMLElement>("[data-td-ip]");
+    const statusEl = root.querySelector<HTMLElement>("[data-td-status]");
+    const fieldEls = Array.from(root.querySelectorAll<HTMLElement>("[data-td-field]"));
+    const threatEl = root.querySelector<HTMLElement>("[data-td-threat]");
+    const scoreEl = root.querySelector<HTMLElement>("[data-td-score]");
+    const verdictEl = root.querySelector<HTMLElement>("[data-td-verdict]");
+    const gaugeEl = root.querySelector<HTMLElement>("[data-td-gauge]");
+    const traceBtn = root.querySelector<HTMLButtonElement>("[data-td-trace]");
+    const traceT = root.querySelector<HTMLElement>("[data-td-trace-t]");
+    const noteEl = root.querySelector<HTMLElement>("[data-td-note]");
+    const hintEl = root.querySelector<HTMLElement>("[data-td-hint]");
 
-    if (!term || !stream) return;
+    if (!stage || !ipEl) return;
 
-    const FOCUS = "185.220.101.4";
-    const SEM = 3;
-    const queueIps = [
-      "185.220.101.4",
-      "45.155.205.233",
-      "193.32.162.7",
-      "104.244.76.13",
-      "5.188.206.18",
-    ];
+    type Dos = {
+      ip: string;
+      cc: string;
+      country: string;
+      city: string;
+      asn: string;
+      op: string;
+      net: string;
+      host: string;
+      abuse: number;
+    };
+    const read = (c: HTMLElement): Dos => ({
+      ip: c.dataset.ip ?? "",
+      cc: c.dataset.cc ?? "",
+      country: c.dataset.country ?? "",
+      city: c.dataset.city ?? "",
+      asn: c.dataset.asn ?? "",
+      op: c.dataset.op ?? "",
+      net: c.dataset.net ?? "",
+      host: c.dataset.host ?? "",
+      abuse: Number(c.dataset.abuse) || 0,
+    });
 
-    // Строки fan-out для потока вывода (порядок = data-ts-probe; последняя падает).
-    type SrcLine = { key: string; via: string; ok: string; field: string; fail: boolean };
-    const srcLines: SrcLine[] = [
-      {
-        key: "ip-api",
-        via: "aiohttp",
-        ok: "200 OK",
-        field: "country=DE asn=AS205100",
-        fail: false,
-      },
-      {
-        key: "Team Cymru → bgpview",
-        via: "dns → http",
-        ok: tr("dns miss → http fallback", "dns miss → http fallback"),
-        field: "prefix=185.220.100.0/22",
-        fail: false,
-      },
-      {
-        key: "RDAP",
-        via: "thread-pool",
-        ok: "rdap.db.ripe.net",
-        field: "cidr=185.220.100.0/22",
-        fail: false,
-      },
-      {
-        key: "reverse DNS",
-        via: "thread-pool",
-        ok: "PTR ok",
-        field: "ptr=tor-exit.relay",
-        fail: false,
-      },
-      { key: "AbuseIPDB", via: "aiohttp", ok: "200 OK", field: "abuse=100/100", fail: false },
-      {
-        key: "Spamhaus DNSBL",
-        via: "dns",
-        ok: "TimeoutError → value",
-        field: "listed=∅ (empty_info)",
-        fail: true,
-      },
-    ];
+    let current: Dos = read(chips[0] ?? document.createElement("div"));
 
-    // ---- Состояние ----
+    // ---- инфраструктура таймеров ----
     let inview = false;
+    let tracing = false;
     const timers: number[] = [];
-
     const clearTimers = (): void => {
       while (timers.length) {
         const id = timers.pop();
         if (id !== undefined) window.clearTimeout(id);
       }
     };
-
-    // setTimeout-конвейер: планирует шаг; не запускает ничего офскрин.
     const later = (fn: () => void, ms: number): void => {
       const id = window.setTimeout(() => {
         const i = timers.indexOf(id);
@@ -1421,382 +1470,368 @@ const ui = {
       }, ms);
       timers.push(id);
     };
+    const D = (ms: number): number => (reduced ? 0 : ms);
 
-    // ---- Поток вывода ----
-    type Tone = "" | "acc" | "dim" | "err";
-    const print = (text: string, tone: Tone = ""): void => {
-      const line = document.createElement("span");
-      line.className = "ts-l" + (tone ? " ts-" + tone : "");
-      line.textContent = text;
-      stream.appendChild(line);
-      if (reduced) {
-        line.classList.add("is-in");
+    // ---- угроза → band/вердикт ----
+    const band = (abuse: number): { band: string; verdict: string } => {
+      if (abuse >= 80) return { band: "high", verdict: tr("опасный", "high risk") };
+      if (abuse >= 40) return { band: "mid", verdict: tr("подозрительный", "suspicious") };
+      if (abuse >= 10) return { band: "low", verdict: tr("замечен", "flagged") };
+      return { band: "clean", verdict: tr("низкий риск", "low risk") };
+    };
+
+    // ---- значение поля карточки (country с бейджем cc, operator с ASN) ----
+    const fieldValue = (id: string, d: Dos): string => {
+      if (id === "country") {
+        const city = d.city && d.city !== "—" ? ` · ${d.city}` : "";
+        return `<span class="td__cc">${d.cc}</span>${d.country}${city}`;
+      }
+      if (id === "operator") return `<span class="td__asn">${d.asn}</span> · ${d.op}`;
+      if (id === "network") return d.net;
+      if (id === "host") return d.host && d.host !== "—" ? d.host : tr("нет PTR-записи", "no PTR record");
+      return "";
+    };
+
+    const setField = (id: string, on: boolean): void => {
+      const el = fieldEls.find((f) => f.dataset.tdField === id);
+      if (!el) return;
+      const v = el.querySelector<HTMLElement>("[data-td-field-v]");
+      el.classList.toggle("is-filled", on);
+      if (v) {
+        if (on) v.innerHTML = fieldValue(id, current);
+        else v.innerHTML = '<span class="td__field-ph" aria-hidden="true">—</span>';
+      }
+    };
+
+    const setThreat = (on: boolean): void => {
+      if (!threatEl || !scoreEl || !verdictEl || !gaugeEl) return;
+      if (on) {
+        const b = band(current.abuse);
+        threatEl.dataset.band = b.band;
+        scoreEl.textContent = String(current.abuse);
+        verdictEl.textContent = b.verdict;
+        verdictEl.hidden = false;
+        gaugeEl.style.setProperty("--score", (current.abuse / 100).toFixed(2));
       } else {
-        requestAnimationFrame(() => line.classList.add("is-in"));
-      }
-      stream.scrollTop = stream.scrollHeight;
-    };
-
-    const clearStream = (): void => {
-      stream.textContent = "";
-    };
-
-    const setRunUI = (state: "idle" | "running" | "done"): void => {
-      term.dataset.state = state === "running" ? "running" : "idle";
-      const label =
-        state === "running" ? tr("Сканирую…", "Scanning…") : tr("Сканировать заново", "Scan again");
-      if (runT) runT.textContent = label;
-      if (runBtn) {
-        runBtn.setAttribute("aria-label", label);
-        runBtn.disabled = state === "running";
+        threatEl.dataset.band = "idle";
+        scoreEl.textContent = "—";
+        verdictEl.hidden = true;
+        gaugeEl.style.setProperty("--score", "0");
       }
     };
 
-    // Подсветить пробу (вернулась / упала).
-    const lightProbe = (i: number, on: boolean): void => {
-      const p = probes[i];
-      if (!p) return;
-      p.classList.toggle("is-on", on);
-      p.setAttribute("aria-pressed", on ? "true" : "false");
-      const st = p.querySelector<HTMLElement>("[data-ts-probe-state]");
-      const meta = srcLines[i];
-      if (st && meta) st.textContent = on ? (meta.fail ? "value" : "ok") : "";
+    const lightSrc = (id: string, state: "off" | "on" | "silent"): void => {
+      const el = srcEls.find((s) => s.dataset.tdSrc === id);
+      if (!el) return;
+      el.classList.toggle("is-on", state === "on");
+      el.classList.toggle("is-silent-on", state === "silent");
+      el.setAttribute("aria-pressed", state === "off" ? "false" : "true");
+      if (!reduced && state !== "off") {
+        el.classList.remove("is-report");
+        void el.offsetWidth;
+        el.classList.add("is-report");
+      }
+      const st = el.querySelector<HTMLElement>("[data-td-src-state]");
+      if (st) st.textContent = state === "silent" ? tr("таймаут", "timeout") : state === "on" ? "ok" : "";
     };
 
-    const resetProbes = (): void => {
-      probes.forEach((_, i) => lightProbe(i, false));
+    const resetCard = (): void => {
+      ipEl.textContent = current.ip;
+      if (statusEl) {
+        statusEl.textContent = tr("не собрано", "not assembled");
+        statusEl.classList.remove("is-done");
+      }
+      fieldEls.forEach((f) => setField(f.dataset.tdField ?? "", false));
+      setThreat(false);
+      srcEls.forEach((s) => lightSrc(s.dataset.tdSrc ?? "", "off"));
+      if (noteEl) noteEl.textContent = "";
     };
 
-    // ---- Главный прогон скана (fan-out по фокус-IP) ----
-    const runScan = (): void => {
+    const setTraceUI = (state: "idle" | "running"): void => {
+      stage.dataset.state = state === "running" ? "tracing" : "idle";
+      tracing = state === "running";
+      if (traceT) traceT.textContent = state === "running" ? tr("Слежу…", "Tracing…") : tr("Проследить заново", "Trace again");
+      if (traceBtn) traceBtn.disabled = state === "running";
+    };
+
+    // порядок отчёта источников (последний — молчащий Spamhaus)
+    const order = ["geo", "asn", "owner", "host", "rep", "dnsbl"];
+    const fillOf: Record<string, string | null> = {
+      geo: "country",
+      asn: "operator",
+      owner: "network",
+      host: "host",
+      rep: "threat",
+      dnsbl: null,
+    };
+
+    const runTrace = (): void => {
       clearTimers();
-      clearStream();
-      resetProbes();
-      root.classList.remove("is-run");
-      void root.offsetWidth;
-      root.classList.add("is-run");
-      setRunUI("running");
+      resetCard();
+      setTraceUI("running");
 
-      const mode = term.dataset.mode ?? "direct";
-      const step = reduced ? 0 : 1;
-      let tms = 0;
+      const blocked = stage.dataset.mode === "blocked";
+      let ms = 0;
+      let answered = 0;
 
-      print("$ dottraceip --format html target_ips.txt", "acc");
-
-      // guard: коннектор не построился → прямого фолбэка нет, real IP не утекает.
-      if (mode === "blocked") {
-        later(
-          () =>
-            print(
-              tr("proxy build failed → connector=None", "proxy build failed → connector=None"),
-              "err",
-            ),
-          (tms += 220) * step,
-        );
-        later(
-          () =>
-            print(
-              tr(
-                "guard: HTTP-источники НЕ откатываются в direct",
-                "guard: HTTP sources do NOT fall back to direct",
-              ),
-              "err",
-            ),
-          (tms += 240) * step,
-        );
-        later(
-          () => {
-            print(
-              tr(
-                "would have leaked → real IP withheld · скан остановлен",
-                "would have leaked → real IP withheld · scan halted",
-              ),
-              "dim",
-            );
-            setRunUI("done");
-          },
-          (tms += 240) * step,
-        );
-        return;
-      }
-
-      const route =
-        mode === "proxied"
-          ? tr(
-              "route: pool HTTP/SOCKS4/SOCKS5 (rotating) · creds masked",
-              "route: pool HTTP/SOCKS4/SOCKS5 (rotating) · creds masked",
-            )
-          : tr("route: direct", "route: direct");
-      later(() => print(route, "dim"), (tms += 200) * step);
-      later(
-        () => print(`semaphore=${SEM} · queue: ${queueIps.join(" ")}`, "dim"),
-        (tms += 200) * step,
-      );
-      later(
-        () => print(`▸ focus ${FOCUS} → asyncio.gather(*6, return_exceptions=True)`, "acc"),
-        (tms += 240) * step,
-      );
-
-      // Fan-out: каждая нода «возвращается» вразнобой; Spamhaus падает.
-      srcLines.forEach((s, i) => {
-        const delay = (tms += s.fail ? 520 : 180 + i * 30) * step;
+      order.forEach((id) => {
+        const silent = id === "dnsbl";
+        // в blocked-режиме HTTP-источники не отвечают (guard приватности)
+        const isHttp = srcEls.find((s) => s.dataset.tdSrc === id)?.dataset.http === "1";
+        ms += silent ? 620 : 220;
         later(() => {
-          lightProbe(i, true);
-          if (s.fail) {
-            print(`  x ${s.key.padEnd(22)} ${s.ok}`, "err");
-            print(`    ${s.field}  # default, row still assembled`, "dim");
-          } else {
-            print(`  + ${s.key.padEnd(22)} ${s.ok}  ${s.field}`, "");
+          if (silent) {
+            lightSrc(id, "silent");
+            return;
           }
-        }, delay);
+          if (blocked && isHttp) {
+            lightSrc(id, "silent");
+            return;
+          }
+          lightSrc(id, "on");
+          const f = fillOf[id];
+          if (f === "threat") setThreat(true);
+          else if (f) setField(f, true);
+          answered += 1;
+        }, D(ms));
       });
 
-      // Итоговая строка TXT (построчно во время скана) + завершение.
-      later(
-        () => {
-          print(`${FOCUS}  DE  AS205100  185.220.100.0/22  abuse=100`, "acc");
-          print(
-            tr(
-              "5/6 источников ответили · строка собрана · TXT записан",
-              "5/6 sources answered · row assembled · TXT written",
-            ),
-            "dim",
-          );
-          print(
-            tr(
-              "→ +JSON +CSV +HTML report (no external deps)",
-              "→ +JSON +CSV +HTML report (no external deps)",
-            ),
-            "dim",
-          );
-          setRunUI("done");
-        },
-        (tms += 360) * step,
-      );
-    };
-
-    runBtn?.addEventListener("click", runScan);
-
-    // ---- Тык по ноде: печатает её ответ в поток ----
-    probes.forEach((p, i) => {
-      p.addEventListener("click", () => {
-        const on = !p.classList.contains("is-on");
-        lightProbe(i, on);
-        const s = srcLines[i];
-        if (on && s) {
-          if (s.fail) print(`  x ${s.key}: ${s.ok} → ${s.field}`, "err");
-          else print(`  + ${s.key}: ${s.field} (${s.via})`, "");
+      later(() => {
+        setTraceUI("idle");
+        if (statusEl) {
+          statusEl.textContent = tr(`${answered}/6 источников`, `${answered}/6 sources`);
+          statusEl.classList.add("is-done");
         }
-      });
-    });
-
-    // ---- Экспорт-чипы: превью формата в поток ----
-    chips.forEach((chip) => {
-      chip.addEventListener("click", () => {
-        chips.forEach((c) => c.setAttribute("aria-pressed", "false"));
-        chip.setAttribute("aria-pressed", "true");
-        const fmt = chip.querySelector(".ts__chip-fmt")?.textContent ?? "";
-        const preview = chip.dataset.preview ?? "";
-        const note = chip.dataset.note ?? "";
-        if (streamCap) streamCap.textContent = tr(`превью · ${fmt}`, `preview · ${fmt}`);
-        clearStream();
-        print(`# ${fmt} — ${note}`, "acc");
-        preview.split("\n").forEach((ln) => print(ln, "dim"));
-      });
-    });
-
-    // ---- Прокси-тоггл + break-proxy guard + ротация пула ----
-    let rotTimer = 0;
-    const stopRotation = (): void => {
-      if (rotTimer) {
-        window.clearInterval(rotTimer);
-        rotTimer = 0;
-      }
-    };
-
-    const masks = [
-      "http://user:••••@10.0.5.7:8080",
-      "socks4://user:••••@10.0.9.1:1080",
-      "socks5://user:••••@10.0.2.4:1080",
-    ];
-    const rotateActive = (): void => {
-      if (ptypes.length === 0) return;
-      const k = Math.floor(Math.random() * ptypes.length);
-      ptypes.forEach((el, i) => el.classList.toggle("is-active", i === k));
-      if (credEl) credEl.textContent = masks[k] ?? "user:••••@—";
-    };
-
-    const setMode = (mode: "direct" | "proxied" | "blocked"): void => {
-      term.dataset.mode = mode;
-      stopRotation();
-      if (proxyBtn) proxyBtn.setAttribute("aria-pressed", mode === "direct" ? "false" : "true");
-      if (proxyT)
-        proxyT.textContent =
-          mode === "direct" ? tr("Прокси: выкл", "Proxy: off") : tr("Прокси: вкл", "Proxy: on");
-      if (breakBtn) breakBtn.disabled = mode === "direct";
-
-      if (mode === "direct") {
-        ptypes.forEach((el) => el.classList.remove("is-active"));
-        if (credEl) credEl.textContent = "user:••••@—";
-        if (guard) guard.dataset.guard = "direct";
-        if (guardT)
-          guardT.textContent = tr(
-            "прямое соединение — real IP виден источнику",
-            "direct connection — real IP visible to the source",
-          );
-      } else if (mode === "proxied") {
-        rotateActive();
-        if (!reduced && inview) rotTimer = window.setInterval(rotateActive, 1400);
-        if (guard) guard.dataset.guard = "proxied";
-        if (guardT)
-          guardT.textContent = tr(
-            "через пул · креды замаскированы · real IP скрыт",
-            "via pool · credentials masked · real IP hidden",
-          );
-      } else {
-        // blocked: коннектор не построился → прямого коннекта НЕТ, IP не утекает
-        ptypes.forEach((el) => el.classList.remove("is-active"));
-        if (credEl)
-          credEl.textContent = tr("connector=None (unparseable)", "connector=None (unparseable)");
-        if (guard) guard.dataset.guard = "blocked";
-        if (guardT)
-          guardT.textContent = tr(
-            "заблокировано: HTTP не уходит в direct — would have leaked, real IP withheld",
-            "blocked: HTTP won't fall back to direct — would have leaked, real IP withheld",
-          );
-      }
-    };
-
-    proxyBtn?.addEventListener("click", () => {
-      setMode(term.dataset.mode === "direct" ? "proxied" : "direct");
-    });
-    breakBtn?.addEventListener("click", () => {
-      if (term.dataset.mode !== "direct") setMode("blocked");
-    });
-
-    // ---- Сортируемая таблица (transform-reorder, реальный aria-sort) ----
-    type SortKey = "ip" | "cc" | "asn" | "net" | "abuse";
-    const cellIndex: Record<SortKey, number> = { ip: 0, cc: 1, asn: 2, net: 3, abuse: 4 };
-    const numeric: SortKey[] = ["asn", "abuse"];
-
-    const cellText = (row: HTMLElement, key: SortKey): string => {
-      const cells = row.querySelectorAll<HTMLElement>(".ts__td");
-      return cells[cellIndex[key]]?.textContent?.trim() ?? "";
-    };
-
-    let sortKey: SortKey | null = null;
-    let sortDir: 1 | -1 = 1;
-
-    const applyOrder = (order: HTMLElement[]): void => {
-      // Высоту строки меряем в момент сортировки (transform-only reorder).
-      const h = trows[0]?.getBoundingClientRect().height ?? 0;
-      order.forEach((row, pos) => {
-        const from = trows.indexOf(row);
-        row.style.transform = `translateY(${(pos - from) * h}px)`;
-      });
-    };
-
-    const renderSort = (key: SortKey): void => {
-      const isNum = numeric.includes(key);
-      const order = [...trows].sort((a, b) => {
-        let cmp: number;
-        if (isNum) {
-          const av = Number(cellText(a, key).replace(/\D/g, "")) || 0;
-          const bv = Number(cellText(b, key).replace(/\D/g, "")) || 0;
-          cmp = av - bv;
-        } else {
-          cmp = cellText(a, key).localeCompare(cellText(b, key));
+        if (noteEl) {
+          noteEl.textContent = blocked
+            ? tr(
+                "Прокси-guard: HTTP-источники не ушли в direct — досье собрано только из DNS и RDAP, реальный IP не утёк.",
+                "Proxy guard: HTTP sources didn't fall back to direct — the dossier came from DNS and RDAP only, the real IP never leaked.",
+              )
+            : tr(
+                "Готово: ответили 5 из 6. Spamhaus молчит, но через asyncio.gather(return_exceptions=True) это значение, а не падение — досье собрано.",
+                "Done: 5 of 6 answered. Spamhaus is silent, but via asyncio.gather(return_exceptions=True) that's a value, not a crash — the dossier is assembled.",
+              );
         }
-        return cmp * sortDir;
-      });
-      applyOrder(order);
-      headers.forEach((h) => {
-        const hk = h.dataset.tsCol as SortKey | undefined;
-        h.setAttribute(
-          "aria-sort",
-          hk === key ? (sortDir === 1 ? "ascending" : "descending") : "none",
-        );
-      });
+      }, D(ms + 320));
     };
 
-    const sortBy = (key: SortKey): void => {
-      if (sortKey === key) sortDir = sortDir === 1 ? -1 : 1;
-      else {
-        sortKey = key;
-        sortDir = 1;
-      }
-      renderSort(key);
-    };
-
-    headers.forEach((h) => {
-      const key = h.dataset.tsCol as SortKey | undefined;
-      if (key) h.addEventListener("click", () => sortBy(key));
-    });
-
-    // Пересчёт активной сортировки при resize (высота строки меняется).
-    if ("ResizeObserver" in window && tbody) {
-      let first = true;
-      new ResizeObserver(() => {
-        if (first) {
-          first = false;
+    // мгновенное финальное состояние (reduced / офскрин-старт)
+    const fillInstant = (): void => {
+      clearTimers();
+      ipEl.textContent = current.ip;
+      const blocked = stage.dataset.mode === "blocked";
+      let answered = 0;
+      order.forEach((id) => {
+        const isHttp = srcEls.find((s) => s.dataset.tdSrc === id)?.dataset.http === "1";
+        if (id === "dnsbl" || (blocked && isHttp)) {
+          lightSrc(id, "silent");
           return;
         }
-        if (sortKey) renderSort(sortKey);
-      }).observe(tbody);
-    }
-
-    // ---- Старт ----
-    setMode("direct");
-    setRunUI("idle");
-
-    // Reduced motion / нет IO → финальное статичное читаемое состояние.
-    if (reduced || !("IntersectionObserver" in window)) {
-      clearStream();
-      print("$ dottraceip --format html target_ips.txt", "acc");
-      print(`▸ focus ${FOCUS} → asyncio.gather(*6, return_exceptions=True)`, "acc");
-      srcLines.forEach((s, i) => {
-        lightProbe(i, true);
-        if (s.fail)
-          print(`  x ${s.key}: ${s.ok} → ${s.field} (default, row still assembled)`, "err");
-        else print(`  + ${s.key}: ${s.field}`, "");
+        lightSrc(id, "on");
+        const f = fillOf[id];
+        if (f === "threat") setThreat(true);
+        else if (f) setField(f, true);
+        answered += 1;
       });
-      print(`${FOCUS}  DE  AS205100  185.220.100.0/22  abuse=100`, "acc");
-      print(
-        tr(
-          "5/6 источников ответили · строка собрана · TXT/JSON/CSV/HTML",
-          "5/6 sources answered · row assembled · TXT/JSON/CSV/HTML",
-        ),
-        "dim",
-      );
-      root.classList.add("is-run");
-      setRunUI("done");
-      return;
-    }
+      if (statusEl) {
+        statusEl.textContent = tr(`${answered}/6 источников`, `${answered}/6 sources`);
+        statusEl.classList.add("is-done");
+      }
+      setTraceUI("idle");
+    };
 
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          inview = e.isIntersecting;
-          root.classList.toggle("is-inview", inview);
-          if (!inview) {
-            clearTimers();
-            stopRotation();
-          } else if (term.dataset.mode === "proxied" && !rotTimer && !reduced) {
-            rotateActive();
-            rotTimer = window.setInterval(rotateActive, 1400);
-          }
+    traceBtn?.addEventListener("click", runTrace);
+
+    // ---- выбор адреса ----
+    const selectChip = (i: number, trace: boolean): void => {
+      const c = chips[i];
+      if (!c) return;
+      chips.forEach((x, k) => {
+        const on = k === i;
+        x.classList.toggle("is-on", on);
+        x.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+      current = read(c);
+      resetCard();
+      updateExport();
+      if (trace && inview) {
+        if (reduced) fillInstant();
+        else runTrace();
+      }
+    };
+    chips.forEach((c, i) => c.addEventListener("click", () => selectChip(i, true)));
+
+    // ---- тап по источнику: подсказка ----
+    srcEls.forEach((s) => {
+      s.addEventListener("click", () => {
+        const text = s.dataset.hint ?? "";
+        if (!hintEl) return;
+        const same = hintEl.textContent === text && hintEl.classList.contains("is-on");
+        if (same) {
+          hintEl.classList.remove("is-on");
+        } else {
+          hintEl.textContent = text;
+          hintEl.classList.add("is-on");
         }
-      },
-      { threshold: 0.2 },
-    );
-    io.observe(root);
+      });
+    });
 
+    // ---- экспорт ----
+    const fmtChips = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-td-fmt]"));
+    const exportPre = root.querySelector<HTMLElement>("[data-td-export-preview]");
+    const asnNum = (asn: string): string => asn.replace(/\D/g, "");
+    const buildPreview = (fmt: string, d: Dos): string => {
+      const host = d.host && d.host !== "—" ? d.host : "";
+      if (fmt === "TXT") return `${d.ip}   ${d.cc}  ${d.asn}  ${d.net}  abuse=${d.abuse}  host=${host || "-"}`;
+      if (fmt === "JSON")
+        return `{\n  "ip": "${d.ip}",\n  "country": "${d.cc}",\n  "asn": ${asnNum(d.asn)},\n  "network": "${d.net}",\n  "abuse": ${d.abuse}\n}`;
+      if (fmt === "CSV") return `ip,country,asn,network,abuse,host\n${d.ip},${d.cc},${asnNum(d.asn)},${d.net},${d.abuse},${host}`;
+      return `<tr data-ip="${d.ip}">\n  <td>${d.ip}</td><td>${d.cc}</td><td>${d.asn}</td>\n  <td>${d.net}</td><td>${d.abuse}</td>\n</tr>  ${tr("<!-- сортируется по клику на столбец -->", "<!-- sortable on column click -->")}`;
+    };
+    let curFmt = "TXT";
+    const updateExport = (): void => {
+      if (!exportPre) return;
+      const note = fmtChips.find((c) => c.dataset.tdFmt === curFmt)?.dataset.note ?? "";
+      exportPre.textContent = `# ${curFmt} — ${note}\n${buildPreview(curFmt, current)}`;
+    };
+    fmtChips.forEach((c) => {
+      c.addEventListener("click", () => {
+        curFmt = c.dataset.tdFmt ?? "TXT";
+        fmtChips.forEach((x) => {
+          const on = x === c;
+          x.classList.toggle("is-on", on);
+          x.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+        updateExport();
+      });
+    });
+    updateExport();
+
+    // ---- под капотом: раскрытие ----
+    root.classList.add("is-enhanced");
+    const underToggle = root.querySelector<HTMLButtonElement>("[data-td-under-toggle]");
+    let underOpen = false;
+    const syncUnder = (): void => {
+      root.classList.toggle("is-under-open", underOpen);
+      underToggle?.setAttribute("aria-expanded", underOpen ? "true" : "false");
+    };
+    underToggle?.addEventListener("click", () => {
+      underOpen = !underOpen;
+      syncUnder();
+    });
+    syncUnder();
+
+    // ---- прокси-guard ----
+    const proxyPanel = root.querySelector<HTMLElement>("[data-td-proxy]");
+    const modeBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-td-mode]"));
+    const breakBtn = root.querySelector<HTMLButtonElement>("[data-td-break]");
+    const proxyNote = root.querySelector<HTMLElement>("[data-td-proxy-note]");
+
+    const setMode = (mode: "direct" | "proxied" | "blocked"): void => {
+      stage.dataset.mode = mode;
+      if (proxyPanel) proxyPanel.dataset.mode = mode;
+      modeBtns.forEach((b) => {
+        const on = b.dataset.tdMode === mode || (mode === "blocked" && b.dataset.tdMode === "proxied");
+        b.classList.toggle("is-on", on);
+        b.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+      if (breakBtn) breakBtn.disabled = mode === "direct";
+      if (proxyNote) {
+        proxyNote.textContent =
+          mode === "direct"
+            ? tr("Прямое соединение: реальный IP виден источникам.", "Direct connection: the real IP is visible to the sources.")
+            : mode === "proxied"
+              ? tr(
+                  "Запросы идут через пул HTTP/SOCKS, креды замаскированы. Реальный IP скрыт.",
+                  "Requests go through an HTTP/SOCKS pool, credentials masked. The real IP is hidden.",
+                )
+              : tr(
+                  "Коннектор не собрался. HTTP-источники не уходят в прямое соединение — реальный IP не утёк.",
+                  "The connector failed to build. HTTP sources don't fall back to direct — the real IP never leaked.",
+                );
+      }
+    };
+    modeBtns.forEach((b) => {
+      const mode = b.dataset.tdMode as "direct" | "proxied";
+      b.addEventListener("click", () => setMode(mode));
+    });
+    breakBtn?.addEventListener("click", () => {
+      if (stage.dataset.mode !== "direct") setMode("blocked");
+    });
+    setMode("direct");
+
+    // ---- скан списком ----
+    const bulkRun = root.querySelector<HTMLButtonElement>("[data-td-bulk-run]");
+    const bulkRows = Array.from(root.querySelectorAll<HTMLElement>("[data-td-bulk-row]"));
+    const bulkSem = root.querySelector<HTMLElement>("[data-td-sem]");
+    const bulkNote = root.querySelector<HTMLElement>("[data-td-bulk-note]");
+    const SEM = 3;
+
+    const runBulk = (): void => {
+      clearTimers();
+      bulkRows.forEach((r) => r.classList.remove("is-in"));
+      if (bulkNote) bulkNote.textContent = "";
+      if (bulkSem) bulkSem.textContent = tr(`семафор: до ${SEM} одновременно`, `semaphore: up to ${SEM} at once`);
+      bulkRows.forEach((r, i) => {
+        later(() => r.classList.add("is-in"), D(260) * (i + 1));
+      });
+      later(
+        () => {
+          if (bulkNote)
+            bulkNote.textContent = tr(
+              "asyncio.gather опрашивает 6 источников на адрес, семафор держит нагрузку. Сбой источника не рушит скан — из логов сразу видно худших нарушителей. Отсортировано по уровню угрозы.",
+              "asyncio.gather queries 6 sources per address, the semaphore caps the load. A failing source never breaks the scan — the worst offenders surface straight from the logs. Sorted by threat level.",
+            );
+        },
+        D(260) * (bulkRows.length + 1),
+      );
+    };
+    const bulkInstant = (): void => {
+      bulkRows.forEach((r) => r.classList.add("is-in"));
+    };
+    bulkRun?.addEventListener("click", runBulk);
+
+    // ---- IntersectionObserver-гейтинг ----
     const stopAll = (): void => {
       inview = false;
       clearTimers();
-      stopRotation();
       root.classList.remove("is-inview");
     };
+
+    const onEnter = (): void => {
+      // автозапуск трассировки при первом показе
+      if (reduced) {
+        fillInstant();
+        bulkInstant();
+      } else if (!tracing) {
+        runTrace();
+      }
+    };
+
+    if (typeof IntersectionObserver === "undefined") {
+      inview = true;
+      root.classList.add("is-inview");
+      onEnter();
+    } else {
+      let entered = false;
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            inview = e.isIntersecting;
+            root.classList.toggle("is-inview", inview);
+            if (!inview) {
+              clearTimers();
+            } else if (!entered) {
+              entered = true;
+              onEnter();
+            }
+          }
+        },
+        { threshold: 0.2 },
+      );
+      io.observe(root);
+    }
 
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) stopAll();
