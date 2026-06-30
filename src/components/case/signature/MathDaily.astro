@@ -199,7 +199,8 @@ const boardModes: Mode[] = [
   { key: "weighted", label: ui.mWeighted, why: ui.mWeightedWhy, unit: { ru: "", en: "" } },
 ];
 
-// --- Игроки. Лидер в каждом срезе РАЗНЫЙ: streak→A, solved→B, accuracy→C, weighted→ты.
+// --- Игроки. Лидер в каждом срезе РАЗНЫЙ: streak→A (по умолчанию; твоя серия живая —
+// можешь обогнать, редактируя дни), solved→B, accuracy→C, weighted→ты.
 // «Ты» лидируешь по очкам при том, что решено меньше, чем у Бориса, — это и продаёт
 // идею взвешенных очков (сложное стоит дороже). ---
 type Player = {
@@ -212,9 +213,9 @@ type Player = {
   weighted: number;
 };
 const players: Player[] = [
-  { id: "A", name: { ru: "Аня", en: "Anya" }, streak: 41, solved: 980, accuracy: 92, weighted: 2050 },
-  { id: "B", name: { ru: "Борис", en: "Boris" }, streak: 33, solved: 1510, accuracy: 90, weighted: 2180 },
-  { id: "C", name: { ru: "Вера", en: "Vera" }, streak: 28, solved: 870, accuracy: 97, weighted: 1640 },
+  { id: "A", name: { ru: "Аня", en: "Anya" }, streak: 6, solved: 980, accuracy: 92, weighted: 2050 },
+  { id: "B", name: { ru: "Борис", en: "Boris" }, streak: 5, solved: 1510, accuracy: 90, weighted: 2180 },
+  { id: "C", name: { ru: "Вера", en: "Vera" }, streak: 3, solved: 870, accuracy: 97, weighted: 1640 },
   { id: "you", name: ui.you, you: true, streak: 4, solved: 1190, accuracy: 94, weighted: 2410 },
 ];
 
@@ -1911,6 +1912,7 @@ const bundle = {
     let setSolved = false;
     let autoRunning = false;
     let handing = false; // идёт съезд чипа — глушим повторные тапы
+    let pendingLand: (() => void) | null = null; // незавершённая посадка чипа (finalize при уходе из вида)
     let inview = false;
 
     const lvInfo = (): LvInfo => data.levels[curLevel] ?? { name: "", dot: "", count: 7, choices: 3, weight: 2 };
@@ -2235,6 +2237,7 @@ const bundle = {
       flashElbow("board");
 
       const finishLanding = (): void => {
+        pendingLand = null;
         if (chipEl) {
           chipEl.hidden = true;
           chipEl.style.transform = "";
@@ -2270,6 +2273,7 @@ const bundle = {
       }
       const dx = to.left - from.left;
       const dy = to.top - from.top;
+      pendingLand = finishLanding; // если уйдём из вида во время съезда — посадку завершит stopAll/IO
       setChipLabel(`+${pointsTotal} ${txt("points")} ${txt("chipToBoard")}`);
       requestAnimationFrame(() => {
         chipEl.classList.add("dl__chip-travel");
@@ -2292,14 +2296,14 @@ const bundle = {
     let curMode = "streak";
     const medals = ["①", "②", "③"];
 
-    const live: Record<string, { solved: number; accuracy: number; weighted: number }> = {};
+    const live: Record<string, { solved: number; accuracy: number; weighted: number; streak: number }> = {};
     data.players.forEach((p) => {
-      live[p.id] = { solved: p.solved, accuracy: p.accuracy, weighted: p.weighted };
+      live[p.id] = { solved: p.solved, accuracy: p.accuracy, weighted: p.weighted, streak: p.streak };
     });
 
     const valueOf = (p: PData, key: string): number => {
-      const l = live[p.id] ?? { solved: p.solved, accuracy: p.accuracy, weighted: p.weighted };
-      if (key === "streak") return p.streak;
+      const l = live[p.id] ?? { solved: p.solved, accuracy: p.accuracy, weighted: p.weighted, streak: p.streak };
+      if (key === "streak") return l.streak;
       if (key === "solved") return l.solved;
       if (key === "accuracy") return l.accuracy;
       return l.weighted;
@@ -2407,10 +2411,19 @@ const bundle = {
       }
     };
 
+    // «Ты»: серия в табло — живая. Считаем её от дней и пересортировываем топ
+    // (место по «дням подряд» меняется в зависимости от твоей серии).
+    const youId = data.players.find((p) => p.you)?.id;
+    const pushStreak = (animate: boolean): void => {
+      if (youId && live[youId]) live[youId].streak = currentStreak();
+      setMode(curMode, animate && curMode === "streak");
+    };
+
     dayBtns.forEach((btn, i) => {
       btn.addEventListener("click", () => {
         dayOn[i] = !dayOn[i];
         renderDays();
+        pushStreak(true);
         if (state === "counted" || state === "landed") setHint("counted");
       });
     });
@@ -2430,6 +2443,7 @@ const bundle = {
           cell.classList.add("dl__day-pop");
         }
       }
+      pushStreak(true);
       setState("counted");
       setHint("counted");
       if (loopEl) loopEl.classList.add("is-on");
@@ -2498,12 +2512,12 @@ const bundle = {
       if (loopEl) loopEl.classList.remove("is-on");
       root.querySelectorAll(".dl__elbow.is-flash").forEach((e) => e.classList.remove("is-flash"));
       data.players.forEach((p) => {
-        live[p.id] = { solved: p.solved, accuracy: p.accuracy, weighted: p.weighted };
+        live[p.id] = { solved: p.solved, accuracy: p.accuracy, weighted: p.weighted, streak: p.streak };
       });
       startSet(false);
       setState("idle");
       setHint("idle");
-      setMode(curMode, false);
+      pushStreak(false);
     });
 
     // ===================================================================
@@ -2514,6 +2528,7 @@ const bundle = {
     setState("idle");
     setMode("streak", false);
     renderDays();
+    pushStreak(false);
     applyZones();
 
     if (reduced || !("IntersectionObserver" in window)) {
@@ -2528,6 +2543,7 @@ const bundle = {
     const stopAll = (): void => {
       inview = false;
       autoRunning = false;
+      if (pendingLand) pendingLand();
       clearTimers();
       root.classList.remove("is-inview");
     };
@@ -2543,6 +2559,7 @@ const bundle = {
           }
           if (!inview) {
             autoRunning = false;
+            if (pendingLand) pendingLand();
             clearTimers();
           }
         }
