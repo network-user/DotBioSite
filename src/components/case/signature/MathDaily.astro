@@ -637,7 +637,7 @@ const bundle = {
   @media (prefers-reduced-motion: no-preference) {
     .dl__node {
       transition:
-        transform var(--dur-med) var(--ease-spring),
+        transform var(--dur-med) var(--ease-standard),
         border-color var(--dur-fast) var(--ease-standard),
         background-color var(--dur-fast) var(--ease-standard);
     }
@@ -645,7 +645,7 @@ const bundle = {
   .dl__zone.is-active .dl__node {
     background: var(--a);
     border-color: var(--a);
-    transform: scale(1.25);
+    transform: scale(1.15);
   }
   /* пройденные зоны (выше активной) — узел залит, но не увеличен */
   .dl__zone.is-done .dl__node {
@@ -859,22 +859,6 @@ const bundle = {
     color: var(--text-secondary);
   }
 
-  /* --- Пульс-подсказка следующего шага (transform, самогаснущий) --- */
-  @media (prefers-reduced-motion: no-preference) {
-    .dl__pulse {
-      animation: dl-pulse var(--dur-slow) var(--ease-spring) 2;
-    }
-  }
-  @keyframes dl-pulse {
-    0%,
-    100% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.035);
-    }
-  }
-
   /* --- Прогресс-точки набора --- */
   .dl__pips {
     display: flex;
@@ -966,15 +950,11 @@ const bundle = {
     display: none;
   }
 
+  /* Колонок ровно столько, сколько вариантов (2/3/4) — без одинокой кнопки в строке. */
   .dl__choices {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
     gap: var(--sp-2);
-  }
-  @container (min-width: 460px) {
-    .dl__choices {
-      grid-template-columns: repeat(4, 1fr);
-    }
   }
   .dl__choice {
     position: relative;
@@ -1022,10 +1002,10 @@ const bundle = {
     font-size: var(--fs-11);
     line-height: 1;
     opacity: 0;
-    transform: scale(0.4);
+    transform: scale(0.6);
     transition:
       opacity var(--dur-fast) var(--ease-soft),
-      transform var(--dur-fast) var(--ease-spring);
+      transform var(--dur-fast) var(--ease-soft);
   }
   .dl__choice.is-correct {
     border-color: var(--a-line);
@@ -1059,10 +1039,10 @@ const bundle = {
       transform: translateX(0);
     }
     25% {
-      transform: translateX(-6px);
+      transform: translateX(-4px);
     }
     75% {
-      transform: translateX(6px);
+      transform: translateX(4px);
     }
   }
 
@@ -1208,10 +1188,8 @@ const bundle = {
   }
   .dl__chip-slot {
     margin-inline-start: auto;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    border: var(--bw-thin) dashed var(--a-line);
+    width: 8px;
+    height: 8px;
     flex: none;
   }
 
@@ -1372,14 +1350,14 @@ const bundle = {
     color: var(--text-muted);
   }
   .dl__row.is-land {
-    animation: dl-land var(--dur-slower) var(--ease-spring);
+    animation: dl-land var(--dur-slow) var(--ease-soft);
   }
   @keyframes dl-land {
     0% {
-      transform: translateY(calc(var(--flip, 0) * 1px)) scale(1.04);
+      opacity: 0.5;
     }
     100% {
-      transform: translateY(calc(var(--flip, 0) * 1px)) scale(1);
+      opacity: 1;
     }
   }
 
@@ -1428,10 +1406,10 @@ const bundle = {
     line-height: 1;
     color: var(--a);
     opacity: 0;
-    transform: scale(0.4);
+    transform: scale(0.6);
     transition:
       opacity var(--dur-fast) var(--ease-soft),
-      transform var(--dur-fast) var(--ease-spring);
+      transform var(--dur-fast) var(--ease-soft);
   }
   .dl__day-today {
     position: absolute;
@@ -1588,9 +1566,6 @@ const bundle = {
     }
     .dl__ph {
       font-size: var(--fs-28);
-    }
-    .dl__choices {
-      grid-template-columns: repeat(2, 1fr);
     }
     .dl__choice {
       min-height: 44px;
@@ -1972,10 +1947,9 @@ const bundle = {
 
     // Пульс-подсказка на следующий шаг (самогаснущий, transform).
     const pulse = (el: Element | null): void => {
-      if (!el || reduced || !inview) return;
-      el.classList.remove("dl__pulse");
-      void (el as HTMLElement).offsetWidth;
-      el.classList.add("dl__pulse");
+      // Пульс-подсказка следующего шага намеренно отключена: дёрганье раздражало.
+      // Ведёт только живая строка-подсказка (см. setHint).
+      void el;
     };
 
     const setState = (s: State): void => {
