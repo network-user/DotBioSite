@@ -7,6 +7,8 @@ import {
   projectCaseTagline,
   projectCaseDescription,
   projectStartDate,
+  projectDomainUrl,
+  projectTelegramUrl,
   repoUrl,
 } from "../lib/projects";
 import Icon from "./Icon/Icon.astro";
@@ -34,6 +36,12 @@ const desc = projectCaseDescription(p, locale);
 const startDate = projectStartDate(p);
 const backHref = `${prefix}/#projects`;
 const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
+// DotSound — мультирепо-экосистема (Backend/Bot/ComputeWorker): "primary" здесь
+// неоднозначен, поэтому подпись остаётся родовой; у остальных — имя репозитория.
+const primaryRepoLabel =
+  p.slug === "dotsound" ? t("case.primaryRepo") : (p.repos[0]?.name ?? t("case.primaryRepo"));
+const domainUrl = projectDomainUrl(p);
+const telegramUrl = projectTelegramUrl(p);
 const accent = p.accent ?? "var(--accent)";
 
 const overviewParas = p.overview ? p.overview[locale] : [desc];
@@ -47,7 +55,7 @@ const hasStackGroups =
 const hasArchitecture = p.architectureNodes && p.architectureNodes.length > 0;
 const hasCapabilities = p.capabilities && p.capabilities.length > 0;
 const hasTimeline = p.timeline && p.timeline.length > 0;
-const hasLinks = p.links && Object.keys(p.links).length > 0;
+const hasLinks = Boolean(domainUrl || telegramUrl || p.links?.docs);
 
 // Сигнатурная визуализация «как это работает» — bespoke-анимация ключевых
 // механизмов проекта. Список slug-ов, для которых она есть (см. ProjectSignature).
@@ -130,7 +138,9 @@ const signatureLede = (signatureLedes[p.slug] ?? {
         <p class="case__tagline title" data-reveal data-reveal-delay="180">{tagline}</p>
 
         {
-          p.repos.length > 0 && (
+          /* Только для мультирепо-экосистем (DotSound): у одного репозитория
+             имя уже показано в основной GitHub-кнопке ниже — пилюля дублировала бы его. */
+          p.repos.length > 1 && (
             <ul
               class="case__repos-pills"
               aria-label={t("case.repos")}
@@ -175,14 +185,14 @@ const signatureLede = (signatureLedes[p.slug] ?? {
                 class="cta cta--primary magnetic"
               >
                 <Icon name="github" size={16} />
-                <span>{t("case.primaryRepo")}</span>
+                <span>{primaryRepoLabel}</span>
               </a>
             )
           }
           {
-            p.links?.domain && (
+            domainUrl && (
               <a
-                href={p.links.domain}
+                href={domainUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 class="cta cta--ghost magnetic"
@@ -430,16 +440,11 @@ const signatureLede = (signatureLedes[p.slug] ?? {
             <h2 class="eyebrow">{t("case.links")}</h2>
           </header>
           <ul class="case__links">
-            {p.links?.domain && (
+            {domainUrl && (
               <li>
-                <a
-                  href={p.links.domain}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="case__link"
-                >
+                <a href={domainUrl} target="_blank" rel="noopener noreferrer" class="case__link">
                   <Icon name="globe" size={16} />
-                  <span class="mono">{p.links.domain}</span>
+                  <span class="mono">{domainUrl}</span>
                 </a>
               </li>
             )}
@@ -451,16 +456,11 @@ const signatureLede = (signatureLedes[p.slug] ?? {
                 </a>
               </li>
             )}
-            {p.links?.telegram && (
+            {telegramUrl && (
               <li>
-                <a
-                  href={p.links.telegram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="case__link"
-                >
+                <a href={telegramUrl} target="_blank" rel="noopener noreferrer" class="case__link">
                   <Icon name="telegram" size={16} />
-                  <span class="mono">{p.links.telegram}</span>
+                  <span class="mono">{telegramUrl}</span>
                 </a>
               </li>
             )}
@@ -592,7 +592,7 @@ const signatureLede = (signatureLedes[p.slug] ?? {
   }
 
   .case__brand {
-    font-size: 56px;
+    font-size: clamp(2.4rem, 12vw, 56px);
     line-height: var(--lh-display-xl);
     letter-spacing: var(--ls-display-xl);
     margin-block-start: var(--sp-3);
@@ -792,6 +792,16 @@ const signatureLede = (signatureLedes[p.slug] ?? {
   .case__cover-btn:focus-visible .case__cover-zoom {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
+  }
+
+  /* Тач: :hover нет, поэтому лупа-подсказка не появлялась и обложка выглядела
+     некликабельной. На coarse-указателе показываем её постоянно и приглушённо —
+     сигнал, что по обложке можно тапнуть (лайтбокс открывается по тапу). */
+  @media (pointer: coarse) {
+    .case__cover-zoom {
+      opacity: 0.72;
+      transform: translate(-50%, -50%) scale(0.9);
+    }
   }
 
   /* ===== Лайтбокс ===== */

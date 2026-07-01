@@ -1,5 +1,3 @@
-> Последний прогон: iron-quill · 2026-07-01. Снимок: [2026-07-01-iron-quill.md](2026-07-01-iron-quill.md) · история: [docs/audit/](.)
-
 # Security Audit · Iron Quill · 2026-07-01
 
 | Поле    | Значение             |

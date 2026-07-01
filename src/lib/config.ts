@@ -99,8 +99,33 @@ export function repoUrlOverride(repoIdent: string): string {
   return typeof v === "string" ? v : "";
 }
 
-/** Список соцсетей в фиксированном порядке. Пустые URL отфильтрованы. */
-export const socials: ReadonlyArray<{ id: SocialId; url: string }> = (
+export type ProjectLinkKind = "domain" | "telegram";
+
+/**
+ * Имя env-переменной с явной ссылкой проекта (сайт/telegram-бот) по её типу и
+ * project slug. Тот же принцип, что и `repoEnvKey`, но ключ — сам slug проекта
+ * (он уже стабилен и уникален), а не производное от репозитория.
+ * Пример: ("domain", "dotsound") → `PUBLIC_LINK_DOMAIN_DOTSOUND`.
+ */
+export function projectLinkEnvKey(kind: ProjectLinkKind, slug: string): string {
+  const slugKey = slug
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return `PUBLIC_LINK_${kind.toUpperCase()}_${slugKey}`;
+}
+
+/**
+ * Ссылка проекта (сайт/telegram) из env. Пустая строка, если не задана — тогда
+ * компонент падает на `project.links?.[kind]` из JSON.
+ */
+export function projectLinkOverride(kind: ProjectLinkKind, slug: string): string {
+  const v = rawEnv[projectLinkEnvKey(kind, slug)];
+  return typeof v === "string" ? v : "";
+}
+
+/** Все соцсети в фиксированном порядке, включая незаполненные (url: ""). */
+export const allSocials: ReadonlyArray<{ id: SocialId; url: string }> = (
   [
     ["github", config.PUBLIC_SOCIAL_GITHUB],
     ["telegram", config.PUBLIC_SOCIAL_TELEGRAM],
@@ -108,9 +133,12 @@ export const socials: ReadonlyArray<{ id: SocialId; url: string }> = (
     ["x", config.PUBLIC_SOCIAL_X],
     ["vk", config.PUBLIC_SOCIAL_VK],
   ] as const
-)
-  .filter(([, url]) => url.length > 0)
-  .map(([id, url]) => ({ id, url }));
+).map(([id, url]) => ({ id, url }));
+
+/** Только заполненные соцсети - для реальных ссылок (JSON-LD sameAs, портрет). */
+export const socials: ReadonlyArray<{ id: SocialId; url: string }> = allSocials.filter(
+  (s) => s.url.length > 0,
+);
 
 export type SocialId = "github" | "telegram" | "linkedin" | "x" | "vk";
 

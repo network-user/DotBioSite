@@ -6,6 +6,7 @@ import {
   projectBrand,
   projectTagline,
   projectDescription,
+  projectDomainUrl,
   repoUrl,
 } from "../lib/projects";
 import Icon from "./Icon/Icon.astro";
@@ -28,6 +29,7 @@ const tagline = projectTagline(p, locale);
 const desc = projectDescription(p, locale);
 const caseHref = `${prefix}/projects/${p.slug}`;
 const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
+const domainUrl = projectDomainUrl(p);
 const accent = p.accent ?? "var(--accent)";
 const highlights = p.highlights?.slice(0, 3) ?? [];
 const isFeatured = index === 0;
@@ -162,9 +164,9 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
       )
     }
     {
-      p.links?.domain && (
+      domainUrl && (
         <a
-          href={p.links.domain}
+          href={domainUrl}
           target="_blank"
           rel="noopener noreferrer"
           class="project-card__cta cta cta--ghost"

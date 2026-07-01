@@ -4,8 +4,10 @@
  *
  * Один <svg> 48×48 на `currentColor` (наследует цвет от родителя → акцент).
  * Тема по слагу: .звук — эквалайзер, .счёт — операторы +−×÷, .работа — кейс,
- * .агенты — терминал `>_`. Размер задаёт обёртка (svg тянется на width:100%),
- * поэтому компонент переиспользуется в карточках, hero кейса и кросс-линках.
+ * .агенты — терминал `>_`, .скиллы — два одинаковых квадрата внахлёст (один
+ * skill, продублированный ещё раз). Размер задаёт обёртка (svg тянется на
+ * width:100%), поэтому компонент переиспользуется в карточках, hero кейса и
+ * кросс-линках.
  */
 
 interface Props {
@@ -87,12 +89,8 @@ const { slug, class: className = "", breathe = false } = Astro.props;
   {
     slug === "dotcore-skills" && (
       <g>
-        <rect x="18.5" y="18.5" width="11" height="11" rx="2.5" />
-        <path d="M20 20 L10.5 10.5 M28 20 L37.5 10.5 M20 28 L10.5 37.5 M28 28 L37.5 37.5" />
-        <circle cx="9" cy="9" r="3" fill="currentColor" stroke="none" />
-        <circle cx="39" cy="9" r="3" fill="currentColor" stroke="none" />
-        <circle cx="9" cy="39" r="3" fill="currentColor" stroke="none" />
-        <circle cx="39" cy="39" r="3" fill="currentColor" stroke="none" />
+        <rect x="8" y="8" width="24" height="24" rx="4" />
+        <rect x="16" y="16" width="24" height="24" rx="4" />
       </g>
     )
   }
@@ -128,7 +126,7 @@ const { slug, class: className = "", breathe = false } = Astro.props;
    *   .работа   — световой импульс пробегает по рабочему разделителю
    *   .агенты   — курсор командной строки мягко мигает
    *   .след     — импульс сигнала бежит к найденной точке, точка вспыхивает
-   *   экосистема — ядро дышит светом, узлы опрашиваются по кругу
+   *   .скиллы   — два квадрата поочерёдно подсвечиваются (та же копия)
    *   .учёба    — кисточка диплома качается маятником от точки крепления (43,19)
    *
    * Под reduced-motion отключено (вся секция под no-preference); за экраном
@@ -289,45 +287,24 @@ const { slug, class: className = "", breathe = false } = Astro.props;
       }
     }
 
-    /* ---- экосистема — ядро дышит светом, узлы опрашиваются по кругу ---- */
-    @keyframes glyph-core {
-      0%,
-      100% {
-        opacity: 0.82;
-      }
-      50% {
-        opacity: 1;
-      }
-    }
-    @keyframes glyph-node {
+    /* ---- .скиллы — два квадрата поочерёдно подсвечиваются ---- */
+    @keyframes glyph-skills-clone {
       0%,
       100% {
         opacity: 0.5;
       }
-      14% {
+      25% {
         opacity: 1;
       }
-      40% {
+      55% {
         opacity: 0.5;
       }
     }
     .project-glyph--breathe[data-slug="dotcore-skills"] rect {
-      animation: glyph-core 4s var(--ease-drift) infinite;
+      animation: glyph-skills-clone 2.8s var(--ease-drift) infinite;
     }
-    .project-glyph--breathe[data-slug="dotcore-skills"] circle {
-      animation: glyph-node 3.2s var(--ease-drift) infinite;
-    }
-    .project-glyph--breathe[data-slug="dotcore-skills"] circle:nth-of-type(1) {
-      animation-delay: 0s;
-    }
-    .project-glyph--breathe[data-slug="dotcore-skills"] circle:nth-of-type(2) {
-      animation-delay: 0.8s;
-    }
-    .project-glyph--breathe[data-slug="dotcore-skills"] circle:nth-of-type(4) {
-      animation-delay: 1.6s;
-    }
-    .project-glyph--breathe[data-slug="dotcore-skills"] circle:nth-of-type(3) {
-      animation-delay: 2.4s;
+    .project-glyph--breathe[data-slug="dotcore-skills"] rect:nth-of-type(2) {
+      animation-delay: 0.6s;
     }
 
     /* ---- .учёба — кисточка качается маятником от точки крепления ---- */

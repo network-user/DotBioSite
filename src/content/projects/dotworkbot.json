@@ -22,8 +22,8 @@
     "en": "A shift with zero web pages: the whole marketplace fits in a chat, while a background process carries the production load."
   },
   "caseDescription": {
-    "ru": "У DotWorkBot нет ни сайта, ни приложения для установки: есть чат в Telegram, куда прилетает сообщение о смене, и кнопка «взять», по которой её тут же разбирает работник. За этой простой перепиской стоит отдельный taskiq-воркер, который держит биржу в рабочем состоянии сам: шлёт напоминания о выходе, снимает бронь с неявившихся и закрывает просроченные заказы. Чтобы два инстанса воркера не продублировали одну и ту же операцию, он берёт лидер-лок в Redis через SET NX EX, а бэкапы Postgres и MinIO уходят в шифрованные AES-архивы через pyzipper. Прод собирался с нуля начиная с ноября 2025.",
-    "en": "DotWorkBot has no website and nothing to install: just a Telegram chat where a shift shows up as a message, and a 'claim' button a worker taps to take it. Behind that plain exchange sits a dedicated taskiq worker that keeps the marketplace running on its own: it sends arrival reminders, releases no-shows, and closes expired orders. To stop two worker instances from duplicating the same job, it grabs a Redis leader lock via SET NX EX, while Postgres and MinIO backups go out as AES-encrypted archives through pyzipper. The production build has been going since November 2025."
+    "ru": "У DotWorkBot нет ни сайта, ни приложения для установки: есть чат в Telegram, куда прилетает сообщение о смене, и кнопка «взять», по которой её тут же разбирает работник. За этой простой перепиской стоит отдельный taskiq-воркер, который держит биржу в рабочем состоянии сам: шлёт напоминания о выходе, снимает бронь с неявившихся и закрывает просроченные заказы. Чтобы два инстанса воркера не продублировали одну и ту же операцию, он берёт лидер-лок в Redis через SET NX EX, а бэкапы Postgres и MinIO уходят в шифрованные AES-архивы через pyzipper. Прод собирался с нуля начиная с мая 2026.",
+    "en": "DotWorkBot has no website and nothing to install: just a Telegram chat where a shift shows up as a message, and a 'claim' button a worker taps to take it. Behind that plain exchange sits a dedicated taskiq worker that keeps the marketplace running on its own: it sends arrival reminders, releases no-shows, and closes expired orders. To stop two worker instances from duplicating the same job, it grabs a Redis leader lock via SET NX EX, while Postgres and MinIO backups go out as AES-encrypted archives through pyzipper. The production build has been going since May 2026."
   },
   "stack": [
     "Python 3.12",
@@ -337,14 +337,25 @@
       }
     },
     {
-      "date": "7 May 2026",
+      "date": "7-8 May 2026",
       "title": {
-        "ru": "Прод и бэкапы",
-        "en": "Production and backups"
+        "ru": "Прод, бэкапы и мониторинг",
+        "en": "Production, backups, and monitoring"
       },
       "description": {
-        "ru": "Deploy pipeline на VPS с health-rollback, AES-зашифрованные бэкапы pg_dump + MinIO-зеркало.",
-        "en": "VPS deploy pipeline with health rollback and AES-encrypted backups of pg_dump and the MinIO bucket mirror."
+        "ru": "Deploy pipeline на VPS с health-rollback, AES-зашифрованные бэкапы pg_dump и MinIO-зеркала, следом Portainer для мониторинга контейнеров и правка валидации при создании заказа.",
+        "en": "A VPS deploy pipeline with health rollback, AES-encrypted backups of pg_dump and the MinIO mirror, then Portainer for container monitoring and an order-creation validation fix."
+      }
+    },
+    {
+      "date": "1 Jul 2026",
+      "title": {
+        "ru": "Хардненинг и аудит перед публикацией",
+        "en": "Hardening and audit before release"
+      },
+      "description": {
+        "ru": "Документация в стандарте DotCore, затем предпубличный хардненинг: ролевые фильтры доступа, непривилегированный контейнер, закреплённые версии зависимостей, редактирование секретов в логах, только последние 4 цифры карты вместо полного номера и presigned-ссылки MinIO вместо публичного доступа к фото. Git-история вычищена, аудит проходит вчистую и ставит зелёный бейдж.",
+        "en": "DotCore-standard docs, then pre-release hardening: role-based access filters, a non-root container, pinned dependency versions, log secret redaction, card numbers cut to the last four digits, and presigned MinIO links instead of public photo access. Git history was scrubbed, and the audit passes clean with a green badge."
       }
     }
   ]

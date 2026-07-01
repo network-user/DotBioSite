@@ -376,7 +376,12 @@ const ui = {
   data-locale={locale}
   aria-label={t({ ru: "Интерактивное демо DotAgents", en: "DotAgents interactive demo" })}
 >
-  <script type="application/json" data-ab-data is:inline set:html={JSON.stringify(sceneData)} />
+  <script
+    type="application/json"
+    data-ab-data
+    is:inline
+    set:html={JSON.stringify(sceneData).replace(/</g, "\\u003c")}
+  />
 
   <p class="ab__intro">{t(intro)}</p>
 
@@ -2013,6 +2018,9 @@ const ui = {
     }
     .ab__ikb-row {
       grid-auto-flow: row;
+    }
+    .ab__ikb-btn {
+      min-height: var(--tap-min);
     }
   }
 

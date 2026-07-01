@@ -1,7 +1,6 @@
 ---
 import { useTranslations, type Locale } from "../lib/i18n";
 import { config, authorName } from "../lib/config";
-import { infraProjects, repoUrl as projectRepoUrl } from "../lib/projects";
 import Icon from "./Icon/Icon.astro";
 
 interface Props {
@@ -15,12 +14,6 @@ const ghUser = config.PUBLIC_GITHUB_USER;
 const ghRepo = config.PUBLIC_GITHUB_REPO;
 const repoUrl = ghUser && ghRepo ? `https://github.com/${ghUser}/${ghRepo}` : "";
 const brand = authorName(locale);
-
-// Колофон: README и правила всех проектов DotCore (включая этот сайт)
-// сгенерированы скиллом generate-readme из репозитория dotcore-skills. Ссылку
-// берём из данных самого infra-проекта — без хардкода имени репо в двух местах.
-const skills = infraProjects.find((p) => p.slug === "dotcore-skills");
-const skillsRepoUrl = skills?.repos[0] ? projectRepoUrl(skills.repos[0]) : "";
 ---
 
 <footer class="footer">
@@ -44,26 +37,6 @@ const skillsRepoUrl = skills?.repos[0] ? projectRepoUrl(skills.repos[0]) : "";
         )
       }
     </div>
-
-    {
-      skills && (
-        <p class="footer__colophon">
-          {t("footer.colophon")}{" "}
-          {skillsRepoUrl ? (
-            <a
-              href={skillsRepoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="footer__colophon-link"
-            >
-              dotcore-skills
-            </a>
-          ) : (
-            <span class="footer__colophon-link">dotcore-skills</span>
-          )}
-        </p>
-      )
-    }
   </div>
 </footer>
 
@@ -135,22 +108,15 @@ const skillsRepoUrl = skills?.repos[0] ? projectRepoUrl(skills.repos[0]) : "";
     opacity: 1;
   }
 
-  .footer__colophon {
-    color: var(--text-muted);
-    font-size: var(--fs-12);
-    line-height: var(--lh-normal);
-    letter-spacing: var(--ls-wide);
-  }
-
-  .footer__colophon-link {
-    color: var(--text-secondary);
-    font-family: var(--font-stack-mono, monospace);
-    border-bottom: var(--bw-thin) solid var(--border-hover);
-  }
-
-  a.footer__colophon-link:hover {
-    color: var(--text);
-    border-bottom-color: var(--text-secondary);
+  /* Тач: доводим hit-area до 44px и даём мгновенный отклик на палец (:hover нет). */
+  @media (hover: none) {
+    .footer__link {
+      min-height: var(--tap-min);
+    }
+    .footer__link:active {
+      color: var(--text);
+      opacity: 1;
+    }
   }
 
   @media (min-width: 720px) {

@@ -6,7 +6,7 @@
  */
 
 import type { Locale } from "./i18n";
-import { config, repoUrlOverride } from "./config";
+import { config, repoUrlOverride, projectLinkOverride } from "./config";
 
 export interface ProjectRepo {
   /** Короткое отображаемое имя в карточке (например, "Backend"). */
@@ -288,6 +288,26 @@ export function repoUrl(repo: ProjectRepo): string {
   const user = config.PUBLIC_GITHUB_USER;
   if (!user) return "";
   return `https://github.com/${user}/${ident}`;
+}
+
+/**
+ * Ссылка на сайт проекта: сперва env-override `PUBLIC_LINK_DOMAIN_<SLUG>`
+ * (см. {@link projectLinkOverride}), иначе — `links.domain` из JSON.
+ */
+export function projectDomainUrl(p: Project): string {
+  const fromEnv = projectLinkOverride("domain", p.slug);
+  if (fromEnv.length > 0) return fromEnv;
+  return p.links?.domain ?? "";
+}
+
+/**
+ * Ссылка на Telegram проекта: сперва env-override `PUBLIC_LINK_TELEGRAM_<SLUG>`,
+ * иначе — `links.telegram` из JSON.
+ */
+export function projectTelegramUrl(p: Project): string {
+  const fromEnv = projectLinkOverride("telegram", p.slug);
+  if (fromEnv.length > 0) return fromEnv;
+  return p.links?.telegram ?? "";
 }
 
 /**

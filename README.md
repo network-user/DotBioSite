@@ -12,7 +12,7 @@
 <!-- audit:start -->
 <p>
   <a href="docs/audit/latest.md"><img src="https://img.shields.io/badge/security_audit-passed_with_warnings-dbab09?style=flat" alt="security audit passed with warnings - full, leaks + code" /></a>
-  <a href="docs/audit/latest.md"><img src="https://img.shields.io/badge/date-2026--07--01-555?style=flat" alt="audit date" /></a>
+  <a href="docs/audit/2026-07-01-iron-quill.md"><img src="https://img.shields.io/badge/date-2026--07--01-555?style=flat" alt="audit date" /></a>
 </p>
 <!-- audit:end -->
 
@@ -62,7 +62,7 @@ npm run dev        # http://localhost:4321
   <img src="https://img.shields.io/badge/ESLint-4B32C3?style=for-the-badge&logo=eslint&logoColor=white" alt="ESLint" />
   <img src="https://img.shields.io/badge/Prettier-F7B93E?style=for-the-badge&logo=prettier&logoColor=black" alt="Prettier" />
   <img src="https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" alt="GitHub Actions" />
-  <img src="https://img.shields.io/badge/Cloudflare_Pages-F38020?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Cloudflare Pages" />
+  <img src="https://img.shields.io/badge/Nginx-009639?style=for-the-badge&logo=nginx&logoColor=white" alt="Nginx" />
 </p>
 
 Без UI-фреймворка в рантайме (`integrations: []`): только `.astro` + точечный vanilla-JS. Шрифты selfhosted через `@fontsource-variable` (Bricolage Grotesque + Inter).
@@ -79,7 +79,7 @@ npm run dev        # http://localhost:4321
 
 ## Деплой
 
-Cloudflare Pages через GitHub Actions (`.github/workflows/deploy.yml`). На `push`/`pull_request` в `main`: материализация `.env` из секретов → `npm ci` → `lint` → `type-check` → `build` → публикация `dist/`. PR деплоятся в окружение `preview`, `main` - в `production`.
+Self-hosted VPS через GitHub Actions (`.github/workflows/deploy.yml`). На `push` в `main` (или ручной `workflow_dispatch`): материализация `.env` из секретов → `npm ci` → `lint` → `type-check` → `build` → выгрузка `dist/` по SSH/rsync в `releases/<таймстамп-sha>/` на сервере → атомарное переключение симлинка `current`. `pull_request` только собирает и проверяет - на сервер не деплоит. Разовая настройка сервера (Nginx, certbot, ufw, fail2ban, структура релизов) - `deploy/server-setup.sh`; шаблон конфига Nginx - `deploy/nginx.conf`.
 
 ## Архитектура
 
@@ -98,7 +98,8 @@ DotBioSite/
 │   └── lib/                # config (Zod), i18n, projects, contacts
 ├── public/                 # favicon, OG, manifest, _headers, обложки проектов
 ├── scripts/                # parse-lh.cjs (разбор Lighthouse-отчёта)
-├── .github/workflows/      # deploy.yml → Cloudflare Pages
+├── deploy/                 # nginx.conf, server-setup.sh - self-hosted деплой
+├── .github/workflows/      # deploy.yml (VPS: SSH/rsync) + security.yml (gitleaks)
 └── astro.config.mjs
 ```
 

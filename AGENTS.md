@@ -48,7 +48,8 @@ src/
 └── lib/          # config (Zod), i18n, projects, contacts
 public/           # favicon, OG, manifest, _headers, public/projects/<slug>/
 scripts/          # parse-lh.cjs (разбор Lighthouse JSON)
-.github/workflows/deploy.yml   # Cloudflare Pages
+deploy/           # nginx.conf, server-setup.sh - self-hosted деплой (VPS)
+.github/workflows/deploy.yml   # VPS: SSH/rsync (build → releases/<id> → symlink current)
 astro.config.mjs
 ```
 

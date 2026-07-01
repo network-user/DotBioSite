@@ -198,6 +198,19 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
         }
       }
 
+      // --- Пауза всего движения на скрытой вкладке ---
+      // Фоновый арт (.backdrop-art) висит на фиксированном .bg-layer ВНЕ <section>,
+      // поэтому секционный .anim-paused его не трогает — орбиты/электроны/пульс идут
+      // всегда. Пока вкладка в фоне, гасим ВСЕ CSS-анимации разом (класс на <html>),
+      // снимаем на возврате. rAF браузер троттлит сам, но offset-distance электронов
+      // сэмплируется на main-thread и может тикать — это трата CPU впустую.
+      {
+        const root = document.documentElement;
+        const syncHidden = () => root.classList.toggle("is-hidden", document.hidden);
+        document.addEventListener("visibilitychange", syncHidden);
+        syncHidden();
+      }
+
       // --- Курсор-кольцо: лёгкий фокус у указателя (замена «свечению за мышью») ---
       const ring = document.querySelector<HTMLElement>("[data-cursor]");
       if (ring && window.matchMedia("(pointer: fine)").matches) {

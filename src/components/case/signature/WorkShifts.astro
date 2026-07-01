@@ -2,34 +2,31 @@
 /**
  * WorkShifts.astro — сигнатурная визуализация .работа (DotWorkBot).
  *
- * Концепция: ЖИВАЯ ДИСПЕТЧЕРСКАЯ ДОСКА (kanban) разовых смен-подработок.
- * Три колонки: Открыто → В работе → Закрыто. Часы — событийная «машина
- * времени»: now = максимум достигнутого времени (только вперёд, +1ч и «В эфире»
- * ДОПИСЫВАЮТ события), view = плейхед, который можно мотать назад скрабом/−1ч и
- * только ПЕРЕИГРЫВАТЬ (без дописи). Каждая смена хранит лишь метки событий
- * (bornAt/claimedAt/confirmedAt/releasedAt/closedAt/…); derive(shift,T) — ЧИСТАЯ
- * функция кадра. Пока крутишь время, фоновый воркер сам: авто-берёт открытые
- * смены ближайшим свободным работником, за REMIND_LEAD часов до старта шлёт
- * РОВНО ОДНО напоминание, освобождает слот при no-show (карточка едет обратно в
- * «Открыто» и пере-предлагается), закрывает выполненные и авто-отменяет
- * просроченные незаполненные. Посетитель сам создаёт смену (композер),
- * перетаскивает карточку между колонками (взять/закрыть/освободить — у каждого
- * действия есть tap+клавиатурная кнопка), берёт смену-героя WB-3041 и решает её
- * исход (Принять/Пропасть). «Под капотом» — свёрнутая сцена гонки реплик за один
- * Redis-лидер-лок (SET nx ex · dotworkbot:operational_control:leader): тап по
- * реплике заставляет ИМЕННО ЕЁ забрать лок, остальные idle, ровно один «тикает».
+ * Концепция: ЖИВАЯ ДИСПЕТЧЕРСКАЯ ДОСКА (kanban) разовых смен, посетитель — за
+ * РАБОТОДАТЕЛЯ. Колонки: Открыто → В работе → На приёмке → Закрыто. Часы —
+ * событийная «машина времени»: now = максимум достигнутого времени (только
+ * вперёд, +1ч и «Авто» ДОПИСЫВАЮТ события), view = плейхед, который можно мотать
+ * назад кнопкой −1ч и только ПЕРЕИГРЫВАТЬ (без дописи). Индикатор «Ход дня» —
+ * не интерактивная полоса, заполняется к текущему часу. Каждая смена хранит лишь
+ * метки событий (bornAt/claimedAt/confirmedAt/releasedAt/submittedAt/acceptedAt/
+ * rejectedAt/…); derive(shift,T) — ЧИСТАЯ функция кадра. Пока крутишь время,
+ * работники сами берут открытые смены; кто-то не выходит (no-show), кто-то уходит
+ * посреди смены, большинство отрабатывают и сдают работу «На приёмку». Работодатель
+ * (вы) назначает открытые смены (кнопка) и на приёмке жмёт «Принять работу» или
+ * «Отклонить»; на автоплее («Авто») приёмка одобряется сама. Фоновый воркер за
+ * REMIND_LEAD часов шлёт РОВНО ОДНО напоминание, возвращает сорванные слоты в
+ * «Открыто» и авто-отменяет просроченные. Перемещение — только кнопками карточек.
  *
  * Роли: worker / employer / admin. Ядро: PostgreSQL · Redis (FSM/throttle/lock)
  * · MinIO/S3 фото · AES-бэкапы · VPS-деплой с откатом. Акцент var(--accent-work).
  *
- * Перф-бюджет: анимируем ТОЛЬКО transform/opacity, никогда layout. Нет
- * постоянного rAF — авто-проигрывание («В эфире») ведёт setTimeout-конвейер,
- * полностью очищаемый офскрин, на скрытой вкладке (visibilitychange) и на
- * pagehide; тосты гасятся отслеживаемыми таймерами. Все infinite-CSS (пульс
- * доски, тик движка) scoped под .ws.is-inview[data-live] / [data-engine-open] и
- * замирают за кадром и в свёрнутом состоянии. Всё гейтится IntersectionObserver.
- * reduced-motion → финальный читаемый кадр без движения, автоплей выключен, но
- * ВСЕ интеракции (кнопки, шаг времени, drag) применяются мгновенно.
+ * Перф-бюджет: анимируем ТОЛЬКО transform/opacity, никогда layout. Нет постоянного
+ * rAF — автоплей («Авто») ведёт setTimeout-конвейер, полностью очищаемый офскрин,
+ * на скрытой вкладке (visibilitychange) и на pagehide; тосты гасятся
+ * отслеживаемыми таймерами. Единственная infinite-CSS (пульс точки «Авто») scoped
+ * под .ws.is-inview[data-live="on"] и замирает за кадром. Всё гейтится
+ * IntersectionObserver. reduced-motion → финальный читаемый кадр без движения,
+ * автоплей выключен, но ВСЕ интеракции (кнопки, шаг времени) применяются мгновенно.
  */
 import type { Locale } from "../../../lib/i18n";
 
@@ -54,8 +51,8 @@ const ui = {
   clock: { ru: "Часы города", en: "City clock" },
   back: { ru: "−1 час", en: "−1 hour" },
   fwd: { ru: "+1 час", en: "+1 hour" },
-  scrub: { ru: "Перемотать время дня", en: "Scrub the time of day" },
-  live: { ru: "В эфире", en: "Go live" },
+  dayProgress: { ru: "Ход дня", en: "Day progress" },
+  live: { ru: "Авто", en: "Auto" },
   livePause: { ru: "Пауза", en: "Pause" },
   create: { ru: "Создать смену", en: "Create shift" },
   toNow: { ru: "К настоящему", en: "To now" },
@@ -320,13 +317,6 @@ const presets: Preset[] = [
   },
 ];
 
-// ── Реплики воркера для сцены «под капотом».
-const replicas = [
-  { id: "r1", lead: true },
-  { id: "r2", lead: false },
-  { id: "r3", lead: false },
-];
-
 // Полезная нагрузка для клиента: локализованные строки + seed (без ru/en в JS).
 const payload = {
   locale,
@@ -374,20 +364,17 @@ const payload = {
       </button>
     </div>
 
-    <label class="ws__scrub">
-      <span class="ws__scrub-cap">{t(ui.scrub)}</span>
-      <input
-        class="ws__scrub-input"
-        type="range"
-        min={DAY_START}
-        max={DAY_END}
-        step="1"
-        value={NOW0}
-        data-ws-scrub
-        aria-label={t(ui.scrub)}
-        aria-valuetext={`${String(NOW0).padStart(2, "0")}:00`}
-      />
-    </label>
+    <div class="ws__timeline" aria-hidden="true">
+      <span class="ws__tl-cap">{t(ui.dayProgress)}</span>
+      <span class="ws__tl-track">
+        <span class="ws__tl-fill" data-ws-tl></span>
+      </span>
+      <span class="ws__tl-marks">
+        <span>08:00</span>
+        <span>16:00</span>
+        <span>24:00</span>
+      </span>
+    </div>
 
     <div class="ws__bar-actions">
       <button class="ws__btn ws__btn--live" type="button" data-ws-live aria-pressed="false">
@@ -450,6 +437,7 @@ const payload = {
         [
           ["open", ui.colOpen, ui.emptyOpen],
           ["progress", ui.colProgress, ui.emptyProgress],
+          ["review", ui.colReview, ui.emptyReview],
           ["done", ui.colDone, ui.emptyDone],
         ] as const
       ).map(([col, cap, empty]) => (
@@ -497,52 +485,6 @@ const payload = {
     <pre class="ws__log mono" data-ws-log tabindex="0">{t(ui.logIdle)}</pre>
   </div>
 
-  <!-- ── «Под капотом»: гонка реплик за лидер-лок ────────────────────── -->
-  <div class="ws__under" data-ws-under>
-    <button
-      class="ws__under-toggle"
-      type="button"
-      data-ws-engine-toggle
-      aria-expanded="false"
-      aria-controls="ws-engine"
-    >
-      <span class="ws__under-chev" aria-hidden="true">▸</span>
-      <span class="ws__under-label">{t(ui.under)}</span>
-      <span class="ws__under-sub">{t(ui.underSub)}</span>
-    </button>
-    <div class="ws__engine" id="ws-engine" data-ws-engine hidden>
-      <p class="ws__under-lead">{t(ui.underLead)}</p>
-      <div class="ws__lock-key">
-        <span class="ws__lock-cmd mono">{t(ui.lockKey)}</span>
-        <span class="ws__tick" aria-hidden="true">
-          <span class="ws__tick-dot"></span>
-          <span class="ws__tick-label mono">{t(ui.tickTag)}</span>
-        </span>
-      </div>
-      <span class="ws__loop mono">{t(ui.loop)}</span>
-      <div class="ws__replicas">
-        {
-          replicas.map((r) => (
-            <button
-              type="button"
-              class="ws__rep"
-              data-rep={r.id}
-              data-lead={r.lead ? "1" : "0"}
-              aria-pressed={r.lead ? "true" : "false"}
-              aria-label={t(ui.makeLeader)}
-            >
-              <span class="ws__rep-dot" aria-hidden="true" />
-              <span class="ws__rep-name mono">{r.id}</span>
-              <span class="ws__rep-tag ws__rep-tag--lead mono">{t(ui.leaderTag)}</span>
-              <span class="ws__rep-tag ws__rep-tag--idle mono">{t(ui.idleTag)}</span>
-            </button>
-          ))
-        }
-      </div>
-      <p class="ws__hint">{t(ui.underHint)}</p>
-    </div>
-  </div>
-
   <!-- Колофон фактов (статичный, читаем и при reduced-motion) -->
   <p class="ws__facts">
     <span class="mono">{t(ui.roles)}</span>
@@ -550,10 +492,12 @@ const payload = {
     <span class="mono">{t(ui.stack)}</span>
   </p>
 
-  <!-- Слой drag-клона -->
-  <div class="ws__draglayer" data-ws-draglayer aria-hidden="true"></div>
-
-  <script is:inline type="application/json" data-ws-payload set:html={JSON.stringify(payload)} />
+  <script
+    is:inline
+    type="application/json"
+    data-ws-payload
+    set:html={JSON.stringify(payload).replace(/</g, "\\u003c")}
+  />
 </section>
 
 <style>
@@ -584,17 +528,9 @@ const payload = {
     color: var(--text-secondary);
   }
 
-  .ws__hint {
-    margin: var(--sp-4) 0 0;
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
-    line-height: var(--lh-snug);
-    color: color-mix(in srgb, var(--accent) 58%, var(--text-muted));
-  }
-
   /* Общие подписи-eyebrow */
   .ws__clock-cap,
-  .ws__scrub-cap,
+  .ws__tl-cap,
   .ws__composer-cap,
   .ws__roster-cap,
   .ws__log-cap,
@@ -697,23 +633,42 @@ const payload = {
     gap: var(--sp-2);
   }
 
-  .ws__scrub {
+  /* Индикатор хода дня (не интерактивный: заполняет полосу к текущему часу) */
+  .ws__timeline {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-1);
+    gap: var(--sp-2);
     flex: 1 1 180px;
-    min-width: 160px;
+    min-width: 150px;
+    align-self: center;
   }
-  .ws__scrub-input {
-    width: 100%;
-    accent-color: var(--accent);
-    min-height: var(--tap-min);
-    cursor: pointer;
-  }
-  .ws__scrub-input:focus-visible {
-    outline: var(--ring-width) solid var(--ring-focus);
-    outline-offset: 4px;
+  .ws__tl-track {
+    position: relative;
+    height: 8px;
     border-radius: var(--r-pill);
+    background: var(--surface-2);
+    border: var(--bw-thin) solid var(--border);
+    overflow: hidden;
+  }
+  .ws__tl-fill {
+    position: absolute;
+    inset: 0;
+    transform-origin: left center;
+    transform: scaleX(var(--tl, 0));
+    border-radius: var(--r-pill);
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--accent) 35%, transparent),
+      var(--accent)
+    );
+    transition: transform var(--dur-slow) var(--ease-soft);
+  }
+  .ws__tl-marks {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-10);
+    color: var(--text-faint);
   }
 
   .ws__bar-actions {
@@ -864,7 +819,7 @@ const payload = {
   .ws__board {
     position: relative;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     align-items: start;
     gap: var(--sp-3);
   }
@@ -880,10 +835,6 @@ const payload = {
     transition:
       border-color var(--dur-fast) var(--ease-standard),
       background-color var(--dur-fast) var(--ease-standard);
-  }
-  .ws__col.is-droptarget {
-    border-color: var(--accent);
-    background: var(--soft);
   }
   .ws__col-cap {
     display: inline-flex;
@@ -902,6 +853,9 @@ const payload = {
   }
   .ws__col-dot[data-col-dot="progress"] {
     background: var(--accent);
+  }
+  .ws__col-dot[data-col-dot="review"] {
+    background: color-mix(in srgb, var(--accent) 70%, #fff);
   }
   .ws__col-dot[data-col-dot="done"] {
     background: var(--state-ok);
@@ -959,9 +913,6 @@ const payload = {
   .ws :global(.ws__card[data-col="done"]) {
     opacity: 0.58;
   }
-  .ws :global(.ws__card.is-ghost) {
-    opacity: 0.3;
-  }
   .ws.is-inview :global(.ws__card.is-moved) {
     animation: ws-pop var(--dur-slow) var(--ease-spring);
   }
@@ -981,39 +932,6 @@ const payload = {
     align-items: center;
     gap: var(--sp-2);
   }
-  .ws :global(.ws__card-grip) {
-    flex: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    border: none;
-    background: transparent;
-    color: var(--text-faint);
-    font-size: var(--fs-14);
-    line-height: 1;
-    cursor: grab;
-    touch-action: none;
-    border-radius: var(--r-xs);
-    transition:
-      color var(--dur-fast) var(--ease-standard),
-      background-color var(--dur-fast) var(--ease-standard);
-  }
-  .ws :global(.ws__card-grip:hover) {
-    color: var(--text-secondary);
-    background: var(--border);
-  }
-  .ws :global(.ws__card-grip:active) {
-    cursor: grabbing;
-  }
-  .ws :global(.ws__card[data-locked="1"] .ws__card-grip) {
-    opacity: 0.3;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
-
   .ws :global(.ws__card-id) {
     font-size: var(--fs-11);
     color: var(--text-muted);
@@ -1056,24 +974,29 @@ const payload = {
     border-radius: var(--r-pill);
     background: var(--text-secondary);
   }
-  .ws :global(.ws__card[data-col="progress"] .ws__card-status::before) {
+  .ws :global(.ws__card[data-col="progress"] .ws__card-status::before),
+  .ws :global(.ws__card[data-col="review"] .ws__card-status::before) {
     background: var(--accent);
   }
-  .ws :global(.ws__card[data-col="done"] .ws__card-status::before) {
-    background: var(--state-ok);
-  }
-  .ws :global(.ws__card[data-state="confirmed"] .ws__card-status::before) {
+  .ws :global(.ws__card[data-col="done"] .ws__card-status::before),
+  .ws :global(.ws__card[data-state="accepted"] .ws__card-status::before) {
     background: var(--state-ok);
   }
   .ws :global(.ws__card[data-state="released"] .ws__card-status::before),
-  .ws :global(.ws__card[data-state="cancelled"] .ws__card-status::before) {
+  .ws :global(.ws__card[data-state="cancelled"] .ws__card-status::before),
+  .ws :global(.ws__card[data-state="rejected"] .ws__card-status::before) {
     background: var(--warn);
   }
-  .ws :global(.ws__card[data-state="confirmed"] .ws__card-status) {
+  .ws :global(.ws__card[data-state="confirmed"] .ws__card-status),
+  .ws :global(.ws__card[data-state="accepted"] .ws__card-status) {
     color: var(--text);
   }
+  .ws :global(.ws__card[data-state="submitted"] .ws__card-status) {
+    color: color-mix(in srgb, var(--accent) 72%, var(--text));
+  }
   .ws :global(.ws__card[data-state="released"] .ws__card-status),
-  .ws :global(.ws__card[data-state="cancelled"] .ws__card-status) {
+  .ws :global(.ws__card[data-state="cancelled"] .ws__card-status),
+  .ws :global(.ws__card[data-state="rejected"] .ws__card-status) {
     color: var(--state-warn);
   }
 
@@ -1289,197 +1212,6 @@ const payload = {
     color: var(--text-faint);
   }
 
-  /* ── «Под капотом» ───────────────────────────────────────────────── */
-  .ws__under {
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-md);
-    background: var(--bg-elevated);
-    overflow: hidden;
-  }
-  .ws__under-toggle {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--sp-2);
-    width: 100%;
-    min-height: var(--tap-min);
-    padding: var(--sp-3) var(--sp-4);
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-12);
-    letter-spacing: var(--ls-wide);
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: color var(--dur-fast) var(--ease-standard);
-  }
-  .ws__under-toggle:hover {
-    color: var(--text);
-  }
-  .ws__under-toggle:focus-visible {
-    outline: var(--ring-width) solid var(--ring-focus);
-    outline-offset: -2px;
-  }
-  .ws__under-chev {
-    display: inline-block;
-    transform: rotate(0deg);
-    transition: transform var(--dur-med) var(--ease-standard);
-    color: var(--accent);
-  }
-  .ws__under-toggle[aria-expanded="true"] .ws__under-chev {
-    transform: rotate(90deg);
-  }
-  .ws__under-sub {
-    text-transform: none;
-    letter-spacing: var(--ls-snug);
-    color: var(--text-faint);
-  }
-  .ws__under-lead {
-    margin: 0 0 var(--sp-3);
-    font-size: var(--fs-13);
-    line-height: var(--lh-normal);
-    color: var(--text-secondary);
-    max-width: 72ch;
-  }
-  .ws__engine {
-    padding: 0 var(--sp-4) var(--sp-4);
-  }
-  .ws__engine[hidden] {
-    display: none;
-  }
-  .ws__lock-key {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--sp-2) var(--sp-3);
-    padding: var(--sp-3);
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-sm);
-    background: var(--bg-deep);
-  }
-  .ws__lock-cmd {
-    font-size: var(--fs-12);
-    color: var(--text-muted);
-    margin-right: auto;
-    overflow-wrap: anywhere;
-  }
-  .ws__tick {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--sp-2);
-    flex: none;
-  }
-  .ws__tick-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: var(--r-pill);
-    background: var(--accent);
-    transform: scale(1);
-    opacity: 0.45;
-  }
-  .ws__tick-label {
-    font-size: var(--fs-12);
-    color: var(--text-muted);
-  }
-  .ws__loop {
-    display: block;
-    margin-top: var(--sp-3);
-    font-size: var(--fs-12);
-    color: var(--text-secondary);
-  }
-  .ws__replicas {
-    display: grid;
-    gap: var(--sp-2);
-    margin-top: var(--sp-3);
-  }
-  .ws__rep {
-    position: relative;
-    appearance: none;
-    width: 100%;
-    text-align: left;
-    display: flex;
-    align-items: center;
-    gap: var(--sp-3);
-    padding: var(--sp-3) var(--sp-4);
-    min-height: var(--tap-min);
-    background: var(--surface);
-    border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-md);
-    font-size: var(--fs-14);
-    color: inherit;
-    cursor: pointer;
-    opacity: 0.5;
-    transition:
-      opacity var(--dur-slow) var(--ease-standard),
-      border-color var(--dur-slow) var(--ease-standard),
-      background-color var(--dur-slow) var(--ease-standard),
-      transform var(--dur-fast) var(--ease-soft);
-  }
-  .ws__rep:hover {
-    opacity: 1;
-    border-color: var(--border-hover);
-  }
-  .ws__rep:active {
-    transform: scale(0.99);
-  }
-  .ws__rep:focus-visible {
-    outline: var(--ring-width) solid var(--ring-focus);
-    outline-offset: 2px;
-  }
-  .ws__rep[data-lead="1"] {
-    opacity: 1;
-    border-color: var(--line);
-    background: var(--soft);
-  }
-  .ws__rep-dot {
-    flex: none;
-    width: 10px;
-    height: 10px;
-    border-radius: var(--r-pill);
-    background: var(--text-faint);
-    transform: scale(1);
-    transition:
-      transform var(--dur-slow) var(--ease-spring),
-      background-color var(--dur-slow) var(--ease-standard);
-  }
-  .ws__rep[data-lead="1"] .ws__rep-dot {
-    background: var(--accent);
-  }
-  .ws__rep-name {
-    font-size: var(--fs-13);
-    color: var(--text-secondary);
-    margin-right: auto;
-  }
-  .ws__rep[data-lead="1"] .ws__rep-name {
-    color: var(--text);
-  }
-  .ws__rep-tag {
-    font-size: var(--fs-12);
-    letter-spacing: var(--ls-snug);
-  }
-  .ws__rep-tag--lead {
-    color: var(--accent);
-    display: none;
-  }
-  .ws__rep-tag--idle {
-    color: var(--text-muted);
-    display: inline;
-  }
-  .ws__rep[data-lead="1"] .ws__rep-tag--lead {
-    display: inline;
-  }
-  .ws__rep[data-lead="1"] .ws__rep-tag--idle {
-    display: none;
-  }
-  /* Тик лидера — только если виден И движок раскрыт */
-  .ws.is-inview[data-engine-open] .ws__rep[data-lead="1"] .ws__rep-dot {
-    animation: ws-breathe 3.6s var(--ease-drift) infinite;
-  }
-  .ws.is-inview[data-engine-open] .ws__tick-dot {
-    animation: ws-tick 2.2s var(--ease-standard) infinite;
-  }
-
   @keyframes ws-breathe {
     0%,
     100% {
@@ -1489,22 +1221,6 @@ const payload = {
       transform: scale(1.35);
     }
   }
-  @keyframes ws-tick {
-    0%,
-    100% {
-      transform: scale(1);
-      opacity: 0.45;
-    }
-    14% {
-      transform: scale(1.6);
-      opacity: 1;
-    }
-    40% {
-      transform: scale(1);
-      opacity: 0.45;
-    }
-  }
-
   /* ── Колофон фактов ──────────────────────────────────────────────── */
   .ws__facts {
     margin: 0;
@@ -1522,14 +1238,14 @@ const payload = {
 
   /* ── Тосты ───────────────────────────────────────────────────────── */
   .ws__toasts {
-    position: absolute;
-    top: var(--sp-3);
-    right: var(--sp-3);
+    position: fixed;
+    bottom: max(var(--sp-4), env(safe-area-inset-bottom));
+    right: var(--sp-4);
     display: flex;
-    flex-direction: column;
+    flex-direction: column-reverse;
     gap: var(--sp-2);
-    max-width: min(320px, 78%);
-    z-index: var(--z-elevated);
+    max-width: min(340px, 80vw);
+    z-index: var(--z-toast);
     pointer-events: none;
   }
   .ws :global(.ws__toast) {
@@ -1557,30 +1273,21 @@ const payload = {
     color: var(--state-warn);
   }
 
-  /* ── Слой drag-клона ─────────────────────────────────────────────── */
-  .ws__draglayer {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: var(--z-overlay);
-  }
-  .ws__draglayer :global(.ws__card) {
-    position: fixed;
-    margin: 0;
-    width: var(--drag-w, 240px);
-    box-shadow: var(--shadow-3);
-    border-color: var(--accent);
-    transform: translate3d(var(--drag-x, 0), var(--drag-y, 0), 0) scale(1.02);
-    opacity: 0.95;
-  }
-
   /* ── Узкие экраны ────────────────────────────────────────────────── */
+  @container (max-width: 1040px) {
+    .ws__board {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
   @container (max-width: 620px) {
     .ws__board {
       grid-template-columns: minmax(0, 1fr);
     }
     .ws__col {
       min-height: auto;
+    }
+    .ws :global(.ws__card-btn) {
+      min-height: var(--tap-min);
     }
     .ws__bar {
       padding: var(--sp-3);
@@ -1597,15 +1304,8 @@ const payload = {
     .ws__clock-time {
       font-size: var(--fs-24);
     }
-    .ws__scrub {
+    .ws__timeline {
       flex-basis: 100%;
-    }
-    .ws__rep {
-      flex-wrap: wrap;
-    }
-    .ws__rep-name {
-      white-space: normal;
-      word-break: break-word;
     }
   }
 
@@ -1617,21 +1317,15 @@ const payload = {
     .ws__clock-time,
     .ws__wk-dot,
     .ws__live-dot,
-    .ws__rep,
-    .ws__rep-dot,
+    .ws__tl-fill,
     .ws__toast {
       transition: none;
     }
     .ws__card.is-moved {
       animation: none;
     }
-    .ws.is-inview[data-live="on"] .ws__live-dot,
-    .ws.is-inview[data-engine-open] .ws__rep[data-lead="1"] .ws__rep-dot,
-    .ws.is-inview[data-engine-open] .ws__tick-dot {
+    .ws.is-inview[data-live="on"] .ws__live-dot {
       animation: none;
-    }
-    .ws__tick-dot {
-      opacity: 1;
     }
     .ws__log :global(.ws-l) {
       opacity: 1;
@@ -1660,8 +1354,8 @@ const payload = {
     const REMIND_LEAD = 3;
     const MAX_CONCURRENT = 9;
     const LIVE_MS = 1500;
-    const TOAST_MS = 3200;
-    const MAX_TOASTS = 4;
+    const TOAST_MS = 2600;
+    const MAX_TOASTS = 3;
 
     type Tone = "" | "acc" | "warn" | "dim";
     type Col = "open" | "progress" | "review" | "done";
@@ -1691,7 +1385,7 @@ const payload = {
       clock: string;
       back: string;
       fwd: string;
-      scrub: string;
+      dayProgress: string;
       live: string;
       livePause: string;
       create: string;
@@ -1830,7 +1524,7 @@ const payload = {
         const timeEl = q<HTMLElement>(root, "[data-ws-time]");
         const backBtn = q<HTMLButtonElement>(root, "[data-ws-back]");
         const fwdBtn = q<HTMLButtonElement>(root, "[data-ws-fwd]");
-        const scrub = q<HTMLInputElement>(root, "[data-ws-scrub]");
+        const tlFill = q<HTMLElement>(root, "[data-ws-tl]");
         const liveBtn = q<HTMLButtonElement>(root, "[data-ws-live]");
         const liveLabel = q<HTMLElement>(root, "[data-ws-live-label]");
         const createBtn = q<HTMLButtonElement>(root, "[data-ws-create]");
@@ -1847,12 +1541,6 @@ const payload = {
           review: q<HTMLElement>(root, '[data-ws-colbody="review"]'),
           done: q<HTMLElement>(root, '[data-ws-colbody="done"]'),
         };
-        const colSections: Record<Col, HTMLElement | null> = {
-          open: q<HTMLElement>(root, '.ws__col[data-col="open"]'),
-          progress: q<HTMLElement>(root, '.ws__col[data-col="progress"]'),
-          review: q<HTMLElement>(root, '.ws__col[data-col="review"]'),
-          done: q<HTMLElement>(root, '.ws__col[data-col="done"]'),
-        };
         const counts: Record<Col, HTMLElement | null> = {
           open: q<HTMLElement>(root, '[data-ws-colcount="open"]'),
           progress: q<HTMLElement>(root, '[data-ws-colcount="progress"]'),
@@ -1861,12 +1549,8 @@ const payload = {
         };
         const logEl = q<HTMLElement>(root, "[data-ws-log]");
         const toastLayer = q<HTMLElement>(root, "[data-ws-toasts]");
-        const dragLayer = q<HTMLElement>(root, "[data-ws-draglayer]");
-        const engineToggle = q<HTMLButtonElement>(root, "[data-ws-engine-toggle]");
-        const enginePanel = q<HTMLElement>(root, "[data-ws-engine]");
-        const reps = Array.from(root.querySelectorAll<HTMLElement>(".ws__rep"));
 
-        if (!timeEl || !scrub) return;
+        if (!timeEl) return;
 
         // ── Состояние ──
         const state = { now: data.now0, view: data.now0, live: false };
@@ -1947,14 +1631,26 @@ const payload = {
           const activeWorker = s.reclaimWorker ?? s.claimWorker;
           // финальные состояния (Закрыто)
           if (s.acceptedAt !== null && T >= s.acceptedAt)
-            return { ...base(), col: "done", worker: activeWorker, confirmed: true, done: "accepted" };
+            return {
+              ...base(),
+              col: "done",
+              worker: activeWorker,
+              confirmed: true,
+              done: "accepted",
+            };
           if (s.rejectedAt !== null && T >= s.rejectedAt)
             return { ...base(), col: "done", worker: activeWorker, done: "rejected" };
           if (s.cancelledAt !== null && T >= s.cancelledAt)
             return { ...base(), col: "done", done: "cancelled" };
           // сдал работу → На приёмке (ждёт решения работодателя)
           if (s.submittedAt !== null && T >= s.submittedAt)
-            return { ...base(), col: "review", worker: activeWorker, confirmed: true, submitted: true };
+            return {
+              ...base(),
+              col: "review",
+              worker: activeWorker,
+              confirmed: true,
+              submitted: true,
+            };
           const confirmed =
             (s.confirmedAt !== null && s.confirmedAt <= T) ||
             (s.reconfirmedAt !== null && s.reconfirmedAt <= T);
@@ -1985,15 +1681,12 @@ const payload = {
             <div class="ws__card-head">
               <span class="ws__card-id mono">${s.id}</span>
               <span class="ws__card-time mono">${s.start}:00–${s.end}:00</span>
-              <button class="ws__card-grip" type="button" data-ws-grip tabindex="-1" aria-hidden="true" title="${U.drag} ${s.id}">⠿</button>
             </div>
             <div class="ws__card-title">${s.title}</div>
             <div class="ws__card-sub mono">${s.city} · ${s.rate}</div>
             <div class="ws__card-status" data-ws-card-status></div>
             <div class="ws__card-worker mono"><span data-ws-card-worker></span></div>
             <div class="ws__card-actions" data-ws-card-actions></div>`;
-          const grip = q<HTMLButtonElement>(li, "[data-ws-grip]");
-          if (grip) attachDrag(grip, s, li);
           s.el = li;
           return li;
         };
@@ -2044,7 +1737,7 @@ const payload = {
         // ── render(view): чистая раскладка под view ──
         const render = (): void => {
           const T = state.view;
-          const tally: Record<Col, number> = { open: 0, progress: 0, done: 0 };
+          const tally: Record<Col, number> = { open: 0, progress: 0, review: 0, done: 0 };
           const busyBy: Record<string, string> = {};
 
           shifts.forEach((s) => {
@@ -2104,11 +1797,12 @@ const payload = {
             if (stEl) stEl.textContent = shiftId ? `${U.busy} · ${shiftId}` : U.free;
           });
 
-          // часы + слайдер
+          // часы + индикатор хода дня
           timeEl.textContent = fmt(T);
-          scrub.max = String(DAY_END);
-          if (Number(scrub.value) !== T) scrub.value = String(T);
-          scrub.setAttribute("aria-valuetext", fmt(T));
+          if (tlFill) {
+            const frac = (T - DAY_START) / (DAY_END - DAY_START);
+            tlFill.style.setProperty("--tl", String(Math.max(0, Math.min(1, frac))));
+          }
 
           // история
           const viewingPast = state.view < state.now;
@@ -2332,135 +2026,38 @@ const payload = {
           later(() => root.classList.remove("is-tick"), 240);
         };
 
-        // ── Действия по кнопкам карточки ──
+        // ── Действия работодателя по кнопкам карточки ──
         const onCardAction = (s: Shift, action: string): void => {
           if (!canEdit()) return;
           const T = state.now;
           const d = derive(s, T);
-          if (action === "Take") {
+          if (action === "Assign") {
+            if (d.col !== "open") return;
             const w = nearestFree(T);
             if (!w) {
               toast(U.noFree, true);
               return;
             }
-            if (d.released) {
+            if (s.releasedAt !== null) {
               s.reclaimedAt = T;
               s.reclaimWorker = w;
             } else {
               s.claimedAt = T;
               s.claimWorker = w;
             }
-            log(`${fmt(T)}  you assign ${s.id} → ${w}`, "acc");
-          } else if (action === "Confirm") {
-            if (s.reclaimedAt !== null) s.reconfirmedAt = T;
-            else s.confirmedAt = T;
-            log(`${fmt(T)}  confirm ${s.id} → confirmed_at`, "acc");
-          } else if (action === "Noshow") {
-            s.releasedAt = T;
-            log(`${fmt(T)}  no-show ${s.id} → release slot → OPEN`, "warn");
-            toast(`${U.stReleased}: ${s.id}`, true);
-          } else if (action === "Close") {
-            s.closedAt = T;
-            log(`${fmt(T)}  close ${s.id} (completed)`, "dim");
+            log(`${fmt(T)}  вы назначили ${w} на ${s.id}`, "acc");
+          } else if (action === "Accept") {
+            if (!d.submitted) return;
+            s.acceptedAt = T;
+            log(`${fmt(T)}  вы приняли работу ${s.id}`, "acc");
+            toast(`${U.tAccepted}: ${s.id}`);
+          } else if (action === "Reject") {
+            if (!d.submitted) return;
+            s.rejectedAt = T;
+            log(`${fmt(T)}  вы отклонили работу ${s.id}`, "warn");
+            toast(`${U.tRejected}: ${s.id}`, true);
           }
           render();
-        };
-
-        // ── Drag (pointer events, transform-only клон) ──
-        type DragState = {
-          shift: Shift;
-          origin: HTMLLIElement;
-          clone: HTMLElement;
-          w: number;
-          dx: number;
-          dy: number;
-          over: Col | null;
-        };
-        let drag: DragState | null = null;
-
-        const validDrop = (from: Col, to: Col): boolean =>
-          (from === "open" && to === "progress") ||
-          (from === "progress" && to === "done") ||
-          (from === "progress" && to === "open");
-
-        const colUnder = (x: number, y: number): Col | null => {
-          for (const c of ["open", "progress", "done"] as Col[]) {
-            const sec = colSections[c];
-            if (!sec) continue;
-            const r = sec.getBoundingClientRect();
-            if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return c;
-          }
-          return null;
-        };
-
-        const attachDrag = (grip: HTMLElement, s: Shift, li: HTMLLIElement): void => {
-          grip.addEventListener("pointerdown", (ev: PointerEvent) => {
-            if (!canEdit() || reduced.matches) return;
-            const d = derive(s, state.now);
-            if (d.done) return;
-            ev.preventDefault();
-            startDrag(s, li, ev, d.col);
-          });
-        };
-
-        const onPointerMove = (ev: PointerEvent): void => {
-          if (!drag) return;
-          drag.clone.style.setProperty("--drag-x", ev.clientX - drag.dx + "px");
-          drag.clone.style.setProperty("--drag-y", ev.clientY - drag.dy + "px");
-          const from = drag.origin.dataset.col as Col;
-          const over = colUnder(ev.clientX, ev.clientY);
-          (["open", "progress", "done"] as Col[]).forEach((c) => {
-            const sec = colSections[c];
-            if (sec) sec.classList.toggle("is-droptarget", c === over && validDrop(from, c));
-          });
-          drag.over = over;
-        };
-
-        const endDrag = (): void => {
-          if (!drag) return;
-          const d = drag;
-          drag = null;
-          window.removeEventListener("pointermove", onPointerMove);
-          window.removeEventListener("pointerup", endDrag);
-          window.removeEventListener("pointercancel", endDrag);
-          (["open", "progress", "done"] as Col[]).forEach((c) => {
-            colSections[c]?.classList.remove("is-droptarget");
-          });
-          d.clone.remove();
-          d.origin.classList.remove("is-ghost");
-          const from = d.origin.dataset.col as Col;
-          if (d.over && d.over !== from && validDrop(from, d.over)) {
-            if (from === "open" && d.over === "progress") onCardAction(d.shift, "Take");
-            else if (from === "progress" && d.over === "done") onCardAction(d.shift, "Close");
-            else if (from === "progress" && d.over === "open") onCardAction(d.shift, "Noshow");
-          }
-        };
-
-        const startDrag = (s: Shift, li: HTMLLIElement, ev: PointerEvent, col: Col): void => {
-          if (!dragLayer) return;
-          const rect = li.getBoundingClientRect();
-          const clone = li.cloneNode(true) as HTMLElement;
-          clone
-            .querySelectorAll("[data-ws-grip],[data-ws-card-actions] *")
-            .forEach((n) => (n as HTMLElement).remove());
-          clone.style.setProperty("--drag-w", rect.width + "px");
-          clone.style.setProperty("--drag-x", rect.left + "px");
-          clone.style.setProperty("--drag-y", rect.top + "px");
-          dragLayer.appendChild(clone);
-          li.classList.add("is-ghost");
-          li.dataset.col = col;
-          drag = {
-            shift: s,
-            origin: li,
-            clone,
-            w: rect.width,
-            dx: ev.clientX - rect.left,
-            dy: ev.clientY - rect.top,
-            over: null,
-          };
-          window.addEventListener("pointermove", onPointerMove);
-          window.addEventListener("pointerup", endDrag);
-          window.addEventListener("pointercancel", endDrag);
         };
 
         // ── Панель управления ──
@@ -2476,10 +2073,6 @@ const payload = {
         backBtn?.addEventListener("click", () => {
           if (state.live) return;
           setView(state.view - 1);
-        });
-        scrub.addEventListener("input", () => {
-          if (state.live) return;
-          setView(Number(scrub.value));
         });
         toNowBtn?.addEventListener("click", () => setView(state.now));
 
@@ -2574,41 +2167,26 @@ const payload = {
             claimWorker: null,
             confirmedAt: null,
             releasedAt: null,
+            releaseReason: "",
             reclaimedAt: null,
             reclaimWorker: null,
             reconfirmedAt: null,
-            closedAt: null,
+            submittedAt: null,
+            autoAcceptAt: null,
+            acceptedAt: null,
+            rejectedAt: null,
             cancelledAt: null,
             willConfirm: true,
-            userControlled: false,
+            willLeave: false,
             noAutoClaim: false,
-            hero: false,
-            forceNoShow: false,
             remindLogged: false,
             el: null,
           };
           shifts.push(sh);
-          log(`${fmt(state.now)}  you publish ${sh.id} → OPEN`, "acc");
+          log(`${fmt(state.now)}  вы опубликовали ${sh.id} → Открыто`, "acc");
           toast(`${U.publish}: ${sh.id}`);
           openComposer(false);
           render();
-        });
-
-        // ── Движок: реплики + раскрытие ──
-        engineToggle?.addEventListener("click", () => {
-          const open = engineToggle.getAttribute("aria-expanded") !== "true";
-          engineToggle.setAttribute("aria-expanded", open ? "true" : "false");
-          if (enginePanel) enginePanel.hidden = !open;
-          root.toggleAttribute("data-engine-open", open);
-        });
-        reps.forEach((rep) => {
-          rep.addEventListener("click", () => {
-            reps.forEach((r) => {
-              const lead = r === rep;
-              r.setAttribute("data-lead", lead ? "1" : "0");
-              r.setAttribute("aria-pressed", lead ? "true" : "false");
-            });
-          });
         });
 
         // ── Первичный кадр ──
@@ -2622,7 +2200,6 @@ const payload = {
             logSeeded = true;
           }
           log(`${fmt(state.now)}  ${U.atLive}`, "acc");
-          log(U.underHint, "dim");
           render();
           return;
         }

@@ -328,6 +328,19 @@ ol {
   animation-play-state: paused !important;
 }
 
+/* ---------- Пауза анимаций на скрытой вкладке ----------
+ * Фоновый арт (.backdrop-art) висит на фиксированном .bg-layer ВНЕ секций, поэтому
+ * секционный .anim-paused его не глушит — орбиты/электроны/пульс ядра идут всегда.
+ * Когда вкладка уходит в фон, смотреть некому: гасим ВСЕ CSS-анимации разом до
+ * возврата фокуса. Браузер троттлит rAF в фоне сам, но offset-distance электронов
+ * сэмплируется на main-thread и может продолжать тикать — это трата CPU впустую.
+ * Класс .is-hidden вешает BaseLayout по visibilitychange. */
+html.is-hidden *,
+html.is-hidden *::before,
+html.is-hidden *::after {
+  animation-play-state: paused !important;
+}
+
 /* ---------- Film grain overlay ----------
  * Тонкая монохромная «плёночная» текстура на всю страницу: смягчает банды
  * градиентов и придаёт near-black поверхности материальность. Подключается
@@ -478,6 +491,20 @@ ol {
 
   .cta:active {
     transform: scale(0.985);
+  }
+}
+
+/* Тач: вторичные тоггл-кнопки (аккордеоны кейса, «назад») заданы через padding/шрифт
+   и на тач-экранах не дотягивают до 44px. Доводим hit-area до --tap-min ТОЛЬКО на
+   тач (hover:none) — плотность desktop не трогаем. Правила глобальные, но матчатся
+   по классу поверх скоупа (сами компоненты min-height не задают → без конфликта).
+   Футер и портрет-ссылка about доводятся в своих компонентах. */
+@media (hover: none) {
+  .case__back,
+  .case-timeline__toggle,
+  .capabilities__more,
+  .stack__more-toggle {
+    min-height: var(--tap-min);
   }
 }
 

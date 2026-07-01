@@ -15,6 +15,7 @@ import {
   projectBrand,
   projectTagline,
   projectDescription,
+  projectDomainUrl,
   repoUrl,
 } from "../lib/projects";
 import Icon from "./Icon/Icon.astro";
@@ -37,6 +38,7 @@ const desc = projectDescription(p, locale);
 const accent = p.accent ?? "var(--accent-core)";
 const highlights = p.highlights?.slice(0, 3) ?? [];
 const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
+const domainUrl = projectDomainUrl(p);
 ---
 
 <article
@@ -88,7 +90,7 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
     </ul>
 
     {
-      (primaryRepoUrl || p.links?.domain) && (
+      (primaryRepoUrl || domainUrl) && (
         <footer class="infra-card__actions">
           {primaryRepoUrl && (
             <a
@@ -101,9 +103,9 @@ const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
               <span>{t("projects.viewSource")}</span>
             </a>
           )}
-          {p.links?.domain && (
+          {domainUrl && (
             <a
-              href={p.links.domain}
+              href={domainUrl}
               target="_blank"
               rel="noopener noreferrer"
               class="infra-card__cta cta cta--ghost"
