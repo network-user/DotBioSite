@@ -37,7 +37,7 @@ const portraitContacts: {
     <SectionHeader id="about-title" kicker={t("about.kicker")} title={t("about.title")} />
 
     <div class="about__grid">
-      <div class="about__portrait" data-reveal data-about-portrait>
+      <div class="about__portrait" data-reveal data-about-portrait data-touch-live>
         <div class="about__frame glass glass--bordered">
           {
             photo ? (
@@ -453,6 +453,17 @@ const portraitContacts: {
       color: var(--text);
       border-color: var(--border-hover);
       background: var(--surface-2);
+    }
+
+    /* Портрет «в фокусе» по центру вьюпорта (scroll-driven, data-touch-live):
+       подсвечиваем край рамки и верхний блик - тот же язык, что у glass-карточек,
+       так же как они оживают по очереди при прокрутке. Медленный sheen идёт
+       независимо. Desktop (hover: hover) этого не видит. */
+    .about__portrait.is-touch-active .about__frame {
+      border-color: var(--glass-edge-bright);
+    }
+    .about__portrait.is-touch-active .about__frame::before {
+      opacity: 1;
     }
   }
 </style>

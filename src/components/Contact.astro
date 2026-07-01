@@ -11,6 +11,13 @@ interface Props {
 const { locale } = Astro.props;
 const t = useTranslations(locale);
 
+// Lede блока контактов зациклено ротирует короткие фразы вместо статичного
+// предложения. Каждая фраза держится LEDE_STEP секунд с плавным кросс-фейдом;
+// под prefers-reduced-motion CSS откатывает раскладку к обычному потоку -
+// все фразы читаются подряд одной строкой без анимации (см. <style> ниже).
+const ledePhrases = t<string[]>("contact.ledePhrases");
+const LEDE_STEP = 2.4;
+
 // В блоке контактов сознательно показываем только email, GitHub и Telegram -
 // LinkedIn/X/VK остаются в config для About.astro и JSON-LD, но не в этом списке.
 const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "telegram");
@@ -45,9 +52,24 @@ const briefOptions = hasEmail
       id="contact-title"
       kicker={t("contact.kicker")}
       title={t("contact.title")}
-      lede={t("contact.lede")}
       align="center"
-    />
+    >
+      <p
+        slot="lede"
+        class="section-header__lede subtitle lede-rotator"
+        data-reveal
+        data-reveal-delay="120"
+      >
+        {
+          ledePhrases.map((phrase, i) => (
+            <span class="lede-rotator__phrase" style={`animation-delay: ${(i * LEDE_STEP).toFixed(2)}s`}>
+              {phrase}
+              {i < ledePhrases.length - 1 ? " " : ""}
+            </span>
+          ))
+        }
+      </p>
+    </SectionHeader>
 
     {
       briefOptions.length > 0 && (
@@ -614,6 +636,44 @@ const briefOptions = hasEmail
 
     .contact__channel-trailing {
       display: none;
+    }
+  }
+
+  /* Lede-ротация: по умолчанию фразы идут обычным текстовым потоком (та же
+     верстка, что и у статичного lede в других секциях) - это и есть
+     reduced-motion/no-JS фолбэк, а не отдельная ветка. Стек-анимация
+     появляется только когда браузер разрешает движение. */
+  @media (prefers-reduced-motion: no-preference) {
+    .lede-rotator {
+      display: grid;
+      justify-items: center;
+    }
+
+    .lede-rotator__phrase {
+      display: inline-block;
+      grid-row: 1;
+      grid-column: 1;
+      white-space: nowrap;
+      opacity: 0;
+      transform: translateY(6px);
+      animation: lede-phrase-cycle 7.2s var(--ease-soft) infinite;
+    }
+
+    @keyframes lede-phrase-cycle {
+      0%,
+      100% {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      6%,
+      27% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      33% {
+        opacity: 0;
+        transform: translateY(-6px);
+      }
     }
   }
 </style>

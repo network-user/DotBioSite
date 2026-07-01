@@ -87,7 +87,7 @@
   "contact": {
     "kicker": "contact",
     "title": "Let's talk.",
-    "lede": "Crazy idea? Just a question? Write, we'll figure it out :)",
+    "ledePhrases": ["Crazy idea?", "Just a question?", "Write, we'll figure it out :)"],
     "email": "email me",
     "copyEmail": "copy email",
     "copied": "email copied",

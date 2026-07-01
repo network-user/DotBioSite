@@ -73,6 +73,29 @@ sudo bash deploy/update.sh
 Поля `PUBLIC_AUTHOR_NAME_RU/EN` оставляй либо непустыми, либо вовсе убери из
 `.env` (пустая строка уронит сборку - сработает дефолт `.ядро`/`.core`).
 
+## Автодеплой из GitHub (CI)
+
+`update.sh` можно дёргать не руками, а автоматически при каждом push в main -
+GitHub Actions (`.github/workflows/deploy.yml`) сначала гоняет lint/type-check/
+build как gate (без реального `.env` - просто проверка, что код валиден), а
+затем по SSH выполняет на сервере тот же `sudo bash deploy/update.sh`, что
+описан выше. Pull request'ы деплой не триггерят - только gate.
+
+Настройка (один раз, после `deploy/setup.sh`):
+
+```bash
+cd /srv/dotcore
+sudo bash deploy/ci-setup.sh
+```
+
+Скрипт создаёт отдельного пользователя `ci-deploy` с узкой sudo-привилегией -
+ему разрешено запускать без пароля только `deploy/update.sh`, ничего больше.
+В конце выводит, какой SSH-ключ сгенерировать и какие секреты добавить в
+GitHub (`DEPLOY_SSH_KEY`, `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_REPO_PATH`).
+
+Ручной запуск `sudo bash deploy/update.sh` по-прежнему работает и после
+настройки CI - оба пути используют один и тот же скрипт.
+
 ## Ещё сильнее сэкономить диск (опционально)
 
 Если обновляешь сайт редко, после деплоя можно снять и Node - освободит ~120 МБ.
@@ -153,6 +176,7 @@ sudo systemctl disable --now ddos-guard.service # снять защиту
 | ----------------------- | -------------------------------------------------------------------------------------------- |
 | `deploy/setup.sh`       | Первичная установка + первый деплой (идемпотентно)                                           |
 | `deploy/update.sh`      | Пересборка и редеплой уже развёрнутого сайта                                                 |
+| `deploy/ci-setup.sh`    | Доступ для GitHub Actions - пользователь `ci-deploy` + узкий sudo только на `update.sh`      |
 | `deploy/harden.sh`      | Анти-флуд на уровне ядра (nftables per-IP rate limit)                                        |
 | `deploy/Caddyfile.tmpl` | Шаблон конфига Caddy (security-заголовки, кэш из `public/_headers`, анти-slowloris таймауты) |
 

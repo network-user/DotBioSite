@@ -48,8 +48,8 @@ src/
 └── lib/          # config (Zod), i18n, projects, contacts
 public/           # favicon, OG, manifest, _headers, public/projects/<slug>/
 scripts/          # parse-lh.cjs (разбор Lighthouse JSON)
-deploy/           # nginx.conf, server-setup.sh - self-hosted деплой (VPS)
-.github/workflows/deploy.yml   # VPS: SSH/rsync (build → releases/<id> → symlink current)
+deploy/           # setup.sh/update.sh/ci-setup.sh/harden.sh, Caddyfile.tmpl (self-hosted, Caddy)
+.github/workflows/deploy.yml   # gate (lint/type-check/build) + SSH-триггер deploy/update.sh
 astro.config.mjs
 ```
 

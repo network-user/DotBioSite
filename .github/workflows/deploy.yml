@@ -30,44 +30,11 @@ jobs:
           cache: "npm"
 
       # ---------------------------------------------------------------------
-      # Материализуем .env из GitHub Secrets через heredoc.
-      # Все значения опциональны — если секрет не задан, переменная пустая,
-      # Zod-схема использует дефолт, UI плавно деградирует (нет фото — монограмма
-      # и т.п.).
+      # Быстрый gate на раннере GitHub: без .env (дефолты Zod) - тут только
+      # проверяем, что код валиден и собирается. Настоящая production-сборка
+      # с реальным .env происходит НА СЕРВЕРЕ в deploy/update.sh - .env там
+      # персистентный и в CI не материализуется (см. deploy/README.md).
       # ---------------------------------------------------------------------
-      - name: Materialize .env from secrets
-        run: |
-          cat > .env <<'EOF'
-          PUBLIC_DOMAIN=${{ secrets.PUBLIC_DOMAIN }}
-          PUBLIC_GITHUB_USER=${{ secrets.PUBLIC_GITHUB_USER }}
-          PUBLIC_GITHUB_REPO=${{ secrets.PUBLIC_GITHUB_REPO }}
-          PUBLIC_AUTHOR_NAME_RU=${{ secrets.PUBLIC_AUTHOR_NAME_RU }}
-          PUBLIC_AUTHOR_NAME_EN=${{ secrets.PUBLIC_AUTHOR_NAME_EN }}
-          PUBLIC_AUTHOR_PHOTO=${{ secrets.PUBLIC_AUTHOR_PHOTO }}
-          PUBLIC_AUTHOR_BIO_RU=${{ secrets.PUBLIC_AUTHOR_BIO_RU }}
-          PUBLIC_AUTHOR_BIO_EN=${{ secrets.PUBLIC_AUTHOR_BIO_EN }}
-          PUBLIC_SOCIAL_GITHUB=${{ secrets.PUBLIC_SOCIAL_GITHUB }}
-          PUBLIC_SOCIAL_TELEGRAM=${{ secrets.PUBLIC_SOCIAL_TELEGRAM }}
-          PUBLIC_SOCIAL_LINKEDIN=${{ secrets.PUBLIC_SOCIAL_LINKEDIN }}
-          PUBLIC_SOCIAL_X=${{ secrets.PUBLIC_SOCIAL_X }}
-          PUBLIC_SOCIAL_VK=${{ secrets.PUBLIC_SOCIAL_VK }}
-          AUTHOR_EMAIL=${{ secrets.AUTHOR_EMAIL }}
-          EOF
-
-      # ---------------------------------------------------------------------
-      # Подтягиваем приватное фото (если задан секрет с URL).
-      # Кладём в `public/people/` который gitignored, чтобы не светить в репо.
-      # Если секрет не задан — шаг тихо пропускается, About покажет монограмму.
-      # ---------------------------------------------------------------------
-      - name: Fetch private avatar (optional)
-        if: ${{ secrets.AUTHOR_PHOTO_URL != '' }}
-        env:
-          PHOTO_URL: ${{ secrets.AUTHOR_PHOTO_URL }}
-        run: |
-          mkdir -p public/people
-          curl -sSL --fail "$PHOTO_URL" -o public/people/me.webp
-          echo "PUBLIC_AUTHOR_PHOTO=/people/me.webp" >> .env
-
       - name: Install dependencies
         run: npm ci
 
@@ -77,47 +44,27 @@ jobs:
       - name: Type check
         run: npm run type-check
 
-      - name: Build
+      - name: Build (gate only, не публикуется)
         run: npm run build
         env:
           NODE_ENV: production
 
       # ---------------------------------------------------------------------
-      # Деплой на self-hosted VPS по SSH/rsync. PR только собирают и
-      # проверяют (lint/type-check/build выше) - на сервер уходит только
-      # push в main или ручной запуск, чтобы чужой PR не получил доступ
-      # к продакшен-серверу по SSH.
-      #
-      # Каждый релиз - отдельная папка releases/<id>/, current - симлинк на
-      # неё. activate.sh (лежит на сервере, см. deploy/server-setup.sh)
-      # переключает симлинк атомарно и чистит старые релизы - тот же скрипт
-      # годится для ручного отката: activate.sh <предыдущий_id>.
+      # Триггер уже готового deploy/update.sh на сервере (git pull → build →
+      # reload caddy, см. deploy/). Только push в main / ручной запуск - PR
+      # не деплоит, чужой PR не получает доступ к продакшен-серверу по SSH.
+      # Доступ ci-deploy настраивается один раз через deploy/ci-setup.sh.
       # ---------------------------------------------------------------------
-      - name: Install deploy SSH key
+      - name: Trigger remote deploy
         if: github.event_name != 'pull_request'
         run: |
           install -d -m 700 "$HOME/.ssh"
           printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > "$HOME/.ssh/deploy_key"
           chmod 600 "$HOME/.ssh/deploy_key"
           ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" > "$HOME/.ssh/known_hosts" 2>/dev/null
-
-      - name: Upload release
-        if: github.event_name != 'pull_request'
-        run: |
-          SSH_OPTS="-i $HOME/.ssh/deploy_key -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
-          RELEASE_ID="$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::8}"
-          echo "RELEASE_ID=$RELEASE_ID" >> "$GITHUB_ENV"
-          ssh $SSH_OPTS "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            "mkdir -p ${{ secrets.DEPLOY_PATH }}/releases/$RELEASE_ID"
-          rsync -az --delete --chmod=D755,F644 -e "ssh $SSH_OPTS" \
-            dist/ "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_PATH }}/releases/$RELEASE_ID/"
-
-      - name: Activate release
-        if: github.event_name != 'pull_request'
-        run: |
-          SSH_OPTS="-i $HOME/.ssh/deploy_key -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
-          ssh $SSH_OPTS "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            "${{ secrets.DEPLOY_PATH }}/activate.sh $RELEASE_ID"
+          ssh -i "$HOME/.ssh/deploy_key" -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "sudo /bin/bash ${{ secrets.DEPLOY_REPO_PATH }}/deploy/update.sh"
 
       - name: Health check
         if: github.event_name != 'pull_request'
