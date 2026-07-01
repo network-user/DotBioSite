@@ -159,26 +159,27 @@ const years = visible.map((p) => p.year).filter((y): y is number => typeof y ===
   /**
    * Align the "highlights" row across neighboring cards in the same grid row.
    *
-   * Descriptions vary in length, so `.project-card__desc` naturally ends at a
-   * different height per card, pushing everything below it (highlights/stack/
-   * actions) out of sync with the card next to it. CSS alone can't match a
-   * sibling's height without subgrid (fragile here: the grid mixes a
-   * full-width featured card with a variable-length 2-column list). Instead,
-   * measure `.project-card__desc` per visual row (cards sharing the same top
-   * offset) and floor them all to the tallest one in that row.
+   * Both the tagline (in `head`) and the description wrap to a different
+   * number of lines per project, so `highlights` can start at a different
+   * height even when two cards end up the same total height overall. CSS
+   * alone can't match a sibling's offset without subgrid (fragile here: the
+   * grid mixes a full-width featured card with a variable-length 2-column
+   * list). Instead, measure how far `highlights` sits from its own card's
+   * top, per visual row (cards sharing the same top offset), and nudge the
+   * shorter ones down to match the tallest.
    */
-  function equalizeDescHeights() {
+  function equalizeHighlightOffsets() {
     const cards = Array.from(
       document.querySelectorAll<HTMLElement>(".project-card:not(.project-card--featured)"),
     );
     if (cards.length < 2) return;
 
     // Reset first: a resize can change the column count (mobile stacks to 1),
-    // and a stale min-height from a wider layout would leave a dead gap.
-    const descs = cards
-      .map((card) => card.querySelector<HTMLElement>(".project-card__desc"))
+    // and a stale offset from a wider layout would leave a dead gap.
+    const allHighlights = cards
+      .map((card) => card.querySelector<HTMLElement>(".project-card__highlights"))
       .filter((el): el is HTMLElement => el !== null);
-    descs.forEach((el) => el.style.removeProperty("min-height"));
+    allHighlights.forEach((el) => el.style.removeProperty("margin-block-start"));
 
     const rows = new Map<number, HTMLElement[]>();
     cards.forEach((card) => {
@@ -190,19 +191,25 @@ const years = visible.map((p) => p.year).filter((y): y is number => typeof y ===
 
     rows.forEach((rowCards) => {
       if (rowCards.length < 2) return; // alone in its row (mobile stack, or an odd one out) — nothing to match
-      const rowDescs = rowCards
-        .map((card) => card.querySelector<HTMLElement>(".project-card__desc"))
-        .filter((el): el is HTMLElement => el !== null);
-      if (rowDescs.length < 2) return;
-      const maxHeight = Math.max(...rowDescs.map((el) => el.getBoundingClientRect().height));
-      rowDescs.forEach((el) => {
-        el.style.minHeight = `${maxHeight}px`;
+      const entries = rowCards
+        .map((card) => {
+          const highlights = card.querySelector<HTMLElement>(".project-card__highlights");
+          if (!highlights) return null;
+          const offset = highlights.getBoundingClientRect().top - card.getBoundingClientRect().top;
+          return { highlights, offset };
+        })
+        .filter((e): e is { highlights: HTMLElement; offset: number } => e !== null);
+      if (entries.length < 2) return;
+      const maxOffset = Math.max(...entries.map((e) => e.offset));
+      entries.forEach(({ highlights, offset }) => {
+        const delta = maxOffset - offset;
+        if (delta > 0.5) highlights.style.marginBlockStart = `${delta}px`;
       });
     });
   }
 
   function scheduleEqualize() {
-    requestAnimationFrame(equalizeDescHeights);
+    requestAnimationFrame(equalizeHighlightOffsets);
   }
 
   if (document.readyState === "loading") {

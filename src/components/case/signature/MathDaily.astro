@@ -50,10 +50,6 @@ const t = (b: Bi): string => b[locale];
 
 const ui = {
   eyebrow: { ru: "Тренажёр устного счёта · пройди дорожку", en: "Mental-math trainer · walk the lane" },
-  intro: {
-    ru: "Один пример проходит весь движок проекта. Выбери, что тренировать, реши набор — и смотри, как твой результат сам спускается в очки, рейтинг и серию дней. Всё кликается, в каждый момент подсвечено то, что делать дальше.",
-    en: "One problem walks the whole engine. Pick what to train, solve a set — and watch your result descend on its own into points, the leaderboard, and your day streak. Everything is clickable; the next step is always lit.",
-  },
   facts: {
     ru: "ProblemGenerator · DIFFICULTY_CONFIG · StatsService — 4 среза · веса 1·2·3 · челлендж дня · aiogram 3 · PostgreSQL + asyncpg · Redis FSM · APScheduler · ~9k строк · RU/EN",
     en: "ProblemGenerator · DIFFICULTY_CONFIG · StatsService — 4 cuts · weights 1·2·3 · daily challenge · aiogram 3 · PostgreSQL + asyncpg · Redis FSM · APScheduler · ~9k lines · RU/EN",
@@ -286,11 +282,6 @@ const bundle = {
 ---
 
 <section class="dl" data-dl data-bundle={JSON.stringify(bundle)} aria-label={t(ui.eyebrow)}>
-  <header class="dl__head">
-    <p class="dl__eyebrow">{t(ui.eyebrow)}</p>
-    <p class="dl__intro">{t(ui.intro)}</p>
-  </header>
-
   <p class="dl__hint" data-hint aria-live="polite">{t(ui.hIdle)}</p>
 
   <div class="dl__lane">
@@ -440,7 +431,10 @@ const bundle = {
               <li class:list={["dl__row", { "is-you": p.you }]} data-row={p.id} style="--flip:0;">
                 <span class="dl__place" data-place aria-hidden="true">1</span>
                 <span class="dl__medal" aria-hidden="true" data-medal />
-                <span class="dl__pname">{t(p.name)}</span>
+                <span class="dl__pname">
+                  <span class="dl__pname-txt">{t(p.name)}</span>
+                  {p.you ? <span class="dl__you-tag">{t(ui.you)}</span> : null}
+                </span>
                 <span class="dl__pval">
                   <b data-pval>0</b>
                   <span class="dl__pval-unit" data-unit />
@@ -519,7 +513,12 @@ const bundle = {
     --a-soft: color-mix(in srgb, var(--a) 12%, transparent);
     --a-faint: color-mix(in srgb, var(--a) 7%, transparent);
     --a-glow: color-mix(in srgb, var(--a) 16%, transparent);
-    --dim: 0.46; /* пол приглушения неактивной зоны — числа остаются читаемы */
+    --ok: #6fac7e;
+    --ok-line: color-mix(in srgb, var(--ok) 46%, transparent);
+    --ok-soft: color-mix(in srgb, var(--ok) 16%, transparent);
+    --bad: #c2716a;
+    --bad-line: color-mix(in srgb, var(--bad) 46%, transparent);
+    --bad-soft: color-mix(in srgb, var(--bad) 14%, transparent);
     position: relative;
     display: flex;
     flex-direction: column;
@@ -527,26 +526,6 @@ const bundle = {
     container-type: inline-size;
   }
 
-  .dl__head {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-2);
-  }
-  .dl__eyebrow {
-    margin: 0;
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-12);
-    letter-spacing: var(--ls-eyebrow);
-    text-transform: uppercase;
-    color: var(--text-muted);
-  }
-  .dl__intro {
-    margin: 0;
-    font-size: var(--fs-16);
-    line-height: var(--lh-normal);
-    color: var(--text-secondary);
-    max-width: 66ch;
-  }
 
   /* Живая строка-ведение */
   .dl__hint {
@@ -560,7 +539,7 @@ const bundle = {
     border-radius: var(--r-md);
     background: var(--a-faint);
     color: var(--text);
-    font-size: var(--fs-14);
+    font-size: var(--fs-15);
     line-height: var(--lh-snug);
   }
   .dl__hint::before {
@@ -586,20 +565,6 @@ const bundle = {
     display: grid;
     grid-template-columns: 26px 1fr;
     gap: var(--sp-3);
-    opacity: var(--dim);
-  }
-  @media (prefers-reduced-motion: no-preference) {
-    .dl__zone {
-      transition: opacity var(--dur-med) var(--ease-standard);
-    }
-  }
-  .dl__zone.is-active {
-    opacity: 1;
-  }
-  /* Наведение/фокус внутри приглушённой зоны делает её отзывчивой. */
-  .dl__zone:not(.is-active):hover,
-  .dl__zone:not(.is-active):focus-within {
-    opacity: 0.82;
   }
 
   /* Спина дорожки + узел «где работа сейчас» */
@@ -679,7 +644,7 @@ const bundle = {
     display: grid;
     place-items: center;
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-11);
+    font-size: var(--fs-12);
     color: var(--text-muted);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-xs);
@@ -693,26 +658,26 @@ const bundle = {
     margin: 0;
     font-family: var(--font-stack-display);
     font-weight: var(--fw-bold);
-    font-size: var(--fs-18);
+    font-size: var(--fs-20);
     letter-spacing: var(--ls-tight);
     color: var(--text);
   }
   .dl__zcap {
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     color: var(--text-muted);
   }
   .dl__counter {
     margin-inline-start: auto;
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     color: var(--text-muted);
     white-space: nowrap;
   }
 
   .dl__label {
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-11);
+    font-size: var(--fs-12);
     letter-spacing: var(--ls-wide);
     text-transform: uppercase;
     color: var(--text-muted);
@@ -787,14 +752,14 @@ const bundle = {
     display: grid;
     place-items: center;
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-14);
+    font-size: var(--fs-16);
     color: var(--a);
     border: var(--bw-thin) solid color-mix(in srgb, var(--a) 40%, var(--border));
     border-radius: var(--r-xs);
     background: var(--a-faint);
   }
   .dl__op-name {
-    font-size: var(--fs-12);
+    font-size: var(--fs-14);
     color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
@@ -839,12 +804,12 @@ const bundle = {
     outline-offset: 2px;
   }
   .dl__level-dot {
-    font-size: var(--fs-11);
+    font-size: var(--fs-12);
     line-height: 1;
   }
   .dl__level-name {
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
+    font-size: var(--fs-14);
   }
   .dl__level.is-on {
     color: var(--text);
@@ -856,7 +821,7 @@ const bundle = {
     margin: 0;
     min-height: 1.4em;
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     color: var(--text-secondary);
   }
 
@@ -882,12 +847,12 @@ const bundle = {
     }
   }
   .dl__pip.is-ok {
-    background: var(--a);
-    border-color: var(--a);
+    background: var(--ok);
+    border-color: var(--ok);
   }
   .dl__pip.is-miss {
-    background: var(--surface);
-    border-color: color-mix(in srgb, var(--state-warn) 40%, var(--border));
+    background: var(--bad-soft);
+    border-color: var(--bad);
     opacity: 0.85;
   }
   .dl__pip.is-cur {
@@ -941,7 +906,7 @@ const bundle = {
   .dl__rem-tag {
     align-self: center;
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-11);
+    font-size: var(--fs-12);
     color: var(--text-muted);
     padding: 2px var(--sp-2);
     border: var(--bw-thin) solid var(--border);
@@ -992,7 +957,7 @@ const bundle = {
     cursor: default;
   }
   .dl__choice-val {
-    font-size: var(--fs-17);
+    font-size: var(--fs-18);
     color: var(--text);
     font-variant-numeric: tabular-nums;
   }
@@ -1009,20 +974,20 @@ const bundle = {
       transform var(--dur-fast) var(--ease-soft);
   }
   .dl__choice.is-correct {
-    border-color: var(--a-line);
-    background: color-mix(in srgb, var(--a) 14%, var(--bg-elevated));
+    border-color: var(--ok);
+    background: var(--ok-soft);
   }
   .dl__choice.is-correct .dl__choice-mark {
-    color: var(--a);
+    color: var(--ok);
     opacity: 1;
     transform: none;
   }
   .dl__choice.is-wrong {
-    border-color: color-mix(in srgb, var(--state-warn) 34%, var(--border));
-    opacity: 0.78;
+    border-color: var(--bad);
+    background: var(--bad-soft);
   }
   .dl__choice.is-wrong .dl__choice-mark {
-    color: var(--text-muted);
+    color: var(--bad);
     opacity: 1;
     transform: none;
   }
@@ -1030,26 +995,41 @@ const bundle = {
     opacity: 0.4;
   }
   @media (prefers-reduced-motion: no-preference) {
-    .dl__choice.dl__shake {
-      animation: dl-shake 0.32s var(--ease-standard);
+    /* верный выбор — короткий уверенный рост */
+    .dl__choice.dl__confirm {
+      animation: dl-confirm 0.4s var(--ease-spring);
+    }
+    /* неверный выбор — молча оседает вниз */
+    .dl__choice.dl__fall {
+      animation: dl-fall 0.4s var(--ease-soft);
     }
   }
-  @keyframes dl-shake {
-    0%,
+  @keyframes dl-confirm {
+    0% {
+      transform: scale(1);
+    }
+    45% {
+      transform: scale(1.1);
+    }
     100% {
-      transform: translateX(0);
+      transform: scale(1);
     }
-    25% {
-      transform: translateX(-4px);
+  }
+  @keyframes dl-fall {
+    0% {
+      transform: translateY(0);
     }
-    75% {
-      transform: translateX(4px);
+    45% {
+      transform: translateY(8px);
+    }
+    100% {
+      transform: translateY(0);
     }
   }
 
   .dl__feedback {
     margin: 0;
-    font-size: var(--fs-13);
+    font-size: var(--fs-14);
     color: var(--text-muted);
     min-height: 1.4em;
   }
@@ -1093,11 +1073,11 @@ const bundle = {
     }
   }
   .dl__points-lbl {
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     color: var(--text-muted);
   }
   .dl__points-why {
-    font-size: var(--fs-11);
+    font-size: var(--fs-12);
     color: var(--text-faint);
     margin-inline-start: var(--sp-2);
   }
@@ -1109,7 +1089,7 @@ const bundle = {
     min-height: 38px;
     padding: var(--sp-1) var(--sp-4);
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
+    font-size: var(--fs-14);
     border-radius: var(--r-pill);
     cursor: pointer;
     transition:
@@ -1144,7 +1124,7 @@ const bundle = {
 
   .dl__retry {
     margin: 0;
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     color: var(--text-faint);
     line-height: var(--lh-snug);
   }
@@ -1164,7 +1144,7 @@ const bundle = {
     background: color-mix(in srgb, var(--a) 14%, var(--surface));
     color: var(--text);
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
+    font-size: var(--fs-14);
     white-space: nowrap;
     z-index: 5;
     will-change: transform;
@@ -1209,7 +1189,7 @@ const bundle = {
   }
   .dl__elbow-lbl {
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-11);
+    font-size: var(--fs-12);
     color: var(--text-muted);
   }
   @media (prefers-reduced-motion: no-preference) {
@@ -1245,7 +1225,7 @@ const bundle = {
     min-height: 36px;
     padding: var(--sp-1) var(--sp-3);
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
+    font-size: var(--fs-14);
     color: var(--text-muted);
     background: transparent;
     border: var(--bw-thin) solid var(--border);
@@ -1271,7 +1251,7 @@ const bundle = {
   }
   .dl__why {
     margin: 0;
-    font-size: var(--fs-13);
+    font-size: var(--fs-14);
     line-height: var(--lh-snug);
     color: var(--text-secondary);
     min-height: 2.2em;
@@ -1287,8 +1267,9 @@ const bundle = {
     list-style: none;
   }
   .dl__row {
+    position: relative;
     display: grid;
-    grid-template-columns: 22px 16px minmax(0, 1fr) auto;
+    grid-template-columns: 22px 18px minmax(0, 1fr) auto;
     align-items: center;
     gap: var(--sp-2);
     padding: var(--sp-2) var(--sp-3);
@@ -1301,12 +1282,22 @@ const bundle = {
     transition: transform var(--dur-slower) var(--ease-soft);
   }
   .dl__row.is-you {
-    border-color: var(--a-line);
-    background: color-mix(in srgb, var(--a) 7%, var(--surface));
+    border-color: var(--a);
+    background: color-mix(in srgb, var(--a) 13%, var(--surface));
+  }
+  /* акцентная планка слева — «эта строка твоя» видно даже боковым зрением */
+  .dl__row.is-you::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 3px;
+    border-radius: var(--r-sm) 0 0 var(--r-sm);
+    background: var(--a);
   }
   .dl__place {
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
+    font-size: var(--fs-14);
     color: var(--text-muted);
     text-align: center;
     font-variant-numeric: tabular-nums;
@@ -1316,21 +1307,49 @@ const bundle = {
     font-weight: var(--fw-semibold);
   }
   .dl__medal {
-    width: 16px;
-    text-align: center;
-    font-size: var(--fs-13);
+    width: 18px;
+    height: 18px;
+  }
+  .dl__medal:not(:empty) {
+    display: grid;
+    place-items: center;
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-11);
+    font-weight: var(--fw-semibold);
     line-height: 1;
+    color: var(--a);
+    border: var(--bw-thin) solid var(--a-line);
+    border-radius: 50%;
+    background: var(--a-faint);
   }
   .dl__pname {
-    font-size: var(--fs-14);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    min-width: 0;
+  }
+  .dl__pname-txt {
+    font-size: var(--fs-16);
     color: var(--text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .dl__row.is-you .dl__pname {
+  .dl__row.is-you .dl__pname-txt {
     color: var(--a);
     font-weight: var(--fw-medium);
+  }
+  .dl__you-tag {
+    flex: none;
+    font-family: var(--font-stack-mono);
+    font-size: var(--fs-11);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+    color: var(--bg);
+    background: var(--a);
+    padding: 1px var(--sp-2);
+    border-radius: var(--r-pill);
+    line-height: 1.5;
   }
   .dl__pval {
     display: inline-flex;
@@ -1341,12 +1360,12 @@ const bundle = {
     justify-self: end;
   }
   .dl__pval b {
-    font-size: var(--fs-15);
+    font-size: var(--fs-17);
     color: var(--text);
     font-weight: var(--fw-semibold);
   }
   .dl__pval-unit {
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     color: var(--text-muted);
   }
   .dl__row.is-land {
@@ -1395,14 +1414,14 @@ const bundle = {
   }
   .dl__day-num {
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-13);
+    font-size: var(--fs-14);
     color: var(--text-faint);
   }
   .dl__day-mark {
     position: absolute;
     top: 3px;
     right: 5px;
-    font-size: var(--fs-11);
+    font-size: var(--fs-12);
     line-height: 1;
     color: var(--a);
     opacity: 0;
@@ -1417,7 +1436,7 @@ const bundle = {
     left: 50%;
     transform: translateX(-50%);
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-10);
+    font-size: var(--fs-11);
     color: var(--text-faint);
     white-space: nowrap;
   }
@@ -1462,7 +1481,7 @@ const bundle = {
     display: inline-flex;
     align-items: center;
     gap: var(--sp-2);
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     color: var(--text-secondary);
   }
   .dl__leg-sw {
@@ -1491,14 +1510,14 @@ const bundle = {
   .dl__now {
     margin: 0;
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-14);
+    font-size: var(--fs-15);
     color: var(--text-secondary);
     white-space: nowrap;
   }
   .dl__now b {
     color: var(--a);
     font-weight: var(--fw-semibold);
-    font-size: var(--fs-17);
+    font-size: var(--fs-18);
   }
 
   /* --- Петля-возврат (loop-closer) --- */
@@ -1516,7 +1535,7 @@ const bundle = {
   }
   .dl__loop-lbl {
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-11);
+    font-size: var(--fs-12);
     color: var(--text-muted);
   }
   @media (prefers-reduced-motion: no-preference) {
@@ -1531,7 +1550,7 @@ const bundle = {
   .dl__facts {
     margin: 0;
     font-family: var(--font-stack-mono);
-    font-size: var(--fs-11);
+    font-size: var(--fs-12);
     line-height: var(--lh-normal);
     color: var(--text-faint);
     overflow-wrap: anywhere;
@@ -1608,17 +1627,10 @@ const bundle = {
       min-height: 44px;
       flex: 1;
     }
-    .dl__intro {
-      font-size: var(--fs-14);
-      max-width: 100%;
-    }
   }
 
   /* ----------------------- reduced-motion: статичный финал ----------------------- */
   @media (prefers-reduced-motion: reduce) {
-    .dl__zone {
-      opacity: 1 !important;
-    }
     .dl__board.is-flip .dl__row,
     .dl__row,
     .dl__node,
@@ -2034,7 +2046,7 @@ const bundle = {
         const c = choices?.[i];
         const valEl = btn.querySelector<HTMLElement>("[data-val]");
         const markEl = btn.querySelector<HTMLElement>("[data-mark]");
-        btn.classList.remove("is-correct", "is-wrong", "is-faded", "dl__shake");
+        btn.classList.remove("is-correct", "is-wrong", "is-faded", "dl__confirm", "dl__fall");
         btn.disabled = false;
         if (markEl) markEl.textContent = "";
         if (c) {
@@ -2088,13 +2100,18 @@ const bundle = {
         if (c.correct) {
           btn.classList.add("is-correct");
           if (m) m.textContent = "✓";
+          if (i === choiceIdx && !reduced && inview) {
+            btn.classList.remove("dl__confirm");
+            void btn.offsetWidth;
+            btn.classList.add("dl__confirm");
+          }
         } else if (i === choiceIdx) {
           btn.classList.add("is-wrong");
           if (m) m.textContent = "✕";
           if (!reduced && inview) {
-            btn.classList.remove("dl__shake");
+            btn.classList.remove("dl__fall");
             void btn.offsetWidth;
-            btn.classList.add("dl__shake");
+            btn.classList.add("dl__fall");
           }
         } else {
           btn.classList.add("is-faded");
@@ -2293,7 +2310,7 @@ const bundle = {
     const whyEl = root.querySelector<HTMLElement>("[data-why]");
     const rowEls = Array.from(root.querySelectorAll<HTMLElement>("[data-row]"));
     let curMode = "streak";
-    const medals = ["①", "②", "③"];
+    const medals = ["1", "2", "3"];
 
     const live: Record<string, { solved: number; accuracy: number; weighted: number; streak: number }> = {};
     data.players.forEach((p) => {

@@ -79,34 +79,72 @@
   ],
   "overview": {
     "ru": [
-      "Тему для урока формулируешь сам - произвольным текстовым запросом, хоть под конкретный вопрос с собеседования. После запроса начинается работа агента: lesson-forge проверяет тему на конфликты с каталогом и генерирует пакет - MDX-теория и YAML-задачи, прошедшие автоматическую валидацию в браузерном рантайме. Всё это коммитится в репо, а не записывается в базу - поэтому тему можно форкнуть, расширить или исправить обычным pull request.",
+      "Тему для урока формулируешь сам - произвольным текстовым запросом, хоть под конкретный вопрос с собеседования. После запроса начинается работа агента: lesson-forge проверяет тему на конфликты с каталогом и генерирует пакет - MDX-теория и YAML-задачи, прошедшие автоматическую валидацию в браузерном рантайме. Всё это коммитится в репо, а не записывается в базу - поэтому тему можно форкнуть, расширить или исправить обычным pull request. Рядом с темами есть готовый банк из 368 вопросов с собеседований на 10 направлений - тоже с разбором «как отвечать», упражнениями и отдельным режимом флэшкарт.",
       "Код выполняется в Web Worker, где при старте нейтрализуются 15 сетевых API: fetch, WebSocket, RTCPeerConnection, BroadcastChannel и другие. Написанный код не может ни отправить данные, ни открыть скрытый канал - это не политика, это архитектура. Прогресс, заметки, закладки и FSRS-карточки для интервального повторения живут в IndexedDB; бэкенд опционален, платформа ставится как PWA и работает офлайн. Из настроек: язык контента (RU/EN на лету), сложность упражнений, дневная цель, шрифт, размер текста и параметры Monaco-редактора."
     ],
     "en": [
-      "You put the lesson topic into words yourself - a free-form request, even for one specific interview question. Once you ask, the agent gets to work: lesson-forge checks the topic for conflicts with the existing catalog and generates a package - MDX theory and YAML exercises that are automatically validated in the browser runtime. Everything gets committed to the repo, not written to a database - which means any topic can be forked, extended, or fixed with a normal pull request.",
+      "You put the lesson topic into words yourself - a free-form request, even for one specific interview question. Once you ask, the agent gets to work: lesson-forge checks the topic for conflicts with the existing catalog and generates a package - MDX theory and YAML exercises that are automatically validated in the browser runtime. Everything gets committed to the repo, not written to a database - which means any topic can be forked, extended, or fixed with a normal pull request. Alongside the topics sits a ready-made bank of 368 interview questions across 10 tracks - also with a \"how to answer\" breakdown, exercises, and its own flashcard mode.",
       "Code runs in a Web Worker where 15 network APIs are neutralized at startup: fetch, WebSocket, RTCPeerConnection, BroadcastChannel, and others. What you write cannot send data out or open a hidden channel - that's architecture, not policy. Progress, notes, bookmarks, and FSRS flashcards live in IndexedDB; the backend is optional and the platform installs as a PWA for full offline use. Configurable settings include content language (RU/EN on the fly), exercise difficulty, daily goal, font, text size, and Monaco editor preferences."
     ]
   },
   "metrics": [
     {
-      "value": "330k+",
+      "value": "~3",
+      "unit": "недели",
+      "span": 5,
       "label": {
-        "ru": "строк в монорепо: код + контент тем",
-        "en": "lines in the monorepo: code + topic content"
+        "ru": "от первого коммита до прод-харденинга",
+        "en": "from first commit to production hardening"
       }
     },
     {
-      "value": "34",
+      "value": "57",
+      "unit": "k+",
+      "span": 4,
       "label": {
-        "ru": "темы в каталоге",
-        "en": "topics in the catalog"
+        "ru": "строк кода: apps и packages",
+        "en": "lines of code: apps and packages"
+      }
+    },
+    {
+      "value": "140",
+      "unit": "k+",
+      "span": 3,
+      "label": {
+        "ru": "строк контента: 34 темы в MDX и YAML",
+        "en": "lines of content: 34 topics in MDX and YAML"
+      }
+    },
+    {
+      "value": "368",
+      "span": 3,
+      "label": {
+        "ru": "вопросов для собеседований в 10 категориях",
+        "en": "interview questions across 10 categories"
       }
     },
     {
       "value": "7",
+      "span": 3,
       "label": {
         "ru": "типов упражнений · sql.js + Pyodide в WASM",
         "en": "exercise types · sql.js + Pyodide in WASM"
+      }
+    },
+    {
+      "value": "50",
+      "span": 3,
+      "label": {
+        "ru": "коммитов до продакшн-релиза",
+        "en": "commits to a production release"
+      }
+    },
+    {
+      "value": "380",
+      "span": 3,
+      "label": {
+        "ru": "автотестов (vitest)",
+        "en": "automated tests (vitest)"
       }
     }
   ],
@@ -141,6 +179,18 @@
       "desc": {
         "ru": "Файловые темы: manifest, MDX-теория и YAML-задачи",
         "en": "File-based topics: manifest, MDX theory and YAML tasks"
+      }
+    },
+    {
+      "id": "interview",
+      "col": 0,
+      "row": 2,
+      "label": "interview/",
+      "icon": "dot",
+      "width": 150,
+      "desc": {
+        "ru": "Отдельный банк вопросов для собеседований: статьи и упражнения",
+        "en": "A separate interview-question bank: articles and exercises"
       }
     },
     {
@@ -232,6 +282,13 @@
       "oneway": true
     },
     {
+      "from": "interview",
+      "to": "web",
+      "kind": "data",
+      "label": "glob",
+      "oneway": true
+    },
+    {
       "from": "contracts",
       "to": "web",
       "kind": "data",
@@ -282,19 +339,27 @@
         "en": "Topics as code"
       },
       "description": {
-        "ru": "Каждая тема - типобезопасный модуль: теория в MDX, упражнения в YAML, опциональный sandbox. Не строка в базе, поэтому форки мёрджатся чисто.",
-        "en": "Each topic is a type-safe module: theory in MDX, exercises in YAML, an optional sandbox. Not a database row, so forks merge cleanly."
+        "ru": "Каждая тема - файлы в репозитории: теория в MDX, упражнения в YAML. Не строка в базе, поэтому правку можно предложить обычным pull request.",
+        "en": "Each topic is files in the repo: theory in MDX, exercises in YAML. Not a database row, so a fix can land as a normal pull request."
+      },
+      "detail": {
+        "ru": "Zod-схема проверяет манифест темы по 70+ правилам - от уникальности до паритета RU/EN. Провал хотя бы одной проверки - и правка не мёрджится.",
+        "en": "A Zod schema checks the topic manifest against 70+ rules - from uniqueness to RU/EN parity. Fail even one, and the change doesn't merge."
       }
     },
     {
       "icon": "spark",
       "title": {
-        "ru": "Codegen через lesson-forge",
-        "en": "Codegen via lesson-forge"
+        "ru": "AI-агент lesson-forge",
+        "en": "The lesson-forge AI agent"
       },
       "description": {
-        "ru": "AI-агент генерирует тему, валидирует её против Zod-контракта, прогоняет gold-решения в sandbox и открывает PR. Качество проверяет CI.",
-        "en": "An AI agent generates a topic, validates it against the Zod contract, runs gold solutions in the sandbox, and opens a PR. CI checks quality."
+        "ru": "AI сам пишет курс - теорию и упражнения, - валидирует его и решает свои же задачи в песочнице, прежде чем открыть PR.",
+        "en": "The AI writes a whole course itself - theory and exercises - validates it, and solves its own exercises in the sandbox before opening a PR."
+      },
+      "detail": {
+        "ru": "Если эталонное решение AI не проходит в той же песочнице, что увидит ученик - PR не откроется. CI отдельно проверяет сборку теории и паритет вариантов.",
+        "en": "If the AI's own reference solution fails in the exact sandbox a learner sees, the PR never opens. CI separately checks theory compilation and variant parity."
       }
     },
     {
@@ -304,8 +369,57 @@
         "en": "Code in the browser"
       },
       "description": {
-        "ru": "sql.js и Pyodide в Web Workers, Monaco-редактор и семь типов упражнений. Реальное исполнение без сервера.",
-        "en": "sql.js and Pyodide in Web Workers, a Monaco editor, and seven exercise types. Real execution, no server."
+        "ru": "sql.js и Pyodide в Web Workers, Monaco-редактор - Python и SQL реально исполняются в браузере, без сервера.",
+        "en": "sql.js and Pyodide in Web Workers, a Monaco editor - Python and SQL genuinely execute in the browser, no server involved."
+      },
+      "detail": {
+        "ru": "Воркер стартует с отключёнными fetch, WebSocket и ещё десятком сетевых API - написанное физически не может уйти наружу. Редактор - с автодополнением по SQL-схеме и двумя авторскими темами.",
+        "en": "The worker starts with fetch, WebSocket, and a dozen other network APIs disabled - what's written physically can't leak out. The editor offers SQL-schema autocompletion and two custom themes."
+      }
+    },
+    {
+      "icon": "stack",
+      "title": {
+        "ru": "Семь типов упражнений",
+        "en": "Seven exercise types"
+      },
+      "description": {
+        "ru": "От квиза до Python-функции - каждый тип проверяется автоматически. Самый неожиданный - git-challenge: настоящий Git, смоделированный в браузере.",
+        "en": "From a quiz to a Python function - every type grades itself automatically. The most unexpected one is git-challenge: real Git, simulated in the browser."
+      },
+      "detail": {
+        "ru": "Собственный движок на ~600 строк реально выполняет commit, branch, merge, rebase, stash - без риска что-то сломать в настоящем репозитории.",
+        "en": "A homemade ~600-line engine genuinely runs commit, branch, merge, rebase, stash - with zero risk to any real repository."
+      }
+    },
+    {
+      "icon": "dot",
+      "title": {
+        "ru": "Банк вопросов для собеседований",
+        "en": "Interview question bank"
+      },
+      "description": {
+        "ru": "368 вопросов в 10 категориях - от структур данных до system design - с разбором «как отвечать», плюс режимы флэшкарт и экзамена.",
+        "en": "368 questions across 10 categories - from data structures to system design - each with a \"how to answer\" breakdown, plus flashcard and exam modes."
+      },
+      "detail": {
+        "ru": "Вырос из открытого набора вопросов по Python и полностью переписан: своя структура статей, 988 собственных упражнений и диаграмм.",
+        "en": "Grew from an open Python question set, fully rewritten: its own article structure, 988 original exercises and diagrams."
+      }
+    },
+    {
+      "icon": "rocket",
+      "title": {
+        "ru": "Карточки, которые сами напоминают",
+        "en": "Flashcards that remind you on their own"
+      },
+      "description": {
+        "ru": "FSRS-алгоритм считает, когда карточку пора повторить: увереннее отвечаешь - реже видишь, начал забывать - вернёт раньше.",
+        "en": "The FSRS algorithm decides when a card is due: answer confidently and you see it less, start forgetting and it comes back sooner."
+      },
+      "detail": {
+        "ru": "Тот же принцип, что в приложениях для изучения языков. Отдельно - heatmap активности за 14 недель, как на GitHub.",
+        "en": "Same principle as language-learning apps. Separately, a 14-week activity heatmap, like GitHub's."
       }
     },
     {
@@ -315,19 +429,27 @@
         "en": "Local-first"
       },
       "description": {
-        "ru": "Плеер открывается на localhost без бэкенда, аккаунтов и интернета. Прогресс в IndexedDB, GitHub-style heatmap и FSRS-повторения.",
-        "en": "The player opens on localhost with no backend, accounts, or internet. Progress in IndexedDB, a GitHub-style heatmap, and FSRS reviews."
+        "ru": "Открывается на localhost - без бэкенда, аккаунтов, интернета - и ставится как PWA для полного офлайна.",
+        "en": "Opens on localhost - no backend, no accounts, no internet - and installs as a PWA for full offline use."
+      },
+      "detail": {
+        "ru": "Backend нужен только для приёма заявок и админки - всё остальное (тренажёр, прогресс, карточки) живёт в браузере на IndexedDB.",
+        "en": "The backend is only needed for submission intake and admin - everything else (exercises, progress, flashcards) lives in the browser on IndexedDB."
       }
     },
     {
       "icon": "user",
       "title": {
-        "ru": "Сообщество и админка",
-        "en": "Community and admin"
+        "ru": "Сообщество и свой сервер",
+        "en": "Community and your own server"
       },
       "description": {
-        "ru": "Заявки на темы через PR или форму, модерация в защищённой админке (TOTP, argon2, JWT) и self-hosting в Docker.",
-        "en": "Topic submissions via PR or a form, moderation in a hardened admin (TOTP, argon2, JWT), and self-hosting in Docker."
+        "ru": "Заявки на темы - через PR или форму, модерация в админке с TOTP-двухфакторкой, self-hosting в Docker.",
+        "en": "Topic proposals via PR or form, moderation in a TOTP two-factor admin, self-hosting in Docker."
+      },
+      "detail": {
+        "ru": "Форма ограничена 5 заявками в минуту с адреса. Вход - пароль плюс одноразовый код, 5 промахов подряд - блокировка на 5 минут.",
+        "en": "The form is capped at 5 submissions per minute per address. Login needs a password plus a one-time code; 5 wrong attempts locks it for 5 minutes."
       }
     }
   ],
@@ -344,14 +466,25 @@
       }
     },
     {
+      "date": "11 Jun 2026",
+      "title": {
+        "ru": "Взрыв контента",
+        "en": "Content explosion"
+      },
+      "description": {
+        "ru": "lesson-forge доказывает скорость: каталог растёт с 1 до 21 темы за два дня - 15 тем одним коммитом, плюс первые заготовки будущего банка вопросов для собеседований.",
+        "en": "lesson-forge proves its speed: the catalog grows from 1 to 21 topics in two days - 15 topics in a single commit, plus the first seeds of what becomes the interview-question bank."
+      }
+    },
+    {
       "date": "16 Jun 2026",
       "title": {
         "ru": "Контент и flashcards",
         "en": "Content and flashcards"
       },
       "description": {
-        "ru": "28 тем на RU+EN, flashcard-деки, lesson-forge + Zod-контракт, vitest-тесты, NestJS-бэкенд с заявками.",
-        "en": "28 bilingual RU/EN topics, flashcard decks, lesson-forge with Zod contract, vitest tests, and a NestJS backend for submissions."
+        "ru": "28 тем на RU+EN, седьмой тип упражнений git-challenge (детерминированный git-движок в браузере), flashcard-деки, lesson-forge + Zod-контракт, vitest-тесты, NestJS-бэкенд с заявками.",
+        "en": "28 bilingual RU/EN topics, a 7th exercise type git-challenge (a deterministic in-browser git engine), flashcard decks, lesson-forge with Zod contract, vitest tests, and a NestJS backend for submissions."
       }
     },
     {
@@ -363,6 +496,17 @@
       "description": {
         "ru": "Sandbox-фиксы для Pyodide, CSP, pre-launch security hardening, CI gates (i18n, bundle, coverage, a11y).",
         "en": "Pyodide sandbox fixes, CSP, pre-launch security hardening, and CI gates for i18n, bundle, coverage, and a11y."
+      }
+    },
+    {
+      "date": "30 Jun 2026",
+      "title": {
+        "ru": "Финальная доводка",
+        "en": "Final polish"
+      },
+      "description": {
+        "ru": "Каталог дорастает до 34 тем (django, DRF, python-testing, S3, Litestar), NestJS обновлён до мажорной 11 версии, ещё один проход харденинга закрывает уязвимости перед показом.",
+        "en": "The catalog reaches its final 34 topics (django, DRF, python-testing, S3, Litestar), NestJS is upgraded to major version 11, and one more hardening pass clears vulnerabilities before launch."
       }
     }
   ]

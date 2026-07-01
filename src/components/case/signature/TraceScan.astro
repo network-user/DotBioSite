@@ -42,8 +42,8 @@ type Bi = { ru: string; en: string };
 const t = (b: Bi): string => b[locale];
 
 const intro: Bi = {
-  ru: "Выберите IP из логов брутфорса и нажмите «Проследить». Шесть источников опрашиваются параллельно и собирают из голого адреса досье: страна, оператор, сеть, имя хоста и уровень угрозы. Если один источник молчит, досье всё равно собирается.",
-  en: "Pick an IP from the brute-force logs and hit “Trace”. Six sources are queried in parallel and turn a bare address into a dossier: country, operator, network, hostname, and a threat level. If one source goes silent, the dossier still assembles.",
+  ru: "Шесть источников опрашиваются параллельно и собирают из голого адреса досье: страна, оператор, сеть, имя хоста и уровень угрозы. Если один источник молчит, досье всё равно собирается.",
+  en: "Six sources are queried in parallel and turn a bare address into a dossier: country, operator, network, hostname, and a threat level. If one source goes silent, the dossier still assembles.",
 };
 
 // --- Адреса-«улики»: реальные по форме IP из логов SSH/RDP-брутфорса. ---

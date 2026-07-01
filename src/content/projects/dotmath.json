@@ -81,6 +81,14 @@
   },
   "metrics": [
     {
+      "value": "~4",
+      "unit": "месяца",
+      "label": {
+        "ru": "от первого коммита до сейчас",
+        "en": "from the first commit to now"
+      }
+    },
+    {
       "value": "9k",
       "label": {
         "ru": "строк кода",
@@ -88,24 +96,24 @@
       }
     },
     {
-      "value": "7",
+      "value": "28",
       "label": {
-        "ru": "типов операций × 3 уровня",
-        "en": "operation types × 3 levels"
+        "ru": "коммитов",
+        "en": "commits"
       }
     },
     {
-      "value": "4",
+      "value": "213",
       "label": {
-        "ru": "среза одного рейтинга",
-        "en": "cuts of one leaderboard"
+        "ru": "автотестов",
+        "en": "automated tests"
       }
     },
     {
-      "value": "RU/EN",
+      "value": "48",
       "label": {
-        "ru": "переключение языка на лету",
-        "en": "language switch on the fly"
+        "ru": "обработчиков команд и колбэков",
+        "en": "command and callback handlers"
       }
     }
   ],
@@ -408,14 +416,25 @@
       }
     },
     {
-      "date": "Jun 2026",
+      "date": "16 Jun 2026",
       "title": {
-        "ru": "Postgres-only и хардненинг",
-        "en": "Postgres-only and hardening"
+        "ru": "Закрытая сеть, Postgres-only",
+        "en": "Closed network, Postgres-only"
       },
       "description": {
-        "ru": "Отказ от SQLite-тулинга (только PostgreSQL), хардненинг контейнера, права CI и timing-safe проверка пароля бэкапа.",
-        "en": "Dropped SQLite tooling (PostgreSQL-only), container hardening, CI permissions, and a timing-safe backup-password check."
+        "ru": "Docker-образ хардится на tini и непривилегированном пользователе, Postgres и Redis лишаются последнего открытого порта наружу, CI получает сборку образа; следом - полный отказ от SQLite-тулинга в пользу единственной базы, Postgres.",
+        "en": "The Docker image gets hardened onto tini with a non-root user, Postgres and Redis lose their last exposed port, CI gains an image-build job; right after, SQLite tooling is dropped entirely for a single Postgres-only database."
+      }
+    },
+    {
+      "date": "Jun 2026",
+      "title": {
+        "ru": "Сейчас: секреты и права под замком",
+        "en": "Now: secrets and permissions under lock"
+      },
+      "description": {
+        "ru": "Ужесточаются права контейнера и CI, пароль бэкапа получает timing-safe проверку; следом pg_dump уходит со строки подключения в логах на переменную окружения, healthcheck бота работает по heartbeat-файлу, GitHub Actions запинены на коммит, а SECURITY.md открывает приватный канал раскрытия уязвимостей через GitHub Security Advisories.",
+        "en": "Container and CI permissions get tightened and the backup password gains a timing-safe check; right after, pg_dump moves off a logged connection string onto an environment variable, the bot's healthcheck runs off a heartbeat file, GitHub Actions get pinned to a commit, and SECURITY.md opens a private vulnerability-disclosure channel via GitHub Security Advisories."
       }
     }
   ]
