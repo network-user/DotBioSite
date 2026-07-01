@@ -45,6 +45,12 @@ if [ -z "$DOMAIN" ]; then
 	echo "Ошибка: домен обязателен." >&2
 	exit 1
 fi
+# Валидация: только буквы, цифры, точка и дефис (имя хоста). Закрывает попадание
+# спецсимволов в sed-подстановку Caddyfile ('|', '&') и мусора в сам конфиг.
+if ! printf '%s' "$DOMAIN" | grep -qE '^[A-Za-z0-9.-]+$'; then
+	echo "Ошибка: недопустимый домен '$DOMAIN' (разрешены буквы, цифры, точка, дефис)." >&2
+	exit 1
+fi
 echo "==> Домен: $DOMAIN"
 
 export DEBIAN_FRONTEND=noninteractive

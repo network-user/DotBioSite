@@ -29,6 +29,10 @@ fi
 # Порог НОВЫХ соединений в секунду на один IP; BURST — кратковременный запас.
 RATE="${RATE:-50}"
 BURST="${BURST:-100}"
+# RATE/BURST подставляются в текст nft-правил — пускаем только целые числа,
+# чтобы env-значение не внесло в конфиг ничего, кроме порога.
+case "$RATE" in "" | *[!0-9]*) echo "Ошибка: RATE должен быть целым числом." >&2; exit 1 ;; esac
+case "$BURST" in "" | *[!0-9]*) echo "Ошибка: BURST должен быть целым числом." >&2; exit 1 ;; esac
 
 RULES_DIR="/etc/nftables.d"
 RULES_FILE="$RULES_DIR/ddos-guard.nft"
