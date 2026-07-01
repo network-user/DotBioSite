@@ -1,5 +1,3 @@
-> Последний прогон: onyx-sentinel · 2026-07-02. Снимок: [2026-07-02-onyx-sentinel.md](2026-07-02-onyx-sentinel.md) · история: [docs/audit/](.)
-
 # Security Audit · Onyx Sentinel · 2026-07-02
 
 | Поле    | Значение             |

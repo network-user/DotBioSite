@@ -11,12 +11,22 @@ interface Props {
 const { locale } = Astro.props;
 const t = useTranslations(locale);
 
-// Lede блока контактов зациклено ротирует короткие фразы вместо статичного
-// предложения. Каждая фраза держится LEDE_STEP секунд с плавным кросс-фейдом;
-// под prefers-reduced-motion CSS откатывает раскладку к обычному потоку -
-// все фразы читаются подряд одной строкой без анимации (см. <style> ниже).
+// Заголовок блока контактов - не статичная фраза, а зацикленные короткие
+// фразы (заменяют title в SectionHeader через slot="title"). Каждая фраза
+// держится LEDE_STEP секунд; внутри неё буквы всплывают волной по одной
+// (CHAR_STEP секунд между соседними) вместо жёсткого сдвига всего слова
+// целиком. Под prefers-reduced-motion CSS откатывает раскладку к обычному
+// потоку - все фразы читаются подряд одной строкой без анимации (см. <style>
+// ниже).
 const ledePhrases = t<string[]>("contact.ledePhrases");
 const LEDE_STEP = 2.4;
+const CHAR_STEP = 0.02;
+
+// Каждая кнопка-канал (email/копия/github/telegram) покачивается на своей
+// внутренней обёртке (.contact__channel-sway), а не на самой кнопке — иначе
+// анимация конфликтовала бы с translateY(-2px) из .glass--hover:hover.
+// Сдвиг фазы на кнопку, чтобы «буйки» покачивались не синхронно.
+const CHANNEL_SWAY_STEP = 0.5;
 
 // В блоке контактов сознательно показываем только email, GitHub и Telegram -
 // LinkedIn/X/VK остаются в config для About.astro и JSON-LD, но не в этом списке.
@@ -48,27 +58,24 @@ const briefOptions = hasEmail
 
 <section class="section contact" id="contact" aria-labelledby="contact-title">
   <div class="container contact__inner">
-    <SectionHeader
-      id="contact-title"
-      kicker={t("contact.kicker")}
-      title={t("contact.title")}
-      align="center"
-    >
-      <p
-        slot="lede"
-        class="section-header__lede subtitle lede-rotator"
-        data-reveal
-        data-reveal-delay="120"
-      >
+    <SectionHeader id="contact-title" kicker={t("contact.kicker")} align="center">
+      <span slot="title" class="contact__headline-rotator" data-reveal data-reveal-delay="60">
         {
           ledePhrases.map((phrase, i) => (
-            <span class="lede-rotator__phrase" style={`animation-delay: ${(i * LEDE_STEP).toFixed(2)}s`}>
-              {phrase}
+            <span class="contact__headline-phrase">
+              {phrase.split("").map((ch, ci) => (
+                <span
+                  class="contact__headline-char"
+                  style={`animation-delay: ${(i * LEDE_STEP + ci * CHAR_STEP).toFixed(3)}s`}
+                >
+                  {ch}
+                </span>
+              ))}
               {i < ledePhrases.length - 1 ? " " : ""}
             </span>
           ))
         }
-      </p>
+      </span>
     </SectionHeader>
 
     {
@@ -116,11 +123,13 @@ const briefOptions = hasEmail
             >
               <span class="contact__channel-glow" aria-hidden="true" />
               <span class="contact__channel-pulse" aria-hidden="true" />
-              <Icon name="mail" size={20} />
-              <span class="contact__channel-label" data-contact-label>
-                {t("contact.email")}
+              <span class="contact__channel-sway" style={`animation-delay: ${(0 * CHANNEL_SWAY_STEP).toFixed(2)}s`}>
+                <Icon name="mail" size={20} />
+                <span class="contact__channel-label" data-contact-label>
+                  {t("contact.email")}
+                </span>
+                <Icon name="arrow-right" size={15} class="contact__channel-trailing" />
               </span>
-              <Icon name="arrow-right" size={15} class="contact__channel-trailing" />
               <span class="contact__channel-ring" aria-hidden="true" />
             </button>
             <button
@@ -136,11 +145,13 @@ const briefOptions = hasEmail
               data-reveal-delay="80"
             >
               <span class="contact__channel-glow" aria-hidden="true" />
-              <Icon name="copy" size={20} />
-              <span class="contact__channel-label" data-contact-label>
-                {t("contact.copyEmail")}
+              <span class="contact__channel-sway" style={`animation-delay: ${(1 * CHANNEL_SWAY_STEP).toFixed(2)}s`}>
+                <Icon name="copy" size={20} />
+                <span class="contact__channel-label" data-contact-label>
+                  {t("contact.copyEmail")}
+                </span>
+                <Icon name="check" size={15} class="contact__copy-check" />
               </span>
-              <Icon name="check" size={15} class="contact__copy-check" />
             </button>
           </>
         ) : (
@@ -166,9 +177,14 @@ const briefOptions = hasEmail
               data-reveal-delay={(i + 1) * 80}
             >
               <span class="contact__channel-glow" aria-hidden="true" />
-              <Icon name={s.id} size={20} />
-              <span class="contact__channel-label">{t(`contact.${s.id}`)}</span>
-              <Icon name="external" size={15} class="contact__channel-trailing" />
+              <span
+                class="contact__channel-sway"
+                style={`animation-delay: ${((i + 2) * CHANNEL_SWAY_STEP).toFixed(2)}s`}
+              >
+                <Icon name={s.id} size={20} />
+                <span class="contact__channel-label">{t(`contact.${s.id}`)}</span>
+                <Icon name="external" size={15} class="contact__channel-trailing" />
+              </span>
             </a>
           ) : (
             <span
@@ -399,6 +415,35 @@ const briefOptions = hasEmail
 
   .contact__channel-trailing {
     flex-shrink: 0;
+  }
+
+  /* Внутренняя обёртка контента кнопки - покачивается как буёк на воде,
+     независимо от самой кнопки (та поднимается на hover через .glass--hover,
+     и эти два transform не должны конкурировать за одно и то же свойство). */
+  .contact__channel-sway {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: inherit;
+    width: 100%;
+    min-width: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .contact__channel-sway {
+      animation: contact-channel-sway 5s var(--ease-drift) infinite;
+    }
+  }
+
+  @keyframes contact-channel-sway {
+    0%,
+    100% {
+      transform: translateY(0) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-3px) rotate(-1deg);
+    }
   }
 
   .contact__channel-label {
@@ -639,40 +684,81 @@ const briefOptions = hasEmail
     }
   }
 
-  /* Lede-ротация: по умолчанию фразы идут обычным текстовым потоком (та же
-     верстка, что и у статичного lede в других секциях) - это и есть
-     reduced-motion/no-JS фолбэк, а не отдельная ветка. Стек-анимация
-     появляется только когда браузер разрешает движение. */
+  /* Кикер «контакты» покачивается медленно и плавно, будто на воде - только
+     здесь (id contact-title уникален на странице), остальные секции этот
+     :global не задевает. */
   @media (prefers-reduced-motion: no-preference) {
-    .lede-rotator {
+    :global(#contact-title .section-header__kicker) {
+      display: inline-flex;
+      animation: contact-kicker-float 6s var(--ease-drift) infinite;
+    }
+  }
+
+  @keyframes contact-kicker-float {
+    0%,
+    100% {
+      transform: translateY(0) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-4px) rotate(-1deg);
+    }
+  }
+
+  /* Заголовок-волна: фразы заменяют статичный h2 и всплывают по букве -
+     каждая буква приподнимается и проявляется чуть позже соседней
+     (CHAR_STEP), на входе с лёгким пружинным перелётом (--ease-spring), на
+     выходе - мягко (--ease-soft). Сами фразы стоят друг на друге в одной
+     grid-ячейке; видна только та, чьи буквы сейчас в фазе opacity:1. По
+     умолчанию (reduced-motion/no-JS фолбэк) весь текст идёт обычным
+     потоком одной строкой - отдельной ветки для этого не нужно. */
+  .contact__headline-rotator {
+    display: inline;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .contact__headline-rotator {
       display: grid;
       justify-items: center;
     }
 
-    .lede-rotator__phrase {
-      display: inline-block;
+    .contact__headline-phrase {
+      display: inline-flex;
       grid-row: 1;
       grid-column: 1;
       white-space: nowrap;
-      opacity: 0;
-      transform: translateY(6px);
-      animation: lede-phrase-cycle 7.2s var(--ease-soft) infinite;
     }
 
-    @keyframes lede-phrase-cycle {
-      0%,
-      100% {
+    .contact__headline-char {
+      display: inline-block;
+      white-space: pre;
+      /* Разбивка на буквы теряет кернинг соседних пар символов - без
+         компенсации слово выглядит растянутым. Подтягиваем trekking сильнее,
+         чем у обычного заголовка (--ls-display: -0.02em). */
+      letter-spacing: -0.12em;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: contact-headline-char 7.2s infinite;
+    }
+
+    @keyframes contact-headline-char {
+      0% {
         opacity: 0;
-        transform: translateY(6px);
+        transform: translateY(10px);
+        animation-timing-function: var(--ease-spring);
       }
-      6%,
+      6% {
+        opacity: 1;
+        transform: translateY(0);
+        animation-timing-function: var(--ease-soft);
+      }
       27% {
         opacity: 1;
         transform: translateY(0);
       }
-      33% {
+      33%,
+      100% {
         opacity: 0;
-        transform: translateY(-6px);
+        transform: translateY(-8px);
       }
     }
   }

@@ -5,7 +5,7 @@
  */
 interface Props {
   kicker?: string;
-  title: string;
+  title?: string;
   lede?: string;
   id?: string;
   align?: "left" | "center";
@@ -26,7 +26,7 @@ const { kicker, title, lede, id, align = "left" } = Astro.props;
     )
   }
   <h2 class="section-header__title display" data-reveal data-reveal-delay="60">
-    {title}
+    <slot name="title">{title}</slot>
   </h2>
   <slot name="lede">
     {

@@ -1,6 +1,6 @@
 ---
 import { useTranslations, type Locale } from "../lib/i18n";
-import { config, authorName } from "../lib/config";
+import { config, authorName, socials } from "../lib/config";
 import Icon from "./Icon/Icon.astro";
 
 interface Props {
@@ -26,16 +26,34 @@ const brand = authorName(locale);
         <span class="footer__brand-year">© {year}. {t("footer.rights")}</span>
       </div>
 
-      {
-        repoUrl && (
-          <div class="footer__meta">
+      <div class="footer__meta">
+        {
+          socials.map((s) => (
+            <a
+              href={s.url}
+              target="_blank"
+              rel="noopener noreferrer me"
+              class="footer__icon-link"
+              aria-label={t(`contact.${s.id}`)}
+            >
+              <Icon name={s.id} size={16} />
+            </a>
+          ))
+        }
+
+        {
+          repoUrl && (
             <a href={repoUrl} target="_blank" rel="noopener noreferrer" class="footer__link">
               <Icon name="github" size={14} />
               <span>{t("footer.sourceCode")}</span>
             </a>
-          </div>
-        )
-      }
+          )
+        }
+
+        <a href="https://astro.build" target="_blank" rel="noopener noreferrer" class="footer__link">
+          <span>{t("footer.builtWith")}</span>
+        </a>
+      </div>
     </div>
   </div>
 </footer>
@@ -108,6 +126,25 @@ const brand = authorName(locale);
     opacity: 1;
   }
 
+  .footer__icon-link {
+    display: inline-grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--r-pill);
+    border: var(--bw-thin) solid var(--border);
+    color: var(--text-secondary);
+    transition:
+      color var(--dur-fast) var(--ease-standard),
+      border-color var(--dur-fast) var(--ease-standard);
+  }
+
+  .footer__icon-link:hover {
+    color: var(--text);
+    border-color: var(--border-hover);
+    opacity: 1;
+  }
+
   /* Тач: доводим hit-area до 44px и даём мгновенный отклик на палец (:hover нет). */
   @media (hover: none) {
     .footer__link {
@@ -115,6 +152,15 @@ const brand = authorName(locale);
     }
     .footer__link:active {
       color: var(--text);
+      opacity: 1;
+    }
+    .footer__icon-link {
+      width: var(--tap-min);
+      height: var(--tap-min);
+    }
+    .footer__icon-link:active {
+      color: var(--text);
+      border-color: var(--border-hover);
       opacity: 1;
     }
   }
