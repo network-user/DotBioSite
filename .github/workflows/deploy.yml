@@ -57,17 +57,24 @@ jobs:
       # ---------------------------------------------------------------------
       - name: Trigger remote deploy
         if: github.event_name != 'pull_request'
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_REPO_PATH: ${{ secrets.DEPLOY_REPO_PATH }}
         run: |
           install -d -m 700 "$HOME/.ssh"
-          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$HOME/.ssh/deploy_key"
           chmod 600 "$HOME/.ssh/deploy_key"
-          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" > "$HOME/.ssh/known_hosts" 2>/dev/null
+          ssh-keyscan -H "$DEPLOY_HOST" > "$HOME/.ssh/known_hosts" 2>/dev/null
           ssh -i "$HOME/.ssh/deploy_key" -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
-            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            "sudo /bin/bash ${{ secrets.DEPLOY_REPO_PATH }}/deploy/update.sh"
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "sudo /bin/bash $DEPLOY_REPO_PATH/deploy/update.sh"
 
       - name: Health check
         if: github.event_name != 'pull_request'
+        env:
+          PUBLIC_DOMAIN: ${{ secrets.PUBLIC_DOMAIN }}
         run: |
           sleep 2
-          curl -fsS "${{ secrets.PUBLIC_DOMAIN }}" > /dev/null
+          curl -fsS "$PUBLIC_DOMAIN" > /dev/null
