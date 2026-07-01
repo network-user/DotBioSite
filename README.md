@@ -4,10 +4,17 @@
   <img src="https://img.shields.io/badge/Node.js-20%2B-339933?style=flat" alt="Node.js" />
   <img src="https://img.shields.io/badge/Platform-Web-555?style=flat" alt="Platform" />
   <img src="https://img.shields.io/badge/Category-Portfolio-orange?style=flat" alt="Category" />
-  <!-- loc:start --><img src="https://img.shields.io/badge/lines_of_code-18275-lightgrey?style=flat" alt="18275 lines of code" /><!-- loc:end -->
+  <!-- loc:start --><img src="https://img.shields.io/badge/lines_of_code-30879-lightgrey?style=flat" alt="30879 lines of code" /><!-- loc:end -->
 </p>
 
 <img src="docs/cover.svg" width="720" alt=".ядро" />
+
+<!-- audit:start -->
+<p>
+  <a href="docs/audit/latest.md"><img src="https://img.shields.io/badge/security_audit-passed_with_warnings-dbab09?style=flat" alt="security audit passed with warnings - full, leaks + code" /></a>
+  <a href="docs/audit/latest.md"><img src="https://img.shields.io/badge/date-2026--07--01-555?style=flat" alt="audit date" /></a>
+</p>
+<!-- audit:end -->
 
 Персональный портфолио-сайт под брендом **DotCore**: витрина продуктов, которые автор доводит от идеи до продакшена (DotSound, DotLearn, DotAgents, DotWorkBot, DotMathBot). Сайт статический (Astro SSG, ноль рантайм-фреймворков): интерактив - точечный vanilla-JS, всё уважает `prefers-reduced-motion`. Личные данные не лежат в репозитории - они приходят из `.env` с Zod-валидацией на build-time, а на CI материализуются из GitHub Actions secrets.
 
