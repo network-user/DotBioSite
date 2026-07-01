@@ -155,6 +155,72 @@ const years = visible.map((p) => p.year).filter((y): y is number => typeof y ===
   } else {
     initCardTilt();
   }
+
+  /**
+   * Align the "highlights" row across neighboring cards in the same grid row.
+   *
+   * Descriptions vary in length, so `.project-card__desc` naturally ends at a
+   * different height per card, pushing everything below it (highlights/stack/
+   * actions) out of sync with the card next to it. CSS alone can't match a
+   * sibling's height without subgrid (fragile here: the grid mixes a
+   * full-width featured card with a variable-length 2-column list). Instead,
+   * measure `.project-card__desc` per visual row (cards sharing the same top
+   * offset) and floor them all to the tallest one in that row.
+   */
+  function equalizeDescHeights() {
+    const cards = Array.from(
+      document.querySelectorAll<HTMLElement>(".project-card:not(.project-card--featured)"),
+    );
+    if (cards.length < 2) return;
+
+    // Reset first: a resize can change the column count (mobile stacks to 1),
+    // and a stale min-height from a wider layout would leave a dead gap.
+    const descs = cards
+      .map((card) => card.querySelector<HTMLElement>(".project-card__desc"))
+      .filter((el): el is HTMLElement => el !== null);
+    descs.forEach((el) => el.style.removeProperty("min-height"));
+
+    const rows = new Map<number, HTMLElement[]>();
+    cards.forEach((card) => {
+      const top = Math.round(card.getBoundingClientRect().top);
+      const bucket = rows.get(top);
+      if (bucket) bucket.push(card);
+      else rows.set(top, [card]);
+    });
+
+    rows.forEach((rowCards) => {
+      if (rowCards.length < 2) return; // alone in its row (mobile stack, or an odd one out) — nothing to match
+      const rowDescs = rowCards
+        .map((card) => card.querySelector<HTMLElement>(".project-card__desc"))
+        .filter((el): el is HTMLElement => el !== null);
+      if (rowDescs.length < 2) return;
+      const maxHeight = Math.max(...rowDescs.map((el) => el.getBoundingClientRect().height));
+      rowDescs.forEach((el) => {
+        el.style.minHeight = `${maxHeight}px`;
+      });
+    });
+  }
+
+  function scheduleEqualize() {
+    requestAnimationFrame(equalizeDescHeights);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", scheduleEqualize, { once: true });
+  } else {
+    scheduleEqualize();
+  }
+  document.fonts?.ready.then(scheduleEqualize);
+
+  let resizeTimer: number | undefined;
+  window.addEventListener(
+    "resize",
+    () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(scheduleEqualize, 150);
+    },
+    { passive: true },
+  );
 </script>
 
 <style>

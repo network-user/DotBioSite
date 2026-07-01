@@ -94,8 +94,8 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
       <dl class="project-card__highlights" aria-label={t("projects.highlights")}>
         {highlights.map((h) => (
           <div class="project-card__highlight">
-            <dt>{h.value}</dt>
-            <dd>{h.label[locale]}</dd>
+            <dd>{h.value}</dd>
+            <dt>{h.label[locale]}</dt>
           </div>
         ))}
       </dl>
@@ -183,6 +183,7 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
       "stack"
       "repos"
       "actions";
+    align-content: start;
     gap: var(--sp-4);
     padding: var(--pad);
     border-radius: var(--r-2xl);
@@ -510,46 +511,38 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
   /* ---------- Highlights ---------- */
   .project-card__highlights {
     grid-area: highlights;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
-    gap: var(--sp-2) var(--sp-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
     padding-block: var(--sp-3);
     border-block: var(--bw-thin) solid var(--border);
   }
 
+  /* Каждый highlight — своя строка (value + label в один flex-ряд), а не
+     колонка в узкой grid-сетке: длинные лейблы больше не переносятся
+     посередине слова и не «гуляют» по высоте между соседними пунктами. */
   .project-card__highlight {
-    position: relative;
-    min-width: 0;
-    padding-block-start: var(--sp-3);
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-2);
+    padding-inline-start: var(--sp-3);
+    border-inline-start: 2px solid color-mix(in srgb, var(--project-accent) 55%, transparent);
   }
 
-  .project-card__highlight::before {
-    content: "";
-    position: absolute;
-    inset-block-start: 0;
-    inset-inline-start: 0;
-    width: 16px;
-    height: 2px;
-    border-radius: var(--r-pill);
-    background: var(--project-accent);
-    opacity: 0.5;
-  }
-
-  .project-card__highlight dt {
+  .project-card__highlight dd {
+    flex-shrink: 0;
     color: var(--text);
     font-family: var(--font-stack-display);
     font-weight: var(--fw-bold);
-    font-size: var(--fs-22);
+    font-size: var(--fs-18);
     line-height: var(--lh-tight);
     overflow-wrap: anywhere;
   }
 
-  .project-card__highlight dd {
+  .project-card__highlight dt {
     color: var(--text-muted);
-    font-size: var(--fs-11);
-    text-transform: uppercase;
+    font-size: var(--fs-13);
     line-height: var(--lh-snug);
-    margin-block-start: 2px;
   }
 
   /* ---------- Stack chips ---------- */

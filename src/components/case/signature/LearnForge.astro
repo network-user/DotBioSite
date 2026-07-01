@@ -14,7 +14,7 @@
  *  2 · Кузница кует урок — lesson-forge: план → manifest → theory.mdx + yaml + flashcards.
  *  3 · Контракт проверяет форму — общий Zod (`topic.schema.ts`, .strict()), web+api.
  *  4 · Решаешь в браузере — Pyodide (класс Dog(Animal), полиморфизм) и sql.js (JOIN author/book) в Worker.
- *  5 · Интерактивная теория — 40+ живых визуализаций + theory-quiz по ходу чтения.
+ *  5 · Интерактивная теория — живые визуализации + theory-quiz по ходу чтения.
  *  6 · Привычка и карточки — стрик + GitHub-heatmap (IndexedDB), FSRS-карточка.
  *  7 · Унеси с собой — экспорт/импорт всего прогресса одним JSON (version 4).
  *
@@ -39,15 +39,10 @@ const { locale } = Astro.props;
 type Bi = { ru: string; en: string };
 const t = (b: Bi): string => b[locale];
 
-const intro: Bi = {
-  ru: "Не слайды, а сквозной путь продукта: клонируешь репозиторий, просишь ИИ-агента собрать тему, смотришь как урок рождается из файлов, решаешь код прямо в браузере и копишь прогресс. Иди по шагам стрелками ←/→: каждая сцена показывает себя сама.",
-  en: "Not slides but the product end to end: you clone the repo, ask an AI agent to forge a topic, watch a lesson born from files, solve code right in the browser and build up progress. Step through with ←/→: each scene plays itself.",
-};
-
 const stats: { v: string; label: Bi; plain?: boolean }[] = [
   { v: "34", label: { ru: "темы в каталоге", en: "topics" } },
   { v: "7", label: { ru: "типов упражнений", en: "exercise types" } },
-  { v: "40+", label: { ru: "живых визуализаций", en: "live visualizations" } },
+  { v: "", label: { ru: "визуализации и интерактивные анимации", en: "visualizations & interactive animations" }, plain: true },
   { v: "", label: { ru: "local-first · без бэкенда", en: "local-first · no backend" }, plain: true },
 ];
 
@@ -95,8 +90,8 @@ const acts: Act[] = [
     eyebrow: { ru: "Интерактивная теория", en: "Interactive theory" },
     title: { ru: "Не стена текста, а живые схемы", en: "Not a wall of text, but live diagrams" },
     lede: {
-      ru: "В теорию встроены 40+ визуализаций: от наследования классов и хеш-таблиц до attention и градиентного спуска. И проверочные вопросы прямо по ходу чтения.",
-      en: "Theory embeds 40+ visualizations: from class inheritance and hash tables to attention and gradient descent. Plus quick check questions as you read.",
+      ru: "В теорию встроены визуализации и интерактивные анимации: от наследования классов и хеш-таблиц до attention и градиентного спуска. И проверочные вопросы прямо по ходу чтения.",
+      en: "Theory embeds visualizations and interactive animations: from class inheritance and hash tables to attention and gradient descent. Plus quick check questions as you read.",
     },
   },
   {
@@ -313,8 +308,6 @@ sBundle.locale = locale;
   data-lf-bundle={JSON.stringify(sBundle)}
   aria-label={t({ ru: "Как живёт DotLearn: интерактивная история", en: "How DotLearn lives: an interactive story" })}
 >
-  <p class="lf__intro">{t(intro)}</p>
-
   <ul class="lf__stats" role="list">
     {
       stats.map((s) => (
@@ -662,14 +655,6 @@ sBundle.locale = locale;
     display: flex;
     flex-direction: column;
     gap: var(--sp-6);
-  }
-
-  .lf__intro {
-    font-size: var(--fs-17);
-    line-height: var(--lh-normal);
-    color: var(--text-secondary);
-    max-width: 74ch;
-    margin: 0;
   }
 
   /* ── statline ── */
@@ -1509,6 +1494,7 @@ sBundle.locale = locale;
     color: var(--text-secondary);
   }
   .lf-ide__case-mark {
+    position: relative;
     flex: none;
     width: 16px;
     height: 16px;
@@ -1516,10 +1502,19 @@ sBundle.locale = locale;
     border: var(--bw-thin) solid var(--border);
   }
   .lf-ide__case.is-pass .lf-ide__case-mark {
-    border-color: var(--lf-line);
-    background:
-      linear-gradient(45deg, transparent 44%, var(--lf-accent) 44% 56%, transparent 56%),
-      linear-gradient(-45deg, transparent 48%, var(--lf-accent) 48% 52%, transparent 52%);
+    border-color: var(--lf-accent);
+    background: var(--lf-soft);
+  }
+  .lf-ide__case.is-pass .lf-ide__case-mark::after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    width: 4px;
+    height: 8px;
+    border: solid var(--lf-accent);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
   }
   .lf.is-inview .lf-ide__case.is-pass {
     animation: lf-pop var(--dur-med) var(--ease-spring) both;
@@ -1892,14 +1887,24 @@ sBundle.locale = locale;
     animation-delay: calc(var(--ri, 0) * 90ms);
   }
   .lf-export__check {
+    position: relative;
     flex: none;
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    border: var(--bw-thin) solid var(--lf-line);
-    background:
-      linear-gradient(45deg, transparent 44%, var(--lf-accent) 44% 56%, transparent 56%),
-      linear-gradient(-45deg, transparent 48%, var(--lf-accent) 48% 52%, transparent 52%);
+    border: var(--bw-thin) solid var(--lf-accent);
+    background: var(--lf-soft);
+  }
+  .lf-export__check::after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    width: 4px;
+    height: 8px;
+    border: solid var(--lf-accent);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
   }
   .lf-export__foot {
     color: var(--text-faint);
