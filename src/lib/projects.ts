@@ -66,14 +66,7 @@ export type ProjectStackGroupKey = "language" | "framework" | "data" | "infra" |
 export type ProjectStackGroups = Partial<Record<ProjectStackGroupKey, ReadonlyArray<string>>>;
 
 export type ProjectArchitectureNodeIcon =
-  | "code"
-  | "stack"
-  | "rocket"
-  | "spark"
-  | "telegram"
-  | "globe"
-  | "user"
-  | "dot";
+  "code" | "stack" | "rocket" | "spark" | "telegram" | "globe" | "user" | "dot";
 
 export interface ProjectArchitectureNode {
   id: string;

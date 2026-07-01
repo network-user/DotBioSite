@@ -10,20 +10,20 @@
     "en": ".agents"
   },
   "tagline": {
-    "ru": "Твой телефон - кнопка allow/deny для AI-агента в IDE.",
+    "ru": "Твой телефон: кнопка allow/deny для AI-агента в IDE.",
     "en": "Your phone is the allow/deny button for your coding agent."
   },
   "description": {
-    "ru": "DotAgents ставит хук в Cursor, Claude Code и Antigravity и ловит момент, когда агент тянется к рискованной команде. Решение прилетает тебе в Telegram: тапнул allow - выполняется, тапнул deny или промолчал - нет.",
+    "ru": "DotAgents ставит хук в Cursor, Claude Code и Antigravity и ловит момент, когда агент тянется к рискованной команде. Решение прилетает тебе в Telegram: тапнул allow, и команда выполняется; тапнул deny или промолчал, и она отклонена.",
     "en": "DotAgents hooks into Cursor, Claude Code, and Antigravity and catches the exact moment an agent reaches for a risky command. The call goes straight to your phone via Telegram: tap allow and it runs, tap deny or say nothing and it doesn't."
   },
   "caseTagline": {
-    "ru": "Телефон вибрирует, на экране - команда, которую хочет выполнить агент, и две кнопки: allow, deny.",
+    "ru": "Телефон вибрирует, на экране: команда, которую хочет выполнить агент, и две кнопки: allow, deny.",
     "en": "Your phone buzzes with the command your agent wants to run, and two buttons: allow, deny."
   },
   "caseDescription": {
-    "ru": "Уведомление приходит в момент, когда меньше всего этого ждёшь: агент дошёл до строки, которая трогает файловую систему или сеть, и встал. На экране - сама команда и две кнопки, счётчик тикает вниз. Не успел или не ответил - действие отклонено, а не выполнено: fail-closed по умолчанию, а не по настройке. Держит эту связку демон, вшитый хуком в Cursor, Claude Code и Antigravity и long-poll'ящий решение с телефона; поверх - три режима работы, слои models/repos/services под капотом и Typer-CLI, который сам разводит хуки по всем трём агентам одной командой.",
-    "en": "The notification lands at the moment you least expect it: the agent hit a line that touches the filesystem or the network and froze. The screen shows the exact command and two buttons, with a countdown ticking down. Miss it or say nothing, and the action is denied, not run - fail-closed is the default, not a setting you flip. Underneath sits a daemon hooked into Cursor, Claude Code, and Antigravity, long-polling your phone for that decision; on top of it are three operating modes, a layered models/repos/services architecture, and a Typer CLI that wires the hooks into all three agents with one command."
+    "ru": "Уведомление приходит в момент, когда меньше всего этого ждёшь: агент дошёл до строки, которая трогает файловую систему или сеть, и встал. На экране сама команда и две кнопки, счётчик тикает вниз. Не успел или не ответил, и действие отклонено, а не выполнено: fail-closed по умолчанию, а не по настройке. Держит эту связку демон, вшитый хуком в Cursor, Claude Code и Antigravity и long-poll'ящий решение с телефона; поверх три режима работы, слои models/repos/services под капотом и Typer-CLI, который сам разводит хуки по всем трём агентам одной командой.",
+    "en": "The notification lands at the moment you least expect it: the agent hit a line that touches the filesystem or the network and froze. The screen shows the exact command and two buttons, with a countdown ticking down. Miss it or say nothing, and the action is denied, not run: fail-closed is the default, not a setting you flip. Underneath sits a daemon hooked into Cursor, Claude Code, and Antigravity, long-polling your phone for that decision; on top of it are three operating modes, a layered models/repos/services architecture, and a Typer CLI that wires the hooks into all three agents with one command."
   },
   "stack": [
     "Python 3.12",
@@ -84,10 +84,39 @@
   },
   "metrics": [
     {
-      "value": "19k",
+      "value": "~10",
+      "unit": "дней",
       "label": {
-        "ru": "строк кода",
-        "en": "lines of code"
+        "ru": "от каркаса до Stage 2: спавн, Mini App, сессии",
+        "en": "from scaffold to Stage 2: spawn, Mini App, sessions"
+      }
+    },
+    {
+      "value": "~18k",
+      "label": {
+        "ru": "строк Python с тестами",
+        "en": "lines of Python with tests"
+      }
+    },
+    {
+      "value": "33",
+      "label": {
+        "ru": "коммита в одном репозитории",
+        "en": "commits in a single repository"
+      }
+    },
+    {
+      "value": "140",
+      "label": {
+        "ru": "тестов pytest",
+        "en": "pytest tests"
+      }
+    },
+    {
+      "value": "15",
+      "label": {
+        "ru": "команд в Telegram-боте",
+        "en": "commands in the Telegram bot"
       }
     },
     {
@@ -95,20 +124,6 @@
       "label": {
         "ru": "loopback: код не уходит с машины",
         "en": "loopback: code never leaves the machine"
-      }
-    },
-    {
-      "value": "3",
-      "label": {
-        "ru": "агента: Cursor · Claude Code · Antigravity",
-        "en": "agents: Cursor · Claude Code · Antigravity"
-      }
-    },
-    {
-      "value": "3",
-      "label": {
-        "ru": "режима: remote · readonly · standby",
-        "en": "modes: remote · readonly · standby"
       }
     }
   ],
@@ -299,47 +314,93 @@
   ],
   "capabilities": [
     {
-      "icon": "telegram",
+      "icon": "spark",
       "title": {
-        "ru": "Live-статус в Telegram",
-        "en": "Live status in Telegram"
+        "ru": "Approve / deny с телефона",
+        "en": "Approve / deny from your phone"
       },
       "description": {
-        "ru": "Пока агент работает, в чате живёт одно редактируемое сообщение: что он делает прямо сейчас, какие файлы трогает, последний ответ. Стоп-кнопка — там же. Не надо открывать IDE.",
-        "en": "While the agent runs, one live message stays updated in the chat: what it's doing right now, which files it's touching, the latest reply. A stop button is right there — no IDE needed."
+        "ru": "Агент занёс руку над рискованной командой, хук замораживает выполнение и шлёт запрос в Telegram: сама команда и две кнопки. Allow запускает, deny или молчание отклоняют. Fail-closed по умолчанию, а не по настройке.",
+        "en": "The agent reaches for a risky command, the hook freezes it and sends a request to Telegram: the command itself and two buttons. Allow runs it, deny or silence rejects it. Fail-closed by default, not by a setting."
+      },
+      "detail": {
+        "ru": "Хуки before_shell и before_mcp уходят в long-poll (до ~270 секунд) и ждут решения. Любая ошибка, таймаут или недоступность демона трактуются как deny с ненулевым кодом выхода. Класс риска считает сервер: агент не может понизить его сам, только эскалировать. То же решение доступно и в опциональном Mini App.",
+        "en": "The before_shell and before_mcp hooks long-poll (up to ~270 seconds) and wait for a decision. Any error, timeout, or unreachable daemon is treated as deny with a non-zero exit code. The server classifies the risk: the agent can't lower it, only escalate. The same decision is available in the optional Mini App."
       }
     },
     {
-      "icon": "spark",
+      "icon": "telegram",
       "title": {
-        "ru": "Approve / deny",
-        "en": "Approve / deny"
+        "ru": "Live-статус одним сообщением",
+        "en": "Live status in one message"
       },
       "description": {
-        "ru": "Агент занёс руку над рискованной командой — хук останавливает выполнение и присылает запрос в Telegram. Allow — запускается, Deny — нет. Молчание — deny автоматически: fail-closed по умолчанию.",
-        "en": "The agent is about to run a risky command — the hook freezes it and sends a request to Telegram. Allow it and it runs, deny it and it doesn't. Silence auto-denies after timeout: fail-closed by default."
+        "ru": "Пока агент работает, в чате живёт одно редактируемое сообщение: что он делает прямо сейчас, какие файлы трогает, последний ответ. Стоп-кнопка там же, IDE открывать не нужно.",
+        "en": "While the agent runs, one editable message lives in the chat: what it's doing right now, which files it touches, the latest reply. The stop button is right there, no IDE needed."
+      },
+      "detail": {
+        "ru": "LiveMessageService дебаунсит правки (~2.5 секунды), переживает 429 Retry-After и «message not modified», а при переполнении 4096 символов перекатывает хвост во второе сообщение. Если сообщению больше 48 часов, шлёт новое.",
+        "en": "LiveMessageService debounces edits (~2.5 seconds), survives 429 Retry-After and 'message not modified', and rolls overflow past 4096 characters into a second message. If a message is older than 48 hours, it sends a fresh one."
       }
     },
     {
       "icon": "rocket",
       "title": {
-        "ru": "Follow-up и tail",
-        "en": "Follow-ups and tail"
+        "ru": "Спавн и follow-up из чата",
+        "en": "Spawn and follow-ups from the chat"
       },
       "description": {
-        "ru": "Отправь следующую задачу прямо из чата — она встанет в FIFO-очередь и прилетит агенту, как только он остановится. Или прочитай хвост транскрипта: последние мысли и инструменты без IDE.",
-        "en": "Send the next task from the chat — it queues and reaches the agent the moment it stops. Or read the transcript tail right in the conversation: the latest thoughts and tool calls, no IDE."
+        "ru": "Сессию агента можно завести прямо из Telegram: мастер /new проведёт от проекта к промпту. Следующая задача встаёт в FIFO-очередь и прилетает агенту, как только он освободится, а хвост транскрипта читается тут же, без IDE.",
+        "en": "You can start an agent session straight from Telegram: the /new wizard walks from project to prompt. The next task queues FIFO and reaches the agent the moment it frees up, and the transcript tail reads right there, no IDE."
+      },
+      "detail": {
+        "ru": "Супервизор AgentRunner поднимает CLI-агента подпроцессом: подаёт follow-up'ы в stdin, сливает stderr, гонит stdout в поток событий. FollowupService выдаёт задачи по одной с блокировкой строки (skip_locked, с fallback для SQLite). История Cursor импортируется, транскрипт Claude Code синхронизируется живым SSE.",
+        "en": "The AgentRunner supervisor spawns the agent CLI as a subprocess: it feeds follow-ups to stdin, drains stderr, and pumps stdout into an event stream. FollowupService hands out tasks one at a time with row locking (skip_locked, with a SQLite fallback). Cursor history is imported, and the Claude Code transcript syncs over live SSE."
+      }
+    },
+    {
+      "icon": "code",
+      "title": {
+        "ru": "Три агента, один мост",
+        "en": "Three agents, one bridge"
+      },
+      "description": {
+        "ru": "Хуки ставятся в Cursor, Claude Code и Antigravity одной командой Typer-CLI. Для Cursor и Claude Code сессию можно ещё и заспавнить из Telegram; Antigravity пока подключается только через хуки.",
+        "en": "Hooks install into Cursor, Claude Code, and Antigravity with one Typer CLI command. For Cursor and Claude Code a session can also be spawned from Telegram; Antigravity connects through hooks only for now."
+      },
+      "detail": {
+        "ru": "CLI сам разводит хуки по всем трём агентам и регистрирует проекты (dotagents project add). Bot-спавн Antigravity ждёт headless-CLI от вендора, поэтому для него доступен именно контур approve/deny, а не запуск из чата.",
+        "en": "The CLI wires the hooks across all three agents and registers projects (dotagents project add). Antigravity's bot spawn waits on a headless CLI from the vendor, so for it the approve/deny loop is what's available, not launch-from-chat."
       }
     },
     {
       "icon": "stack",
       "title": {
-        "ru": "Security-first",
-        "en": "Security-first"
+        "ru": "Security-first, всё локально",
+        "en": "Security-first, all local"
       },
       "description": {
-        "ru": "Argon2id на входе, HMAC+nonce на каждом callback, whitelist владельца, полный audit-log, API только на 127.0.0.1. Replay-атака и подделка callback не пройдут.",
-        "en": "Argon2id at the gate, HMAC+nonce on every callback, owner whitelist, full audit log, and an API bound to 127.0.0.1 only. Replay attacks and callback forgery don't get through."
+        "ru": "Argon2id на входе, HMAC плюс nonce на каждом callback, whitelist владельца, полный audit-log, а API живёт только на 127.0.0.1. Ни облачного релея, ни выхода кода с машины.",
+        "en": "Argon2id at the gate, HMAC plus a nonce on every callback, an owner whitelist, a full audit log, and an API bound to 127.0.0.1 only. No cloud relay, and no code leaving the machine."
+      },
+      "detail": {
+        "ru": "Nonce одноразовый и с истечением, поэтому replay и подделка callback не проходят. Перед спавном из окружения вырезаются секреты (токен бота, HMAC-ключ), cwd форсится в каталог проекта, shell=True не используется, а секрет заголовка сверяется constant-time.",
+        "en": "The nonce is one-shot and expiring, so replay and callback forgery don't get through. Before spawn the secrets (bot token, HMAC key) are stripped from the environment, cwd is forced to the project directory, shell=True is never used, and the header secret is compared in constant time."
+      }
+    },
+    {
+      "icon": "dot",
+      "title": {
+        "ru": "Три режима на сессию",
+        "en": "Three modes per session"
+      },
+      "description": {
+        "ru": "remote спрашивает по каждому защищённому действию, readonly пропускает и только уведомляет, standby молча отклоняет опасное. Режим переключается и глобально, и по отдельной сессии.",
+        "en": "remote asks on every protected action, readonly lets it through and only notifies, standby silently rejects the dangerous. The mode switches both globally and per individual session."
+      },
+      "detail": {
+        "ru": "AgentMode задаёт политику ask, allow или deny. Сессии живут в SQLite с idle- и абсолютным TTL, а SessionReaper подчищает просроченные.",
+        "en": "AgentMode sets the ask, allow, or deny policy. Sessions live in SQLite with an idle and an absolute TTL, and SessionReaper sweeps the expired ones."
       }
     }
   ],
@@ -347,34 +408,67 @@
     {
       "date": "19 Apr 2026",
       "title": {
-        "ru": "Stage 1: safety bridge",
-        "en": "Stage 1: safety bridge"
+        "ru": "Stage 1: мост безопасности за день",
+        "en": "Stage 1: a safety bridge in a day"
       },
       "description": {
-        "ru": "Хуки Cursor/Claude Code, live-статус, approve/deny, режимы, passcode-auth, audit-log.",
-        "en": "Cursor/Claude Code hooks, live status, approve/deny, modes, passcode auth, and an audit log."
+        "ru": "За день поднят каркас и рабочий мост: FastAPI на loopback, aiogram-бот, SQLAlchemy 2 с Alembic. Хуки Cursor и Claude Code, fail-closed approve/deny, три режима, passcode на argon2id, HMAC с nonce и audit-log.",
+        "en": "In a day, a scaffold and a working bridge stood up: FastAPI on loopback, an aiogram bot, SQLAlchemy 2 with Alembic. Cursor and Claude Code hooks, fail-closed approve/deny, three modes, an argon2id passcode, HMAC with a nonce, and an audit log."
+      }
+    },
+    {
+      "date": "22 Apr 2026",
+      "title": {
+        "ru": "Stage 2: агенты прямо из Telegram",
+        "en": "Stage 2: agents straight from Telegram"
+      },
+      "description": {
+        "ru": "Сессию агента можно заспавнить из бота: мастер /new (проект, агент, промпт), супервизор подпроцессов AgentRunner, loopback-команды spawn/input/stop, реестр проектов через CLI и авто-миграции на старте.",
+        "en": "An agent session can be spawned from the bot: the /new wizard (project, agent, prompt), the AgentRunner subprocess supervisor, loopback spawn/input/stop commands, a project registry via CLI, and auto-migrations at startup."
+      }
+    },
+    {
+      "date": "23 Apr 2026",
+      "title": {
+        "ru": "Telegram Mini App",
+        "en": "Telegram Mini App"
+      },
+      "description": {
+        "ru": "Опциональный Mini App на /webapp: живой SSE-стрим, транскрипт и approve/deny в веб-вью. Owner-only, вход по initData с HMAC.",
+        "en": "An optional Mini App at /webapp: a live SSE stream, transcript, and approve/deny in a web view. Owner-only, with initData entry over HMAC."
       }
     },
     {
       "date": "29 Apr 2026",
       "title": {
-        "ru": "Сессии и approvals UI",
-        "en": "Sessions and approvals UI"
+        "ru": "Сессии и синхронизация транскрипта",
+        "en": "Sessions and transcript sync"
       },
       "description": {
-        "ru": "Управление сессиями агентов из Telegram, Claude Code transcript sync, SSE push, approval UI в Mini App.",
-        "en": "Agent session management from Telegram, Claude Code transcript sync, SSE push, and an approval UI in the Mini App."
+        "ru": "Управление сессиями из чата, инлайн-действия (режим, refresh, stop), живая синхронизация транскрипта Claude Code через SSE и approve/deny-UI в Mini App.",
+        "en": "Session management from the chat, inline actions (mode, refresh, stop), live Claude Code transcript sync over SSE, and an approve/deny UI in the Mini App."
+      }
+    },
+    {
+      "date": "1 Jul 2026",
+      "title": {
+        "ru": "Хардинг перед публикацией",
+        "en": "Hardening before release"
+      },
+      "description": {
+        "ru": "Fail-closed хуки и предрелизный харденинг, патч уязвимых зависимостей, починка тестов (их уже 140) и зелёный штамп аудита. Лицензия переведена в proprietary.",
+        "en": "Fail-closed hooks and pre-release hardening, a patch for vulnerable dependencies, tests fixed (140 by now), and a green audit stamp. The license moved to proprietary."
       }
     },
     {
       "date": "Next",
       "title": {
-        "ru": "Stage 2: голос и универсальный MCP",
-        "en": "Stage 2: voice and universal MCP"
+        "ru": "Stage 2 остаток: голос и универсальный MCP",
+        "en": "Stage 2 remainder: voice and a universal MCP"
       },
       "description": {
-        "ru": "MCP-сервер с notify/ask-tools для Claude Code, Codex и Gemini; голосовые сообщения через локальный Whisper становятся командой активной сессии.",
-        "en": "An MCP server with notify/ask tools for Claude Code, Codex, and Gemini; voice messages transcribed by local Whisper become a command for the active session."
+        "ru": "MCP-сервер с notify- и ask-инструментами для Claude Code, Codex и Gemini; голосовые сообщения через локальный Whisper становятся командой активной сессии.",
+        "en": "An MCP server with notify and ask tools for Claude Code, Codex, and Gemini; voice messages via local Whisper become a command for the active session."
       }
     }
   ]

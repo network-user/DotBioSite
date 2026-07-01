@@ -1,7 +1,7 @@
 {
   "meta": {
     "locale": "en",
-    "description": ".core - a full-cycle engineer: I design, build, and ship real products to production under the DotCore brand.",
+    "description": ".core, a full-cycle engineer: I design, build, and ship real products to production under the DotCore brand.",
     "tagline": "a full-cycle engineer."
   },
   "nav": {
@@ -57,7 +57,7 @@
     "repos": "repositories",
     "stack": "stack",
     "highlights": "scale at a glance",
-    "scrollHint": "scroll - a path through the months",
+    "scrollHint": "scroll: a path through the months",
     "category": {
       "platform": "Platform",
       "bot": "Bot",
@@ -76,7 +76,7 @@
     },
     "ecosystem": {
       "title": "DotCore ecosystem",
-      "lede": "The tooling the projects stand on: internal infra and a shared standard. Not products - the rig beneath them."
+      "lede": "The tooling the projects stand on: internal infra and a shared standard. Not products, but the rig beneath them."
     }
   },
   "timeline": {

@@ -240,9 +240,12 @@ const briefOptions = hasEmail
 
   const copyText = (text: string, done: () => void): void => {
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(done).catch(() => {
-        /* clipboard write rejected; silently ignore */
-      });
+      navigator.clipboard
+        .writeText(text)
+        .then(done)
+        .catch(() => {
+          /* clipboard write rejected; silently ignore */
+        });
       return;
     }
     const textarea = document.createElement("textarea");

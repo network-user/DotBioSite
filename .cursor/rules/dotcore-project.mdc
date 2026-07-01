@@ -22,6 +22,7 @@ alwaysApply: true
 - Бренд в UI - только `.core` / `.ядро`, никогда «DotCore».
 - Static-first: `integrations: []`, без рантайм UI-фреймворка; интерактив - vanilla-JS под `prefers-reduced-motion`.
 - Стили - чистый CSS + токены в `src/styles/tokens.css`, без Tailwind.
+- Копирайт в `src/content/**/*.json`: без `" - "` (дефис-пауза вместо тире), только запятая/двоеточие/союз/отдельное предложение. Составные слова (SHA-256, non-root) - можно.
 - README в стандарте DotCore: без marketing, без `<details>`, без centered hero.
 - Обложка: `docs/cover.svg` (GitHub-first).
 - LoC-бейдж - 4-й в строке header, между `<!-- loc:start -->` и `<!-- loc:end -->`.

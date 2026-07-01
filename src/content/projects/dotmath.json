@@ -18,12 +18,12 @@
     "en": "A bilingual Telegram mental-arithmetic trainer built around retention. Seven operation types across three difficulty levels, a day streak, and a leaderboard that reads the same result four ways: streak, total solved, accuracy, and a weighted score."
   },
   "caseTagline": {
-    "ru": "Решил пример - и один и тот же результат уже разложен на четыре места в рейтинге.",
+    "ru": "Решил пример, и один и тот же результат уже разложен на четыре места в рейтинге.",
     "en": "Solve one problem and watch the same result land on four leaderboards at once."
   },
   "caseDescription": {
-    "ru": "Каждое решение в DotMath идёт по одной дорожке: пример - очки - место в рейтинге - серия дней, и один результат читается сразу в четырёх срезах - стрик, всего решено, точность, взвешенные очки, где сложное стоит дороже. У дневного челленджа своя механика: seed делает набор из 10 задач одинаковым для всех, а UNIQUE-констрейнты в базе не дают гонке за первый клик сломать «одну попытку на человека». Началось 14 февраля 2026 года как MVP на день, а сейчас это ~9 тысяч строк, где тренировочная FSM живёт в Redis и переживает рестарт контейнера, а база регулярно уходит в бэкап через pg_dump.",
-    "en": "Every solve in DotMath travels one lane: problem, points, leaderboard spot, streak - and that single result gets read four different ways at once: streak, total solved, accuracy, and a weighted score where harder problems count more. The daily challenge runs on its own mechanics: a seed makes the same 10 problems land for everyone, and UNIQUE constraints in the database keep a race for the first click from breaking the one-attempt-per-person rule. It started 14 Feb 2026 as a one-day MVP; today it's roughly 9k lines, with a training FSM that lives in Redis and survives a container restart, and a database that ships itself off to backup via pg_dump on a schedule."
+    "ru": "Каждое решение в DotMath идёт по одной дорожке: пример, очки, место в рейтинге, серия дней. Один и тот же результат читается сразу в четырёх срезах: стрик, всего решено, точность, взвешенные очки, где сложное стоит дороже. У дневного челленджа своя механика: seed делает набор из 10 задач одинаковым для всех, а UNIQUE-констрейнты в базе не дают гонке за первый клик сломать «одну попытку на человека». Началось 14 февраля 2026 года как MVP на день, а сейчас это ~9 тысяч строк, где тренировочная FSM живёт в Redis и переживает рестарт контейнера, а база регулярно уходит в бэкап через pg_dump.",
+    "en": "Every solve in DotMath travels one lane: problem, points, leaderboard spot, streak. That single result gets read four different ways at once: streak, total solved, accuracy, and a weighted score where harder problems count more. The daily challenge runs on its own mechanics: a seed makes the same 10 problems land for everyone, and UNIQUE constraints in the database keep a race for the first click from breaking the one-attempt-per-person rule. It started 14 Feb 2026 as a one-day MVP; today it's roughly 9k lines, with a training FSM that lives in Redis and survives a container restart, and a database that ships itself off to backup via pg_dump on a schedule."
   },
   "stack": [
     "Python 3.12",
@@ -73,10 +73,10 @@
   ],
   "overview": {
     "ru": [
-      "Двуязычный Telegram-тренажёр устного счёта, построенный вокруг удержания: серии дней, напоминания и рейтинг, который читает один и тот же результат с четырёх сторон - стрик, решено, точность и взвешенные очки, где сложное стоит дороже. Общий челлендж дня сравнивает всех на одном наборе задач, а работа над ошибками собирает отдельную сессию из того, что не далось."
+      "Двуязычный Telegram-тренажёр устного счёта, построенный вокруг удержания: серии дней, напоминания и рейтинг, который читает один и тот же результат сразу с четырёх сторон: стрик, решено, точность и взвешенные очки, где сложное стоит дороже. Общий челлендж дня сравнивает всех на одном наборе задач, а работа над ошибками собирает отдельную сессию из того, что не далось."
     ],
     "en": [
-      "A bilingual Telegram mental-math trainer built around retention: day-streaks, reminders, and a leaderboard that reads the same result four ways - streak, solved, accuracy, and a weighted score where harder problems count more. A shared daily challenge pits everyone against the same set, and retry-mistakes assembles a separate session from whatever you missed."
+      "A bilingual Telegram mental-math trainer built around retention: day-streaks, reminders, and a leaderboard that reads the same result four ways: streak, solved, accuracy, and a weighted score where harder problems count more. A shared daily challenge pits everyone against the same set, and retry-mistakes assembles a separate session from whatever you missed."
     ]
   },
   "metrics": [
@@ -286,12 +286,12 @@
         "en": "Drills"
       },
       "description": {
-        "ru": "Семь типов операций - от сложения до степеней и квадратных корней - на трёх уровнях сложности. Можно выбирать ответ из вариантов или писать его сам.",
-        "en": "Seven operation types - from addition to powers and square roots - across three difficulty levels. Pick an answer from the choices or type it yourself."
+        "ru": "Семь типов операций, от сложения до степеней и квадратных корней, на трёх уровнях сложности. Можно выбирать ответ из вариантов или писать его сам.",
+        "en": "Seven operation types, from addition to powers and square roots, across three difficulty levels. Pick an answer from the choices or type it yourself."
       },
       "detail": {
-        "ru": "Уровень меняет и диапазон чисел, и размер набора: лёгкий - 5 примеров и 2 варианта, средний - 7 и 3, сложный - 10 и 4. Неверные варианты - правдоподобные соседи (гауссов разброс вокруг ответа), а в режиме «Напиши ответ сам» ответ вводится с клавиатуры.",
-        "en": "The level changes both the number range and the set size: easy - 5 problems and 2 choices, medium - 7 and 3, hard - 10 and 4. Wrong choices are plausible neighbours (a Gaussian spread around the answer), and in the type-the-answer mode you enter the result yourself."
+        "ru": "Уровень меняет и диапазон чисел, и размер набора: у лёгкого 5 примеров и 2 варианта, у среднего 7 и 3, у сложного 10 и 4. Неверные варианты подбираются как правдоподобные соседи (гауссов разброс вокруг ответа), а в режиме «Напиши ответ сам» ответ вводится с клавиатуры.",
+        "en": "The level changes both the number range and the set size: easy gives 5 problems and 2 choices, medium 7 and 3, hard 10 and 4. Wrong choices are picked as plausible neighbours (a Gaussian spread around the answer), and in the type-the-answer mode you enter the result yourself."
       }
     },
     {
@@ -305,7 +305,7 @@
         "en": "One shared set of 10 problems for the calendar day, a single attempt per person, and a separate daily leaderboard by correct answers and time."
       },
       "detail": {
-        "ru": "Набор детерминирован seed-ом, поэтому у всех он одинаковый. UNIQUE по дате и ON CONFLICT DO NOTHING делают первый клик безопасным при гонке, а UNIQUE по паре «пользователь + дата» гарантирует ровно одну попытку. Граница дня - Europe/Moscow.",
+        "ru": "Набор детерминирован seed-ом, поэтому у всех он одинаковый. UNIQUE по дате и ON CONFLICT DO NOTHING делают первый клик безопасным при гонке, а UNIQUE по паре «пользователь + дата» гарантирует ровно одну попытку. Сутки считаются по Europe/Moscow.",
         "en": "The set is seeded, so everyone gets the same one. UNIQUE on the date with ON CONFLICT DO NOTHING makes the first click race-safe, and UNIQUE on (user, date) enforces exactly one attempt. The day boundary is Europe/Moscow."
       }
     },
@@ -320,8 +320,8 @@
         "en": "The same result reads four ways: streak, total solved, accuracy, and weighted points where harder problems count more."
       },
       "detail": {
-        "ru": "Взвешенные очки: лёгкое × 1, среднее × 2, сложное × 3 по верным ответам - в каждом срезе может лидировать свой человек. Имя в топе можно скрыть, список листается постранично.",
-        "en": "Weighted points: easy × 1, medium × 2, hard × 3 over correct answers - a different person can lead each cut. You can hide your name in the top, and the list paginates."
+        "ru": "Взвешенные очки: лёгкое × 1, среднее × 2, сложное × 3 по верным ответам, поэтому в каждом срезе может лидировать свой человек. Имя в топе можно скрыть, список листается постранично.",
+        "en": "Weighted points: easy × 1, medium × 2, hard × 3 over correct answers, so a different person can lead each cut. You can hide your name in the top, and the list paginates."
       }
     },
     {
@@ -335,7 +335,7 @@
         "en": "A day-streak holds until you skip a day; configurable reminders bring you back, and Quick Start launches your favorite mode in one tap."
       },
       "detail": {
-        "ru": "День с хотя бы одним верным ответом продлевает серию; пропуск её обнуляет, а второй подход за день ничего не меняет. Напоминания - пресеты (утро, обед, вечер или три раза в день) и своё время на APScheduler в том же процессе.",
+        "ru": "День с хотя бы одним верным ответом продлевает серию; пропуск её обнуляет, а второй подход за день ничего не меняет. Напоминания бывают пресетами (утро, обед, вечер или три раза в день) и своим временем на APScheduler в том же процессе.",
         "en": "A day with at least one correct answer extends the streak; a skip resets it, and a second session that day does nothing. Reminders are presets (morning, lunch, evening, or three times a day) plus custom times on an in-process APScheduler."
       }
     },
@@ -346,8 +346,8 @@
         "en": "Retry mistakes"
       },
       "description": {
-        "ru": "Отдельная сессия собирается только из задач, в которых ты ошибся или пропустил, - правильные ответы во время неё не показываются.",
-        "en": "A separate session is assembled only from the problems you got wrong or skipped - correct answers stay hidden during it."
+        "ru": "Отдельная сессия собирается только из задач, в которых ты ошибся или пропустил: правильные ответы во время неё не показываются.",
+        "en": "A separate session is assembled only from the problems you got wrong or skipped, and correct answers stay hidden during it."
       },
       "detail": {
         "ru": "Каждая задача сохраняется со своим форматом и метаданными (остаток, показатель степени, подкоренное число), поэтому перерешивание восстанавливает её точь-в-точь, а не как «144 √ 0».",
@@ -365,7 +365,7 @@
         "en": "Full localization with an on-the-fly language switch, active-training state in Redis, and daily database backups."
       },
       "detail": {
-        "ru": "FSM активной тренировки лежит в Redis с AOF, поэтому сессия переживает рестарт контейнера; без Redis - MemoryStorage для локальной разработки. pg_dump пишет дамп каждые 12 часов и хранит последние 20.",
+        "ru": "FSM активной тренировки лежит в Redis с AOF, поэтому сессия переживает рестарт контейнера; без Redis используется MemoryStorage для локальной разработки. pg_dump пишет дамп каждые 12 часов и хранит последние 20.",
         "en": "The active-training FSM lives in Redis with AOF, so a session survives a container restart; without Redis it falls back to MemoryStorage for local dev. pg_dump writes a dump every 12 hours and keeps the last 20."
       }
     }
@@ -422,8 +422,8 @@
         "en": "Closed network, Postgres-only"
       },
       "description": {
-        "ru": "Docker-образ хардится на tini и непривилегированном пользователе, Postgres и Redis лишаются последнего открытого порта наружу, CI получает сборку образа; следом - полный отказ от SQLite-тулинга в пользу единственной базы, Postgres.",
-        "en": "The Docker image gets hardened onto tini with a non-root user, Postgres and Redis lose their last exposed port, CI gains an image-build job; right after, SQLite tooling is dropped entirely for a single Postgres-only database."
+        "ru": "Docker-образ хардится на tini и непривилегированном пользователе, Postgres и Redis лишаются последнего открытого порта наружу, CI получает сборку образа. Следом полностью выброшен SQLite-тулинг: в проекте остаётся только Postgres.",
+        "en": "The Docker image gets hardened onto tini with a non-root user, Postgres and Redis lose their last exposed port, CI gains an image-build job. Right after, SQLite tooling is dropped entirely: the project is left with a single database, Postgres."
       }
     },
     {

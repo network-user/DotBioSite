@@ -61,18 +61,19 @@ astro.config.mjs
 - **Static-first:** `integrations: []` - не добавляй UI-фреймворк в рантайм без запроса. Интерактив - точечный vanilla-JS, обязательно под `prefers-reduced-motion`.
 - **Контент:** новый проект - JSON в `src/content/projects/<slug>.json` (тип `Project` в `src/lib/projects.ts`) + обложка `public/projects/<slug>/`; порядок витрины - `FEATURED_ORDER`.
 - **i18n:** строки - в `src/content/i18n/{ru,en}.json`; добавляешь в один - добавь в оба.
+- **Копирайт:** в тексте (`description`/`detail`/`tagline`/`caseDescription`/`overview`/`label` и т.п. в `src/content/projects/*.json`, `src/content/i18n/*.json`) не используй `" - "` (пробел-дефис-пробел) как паузу вместо тире - перестраивай на запятую, двоеточие, точку с запятой, союз или отдельное предложение. Дефис без пробелов в составных словах (SHA-256, non-root, lesson-forge) - не трогать, под правило не попадает.
 
 ## Переменные окружения
 
 Имена - из Zod-схемы `src/lib/config.ts`. Значения не читать, `.env` не открывать.
 
-| Переменная                                                              | Назначение                                                      |
-| ----------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `PUBLIC_DOMAIN`                                                         | канонический домен (site URL, OG)                               |
-| `PUBLIC_GITHUB_USER` / `PUBLIC_GITHUB_REPO`                             | сборка ссылок на репозитории проектов                           |
-| `PUBLIC_AUTHOR_NAME_RU` / `PUBLIC_AUTHOR_NAME_EN`                       | имя автора по локали                                            |
-| `PUBLIC_AUTHOR_PHOTO` / `PUBLIC_AUTHOR_BIO_RU` / `PUBLIC_AUTHOR_BIO_EN` | фото и био (опц.)                                               |
-| `PUBLIC_SOCIAL_GITHUB/TELEGRAM/LINKEDIN/X/VK`                           | соцссылки (пустые не рендерятся)                                |
+| Переменная                                                              | Назначение                                                                                                                                         |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PUBLIC_DOMAIN`                                                         | канонический домен (site URL, OG)                                                                                                                  |
+| `PUBLIC_GITHUB_USER` / `PUBLIC_GITHUB_REPO`                             | сборка ссылок на репозитории проектов                                                                                                              |
+| `PUBLIC_AUTHOR_NAME_RU` / `PUBLIC_AUTHOR_NAME_EN`                       | имя автора по локали                                                                                                                               |
+| `PUBLIC_AUTHOR_PHOTO` / `PUBLIC_AUTHOR_BIO_RU` / `PUBLIC_AUTHOR_BIO_EN` | фото и био (опц.)                                                                                                                                  |
+| `PUBLIC_SOCIAL_GITHUB/TELEGRAM/LINKEDIN/X/VK`                           | соцссылки (пустые не рендерятся)                                                                                                                   |
 | `AUTHOR_EMAIL`                                                          | без префикса; в bundle уходит base64 от перевёрнутой строки (`data-e`) - обфускация от скраперов, тривиально восстановима, адрес считать публичным |
 
 `PUBLIC_*` попадают в клиентский bundle (видны посетителю). На CI значения материализуются из GitHub Actions secrets. Не коммить секреты и `.env`.

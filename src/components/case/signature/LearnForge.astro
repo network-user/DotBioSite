@@ -42,8 +42,19 @@ const t = (b: Bi): string => b[locale];
 const stats: { v: string; label: Bi; plain?: boolean }[] = [
   { v: "34", label: { ru: "темы в каталоге", en: "topics" } },
   { v: "7", label: { ru: "типов упражнений", en: "exercise types" } },
-  { v: "", label: { ru: "визуализации и интерактивные анимации", en: "visualizations & interactive animations" }, plain: true },
-  { v: "", label: { ru: "local-first · без бэкенда", en: "local-first · no backend" }, plain: true },
+  {
+    v: "",
+    label: {
+      ru: "визуализации и интерактивные анимации",
+      en: "visualizations & interactive animations",
+    },
+    plain: true,
+  },
+  {
+    v: "",
+    label: { ru: "local-first · без бэкенда", en: "local-first · no backend" },
+    plain: true,
+  },
 ];
 
 /* ── Акты истории (шапки для станций и заголовка сцены) ───────────────── */
@@ -52,7 +63,10 @@ const acts: Act[] = [
   {
     id: "clone",
     eyebrow: { ru: "Клонируй и попроси", en: "Clone and ask" },
-    title: { ru: "Запускаешь локально и просишь словами", en: "Run it locally, ask in plain words" },
+    title: {
+      ru: "Запускаешь локально и просишь словами",
+      en: "Run it locally, ask in plain words",
+    },
     lede: {
       ru: "Скачал репозиторий, поднял плеер одной командой и прямо в редакторе попросил ИИ-агента собрать тему. Без форм и кода: обычным языком.",
       en: "Clone the repo, bring up the player with one command, and ask the AI agent right in your editor. No forms, no code, just plain language.",
@@ -97,7 +111,10 @@ const acts: Act[] = [
   {
     id: "habit",
     eyebrow: { ru: "Привычка и карточки", en: "Habit and flashcards" },
-    title: { ru: "Прогресс копится, карточки возвращают", en: "Progress builds, cards bring it back" },
+    title: {
+      ru: "Прогресс копится, карточки возвращают",
+      en: "Progress builds, cards bring it back",
+    },
     lede: {
       ru: "Стрик и тепловая карта активности живут в браузере (IndexedDB), без аккаунта. А флэшкарды по алгоритму FSRS сами решают, когда показать тему снова.",
       en: "A streak and an activity heatmap live in the browser (IndexedDB), no account. And FSRS flashcards decide on their own when to resurface a topic.",
@@ -136,10 +153,22 @@ const planConcepts: Bi[] = [
   { ru: "Инкапсуляция и свойства", en: "Encapsulation and properties" },
 ];
 const forgeFiles: { name: string; kind: Bi }[] = [
-  { name: "manifest.json", kind: { ru: "структурный контракт темы", en: "topic structural contract" } },
-  { name: "theory/python-oop.ru.mdx", kind: { ru: "теория-лонгрид с визуализацией", en: "longread theory with a viz" } },
-  { name: "exercises/python-oop.ru.yaml", kind: { ru: "задачи с gold-решением", en: "exercises with a gold solution" } },
-  { name: "flashcards/python-oop.ru.yaml", kind: { ru: "карточки для повторения", en: "flashcards for review" } },
+  {
+    name: "manifest.json",
+    kind: { ru: "структурный контракт темы", en: "topic structural contract" },
+  },
+  {
+    name: "theory/python-oop.ru.mdx",
+    kind: { ru: "теория-лонгрид с визуализацией", en: "longread theory with a viz" },
+  },
+  {
+    name: "exercises/python-oop.ru.yaml",
+    kind: { ru: "задачи с gold-решением", en: "exercises with a gold solution" },
+  },
+  {
+    name: "flashcards/python-oop.ru.yaml",
+    kind: { ru: "карточки для повторения", en: "flashcards for review" },
+  },
 ];
 
 /* ── Акт 3: Zod-контракт ─────────────────────────────────────────────── */
@@ -199,12 +228,12 @@ const pyCode: string[] = [
   "        self.name = name",
   "",
   "    def speak(self):",
-  "        return f\"{self.name} makes a sound\"",
+  '        return f"{self.name} makes a sound"',
   "",
   "",
   "class Dog(Animal):",
   "    def speak(self):",
-  "        return f\"{self.name} says Woof\"",
+  '        return f"{self.name} says Woof"',
 ];
 const pyCases: { call: string; expect: string }[] = [
   { call: 'Dog("Rex").speak()', expect: "Rex says Woof" },
@@ -225,10 +254,38 @@ const quizPrompt: Bi = {
   en: "Which statements about class inheritance in Python are true?",
 };
 const quizChoices: { id: string; text: Bi; correct: boolean }[] = [
-  { id: "a", text: { ru: "Если подкласс не определяет свой __init__, вызывается __init__ родителя.", en: "If a subclass defines no __init__ of its own, the parent's __init__ is used." }, correct: true },
-  { id: "b", text: { ru: "Переопределяя __init__ в подклассе, вызывать super().__init__() не обязательно.", en: "Overriding __init__ in a subclass, calling super().__init__() is optional." }, correct: false },
-  { id: "c", text: { ru: "isinstance() учитывает всю цепочку наследования, а не только точный класс.", en: "isinstance() checks the whole inheritance chain, not just the exact class." }, correct: true },
-  { id: "d", text: { ru: "Подкласс не может переопределить метод, только добавить новые.", en: "A subclass can't override a method, only add new ones." }, correct: false },
+  {
+    id: "a",
+    text: {
+      ru: "Если подкласс не определяет свой __init__, вызывается __init__ родителя.",
+      en: "If a subclass defines no __init__ of its own, the parent's __init__ is used.",
+    },
+    correct: true,
+  },
+  {
+    id: "b",
+    text: {
+      ru: "Переопределяя __init__ в подклассе, вызывать super().__init__() не обязательно.",
+      en: "Overriding __init__ in a subclass, calling super().__init__() is optional.",
+    },
+    correct: false,
+  },
+  {
+    id: "c",
+    text: {
+      ru: "isinstance() учитывает всю цепочку наследования, а не только точный класс.",
+      en: "isinstance() checks the whole inheritance chain, not just the exact class.",
+    },
+    correct: true,
+  },
+  {
+    id: "d",
+    text: {
+      ru: "Подкласс не может переопределить метод, только добавить новые.",
+      en: "A subclass can't override a method, only add new ones.",
+    },
+    correct: false,
+  },
 ];
 const quizExplain: Bi = {
   ru: "Без своего __init__ подкласс использует родительский; но если __init__ переопределён, super().__init__() нужно вызвать явно, иначе поля родителя не инициализируются. isinstance() смотрит на всю иерархию классов.",
@@ -247,13 +304,34 @@ const heatmap: number[] = Array.from({ length: HM_COLS * HM_ROWS }, (_, i) => {
   return wave > 8 ? 4 : wave > 6 ? 3 : wave > 4 ? 2 : wave > 2 ? 1 : 0;
 });
 const flashcard = {
-  front: { ru: "Что будет, если переопределить __init__ в подклассе и забыть вызвать super().__init__()?", en: "What happens if you override __init__ in a subclass and forget to call super().__init__()?" } as Bi,
-  back: { ru: "Инициализация родителя не выполнится: атрибуты, которые она задаёт, останутся не установлены.", en: "The parent's setup never runs: the attributes it sets never get created." } as Bi,
+  front: {
+    ru: "Что будет, если переопределить __init__ в подклассе и забыть вызвать super().__init__()?",
+    en: "What happens if you override __init__ in a subclass and forget to call super().__init__()?",
+  } as Bi,
+  back: {
+    ru: "Инициализация родителя не выполнится: атрибуты, которые она задаёт, останутся не установлены.",
+    en: "The parent's setup never runs: the attributes it sets never get created.",
+  } as Bi,
 };
 const fsrsRatings: { key: string; label: Bi; due: Bi; tone: string }[] = [
-  { key: "again", label: { ru: "Снова", en: "Again" }, due: { ru: "<10 мин", en: "<10 min" }, tone: "err" },
-  { key: "hard", label: { ru: "Трудно", en: "Hard" }, due: { ru: "1 дн", en: "1 d" }, tone: "warn" },
-  { key: "good", label: { ru: "Хорошо", en: "Good" }, due: { ru: "4 дн", en: "4 d" }, tone: "accent" },
+  {
+    key: "again",
+    label: { ru: "Снова", en: "Again" },
+    due: { ru: "<10 мин", en: "<10 min" },
+    tone: "err",
+  },
+  {
+    key: "hard",
+    label: { ru: "Трудно", en: "Hard" },
+    due: { ru: "1 дн", en: "1 d" },
+    tone: "warn",
+  },
+  {
+    key: "good",
+    label: { ru: "Хорошо", en: "Good" },
+    due: { ru: "4 дн", en: "4 d" },
+    tone: "accent",
+  },
   { key: "easy", label: { ru: "Легко", en: "Easy" }, due: { ru: "9 дн", en: "9 d" }, tone: "ok" },
 ];
 
@@ -278,8 +356,14 @@ const sx = {
   inject: { ru: "Внедрить лишнее поле", en: "Inject an extra field" },
   fix: { ru: "Убрать поле", en: "Remove the field" },
   pass: { ru: "PASS · форма валидна для web и api", en: "PASS · valid for web and api" },
-  reject: { ru: "REJECT · ZodError: unrecognized key, отклонено web И api", en: "REJECT · ZodError: unrecognized key, rejected by web AND api" },
-  validate: { ru: "pnpm validate · gold-Python прогнан в Pyodide ✓", en: "pnpm validate · gold Python ran in Pyodide ✓" },
+  reject: {
+    ru: "REJECT · ZodError: unrecognized key, отклонено web И api",
+    en: "REJECT · ZodError: unrecognized key, rejected by web AND api",
+  },
+  validate: {
+    ru: "pnpm validate · gold-Python прогнан в Pyodide ✓",
+    en: "pnpm validate · gold Python ran in Pyodide ✓",
+  },
   run: { ru: "Запустить", en: "Run" },
   running: { ru: "исполняю в Web Worker…", en: "executing in a Web Worker…" },
   ready: { ru: "готово к запуску", en: "ready to run" },
@@ -306,7 +390,10 @@ sBundle.locale = locale;
   class="lf"
   data-lf
   data-lf-bundle={JSON.stringify(sBundle)}
-  aria-label={t({ ru: "Как живёт DotLearn: интерактивная история", en: "How DotLearn lives: an interactive story" })}
+  aria-label={t({
+    ru: "Как живёт DotLearn: интерактивная история",
+    en: "How DotLearn lives: an interactive story",
+  })}
 >
   <ul class="lf__stats" role="list">
     {
@@ -374,7 +461,11 @@ sBundle.locale = locale;
             {a.id === "clone" && (
               <div class="lf-clone">
                 <div class="lf-term" data-lf-term aria-hidden="true">
-                  <div class="lf-term__bar"><i /><i /><i /></div>
+                  <div class="lf-term__bar">
+                    <i />
+                    <i />
+                    <i />
+                  </div>
                   <div class="lf-term__body mono">
                     {termLines.map((l, k) => (
                       <div class:list={["lf-term__line", `lf-term__line--${l.kind}`]} data-term={k}>
@@ -386,10 +477,15 @@ sBundle.locale = locale;
                 </div>
                 <div class="lf-ask">
                   <span class="lf-ask__cap caption">
-                    {t({ ru: "в редакторе (Cursor / Claude Code):", en: "in your editor (Cursor / Claude Code):" })}
+                    {t({
+                      ru: "в редакторе (Cursor / Claude Code):",
+                      en: "in your editor (Cursor / Claude Code):",
+                    })}
                   </span>
                   <div class="lf-ask__bubble">
-                    <span class="lf-ask__sigil mono" aria-hidden="true">/</span>
+                    <span class="lf-ask__sigil mono" aria-hidden="true">
+                      /
+                    </span>
                     <span class="lf-ask__text">{t(agentPrompt)}</span>
                   </div>
                   <div class="lf-act__run">
@@ -397,7 +493,12 @@ sBundle.locale = locale;
                       <span class="lf-btn__glyph lf-btn__glyph--play" aria-hidden="true" />
                       <span data-lf-clone-label>{t(sx.runAgent)}</span>
                     </button>
-                    <span class="lf-status mono" data-lf-clone-status role="status" aria-live="polite" />
+                    <span
+                      class="lf-status mono"
+                      data-lf-clone-status
+                      role="status"
+                      aria-live="polite"
+                    />
                   </div>
                 </div>
               </div>
@@ -436,7 +537,12 @@ sBundle.locale = locale;
                     <span class="lf-btn__glyph lf-btn__glyph--spark" aria-hidden="true" />
                     <span data-lf-forge-label>{t(sx.approve)}</span>
                   </button>
-                  <span class="lf-status mono" data-lf-forge-status role="status" aria-live="polite">
+                  <span
+                    class="lf-status mono"
+                    data-lf-forge-status
+                    role="status"
+                    aria-live="polite"
+                  >
                     {t(sx.planWait)}
                   </span>
                 </div>
@@ -447,18 +553,35 @@ sBundle.locale = locale;
             {a.id === "contract" && (
               <div class="lf-contract">
                 <div class="lf-schema mono" data-lf-schema data-state="pass" aria-hidden="true">
-                  <span class="lf-schema__line lf-schema__line--head">topicSchema = z.object(&#123;</span>
+                  <span class="lf-schema__line lf-schema__line--head">
+                    topicSchema = z.object(&#123;
+                  </span>
                   {schemaFields.map((f) => (
-                    <span class="lf-schema__line">{"  "}{f.key}: <em>{f.type}</em>,</span>
+                    <span class="lf-schema__line">
+                      {"  "}
+                      {f.key}: <em>{f.type}</em>,
+                    </span>
                   ))}
-                  <span class="lf-schema__line lf-schema__line--bad" data-lf-badline>{"  "}_inject: <em>z.any()</em>,</span>
+                  <span class="lf-schema__line lf-schema__line--bad" data-lf-badline>
+                    {"  "}_inject: <em>z.any()</em>,
+                  </span>
                   <span class="lf-schema__line lf-schema__line--head">&#125;).strict()</span>
-                  <span class="lf-schema__line lf-schema__line--infer">type Topic = z.infer&lt;typeof topicSchema&gt;</span>
+                  <span class="lf-schema__line lf-schema__line--infer">
+                    type Topic = z.infer&lt;typeof topicSchema&gt;
+                  </span>
                 </div>
                 <div class="lf-gate__wrap">
-                  <div class="lf-gate" data-lf-gate data-state="pass" role="status" aria-live="polite">
+                  <div
+                    class="lf-gate"
+                    data-lf-gate
+                    data-state="pass"
+                    role="status"
+                    aria-live="polite"
+                  >
                     <span class="lf-gate__icon" aria-hidden="true" />
-                    <span class="lf-gate__text" data-lf-gate-text>{t(sx.pass)}</span>
+                    <span class="lf-gate__text" data-lf-gate-text>
+                      {t(sx.pass)}
+                    </span>
                   </div>
                   <span class="lf-validate mono">{t(sx.validate)}</span>
                 </div>
@@ -471,25 +594,64 @@ sBundle.locale = locale;
             {/* ═════════ Акт 4: solve ═════════ */}
             {a.id === "solve" && (
               <div class="lf-ide" data-lf-ide>
-                <div class="lf-ide__tabs" role="tablist" aria-label={t({ ru: "Рантайм", en: "Runtime" })}>
-                  <button class="lf-ide__tab" type="button" role="tab" data-lf-rt="py" aria-selected="true" tabindex="0">
+                <div
+                  class="lf-ide__tabs"
+                  role="tablist"
+                  aria-label={t({ ru: "Рантайм", en: "Runtime" })}
+                >
+                  <button
+                    class="lf-ide__tab"
+                    type="button"
+                    role="tab"
+                    data-lf-rt="py"
+                    aria-selected="true"
+                    tabindex="0"
+                  >
                     <span class="mono">Pyodide</span>
-                    <span class="lf-ide__tab-sub">{t({ ru: "Python в WASM", en: "Python in WASM" })}</span>
+                    <span class="lf-ide__tab-sub">
+                      {t({ ru: "Python в WASM", en: "Python in WASM" })}
+                    </span>
                   </button>
-                  <button class="lf-ide__tab" type="button" role="tab" data-lf-rt="sql" aria-selected="false" tabindex="-1">
+                  <button
+                    class="lf-ide__tab"
+                    type="button"
+                    role="tab"
+                    data-lf-rt="sql"
+                    aria-selected="false"
+                    tabindex="-1"
+                  >
                     <span class="mono">sql.js</span>
-                    <span class="lf-ide__tab-sub">{t({ ru: "SQLite в WASM", en: "SQLite in WASM" })}</span>
+                    <span class="lf-ide__tab-sub">
+                      {t({ ru: "SQLite в WASM", en: "SQLite in WASM" })}
+                    </span>
                   </button>
-                  <span class="lf-ide__worker caption">{t({ ru: "в Web Worker", en: "in a Web Worker" })}</span>
+                  <span class="lf-ide__worker caption">
+                    {t({ ru: "в Web Worker", en: "in a Web Worker" })}
+                  </span>
                 </div>
 
                 <div class="lf-ide__editor">
-                  <pre class="lf-ide__code mono" data-lf-code aria-live="polite"><code>{pyCode.join("\n")}</code></pre>
+                  <pre class="lf-ide__code mono" data-lf-code aria-live="polite">
+                    <code>{pyCode.join("\n")}</code>
+                  </pre>
                 </div>
 
-                <div class="lf-ide__variants" data-lf-variants role="radiogroup" aria-label={t({ ru: "Вариант решения", en: "Solution variant" })} hidden>
+                <div
+                  class="lf-ide__variants"
+                  data-lf-variants
+                  role="radiogroup"
+                  aria-label={t({ ru: "Вариант решения", en: "Solution variant" })}
+                  hidden
+                >
                   {sqlVariants.map((v, k) => (
-                    <button class="lf-chip" type="button" role="radio" data-lf-variant={k} aria-checked={k === 0 ? "true" : "false"} tabindex={k === 0 ? 0 : -1}>
+                    <button
+                      class="lf-chip"
+                      type="button"
+                      role="radio"
+                      data-lf-variant={k}
+                      aria-checked={k === 0 ? "true" : "false"}
+                      tabindex={k === 0 ? 0 : -1}
+                    >
                       {t(v.label)}
                     </button>
                   ))}
@@ -500,7 +662,9 @@ sBundle.locale = locale;
                     <span class="lf-btn__glyph lf-btn__glyph--play" aria-hidden="true" />
                     <span>{t(sx.run)}</span>
                   </button>
-                  <span class="lf-status mono" data-lf-run-status role="status" aria-live="polite">{t(sx.ready)}</span>
+                  <span class="lf-status mono" data-lf-run-status role="status" aria-live="polite">
+                    {t(sx.ready)}
+                  </span>
                 </div>
 
                 <div class="lf-ide__out" data-lf-out data-kind="py" data-state="idle">
@@ -509,7 +673,10 @@ sBundle.locale = locale;
                     <span class="lf-ide__verdict mono" data-lf-verdict />
                   </div>
                   <div class="lf-ide__table-wrap" data-lf-sqlout hidden>
-                    <table class="lf-ide__table"><thead data-lf-thead /><tbody data-lf-tbody /></table>
+                    <table class="lf-ide__table">
+                      <thead data-lf-thead />
+                      <tbody data-lf-tbody />
+                    </table>
                   </div>
                   <ul class="lf-ide__cases" data-lf-pyout>
                     {pyCases.map((c, k) => (
@@ -527,29 +694,58 @@ sBundle.locale = locale;
             {/* ═════════ Акт 5: theory ═════════ */}
             {a.id === "theory" && (
               <div class="lf-theory">
-                <ul class="lf-theory__chips" data-lf-viz role="list" aria-label={t({ ru: "Визуализации в теории", en: "Theory visualizations" })}>
+                <ul
+                  class="lf-theory__chips"
+                  data-lf-viz
+                  role="list"
+                  aria-label={t({ ru: "Визуализации в теории", en: "Theory visualizations" })}
+                >
                   {vizChips.map((c, k) => (
-                    <li class="lf-vchip" data-viz={k}>{t(c)}</li>
+                    <li class="lf-vchip" data-viz={k}>
+                      {t(c)}
+                    </li>
                   ))}
                 </ul>
                 <div class="lf-quiz" data-lf-quiz>
-                  <span class="lf-quiz__cap caption">{t({ ru: "проверочный вопрос · theory-quiz", en: "check question · theory-quiz" })}</span>
+                  <span class="lf-quiz__cap caption">
+                    {t({
+                      ru: "проверочный вопрос · theory-quiz",
+                      en: "check question · theory-quiz",
+                    })}
+                  </span>
                   <p class="lf-quiz__prompt">{t(quizPrompt)}</p>
                   <ul class="lf-quiz__choices" role="list">
                     {quizChoices.map((c) => (
                       <li>
-                        <button class="lf-quiz__choice" type="button" data-lf-choice={c.id} data-correct={c.correct ? "1" : "0"} aria-pressed="false">
-                          <span class="lf-quiz__mark" aria-hidden="true">{c.id}</span>
+                        <button
+                          class="lf-quiz__choice"
+                          type="button"
+                          data-lf-choice={c.id}
+                          data-correct={c.correct ? "1" : "0"}
+                          aria-pressed="false"
+                        >
+                          <span class="lf-quiz__mark" aria-hidden="true">
+                            {c.id}
+                          </span>
                           <span>{t(c.text)}</span>
                         </button>
                       </li>
                     ))}
                   </ul>
                   <div class="lf-act__run">
-                    <button class="lf-btn lf-btn--accent" type="button" data-lf-quiz-check>{t(sx.check)}</button>
-                    <span class="lf-status mono" data-lf-quiz-status role="status" aria-live="polite" />
+                    <button class="lf-btn lf-btn--accent" type="button" data-lf-quiz-check>
+                      {t(sx.check)}
+                    </button>
+                    <span
+                      class="lf-status mono"
+                      data-lf-quiz-status
+                      role="status"
+                      aria-live="polite"
+                    />
                   </div>
-                  <p class="lf-quiz__explain" data-lf-quiz-explain hidden>{t(quizExplain)}</p>
+                  <p class="lf-quiz__explain" data-lf-quiz-explain hidden>
+                    {t(quizExplain)}
+                  </p>
                 </div>
               </div>
             )}
@@ -559,19 +755,30 @@ sBundle.locale = locale;
               <div class="lf-habit">
                 <div class="lf-streak">
                   <div class="lf-streak__head">
-                    <span class="lf-streak__num" data-lf-streak>0</span>
-                    <span class="lf-streak__cap">{t({ ru: "стрик · подряд идущих дней", en: "streak · consecutive days" })}</span>
+                    <span class="lf-streak__num" data-lf-streak>
+                      0
+                    </span>
+                    <span class="lf-streak__cap">
+                      {t({ ru: "стрик · подряд идущих дней", en: "streak · consecutive days" })}
+                    </span>
                   </div>
                   <div class="lf-heat" data-lf-heat aria-hidden="true" style={`--cols:${HM_COLS}`}>
                     {heatmap.map((lvl, k) => (
                       <span class="lf-heat__cell" data-lvl={lvl} data-k={k} />
                     ))}
                   </div>
-                  <span class="lf-heat__cap caption">{t({ ru: "тепловая карта активности · IndexedDB", en: "activity heatmap · IndexedDB" })}</span>
+                  <span class="lf-heat__cap caption">
+                    {t({
+                      ru: "тепловая карта активности · IndexedDB",
+                      en: "activity heatmap · IndexedDB",
+                    })}
+                  </span>
                 </div>
 
                 <div class="lf-card" data-lf-card>
-                  <span class="lf-card__cap caption">{t({ ru: "интервальное повторение · FSRS", en: "spaced repetition · FSRS" })}</span>
+                  <span class="lf-card__cap caption">
+                    {t({ ru: "интервальное повторение · FSRS", en: "spaced repetition · FSRS" })}
+                  </span>
                   <button class="lf-card__flip" type="button" data-lf-flip aria-label={t(sx.flip)}>
                     <span class="lf-card__inner" data-lf-card-inner>
                       <span class="lf-card__face lf-card__face--front">{t(flashcard.front)}</span>
@@ -586,7 +793,12 @@ sBundle.locale = locale;
                       </button>
                     ))}
                   </div>
-                  <span class="lf-status mono" data-lf-card-status role="status" aria-live="polite" />
+                  <span
+                    class="lf-status mono"
+                    data-lf-card-status
+                    role="status"
+                    aria-live="polite"
+                  />
                 </div>
               </div>
             )}
@@ -604,7 +816,9 @@ sBundle.locale = locale;
                       </li>
                     ))}
                   </ul>
-                  <span class="lf-export__foot caption">version 4 · app: "dotlearn" · {t({ ru: "без аккаунта", en: "no account" })}</span>
+                  <span class="lf-export__foot caption">
+                    version 4 · app: "dotlearn" · {t({ ru: "без аккаунта", en: "no account" })}
+                  </span>
                 </div>
                 <div class="lf-export__controls">
                   <button class="lf-btn lf-btn--accent" type="button" data-lf-export>
@@ -615,7 +829,12 @@ sBundle.locale = locale;
                     <span class="lf-btn__glyph lf-btn__glyph--up" aria-hidden="true" />
                     <span>{t(sx.importBtn)}</span>
                   </button>
-                  <span class="lf-status mono" data-lf-export-status role="status" aria-live="polite" />
+                  <span
+                    class="lf-status mono"
+                    data-lf-export-status
+                    role="status"
+                    aria-live="polite"
+                  />
                 </div>
               </div>
             )}
@@ -631,7 +850,12 @@ sBundle.locale = locale;
         <span class="lf__pager-word">{t(sx.prev)}</span>
       </button>
       <span class="lf__pager-step mono" data-lf-step>{`01 / 0${acts.length}`}</span>
-      <button class="lf__pager-btn lf__pager-btn--next" type="button" data-lf-next aria-label={t(sx.next)}>
+      <button
+        class="lf__pager-btn lf__pager-btn--next"
+        type="button"
+        data-lf-next
+        aria-label={t(sx.next)}
+      >
         <span class="lf__pager-word">{t(sx.next)}</span>
         <span aria-hidden="true">→</span>
       </button>
@@ -824,8 +1048,7 @@ sBundle.locale = locale;
     border: var(--bw-thin) solid var(--glass-edge);
     border-radius: var(--r-xl);
     background:
-      radial-gradient(130% 90% at 100% 0%, var(--lf-glow), transparent 58%),
-      var(--bg-elevated);
+      radial-gradient(130% 90% at 100% 0%, var(--lf-glow), transparent 58%), var(--bg-elevated);
     box-shadow: var(--shadow-2);
     overflow: hidden;
   }
@@ -1023,17 +1246,37 @@ sBundle.locale = locale;
   }
 
   @keyframes lf-fade {
-    from { opacity: 0; transform: translate3d(0, 8px, 0); }
-    to { opacity: 1; transform: none; }
+    from {
+      opacity: 0;
+      transform: translate3d(0, 8px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
   @keyframes lf-slide {
-    from { opacity: 0; transform: translate3d(-12px, 0, 0); }
-    to { opacity: 1; transform: none; }
+    from {
+      opacity: 0;
+      transform: translate3d(-12px, 0, 0);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
   @keyframes lf-pop {
-    0% { opacity: 0; transform: scale(0.8); }
-    60% { transform: scale(1.05); }
-    100% { opacity: 1; transform: scale(1); }
+    0% {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    60% {
+      transform: scale(1.05);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 
   /* ════════ Акт 1: clone ════════ */
@@ -1314,9 +1557,16 @@ sBundle.locale = locale;
     animation: lf-shake var(--dur-slow) var(--ease-standard);
   }
   @keyframes lf-shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-5px);
+    }
+    75% {
+      transform: translateX(5px);
+    }
   }
   .lf-validate {
     font-size: var(--fs-13);
@@ -1647,7 +1897,9 @@ sBundle.locale = locale;
     background: var(--lf-err-soft);
     color: var(--lf-err);
   }
-  .lf-quiz[data-checked="true"] .lf-quiz__choice[aria-pressed="true"][data-correct="0"] .lf-quiz__mark {
+  .lf-quiz[data-checked="true"]
+    .lf-quiz__choice[aria-pressed="true"][data-correct="0"]
+    .lf-quiz__mark {
     color: var(--lf-err);
     border-color: color-mix(in srgb, var(--lf-err) 50%, transparent);
   }
@@ -1711,10 +1963,18 @@ sBundle.locale = locale;
     opacity: 0;
     transform: scale(0.6);
   }
-  .lf-heat__cell[data-lvl="1"] { background: color-mix(in srgb, var(--lf-accent) 24%, var(--surface-3)); }
-  .lf-heat__cell[data-lvl="2"] { background: color-mix(in srgb, var(--lf-accent) 46%, var(--surface-3)); }
-  .lf-heat__cell[data-lvl="3"] { background: color-mix(in srgb, var(--lf-accent) 70%, var(--surface-3)); }
-  .lf-heat__cell[data-lvl="4"] { background: var(--lf-accent); }
+  .lf-heat__cell[data-lvl="1"] {
+    background: color-mix(in srgb, var(--lf-accent) 24%, var(--surface-3));
+  }
+  .lf-heat__cell[data-lvl="2"] {
+    background: color-mix(in srgb, var(--lf-accent) 46%, var(--surface-3));
+  }
+  .lf-heat__cell[data-lvl="3"] {
+    background: color-mix(in srgb, var(--lf-accent) 70%, var(--surface-3));
+  }
+  .lf-heat__cell[data-lvl="4"] {
+    background: var(--lf-accent);
+  }
   .lf-heat__cell.is-on {
     opacity: 1;
     transform: scale(1);
@@ -1735,9 +1995,7 @@ sBundle.locale = locale;
     padding: var(--sp-4);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-lg);
-    background:
-      radial-gradient(130% 90% at 0% 0%, var(--lf-glow), transparent 62%),
-      var(--surface);
+    background: radial-gradient(130% 90% at 0% 0%, var(--lf-glow), transparent 62%), var(--surface);
   }
   .lf-card__cap {
     color: var(--text-muted);
@@ -1827,10 +2085,18 @@ sBundle.locale = locale;
     font-size: var(--fs-11);
     color: var(--text-muted);
   }
-  .lf-rate[data-tone="err"]:hover { border-color: color-mix(in srgb, var(--lf-err) 50%, transparent); }
-  .lf-rate[data-tone="warn"]:hover { border-color: color-mix(in srgb, var(--lf-warn) 50%, transparent); }
-  .lf-rate[data-tone="accent"]:hover { border-color: var(--lf-line); }
-  .lf-rate[data-tone="ok"]:hover { border-color: color-mix(in srgb, var(--lf-ok) 50%, transparent); }
+  .lf-rate[data-tone="err"]:hover {
+    border-color: color-mix(in srgb, var(--lf-err) 50%, transparent);
+  }
+  .lf-rate[data-tone="warn"]:hover {
+    border-color: color-mix(in srgb, var(--lf-warn) 50%, transparent);
+  }
+  .lf-rate[data-tone="accent"]:hover {
+    border-color: var(--lf-line);
+  }
+  .lf-rate[data-tone="ok"]:hover {
+    border-color: color-mix(in srgb, var(--lf-ok) 50%, transparent);
+  }
 
   /* ════════ Акт 7: export ════════ */
   .lf-export {
@@ -2113,7 +2379,8 @@ sBundle.locale = locale;
       t.addEventListener("keydown", (e: KeyboardEvent) => {
         let m = -1;
         if (e.key === "ArrowRight" || e.key === "ArrowDown") m = (k + 1) % tabs.length;
-        else if (e.key === "ArrowLeft" || e.key === "ArrowUp") m = (k - 1 + tabs.length) % tabs.length;
+        else if (e.key === "ArrowLeft" || e.key === "ArrowUp")
+          m = (k - 1 + tabs.length) % tabs.length;
         else if (e.key === "Home") m = 0;
         else if (e.key === "End") m = tabs.length - 1;
         if (m < 0) return;
@@ -2232,16 +2499,23 @@ sBundle.locale = locale;
       {
         ok: true,
         code: "SELECT a.name, b.title\nFROM author a\nLEFT JOIN book b ON b.author_id = a.id\nORDER BY a.name, b.title;",
-        rows: [["Ada", "Analytical engine"], ["Grace", "NULL"], ["Linus", "Kernel notes"]],
+        rows: [
+          ["Ada", "Analytical engine"],
+          ["Grace", "NULL"],
+          ["Linus", "Kernel notes"],
+        ],
       },
       {
         ok: false,
         code: "SELECT a.name, b.title\nFROM author a\nJOIN book b ON b.author_id = a.id\nORDER BY a.name;",
-        rows: [["Ada", "Analytical engine"], ["Linus", "Kernel notes"]],
+        rows: [
+          ["Ada", "Analytical engine"],
+          ["Linus", "Kernel notes"],
+        ],
       },
     ];
     const pyCode =
-      "class Animal:\n    def __init__(self, name):\n        self.name = name\n\n    def speak(self):\n        return f\"{self.name} makes a sound\"\n\n\nclass Dog(Animal):\n    def speak(self):\n        return f\"{self.name} says Woof\"";
+      'class Animal:\n    def __init__(self, name):\n        self.name = name\n\n    def speak(self):\n        return f"{self.name} makes a sound"\n\n\nclass Dog(Animal):\n    def speak(self):\n        return f"{self.name} says Woof"';
     const sqlCols = ["name", "title"];
     let runtime: "sql" | "py" = "py";
     let variant = 0;
@@ -2393,7 +2667,9 @@ sBundle.locale = locale;
 
     /* ════════ Акт 6: habit ════════ */
     const streakNum = root.querySelector<HTMLElement>("[data-lf-streak]");
-    const heatCells = Array.from(root.querySelectorAll<HTMLElement>("[data-lf-heat] .lf-heat__cell"));
+    const heatCells = Array.from(
+      root.querySelectorAll<HTMLElement>("[data-lf-heat] .lf-heat__cell"),
+    );
     const cardEl = root.querySelector<HTMLElement>("[data-lf-card]");
     const flipBtn = root.querySelector<HTMLButtonElement>("[data-lf-flip]");
     const ratingsWrap = root.querySelector<HTMLElement>("[data-lf-ratings]");

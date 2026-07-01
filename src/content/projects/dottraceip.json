@@ -18,12 +18,12 @@
     "en": "An async CLI that takes a list of IPs and queries six sources per address in parallel: geolocation, ASN and BGP, owner network, DNS, and reputation. One source failing doesn't break the report, and the result comes out as TXT, JSON, CSV, or HTML."
   },
   "caseTagline": {
-    "ru": "На входе - список IP из access-логов, на выходе - отчёт; всё, что между ними, укладывается в один запуск.",
+    "ru": "На входе список IP из access-логов, на выходе отчёт; всё, что между ними, укладывается в один запуск.",
     "en": "A list of IPs from access logs goes in, a report comes out; everything between fits into one run."
   },
   "caseDescription": {
-    "ru": "Формат простой: текстовый файл с адресами на вход, TXT, JSON, CSV или HTML на выход - ни сервера, ни браузерного дашборда между ними. Внутри это не последовательный обход, а веер: движок держит семафор на N IP одновременно и по каждому адресу параллельно опрашивает шесть источников через asyncio.gather, так что если Spamhaus не ответил или bgpview лёг, остальные поля всё равно доедут до отчёта. Тот же run_scan одинаково запускается и из headless-команды в cron на сервере, и из Rich-меню в терминале - разница только в том, куда идёт live-дашборд.",
-    "en": "The shape is simple: a text file of addresses in, TXT, JSON, CSV, or HTML out, with no server and no browser dashboard in between. Under the hood it's not a sequential walk but a fan-out: the engine holds a semaphore over N IPs at once and queries six sources per address in parallel via asyncio.gather, so if Spamhaus times out or bgpview is down, the rest of the fields still make it into the report. The same run_scan call works identically from a headless cron job on a server or from the Rich menu in a terminal - the only difference is where the live dashboard renders."
+    "ru": "Формат простой: текстовый файл с адресами на вход, TXT, JSON, CSV или HTML на выход, и ни сервера, ни браузерного дашборда между ними. Внутри это не последовательный обход, а веер: движок держит семафор на N IP одновременно и по каждому адресу параллельно опрашивает шесть источников через asyncio.gather, так что если Spamhaus не ответил или bgpview лёг, остальные поля всё равно доедут до отчёта. Тот же run_scan одинаково запускается и из headless-команды в cron на сервере, и из Rich-меню в терминале, разница только в том, куда идёт live-дашборд.",
+    "en": "The shape is simple: a text file of addresses in, TXT, JSON, CSV, or HTML out, with no server and no browser dashboard in between. Under the hood it's not a sequential walk but a fan-out: the engine holds a semaphore over N IPs at once and queries six sources per address in parallel via asyncio.gather, so if Spamhaus times out or bgpview is down, the rest of the fields still make it into the report. The same run_scan call works identically from a headless cron job on a server or from the Rich menu in a terminal, and the only difference is where the live dashboard renders."
   },
   "stack": [
     "Python 3.12",
@@ -75,39 +75,47 @@
   ],
   "overview": {
     "ru": [
-      "Асинхронный CLI для массового разбора IP: по каждому адресу шесть источников - геолокация, ASN и BGP-префикс, обратный DNS и репутация (AbuseIPDB, Spamhaus) - опрашиваются параллельно через asyncio.gather. Сбой одного источника не роняет остальные, а отчёт пишется в TXT, JSON, CSV или самодостаточный HTML."
+      "Асинхронный CLI для массового разбора IP: по каждому адресу шесть источников, а именно геолокация, ASN и BGP-префикс, обратный DNS и репутация (AbuseIPDB, Spamhaus), опрашиваются параллельно через asyncio.gather. Сбой одного источника не роняет остальные, а отчёт пишется в TXT, JSON, CSV или самодостаточный HTML."
     ],
     "en": [
-      "An async CLI for bulk IP analysis: for each address six sources - geolocation, ASN and BGP prefix, reverse DNS, and reputation (AbuseIPDB, Spamhaus) - are queried in parallel via asyncio.gather. A single failing source never breaks the rest, and the report is written to TXT, JSON, CSV, or a self-contained HTML."
+      "An async CLI for bulk IP analysis: for each address six sources, namely geolocation, ASN and BGP prefix, reverse DNS, and reputation (AbuseIPDB, Spamhaus), are queried in parallel via asyncio.gather. A single failing source never breaks the rest, and the report is written to TXT, JSON, CSV, or a self-contained HTML."
     ]
   },
   "metrics": [
     {
+      "value": "1",
+      "unit": "день",
+      "label": {
+        "ru": "от первого коммита до рабочего async-ядра",
+        "en": "from first commit to a working async core"
+      }
+    },
+    {
+      "value": "~2.4k",
+      "label": {
+        "ru": "строк Python с тестами",
+        "en": "lines of Python with tests"
+      }
+    },
+    {
+      "value": "82",
+      "label": {
+        "ru": "теста pytest-asyncio, зелёный CI",
+        "en": "pytest-asyncio tests, green CI"
+      }
+    },
+    {
+      "value": "500",
+      "label": {
+        "ru": "IP в параллель: потолок семафора",
+        "en": "IPs in parallel: the semaphore ceiling"
+      }
+    },
+    {
       "value": "6",
       "label": {
-        "ru": "источников данных на один IP",
+        "ru": "источников данных на каждый IP",
         "en": "data sources per IP"
-      }
-    },
-    {
-      "value": "64",
-      "label": {
-        "ru": "теста pytest-asyncio + CI",
-        "en": "pytest-asyncio tests + CI"
-      }
-    },
-    {
-      "value": "4",
-      "label": {
-        "ru": "формата экспорта: TXT · JSON · CSV · HTML",
-        "en": "export formats: TXT · JSON · CSV · HTML"
-      }
-    },
-    {
-      "value": "3",
-      "label": {
-        "ru": "типа прокси: HTTP · SOCKS4 · SOCKS5",
-        "en": "proxy types: HTTP · SOCKS4 · SOCKS5"
       }
     }
   ],
@@ -164,7 +172,7 @@
       "icon": "code",
       "width": 185,
       "desc": {
-        "ru": "aiohttp-socks HTTP/SOCKS; нет прокси - HTTP не идёт напрямую",
+        "ru": "aiohttp-socks HTTP/SOCKS; без прокси HTTP напрямую не идёт",
         "en": "aiohttp-socks HTTP/SOCKS; no proxy means no direct HTTP"
       }
     },
@@ -298,23 +306,34 @@
     {
       "date": "15 Mar 2026",
       "title": {
-        "ru": "Старт DotTraceIP",
-        "en": "DotTraceIP kickoff"
+        "ru": "Старт: async-ядро за день",
+        "en": "Start: an async core in a day"
       },
       "description": {
-        "ru": "Async-движок asyncio.gather, live-дашборд Rich, прокси HTTP/SOCKS, 4 формата экспорта: TXT/JSON/CSV/HTML.",
-        "en": "asyncio.gather async engine, Rich live dashboard, HTTP/SOCKS proxies, and 4 export formats: TXT/JSON/CSV/HTML."
+        "ru": "Первый коммит и сразу рабочее ядро: веер asyncio.gather с семафором, живой Rich-дашборд, прокси HTTP/SOCKS с маскировкой кредов, шесть источников на IP и четыре формата экспорта.",
+        "en": "The first commit and a working core right away: an asyncio.gather fan-out with a semaphore, a live Rich dashboard, HTTP/SOCKS proxies with credential masking, six sources per IP, and four export formats."
       }
     },
     {
       "date": "23 Jun 2026",
       "title": {
-        "ru": "Headless и CI",
-        "en": "Headless and CI"
+        "ru": "Headless, устойчивость и CI",
+        "en": "Headless, resilience, and CI"
       },
       "description": {
-        "ru": "Headless-режим скана, ip-api backoff на 429, IP-дедупликация, ruff + coverage CI на GitHub Actions.",
-        "en": "Headless scan mode, ip-api 429 backoff, IP deduplication, and ruff + coverage CI on GitHub Actions."
+        "ru": "Неинтерактивный scan для cron и разбора логов, backoff на 429 с уважением X-Ttl, дедуп IP перед сканом и конвейер ruff плюс coverage на GitHub Actions.",
+        "en": "A non-interactive scan for cron and log parsing, 429 backoff that respects X-Ttl, IP dedup before the scan, and a ruff plus coverage pipeline on GitHub Actions."
+      }
+    },
+    {
+      "date": "1 Jul 2026",
+      "title": {
+        "ru": "Публикация и аудит",
+        "en": "Publication and audit"
+      },
+      "description": {
+        "ru": "Документация в стандарте DotCore, лицензия и обложка; pre-deploy аудит проходит вчистую и ставит зелёный бейдж. Проверены защита CSV от formula-injection, атомарная запись и удержание путей в рабочем каталоге.",
+        "en": "DotCore-standard docs, a license, and a cover; the pre-deploy audit passes clean and earns a green badge. Verified: CSV formula-injection guarding, atomic writes, and keeping paths inside the working directory."
       }
     }
   ],
@@ -322,38 +341,61 @@
     {
       "icon": "globe",
       "title": {
-        "ru": "6 источников на один IP",
+        "ru": "6 источников на каждый IP",
         "en": "6 sources per IP"
       },
       "description": {
-        "ru": "Геолокация и ASN (ip-api), BGP-префикс и имя автономной системы (Team Cymru → bgpview), сеть владельца (RDAP), обратный DNS и репутация (AbuseIPDB, Spamhaus).",
-        "en": "Geolocation and ASN (ip-api), BGP prefix and AS name (Team Cymru → bgpview), owner network (RDAP), reverse DNS, and reputation (AbuseIPDB, Spamhaus)."
+        "ru": "Геолокация и ASN (ip-api), BGP-префикс и имя автономной системы (Team Cymru, фолбэк bgpview), сеть владельца (RDAP), обратный DNS и репутация (AbuseIPDB, Spamhaus): по каждому адресу собирается досье из шести независимых источников.",
+        "en": "Geolocation and ASN (ip-api), BGP prefix and AS name (Team Cymru, bgpview fallback), owner network (RDAP), reverse DNS, and reputation (AbuseIPDB, Spamhaus): every address gets a dossier from six independent sources."
       },
       "detail": {
-        "ru": "Team Cymru отвечает по DNS и почти не лимитируется; bgpview.io - HTTP-фолбэк, когда DNS-ответа нет.",
-        "en": "Team Cymru answers over DNS and is barely rate-limited; bgpview.io is the HTTP fallback when there's no DNS answer."
+        "ru": "Team Cymru отвечает по DNS и почти не лимитируется, поэтому он основной; bgpview.io подхватывает по HTTP, когда DNS молчит. Блокирующие резолверы (обратный DNS, RDAP, Spamhaus) уходят в thread pool с жёстким таймаутом 6 секунд, чтобы зависший ответ не забивал пул.",
+        "en": "Team Cymru answers over DNS and is barely rate-limited, so it leads; bgpview.io steps in over HTTP when DNS stays silent. Blocking resolvers (reverse DNS, RDAP, Spamhaus) run in a thread pool with a hard 6-second timeout, so a stuck lookup never clogs the pool."
       }
     },
     {
       "icon": "stack",
       "title": {
-        "ru": "Async-движок с семафором",
-        "en": "Async engine with a semaphore"
+        "ru": "Async-веер с семафором",
+        "en": "Async fan-out with a semaphore"
       },
       "description": {
-        "ru": "До N IP параллельно; по каждому источники собираются через asyncio.gather. Сбой одного источника не прерывает скан - его поля остаются дефолтными.",
-        "en": "Up to N IPs in parallel; per IP the sources are gathered via asyncio.gather. A failing source doesn't interrupt the scan - its fields stay at defaults."
+        "ru": "До 500 IP параллельно, а по каждому адресу шесть источников собираются одним asyncio.gather. Отказ любого источника не роняет остальные и не прерывает скан: его поля просто остаются дефолтными.",
+        "en": "Up to 500 IPs in parallel, and per address the six sources gather in a single asyncio.gather. A failing source never drops the rest or interrupts the scan: its fields just stay at defaults."
+      },
+      "detail": {
+        "ru": "Движок держит asyncio.Semaphore на N адресов и отдаёт результаты по мере готовности через as_completed. Синхронная обёртка run_scan прячет весь asyncio внутри, поэтому снаружи CLI остаётся простым и синхронным.",
+        "en": "The engine holds an asyncio.Semaphore over N addresses and yields results as they finish via as_completed. The synchronous run_scan wrapper hides all the asyncio inside, so the CLI stays plain and synchronous on the outside."
+      }
+    },
+    {
+      "icon": "rocket",
+      "title": {
+        "ru": "Headless или живой дашборд",
+        "en": "Headless or a live dashboard"
+      },
+      "description": {
+        "ru": "Тот же run_scan запускается и одной командой из cron, и из интерактивного меню в терминале. В headless результат льётся построчно, в интерактиве рисуется живой Rich-дашборд с прогрессом и цветной репутацией.",
+        "en": "The same run_scan runs both as a one-line cron job and from an interactive terminal menu. Headless streams results line by line; interactive draws a live Rich dashboard with progress and color-coded reputation."
+      },
+      "detail": {
+        "ru": "Разница только во флаге use_live: неинтерактивный режим печатает строки для логов и пайпов, а Rich Live показывает прогресс-бар, счётчик и таблицу последних результатов с зелёно-жёлто-красной ячейкой репутации.",
+        "en": "The only difference is the use_live flag: the non-interactive mode prints lines for logs and pipes, while Rich Live shows a progress bar, a counter, and a table of the latest results with a green-yellow-red reputation cell."
       }
     },
     {
       "icon": "spark",
       "title": {
-        "ru": "Экспорт в 4 формата",
-        "en": "Export to 4 formats"
+        "ru": "Отчёт в четырёх форматах",
+        "en": "A report in four formats"
       },
       "description": {
-        "ru": "TXT построчно во время скана, плюс JSON, CSV и самодостаточный HTML с сортировкой по столбцам без внешних зависимостей.",
-        "en": "TXT line by line during the scan, plus JSON, CSV, and a self-contained HTML with column sorting and no external dependencies."
+        "ru": "TXT пишется прямо во время скана, а на выходе ещё JSON, CSV и самодостаточный HTML с сортировкой по столбцам, без единой внешней зависимости и CDN.",
+        "en": "TXT is written during the scan itself, and the output also includes JSON, CSV, and a self-contained HTML with column sorting, without a single external dependency or CDN."
+      },
+      "detail": {
+        "ru": "HTML несёт свою тёмную тему и чистый JS-сортировщик, CSV нейтрализует formula-injection ведущим апострофом, а запись атомарна (tmp плюс os.replace) и не идёт по симлинку.",
+        "en": "The HTML carries its own dark theme and a plain-JS sorter, the CSV neutralizes formula injection with a leading apostrophe, and every write is atomic (tmp plus os.replace) and never follows a symlink."
       }
     },
     {
@@ -363,8 +405,27 @@
         "en": "Proxies and privacy"
       },
       "description": {
-        "ru": "HTTP/SOCKS4/SOCKS5, случайная ротация пула против rate-limit, маскировка кредов. При нераспарсиваемом прокси HTTP-источники не уходят в прямое соединение - реальный IP не утекает.",
-        "en": "HTTP/SOCKS4/SOCKS5, random pool rotation against rate limits, credential masking. On an unparseable proxy, HTTP sources don't fall back to a direct connection - the real IP never leaks."
+        "ru": "HTTP, SOCKS4 и SOCKS5 со случайной ротацией пула против rate-limit и маскировкой кредов. Если прокси задан, но не распарсился, HTTP-источники не уходят в прямое соединение, поэтому реальный IP не утекает.",
+        "en": "HTTP, SOCKS4, and SOCKS5 with random pool rotation against rate limits and credential masking. If a proxy is set but fails to parse, HTTP sources don't fall back to a direct connection, so the real IP never leaks."
+      },
+      "detail": {
+        "ru": "В выводе прячется и последний октет IP, и пароль прокси. Проверка живости пула сама отсекает мёртвые прокси перед сканом и оставляет в файле только рабочие.",
+        "en": "The output hides both the last IP octet and the proxy password. A liveness check culls dead proxies before the scan and keeps only the working ones in the file."
+      }
+    },
+    {
+      "icon": "dot",
+      "title": {
+        "ru": "Отказоустойчивость и backoff",
+        "en": "Resilience and backoff"
+      },
+      "description": {
+        "ru": "Сбойный источник не роняет отчёт, а ip-api при 429 уходит в backoff, уважая заголовок X-Ttl. Повторы IP в логах отсекаются дедупом ещё до скана.",
+        "en": "A failing source never breaks the report, and on 429 ip-api backs off while respecting the X-Ttl header. Repeated IPs in logs are deduped before the scan even starts."
+      },
+      "detail": {
+        "ru": "dedup_preserve убирает дубли, сохраняя порядок первого вхождения (в access-логах один адрес встречается сотни раз). Конфиг устойчив к мусору: битый JSON откатывается к дефолтам, threads зажимается в диапазон 1..500, а пути держатся внутри рабочего каталога.",
+        "en": "dedup_preserve removes duplicates while keeping first-seen order (in access logs one address shows up hundreds of times). The config survives garbage: broken JSON falls back to defaults, threads clamp into the 1..500 range, and paths stay inside the working directory."
       }
     }
   ]

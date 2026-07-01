@@ -73,8 +73,12 @@ const signatureLedes: Record<string, { ru: string; en: string }> = {
     en: "Not a list of fields but a live dossier on an address. Pick an IP from the brute-force logs, hit “Trace”, and see how it works inside.",
   },
   dotagents: {
-    ru: "Телефон становится пультом к AI-агенту на твоей машине: видно, что он делает, и рискованное можно остановить одним тапом. Потрогай интерактив - и поймёшь, как устроен контроль.",
-    en: "Your phone becomes the remote for an AI agent on your machine: see what it's doing and stop anything risky with one tap. Play with it to see how the control loop works.",
+    ru: "Два экрана одной истории: слева в терминале работает Claude Code, справа в Telegram - ты. Агент дошёл до опасной команды и встал; реши за него с телефона и посмотри, как контроль работает изнутри.",
+    en: "Two screens, one story: Claude Code runs in the terminal on the left, you sit in Telegram on the right. The agent hit a dangerous command and froze; decide for it from your phone and watch the control loop from the inside.",
+  },
+  dotworkbot: {
+    ru: "Живая kanban-доска биржи смен, а не список полей. Создайте смену, перетащите её работнику и крутите часы в обе стороны - фоновый воркер сам шлёт напоминания, освобождает слот при неявке и закрывает просроченные заказы. Посмотрите, как всё работает изнутри.",
+    en: "A live kanban board for a gig-shift marketplace, not a list of fields. Create a shift, drag it to a worker and wind the clock both ways - a background worker sends reminders, frees the slot on a no-show and auto-closes expired orders. See how it works inside.",
   },
 };
 const signatureLede = (signatureLedes[p.slug] ?? {

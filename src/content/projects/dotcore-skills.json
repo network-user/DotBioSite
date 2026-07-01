@@ -11,12 +11,12 @@
     "en": ".skills"
   },
   "tagline": {
-    "ru": "Один набор Agent Skills - в 10+ кодинг-агентов одним проходом.",
+    "ru": "Один набор Agent Skills: в 10+ кодинг-агентов одним проходом.",
     "en": "One set of Agent Skills, into 10+ coding agents in a single pass."
   },
   "description": {
-    "ru": "Монорепо Agent Skills экосистемы DotCore: каждый скилл - папка по спецификации agentskills.io, а два параллельных установщика (PowerShell и bash+Python) раскладывают её в каталоги 10+ кодинг-агентов одним проходом поверх общего JSON-конфига путей. Этим тулингом собраны README и правила всех проектов DotCore - включая этот сайт.",
-    "en": "An Agent Skills monorepo for the DotCore ecosystem: each skill is a folder following the agentskills.io spec, and two parallel installers (PowerShell and bash+Python) lay it into 10+ coding-agent directories in a single pass over one shared JSON path config. This tooling generates the READMEs and rules across every DotCore project - including this site."
+    "ru": "Монорепо Agent Skills экосистемы DotCore: каждый скилл это папка по спецификации agentskills.io, а два параллельных установщика (PowerShell и bash+Python) раскладывают её в каталоги 10+ кодинг-агентов одним проходом поверх общего JSON-конфига путей. Этим тулингом собраны README и правила всех проектов DotCore, включая этот сайт.",
+    "en": "An Agent Skills monorepo for the DotCore ecosystem: each skill is a folder following the agentskills.io spec, and two parallel installers (PowerShell and bash+Python) lay it into 10+ coding-agent directories in a single pass over one shared JSON path config. This tooling generates the READMEs and rules across every DotCore project, including this site."
   },
   "stack": ["PowerShell", "Bash", "Python 3", "JSON", "Markdown", "GitHub Actions"],
   "category": "tool",

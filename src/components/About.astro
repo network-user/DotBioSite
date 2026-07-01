@@ -34,11 +34,7 @@ const portraitContacts: {
 
 <section class="section about" id="about" aria-labelledby="about-title">
   <div class="container about__inner">
-    <SectionHeader
-      id="about-title"
-      kicker={t("about.kicker")}
-      title={t("about.title")}
-    />
+    <SectionHeader id="about-title" kicker={t("about.kicker")} title={t("about.title")} />
 
     <div class="about__grid">
       <div class="about__portrait" data-reveal data-about-portrait>
@@ -54,7 +50,6 @@ const portraitContacts: {
           }
           <span class="about__sheen" aria-hidden="true"></span>
         </div>
-
       </div>
 
       <div class="about__content" data-reveal data-reveal-delay="120">
@@ -65,24 +60,26 @@ const portraitContacts: {
         </blockquote>
 
         <div class="about__portrait-contacts">
-          {portraitContacts.map((c) =>
-            c.href ? (
-              <a
-                href={c.href}
-                class="about__portrait-link"
-                aria-label={c.label}
-                {...(c.external ? { target: "_blank", rel: "noopener noreferrer me" } : {})}
-              >
-                <Icon name={c.id} size={16} />
-                <span>{c.label}</span>
-              </a>
-            ) : (
-              <span class="about__portrait-link about__portrait-link--empty" aria-label={c.label}>
-                <Icon name={c.id} size={16} />
-                <span>{c.label}</span>
-              </span>
+          {
+            portraitContacts.map((c) =>
+              c.href ? (
+                <a
+                  href={c.href}
+                  class="about__portrait-link"
+                  aria-label={c.label}
+                  {...(c.external ? { target: "_blank", rel: "noopener noreferrer me" } : {})}
+                >
+                  <Icon name={c.id} size={16} />
+                  <span>{c.label}</span>
+                </a>
+              ) : (
+                <span class="about__portrait-link about__portrait-link--empty" aria-label={c.label}>
+                  <Icon name={c.id} size={16} />
+                  <span>{c.label}</span>
+                </span>
+              ),
             )
-          )}
+          }
         </div>
 
         {

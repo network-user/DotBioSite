@@ -675,23 +675,32 @@ const nav = {
         <!-- ----------------- (2) ТРАНСКОД ----------------- -->
         <div class="sf__viz sf__viz--pipeline" data-sf-viz="pipeline" hidden>
           <div class="sf__pl-flow">
-            <div class="sf__pl-node" data-pl-node="raw"
+            <div
+              class="sf__pl-node"
+              data-pl-node="raw"
               data-pl-hint-ru={pipelineHints.raw?.ru}
-              data-pl-hint-en={pipelineHints.raw?.en}>
+              data-pl-hint-en={pipelineHints.raw?.en}
+            >
               <span class="sf__pl-ico mono" aria-hidden="true">♪</span>
               <span class="sf__pl-label">{t(pipeline.raw)}</span>
             </div>
             <span class="sf__arrow" aria-hidden="true"></span>
-            <div class="sf__pl-node" data-pl-node="dedup"
+            <div
+              class="sf__pl-node"
+              data-pl-node="dedup"
               data-pl-hint-ru={pipelineHints.dedup?.ru}
-              data-pl-hint-en={pipelineHints.dedup?.en}>
+              data-pl-hint-en={pipelineHints.dedup?.en}
+            >
               <span class="sf__pl-ico mono" aria-hidden="true">⊘</span>
               <span class="sf__pl-label">{t(pipeline.dedup)}</span>
             </div>
             <span class="sf__arrow" aria-hidden="true"></span>
-            <div class="sf__pl-node sf__pl-node--core" data-pl-node="ffmpeg"
+            <div
+              class="sf__pl-node sf__pl-node--core"
+              data-pl-node="ffmpeg"
               data-pl-hint-ru={pipelineHints.ffmpeg?.ru}
-              data-pl-hint-en={pipelineHints.ffmpeg?.en}>
+              data-pl-hint-en={pipelineHints.ffmpeg?.en}
+            >
               <span class="sf__pl-ico mono" aria-hidden="true">⚙</span>
               <span class="sf__pl-label">{t(pipeline.ffmpeg)}</span>
             </div>
@@ -708,9 +717,12 @@ const nav = {
                     ["lyrics", pipeline.lyrics],
                   ] as const
                 ).map(([id, label]) => (
-                  <div class="sf__pl-chip" data-pl-out={id}
+                  <div
+                    class="sf__pl-chip"
+                    data-pl-out={id}
                     data-pl-hint-ru={pipelineHints[id]?.ru}
-                    data-pl-hint-en={pipelineHints[id]?.en}>
+                    data-pl-hint-en={pipelineHints[id]?.en}
+                  >
                     <span class="mono">{t(label)}</span>
                   </div>
                 ))
@@ -2831,8 +2843,7 @@ const nav = {
       const showHint = (): void => {
         const text = el.getAttribute(isEn ? "data-pl-hint-en" : "data-pl-hint-ru") ?? "";
         if (!text) return;
-        const isSame =
-          plHint?.textContent === text && plHint?.classList.contains("is-visible");
+        const isSame = plHint?.textContent === text && plHint?.classList.contains("is-visible");
         clearHint();
         if (!isSame) {
           el.classList.add("is-hint-active");
@@ -2994,11 +3005,11 @@ const nav = {
     // [f1, f2, f3, a1, a2, a3] — суперпозиция 3 синусоид на бар; иррациональные
     // соотношения частот исключают зримое повторение паттерна
     const EQ_CFG = [
-      [1.3, 2.9, 0.71, 0.42, 0.33, 0.25],  // bass: медленно, высоко
+      [1.3, 2.9, 0.71, 0.42, 0.33, 0.25], // bass: медленно, высоко
       [2.3, 4.1, 1.73, 0.38, 0.35, 0.27],
       [3.7, 6.3, 2.17, 0.35, 0.37, 0.28],
-      [5.1, 8.7, 3.31, 0.32, 0.38, 0.30],
-      [7.3, 11.9, 5.13, 0.30, 0.38, 0.32], // treble: быстро, мало
+      [5.1, 8.7, 3.31, 0.32, 0.38, 0.3],
+      [7.3, 11.9, 5.13, 0.3, 0.38, 0.32], // treble: быстро, мало
     ] as const;
 
     const lsEqTick = (ts: number): void => {

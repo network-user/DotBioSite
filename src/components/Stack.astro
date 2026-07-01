@@ -10,15 +10,7 @@ const { locale } = Astro.props;
 const t = useTranslations(locale);
 
 type StackIcon =
-  | "stack"
-  | "code"
-  | "rocket"
-  | "spark"
-  | "telegram"
-  | "link"
-  | "database"
-  | "shield"
-  | "activity";
+  "stack" | "code" | "rocket" | "spark" | "telegram" | "link" | "database" | "shield" | "activity";
 
 interface StackGroup {
   id: string;
@@ -202,7 +194,12 @@ const hiddenCount = layout.reduce(
       lede={t("stack.lede")}
     />
 
-    <input type="checkbox" id="stack-expand" class="stack__expand" aria-controls="stack-grid stack-extras" />
+    <input
+      type="checkbox"
+      id="stack-expand"
+      class="stack__expand"
+      aria-controls="stack-grid stack-extras"
+    />
 
     <div class="stack__grid" id="stack-grid" data-stack-grid>
       {

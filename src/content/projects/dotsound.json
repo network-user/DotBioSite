@@ -18,12 +18,12 @@
     "en": "An ad-free music service where all your sound lives in one place. Upload your own tracks or connect your favorite streaming platforms. Music plays smoothly, song lyrics appear in sync on their own, and smart mixes adapt to your taste and mood."
   },
   "caseTagline": {
-    "ru": "За простым плеером - распределённая система: свой GPU-воркер для лирики, закрытое ядро для бизнес-правил.",
+    "ru": "За простым плеером стоит распределённая система: свой GPU-воркер для лирики, закрытое ядро для бизнес-правил.",
     "en": "Behind a simple player sits a distributed system: its own GPU worker for lyrics, a closed core for business rules."
   },
   "caseDescription": {
-    "ru": "DotSound начинался как способ собрать музыку из Telegram и стримингов в одном плеере без рекламы, а вырос в экосистему из нескольких сервисов. Backend держит API, очередь задач и HLS-стриминг с дедупом треков по содержимому; отдельный pull-based GPU-воркер по HMAC-протоколу снимает вокал и распознаёт лирику, не открывая наружу ни одного порта. Бизнес-правила и политика выдачи рекомендаций вынесены в закрытое ядро - экосистема построена так, чтобы открытый код показывал архитектуру, не раскрывая логику ранжирования.",
-    "en": "DotSound started as a way to pull music from Telegram and streaming platforms into one ad-free player, then grew into an ecosystem of several services. The backend runs the API, task queue and HLS streaming with content-based track dedup; a separate pull-based GPU worker over an HMAC protocol lifts vocals and transcribes lyrics without exposing a single port. Business rules and recommendation ranking live in a closed core - the ecosystem is built so the open code shows the architecture without revealing the ranking logic."
+    "ru": "DotSound начинался как способ собрать музыку из Telegram и стримингов в одном плеере без рекламы, а вырос в экосистему из нескольких сервисов. Backend держит API, очередь задач и HLS-стриминг с дедупом треков по содержимому; отдельный pull-based GPU-воркер по HMAC-протоколу снимает вокал и распознаёт лирику, не открывая наружу ни одного порта. Бизнес-правила и политика выдачи рекомендаций вынесены в закрытое ядро: экосистема построена так, чтобы открытый код показывал архитектуру, не раскрывая логику ранжирования.",
+    "en": "DotSound started as a way to pull music from Telegram and streaming platforms into one ad-free player, then grew into an ecosystem of several services. The backend runs the API, task queue and HLS streaming with content-based track dedup; a separate pull-based GPU worker over an HMAC protocol lifts vocals and transcribes lyrics without exposing a single port. Business rules and recommendation ranking live in a closed core: the ecosystem is built so the open code shows the architecture without revealing the ranking logic."
   },
   "stack": [
     "Python 3.12",
@@ -60,7 +60,7 @@
       "repo": "DotSoundBot",
       "role": "telegram-ui",
       "description": {
-        "ru": "Тонкий клиент Telegram: вход в Mini App, inline-поиск, лайки и подборки, уведомления о входах. Вся логика - в ядре.",
+        "ru": "Тонкий клиент Telegram: вход в Mini App, inline-поиск, лайки и подборки, уведомления о входах. Вся логика живёт в ядре.",
         "en": "A thin Telegram client: Mini App entry, inline search, likes and mixes, sign-in alerts. All logic stays in the core."
       }
     },
@@ -102,10 +102,10 @@
   ],
   "overview": {
     "ru": [
-      "Загружай свои треки или подтягивай музыку из VK, SoundCloud, Spotify, YouTube и Яндекс Музыки - всё в одном плеере без рекламы. Точка входа - Telegram: открыл, нашёл, послушал. Лирика появляется построчно сама, подборки подстраиваются под вкус, а тяжёлое - ASR, разделение вокала, эмбеддинги - считает отдельный GPU-воркер."
+      "Загружай свои треки или подтягивай музыку из VK, SoundCloud, Spotify, YouTube и Яндекс Музыки: всё в одном плеере без рекламы. Заходишь через Telegram: открыл, нашёл, послушал. Лирика появляется построчно сама, подборки подстраиваются под вкус, а тяжёлое (ASR, разделение вокала, эмбеддинги) считает отдельный GPU-воркер."
     ],
     "en": [
-      "Upload your own tracks or pull music from VK, SoundCloud, Spotify, YouTube and Yandex Music - all in one ad-free player. Entry is Telegram: open, search, listen. Lyrics surface line by line on their own, mixes adapt to your taste, and everything heavy - ASR, vocal separation, embeddings - runs on a separate GPU worker."
+      "Upload your own tracks or pull music from VK, SoundCloud, Spotify, YouTube and Yandex Music: all in one ad-free player. Entry point is Telegram: open, search, listen. Lyrics surface line by line on their own, mixes adapt to your taste, and everything heavy (ASR, vocal separation, embeddings) runs on a separate GPU worker."
     ]
   },
   "metrics": [
@@ -352,8 +352,8 @@
         "en": "A track uploads straight from the web player: resilient chunked upload, a duplicate check before you even send, your own cover and video. No separate form, no app to install."
       },
       "detail": {
-        "ru": "Загрузка идёт частями (S3 multipart) и переживает обрыв связи и перезагрузку вкладки - очередь хранится в IndexedDB и сама возобновляет докачку. Сервер берёт SHA-256 от содержимого: повторная заливка того же трека не создаёт копию, а добавляет ссылку (ref_count++). Один файл - на всех.",
-        "en": "The upload runs in chunks (S3 multipart) and survives a dropped connection or a tab reload - the queue lives in IndexedDB and resumes on its own. The server hashes the content with SHA-256: re-uploading the same track adds a reference (ref_count++) instead of a copy. One file for everyone."
+        "ru": "Загрузка идёт частями (S3 multipart) и переживает обрыв связи и перезагрузку вкладки, потому что очередь хранится в IndexedDB и сама возобновляет докачку. Сервер берёт SHA-256 от содержимого: повторная заливка того же трека не создаёт копию, а добавляет ссылку (ref_count++). Один файл на всех.",
+        "en": "The upload runs in chunks (S3 multipart) and survives a dropped connection or a tab reload, because the queue lives in IndexedDB and resumes on its own. The server hashes the content with SHA-256: re-uploading the same track adds a reference (ref_count++) instead of a copy. One file for everyone."
       }
     },
     {
@@ -367,8 +367,8 @@
         "en": "Demucs lifts the vocals, faster-whisper transcribes and syncs the text line by line with timecodes. The words appear on their own."
       },
       "detail": {
-        "ru": "Пайплайн на воркере: Demucs (--two-stems=vocals) снимает вокал, faster-whisper расшифровывает, выравнивание ставит тайм-код каждой строке - текст всплывает синхронно с музыкой.",
-        "en": "Worker pipeline: Demucs (--two-stems=vocals) lifts the vocals, faster-whisper transcribes, alignment timestamps each line - lyrics surface in sync with the music."
+        "ru": "Пайплайн на воркере: Demucs (--two-stems=vocals) снимает вокал, faster-whisper расшифровывает, выравнивание ставит тайм-код каждой строке, и текст всплывает синхронно с музыкой.",
+        "en": "Worker pipeline: Demucs (--two-stems=vocals) lifts the vocals, faster-whisper transcribes, alignment timestamps each line, so lyrics surface in sync with the music."
       }
     },
     {
@@ -382,7 +382,7 @@
         "en": "Adaptive HLS over content-addressed storage: the same track is stored once for everyone, segments cached as immutable."
       },
       "detail": {
-        "ru": "Адрес сегмента - сам хеш содержимого: blobs/a1/a1f9….ts. Одинаковый трек не транскодируется дважды, а сегменты кешируются как immutable на год.",
+        "ru": "Адресом сегмента служит сам хеш содержимого: blobs/a1/a1f9….ts. Одинаковый трек не транскодируется дважды, а сегменты кешируются как immutable на год.",
         "en": "A segment's address is the content hash itself: blobs/a1/a1f9….ts. An identical track is never transcoded twice, and segments cache immutable for a year."
       }
     },
@@ -397,7 +397,7 @@
         "en": "A full-text Elasticsearch index over metadata and recognized lyrics, ranked by popularity."
       },
       "detail": {
-        "ru": "Индексируются и метаданные, и распознанная лирика, поэтому трек находится по строчке из песни. Ранжирование - по популярности.",
+        "ru": "Индексируются и метаданные, и распознанная лирика, поэтому трек находится по строчке из песни. Ранжирование идёт по популярности.",
         "en": "Both metadata and recognized lyrics are indexed, so a track is found by a line from the song. Ranked by popularity."
       }
     },
@@ -408,8 +408,8 @@
         "en": "Personal mixes and radio"
       },
       "description": {
-        "ru": "Daily Mix, Weekly Mix, жанровые подборки и бесконечное радио от любого трека - лента подстраивается под то, что слушаешь.",
-        "en": "Daily Mix, Weekly Mix, genre sets and endless radio from any seed track - the feed adapts to what you actually play."
+        "ru": "Daily Mix, Weekly Mix, жанровые подборки и бесконечное радио от любого трека: лента подстраивается под то, что слушаешь.",
+        "en": "Daily Mix, Weekly Mix, genre sets and endless radio from any seed track: the feed adapts to what you actually play."
       },
       "detail": {
         "ru": "Похожие треки и артисты считаются по аудио-эмбеддингам на воркере, а правила ранжирования и политика выдачи живут в закрытом ядре. Радио стартует от трека-затравки и тянет ближайших соседей по вектору.",
@@ -427,7 +427,7 @@
         "en": "Playlists you can edit together, with a collage cover that assembles itself from the tracks inside."
       },
       "detail": {
-        "ru": "Несколько соавторов ведут один плейлист; обложка пересобирается из обложек треков. CRUD и совместный доступ - на бэкенде, без отдельного приложения.",
+        "ru": "Несколько соавторов ведут один плейлист; обложка пересобирается из обложек треков. CRUD и совместный доступ реализованы на бэкенде, без отдельного приложения.",
         "en": "Several collaborators keep one playlist; the cover rebuilds from the tracks' artwork. CRUD and shared access live on the backend, with no separate app."
       }
     },
@@ -442,8 +442,8 @@
         "en": "A thin bot: one-tap entry to the player, inline track search in any chat, likes and mixes right inside Telegram. Sign-in and job-ready alerts land there too."
       },
       "detail": {
-        "ru": "Бот ничего не решает сам: читает сообщение и дёргает единый Backend-клиент - вся логика в ядре. Inline-режим отдаёт треки с кнопками play и like прямо в переписку.",
-        "en": "The bot decides nothing on its own: it reads the message and calls a single Backend client - all logic stays in the core. Inline mode drops tracks with play and like buttons straight into the chat."
+        "ru": "Бот ничего не решает сам: читает сообщение и дёргает единый Backend-клиент, вся логика в ядре. Inline-режим отдаёт треки с кнопками play и like прямо в переписку.",
+        "en": "The bot decides nothing on its own: it reads the message and calls a single Backend client, and all logic stays in the core. Inline mode drops tracks with play and like buttons straight into the chat."
       }
     },
     {
@@ -453,12 +453,12 @@
         "en": "Import from sources"
       },
       "description": {
-        "ru": "Загружай свои треки прямо из плеера или импортируй из SoundCloud, YouTube, VK, Яндекс Музыки и Spotify - каталог наполняется без лишних шагов.",
-        "en": "Upload your own tracks right from the player or import from SoundCloud, YouTube, VK, Yandex Music and Spotify - the catalog fills without extra steps."
+        "ru": "Загружай свои треки прямо из плеера или импортируй из SoundCloud, YouTube, VK, Яндекс Музыки и Spotify: каталог наполняется без лишних шагов.",
+        "en": "Upload your own tracks right from the player or import from SoundCloud, YouTube, VK, Yandex Music and Spotify: the catalog fills without extra steps."
       },
       "detail": {
-        "ru": "Личные треки заливаются из веб-плеера кусками (S3 multipart). Импорт внешних источников - SoundCloud, YouTube и VK через yt-dlp; Spotify и Яндекс Музыка подключаются привязкой аккаунта по OAuth. Каталог растёт без ручной заливки.",
-        "en": "Personal tracks upload from the web player in chunks (S3 multipart). External sources - SoundCloud, YouTube and VK via yt-dlp; Spotify and Yandex Music connect by linking an account over OAuth. The catalog grows without manual uploads."
+        "ru": "Личные треки заливаются из веб-плеера кусками (S3 multipart). Внешние источники импортируются так: SoundCloud, YouTube и VK через yt-dlp; Spotify и Яндекс Музыка подключаются привязкой аккаунта по OAuth. Каталог растёт без ручной заливки.",
+        "en": "Personal tracks upload from the web player in chunks (S3 multipart). External sources import like this: SoundCloud, YouTube and VK via yt-dlp; Spotify and Yandex Music connect by linking an account over OAuth. The catalog grows without manual uploads."
       }
     },
     {
@@ -472,7 +472,7 @@
         "en": "The worker pulls jobs over HMAC and runs lyrics and recommendations on GPU. No exposed ports anywhere."
       },
       "detail": {
-        "ru": "Цикл воркера: heartbeat → claim с арендой и дедлайном → забор аудио по одноразовой ссылке OTT (5 минут, под один IP) → результат. Наружу - ни одного порта.",
+        "ru": "Цикл воркера: heartbeat → claim с арендой и дедлайном → забор аудио по одноразовой ссылке OTT (5 минут, под один IP) → результат. Наружу не открыто ни одного порта.",
         "en": "Worker loop: heartbeat → claim with a lease and deadline → fetch audio over a one-time link (OTT, 5 min, IP-pinned) → result. Not a single exposed port."
       }
     },
@@ -487,8 +487,8 @@
         "en": "Track complaints, auto-hide past a threshold, and admin moderation. Some social features (chats, comments) are deliberately switched off to meet Russia's 149-FZ information-intermediary rules."
       },
       "detail": {
-        "ru": "Жалобы копятся на трек и при достижении порога скрывают его автоматически до решения модератора. Отключённые функции остаются в коде с пометкой и не подключены к маршрутам - включить можно, когда позволит регуляторика.",
-        "en": "Complaints accumulate on a track and auto-hide it past a threshold until a moderator rules. The disabled features stay in the code, flagged and unrouted - ready to switch on when regulation allows."
+        "ru": "Жалобы копятся на трек и при достижении порога скрывают его автоматически до решения модератора. Отключённые функции остаются в коде с пометкой и не подключены к маршрутам, их можно включить, когда позволит регуляторика.",
+        "en": "Complaints accumulate on a track and auto-hide it past a threshold until a moderator rules. The disabled features stay in the code, flagged and unrouted, ready to switch on when regulation allows."
       }
     }
   ],
@@ -500,8 +500,8 @@
         "en": "Project start: the first commit"
       },
       "description": {
-        "ru": "27 марта 2026, 12:13 - первый коммит. За день поднята первая версия в двух репозиториях (Backend + Bot): FastAPI, PostgreSQL 16, React 18 Mini App, Telegram-вход; SHA-256-дедупликация не даёт треку храниться дважды.",
-        "en": "27 March 2026, 12:13 - the first commit. A first version stood up in a day across two repositories (Backend + Bot): FastAPI, PostgreSQL 16, React 18 Mini App, Telegram auth; SHA-256 dedup ensures a track is never stored twice."
+        "ru": "27 марта 2026, 12:13: первый коммит. За день поднята первая версия в двух репозиториях (Backend + Bot): FastAPI, PostgreSQL 16, React 18 Mini App, Telegram-вход; SHA-256-дедупликация не даёт треку храниться дважды.",
+        "en": "27 March 2026, 12:13: the first commit. A first version stood up in a day across two repositories (Backend + Bot): FastAPI, PostgreSQL 16, React 18 Mini App, Telegram auth; SHA-256 dedup ensures a track is never stored twice."
       }
     },
     {
@@ -522,8 +522,8 @@
         "en": "PrivateCore: the closed core"
       },
       "description": {
-        "ru": "Бизнес-правила, политика выдачи и security-константы вынесены в отдельный закрытый репозиторий PrivateCore - четвёртый в экосистеме. Открытый клиент ходит в него по internal-token со scoped JWT; тогда же - passwordless-вход (Magic Link) и TOTP-2FA.",
-        "en": "Business rules, ranking policy and security constants move into a separate closed repository, PrivateCore - the fourth in the ecosystem. The open client talks to it via an internal-token scoped JWT; passwordless sign-in (Magic Link) and TOTP 2FA arrive alongside."
+        "ru": "Бизнес-правила, политика выдачи и security-константы вынесены в отдельный закрытый репозиторий PrivateCore, четвёртый в экосистеме. Открытый клиент ходит в него по internal-token со scoped JWT; тогда же добавились passwordless-вход (Magic Link) и TOTP-2FA.",
+        "en": "Business rules, ranking policy and security constants move into a separate closed repository, PrivateCore, the fourth in the ecosystem. The open client talks to it via an internal-token scoped JWT; passwordless sign-in (Magic Link) and TOTP 2FA arrive alongside."
       }
     },
     {
@@ -544,8 +544,8 @@
         "en": "Search, import and content storage"
       },
       "description": {
-        "ru": "Полнотекстовый Elasticsearch по трекам и лирике; импорт из SoundCloud, Spotify, YouTube и VK; аудио хранится по SHA-256 с ref-count - один файл на всех.",
-        "en": "Full-text Elasticsearch over tracks and lyrics; import from SoundCloud, Spotify, YouTube and VK; audio stored by SHA-256 with ref-count - one file for everyone."
+        "ru": "Полнотекстовый Elasticsearch по трекам и лирике; импорт из SoundCloud, Spotify, YouTube и VK; аудио хранится по SHA-256 с ref-count, один файл на всех.",
+        "en": "Full-text Elasticsearch over tracks and lyrics; import from SoundCloud, Spotify, YouTube and VK; audio stored by SHA-256 with ref-count, one file for everyone."
       }
     },
     {
@@ -599,8 +599,8 @@
         "en": "Now: source-available and stabilization"
       },
       "description": {
-        "ru": "Три открытых репозитория экосистемы выложены как source-available showcase с лицензиями, gitleaks в CI и документацией в стандарте DotCore; PrivateCore остаётся закрытым. Новых модулей нет - идёт точечная доводка качества лирики и рекомендаций.",
-        "en": "The three open repositories ship as a source-available showcase with licenses, gitleaks in CI and DotCore-standard docs; PrivateCore stays closed. No new modules - just targeted tuning of lyrics and recommendation quality."
+        "ru": "Три открытых репозитория экосистемы выложены как source-available showcase с лицензиями, gitleaks в CI и документацией в стандарте DotCore; PrivateCore остаётся закрытым. Новых модулей нет, идёт точечная доводка качества лирики и рекомендаций.",
+        "en": "The three open repositories ship as a source-available showcase with licenses, gitleaks in CI and DotCore-standard docs; PrivateCore stays closed. No new modules, just targeted tuning of lyrics and recommendation quality."
       }
     }
   ]

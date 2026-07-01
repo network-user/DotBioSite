@@ -10,20 +10,20 @@
     "en": ".learn"
   },
   "tagline": {
-    "ru": "Учебная среда, которую AI расширяет сам - и контентом, и интерактивом.",
-    "en": "A learning workbench that AI extends on its own - content and interactivity alike."
+    "ru": "Учебная среда, которую AI расширяет сам: и контентом, и интерактивом.",
+    "en": "A learning workbench that AI extends on its own: content and interactivity alike."
   },
   "description": {
-    "ru": "Платформа для обучения, где AI-агент генерирует темы на любой запрос и упаковывает их в типобезопасные код-модули. Запускается локально - сервер и аккаунт не нужны. Код учащегося исполняется в изолированном браузерном sandbox с заблокированными сетевыми API: написанное никуда не передаётся, прогресс хранится в браузере.",
-    "en": "A learning platform where an AI agent generates topics on any subject and packages them as type-safe code modules. Runs locally - no server, no account required. Learner code executes in an isolated browser sandbox with network APIs blocked: nothing you write is sent anywhere, and progress lives in the browser."
+    "ru": "Платформа для обучения, где AI-агент генерирует темы на любой запрос и упаковывает их в типобезопасные код-модули. Запускается локально: сервер и аккаунт не нужны. Код учащегося исполняется в изолированном браузерном sandbox с заблокированными сетевыми API: написанное никуда не передаётся, прогресс хранится в браузере.",
+    "en": "A learning platform where an AI agent generates topics on any subject and packages them as type-safe code modules. Runs locally: no server, no account required. Learner code executes in an isolated browser sandbox with network APIs blocked: nothing you write is sent anywhere, and progress lives in the browser."
   },
   "caseTagline": {
     "ru": "Ускоренная подготовка к собеседованиям: сам выбираешь тему, а AI строит вокруг неё урок.",
     "en": "Accelerated interview prep: you pick the topic, AI builds the lesson around it."
   },
   "caseDescription": {
-    "ru": "DotLearn создавался для индивидуальной, ускоренной подготовки к собеседованиям: вместо готовой программы - тема, которая нужна именно тебе. Заказываешь её, и AI-агент lesson-forge строит вокруг неё учебную среду: теорию с интерактивными визуализациями, тесты и упражнения с проверкой прямо в браузере. Проект в открытом доступе - сообщество может предлагать свои темы через pull request или форму заявки, либо разворачиваешь его у себя и готовишься полностью в одиночку.",
-    "en": "DotLearn was built for individual, accelerated interview prep: instead of a fixed curriculum, a topic you actually need. Request it, and the lesson-forge AI agent builds a learning environment around it - theory with interactive visualizations, exercises and tests checked right in the browser. The project is open: the community can propose topics via a pull request or a submission form, or you can self-host it and study entirely on your own."
+    "ru": "DotLearn создавался для индивидуальной, ускоренной подготовки к собеседованиям: вместо готовой программы, тема, которая нужна именно тебе. Заказываешь её, и AI-агент lesson-forge строит вокруг неё учебную среду: теорию с интерактивными визуализациями, тесты и упражнения с проверкой прямо в браузере. Проект в открытом доступе, поэтому сообщество может предлагать свои темы через pull request или форму заявки, либо разворачиваешь его у себя и готовишься полностью в одиночку.",
+    "en": "DotLearn was built for individual, accelerated interview prep: instead of a fixed curriculum, a topic you actually need. Request it, and the lesson-forge AI agent builds a learning environment around it: theory with interactive visualizations, exercises and tests checked right in the browser. The project is open: the community can propose topics via a pull request or a submission form, or you can self-host it and study entirely on your own."
   },
   "stack": [
     "TypeScript 5",
@@ -79,12 +79,12 @@
   ],
   "overview": {
     "ru": [
-      "Тему для урока формулируешь сам - произвольным текстовым запросом, хоть под конкретный вопрос с собеседования. После запроса начинается работа агента: lesson-forge проверяет тему на конфликты с каталогом и генерирует пакет - MDX-теория и YAML-задачи, прошедшие автоматическую валидацию в браузерном рантайме. Всё это коммитится в репо, а не записывается в базу - поэтому тему можно форкнуть, расширить или исправить обычным pull request. Рядом с темами есть готовый банк из 368 вопросов с собеседований на 10 направлений - тоже с разбором «как отвечать», упражнениями и отдельным режимом флэшкарт.",
-      "Код выполняется в Web Worker, где при старте нейтрализуются 15 сетевых API: fetch, WebSocket, RTCPeerConnection, BroadcastChannel и другие. Написанный код не может ни отправить данные, ни открыть скрытый канал - это не политика, это архитектура. Прогресс, заметки, закладки и FSRS-карточки для интервального повторения живут в IndexedDB; бэкенд опционален, платформа ставится как PWA и работает офлайн. Из настроек: язык контента (RU/EN на лету), сложность упражнений, дневная цель, шрифт, размер текста и параметры Monaco-редактора."
+      "Тему для урока формулируешь сам: произвольным текстовым запросом, хоть под конкретный вопрос с собеседования. После запроса начинается работа агента: lesson-forge проверяет тему на конфликты с каталогом и генерирует пакет, MDX-теорию и YAML-задачи, прошедшие автоматическую валидацию в браузерном рантайме. Всё это коммитится в репо, а не записывается в базу, поэтому тему можно форкнуть, расширить или исправить обычным pull request. Рядом с темами есть готовый банк из 368 вопросов с собеседований на 10 направлений, тоже с разбором «как отвечать», упражнениями и отдельным режимом флэшкарт.",
+      "Код выполняется в Web Worker, где при старте нейтрализуются 15 сетевых API: fetch, WebSocket, RTCPeerConnection, BroadcastChannel и другие. Написанный код не может ни отправить данные, ни открыть скрытый канал: это не политика, это архитектура. Прогресс, заметки, закладки и FSRS-карточки для интервального повторения живут в IndexedDB; бэкенд опционален, платформа ставится как PWA и работает офлайн. Из настроек: язык контента (RU/EN на лету), сложность упражнений, дневная цель, шрифт, размер текста и параметры Monaco-редактора."
     ],
     "en": [
-      "You put the lesson topic into words yourself - a free-form request, even for one specific interview question. Once you ask, the agent gets to work: lesson-forge checks the topic for conflicts with the existing catalog and generates a package - MDX theory and YAML exercises that are automatically validated in the browser runtime. Everything gets committed to the repo, not written to a database - which means any topic can be forked, extended, or fixed with a normal pull request. Alongside the topics sits a ready-made bank of 368 interview questions across 10 tracks - also with a \"how to answer\" breakdown, exercises, and its own flashcard mode.",
-      "Code runs in a Web Worker where 15 network APIs are neutralized at startup: fetch, WebSocket, RTCPeerConnection, BroadcastChannel, and others. What you write cannot send data out or open a hidden channel - that's architecture, not policy. Progress, notes, bookmarks, and FSRS flashcards live in IndexedDB; the backend is optional and the platform installs as a PWA for full offline use. Configurable settings include content language (RU/EN on the fly), exercise difficulty, daily goal, font, text size, and Monaco editor preferences."
+      "You put the lesson topic into words yourself, a free-form request, even for one specific interview question. Once you ask, the agent gets to work: lesson-forge checks the topic for conflicts with the existing catalog and generates a package, MDX theory and YAML exercises that are automatically validated in the browser runtime. Everything gets committed to the repo, not written to a database, which means any topic can be forked, extended, or fixed with a normal pull request. Alongside the topics sits a ready-made bank of 368 interview questions across 10 tracks, also with a \"how to answer\" breakdown, exercises, and its own flashcard mode.",
+      "Code runs in a Web Worker where 15 network APIs are neutralized at startup: fetch, WebSocket, RTCPeerConnection, BroadcastChannel, and others. What you write cannot send data out or open a hidden channel: that's architecture, not policy. Progress, notes, bookmarks, and FSRS flashcards live in IndexedDB; the backend is optional and the platform installs as a PWA for full offline use. Configurable settings include content language (RU/EN on the fly), exercise difficulty, daily goal, font, text size, and Monaco editor preferences."
     ]
   },
   "metrics": [
@@ -339,12 +339,12 @@
         "en": "Topics as code"
       },
       "description": {
-        "ru": "Каждая тема - файлы в репозитории: теория в MDX, упражнения в YAML. Не строка в базе, поэтому правку можно предложить обычным pull request.",
-        "en": "Each topic is files in the repo: theory in MDX, exercises in YAML. Not a database row, so a fix can land as a normal pull request."
+        "ru": "Каждая тема хранится файлами в репозитории: теория в MDX, упражнения в YAML. Это не строка в базе, поэтому правку можно предложить обычным pull request.",
+        "en": "Each topic is stored as files in the repo: theory in MDX, exercises in YAML. It's not a database row, so a fix can land as a normal pull request."
       },
       "detail": {
-        "ru": "Zod-схема проверяет манифест темы по 70+ правилам - от уникальности до паритета RU/EN. Провал хотя бы одной проверки - и правка не мёрджится.",
-        "en": "A Zod schema checks the topic manifest against 70+ rules - from uniqueness to RU/EN parity. Fail even one, and the change doesn't merge."
+        "ru": "Zod-схема проверяет манифест темы по 70+ правилам, от уникальности до паритета RU/EN. Если провалена хотя бы одна проверка, правка не мёрджится.",
+        "en": "A Zod schema checks the topic manifest against 70+ rules, from uniqueness to RU/EN parity. If even one check fails, the change doesn't merge."
       }
     },
     {
@@ -354,11 +354,11 @@
         "en": "The lesson-forge AI agent"
       },
       "description": {
-        "ru": "AI сам пишет курс - теорию и упражнения, - валидирует его и решает свои же задачи в песочнице, прежде чем открыть PR.",
-        "en": "The AI writes a whole course itself - theory and exercises - validates it, and solves its own exercises in the sandbox before opening a PR."
+        "ru": "AI сам пишет курс (теорию и упражнения), валидирует его и решает свои же задачи в песочнице, прежде чем открыть PR.",
+        "en": "The AI writes a whole course itself (theory and exercises), validates it, and solves its own exercises in the sandbox before opening a PR."
       },
       "detail": {
-        "ru": "Если эталонное решение AI не проходит в той же песочнице, что увидит ученик - PR не откроется. CI отдельно проверяет сборку теории и паритет вариантов.",
+        "ru": "Если эталонное решение AI не проходит в той же песочнице, что увидит ученик, PR не откроется. CI отдельно проверяет сборку теории и паритет вариантов.",
         "en": "If the AI's own reference solution fails in the exact sandbox a learner sees, the PR never opens. CI separately checks theory compilation and variant parity."
       }
     },
@@ -369,12 +369,12 @@
         "en": "Code in the browser"
       },
       "description": {
-        "ru": "sql.js и Pyodide в Web Workers, Monaco-редактор - Python и SQL реально исполняются в браузере, без сервера.",
-        "en": "sql.js and Pyodide in Web Workers, a Monaco editor - Python and SQL genuinely execute in the browser, no server involved."
+        "ru": "sql.js и Pyodide в Web Workers плюс Monaco-редактор: Python и SQL реально исполняются в браузере, без сервера.",
+        "en": "sql.js and Pyodide in Web Workers plus a Monaco editor: Python and SQL genuinely execute in the browser, no server involved."
       },
       "detail": {
-        "ru": "Воркер стартует с отключёнными fetch, WebSocket и ещё десятком сетевых API - написанное физически не может уйти наружу. Редактор - с автодополнением по SQL-схеме и двумя авторскими темами.",
-        "en": "The worker starts with fetch, WebSocket, and a dozen other network APIs disabled - what's written physically can't leak out. The editor offers SQL-schema autocompletion and two custom themes."
+        "ru": "Воркер стартует с отключёнными fetch, WebSocket и ещё десятком сетевых API, поэтому написанное физически не может уйти наружу. У редактора есть автодополнение по SQL-схеме и две авторские темы.",
+        "en": "The worker starts with fetch, WebSocket, and a dozen other network APIs disabled, so what's written physically can't leak out. The editor also offers SQL-schema autocompletion and two custom themes."
       }
     },
     {
@@ -384,12 +384,12 @@
         "en": "Seven exercise types"
       },
       "description": {
-        "ru": "От квиза до Python-функции - каждый тип проверяется автоматически. Самый неожиданный - git-challenge: настоящий Git, смоделированный в браузере.",
-        "en": "From a quiz to a Python function - every type grades itself automatically. The most unexpected one is git-challenge: real Git, simulated in the browser."
+        "ru": "От квиза до Python-функции: каждый тип проверяется автоматически, а самый неожиданный, git-challenge, моделирует настоящий Git прямо в браузере.",
+        "en": "From a quiz to a Python function: every type grades itself automatically, and the most unexpected one, git-challenge, simulates real Git right in the browser."
       },
       "detail": {
-        "ru": "Собственный движок на ~600 строк реально выполняет commit, branch, merge, rebase, stash - без риска что-то сломать в настоящем репозитории.",
-        "en": "A homemade ~600-line engine genuinely runs commit, branch, merge, rebase, stash - with zero risk to any real repository."
+        "ru": "Собственный движок на ~600 строк реально выполняет commit, branch, merge, rebase, stash, без риска что-то сломать в настоящем репозитории.",
+        "en": "A homemade ~600-line engine genuinely runs commit, branch, merge, rebase, and stash, with zero risk to any real repository."
       }
     },
     {
@@ -399,8 +399,8 @@
         "en": "Interview question bank"
       },
       "description": {
-        "ru": "368 вопросов в 10 категориях - от структур данных до system design - с разбором «как отвечать», плюс режимы флэшкарт и экзамена.",
-        "en": "368 questions across 10 categories - from data structures to system design - each with a \"how to answer\" breakdown, plus flashcard and exam modes."
+        "ru": "368 вопросов в 10 категориях, от структур данных до system design, с разбором «как отвечать», плюс режимы флэшкарт и экзамена.",
+        "en": "368 questions across 10 categories, from data structures to system design, each with a \"how to answer\" breakdown, plus flashcard and exam modes."
       },
       "detail": {
         "ru": "Вырос из открытого набора вопросов по Python и полностью переписан: своя структура статей, 988 собственных упражнений и диаграмм.",
@@ -414,11 +414,11 @@
         "en": "Flashcards that remind you on their own"
       },
       "description": {
-        "ru": "FSRS-алгоритм считает, когда карточку пора повторить: увереннее отвечаешь - реже видишь, начал забывать - вернёт раньше.",
+        "ru": "FSRS-алгоритм считает, когда карточку пора повторить: чем увереннее отвечаешь, тем реже её видишь, а начал забывать, значит она вернётся раньше.",
         "en": "The FSRS algorithm decides when a card is due: answer confidently and you see it less, start forgetting and it comes back sooner."
       },
       "detail": {
-        "ru": "Тот же принцип, что в приложениях для изучения языков. Отдельно - heatmap активности за 14 недель, как на GitHub.",
+        "ru": "Тот же принцип, что в приложениях для изучения языков. Отдельно есть heatmap активности за 14 недель, как на GitHub.",
         "en": "Same principle as language-learning apps. Separately, a 14-week activity heatmap, like GitHub's."
       }
     },
@@ -429,12 +429,12 @@
         "en": "Local-first"
       },
       "description": {
-        "ru": "Открывается на localhost - без бэкенда, аккаунтов, интернета - и ставится как PWA для полного офлайна.",
-        "en": "Opens on localhost - no backend, no accounts, no internet - and installs as a PWA for full offline use."
+        "ru": "Открывается на localhost без бэкенда, аккаунтов и интернета, а ставится как PWA для полного офлайна.",
+        "en": "Opens on localhost with no backend, no accounts, and no internet, and installs as a PWA for full offline use."
       },
       "detail": {
-        "ru": "Backend нужен только для приёма заявок и админки - всё остальное (тренажёр, прогресс, карточки) живёт в браузере на IndexedDB.",
-        "en": "The backend is only needed for submission intake and admin - everything else (exercises, progress, flashcards) lives in the browser on IndexedDB."
+        "ru": "Backend нужен только для приёма заявок и админки. Всё остальное (тренажёр, прогресс, карточки) живёт в браузере на IndexedDB.",
+        "en": "The backend is only needed for submission intake and admin. Everything else (exercises, progress, flashcards) lives in the browser on IndexedDB."
       }
     },
     {
@@ -444,12 +444,12 @@
         "en": "Community and your own server"
       },
       "description": {
-        "ru": "Заявки на темы - через PR или форму, модерация в админке с TOTP-двухфакторкой, self-hosting в Docker.",
+        "ru": "Заявки на темы принимаются через PR или форму, модерация идёт в админке с TOTP-двухфакторкой, а self-hosting разворачивается в Docker.",
         "en": "Topic proposals via PR or form, moderation in a TOTP two-factor admin, self-hosting in Docker."
       },
       "detail": {
-        "ru": "Форма ограничена 5 заявками в минуту с адреса. Вход - пароль плюс одноразовый код, 5 промахов подряд - блокировка на 5 минут.",
-        "en": "The form is capped at 5 submissions per minute per address. Login needs a password plus a one-time code; 5 wrong attempts locks it for 5 minutes."
+        "ru": "Форма ограничена 5 заявками в минуту с адреса. Для входа нужны пароль и одноразовый код, а после 5 промахов подряд аккаунт блокируется на 5 минут.",
+        "en": "The form is capped at 5 submissions per minute per address. Login needs a password plus a one-time code, and 5 wrong attempts in a row locks the account for 5 minutes."
       }
     }
   ],
@@ -472,8 +472,8 @@
         "en": "Content explosion"
       },
       "description": {
-        "ru": "lesson-forge доказывает скорость: каталог растёт с 1 до 21 темы за два дня - 15 тем одним коммитом, плюс первые заготовки будущего банка вопросов для собеседований.",
-        "en": "lesson-forge proves its speed: the catalog grows from 1 to 21 topics in two days - 15 topics in a single commit, plus the first seeds of what becomes the interview-question bank."
+        "ru": "lesson-forge доказывает скорость: каталог растёт с 1 до 21 темы за два дня, 15 тем одним коммитом, плюс первые заготовки будущего банка вопросов для собеседований.",
+        "en": "lesson-forge proves its speed: the catalog grows from 1 to 21 topics in two days, 15 of them in a single commit, plus the first seeds of what becomes the interview-question bank."
       }
     },
     {

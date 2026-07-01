@@ -49,7 +49,10 @@ type Bi = { ru: string; en: string };
 const t = (b: Bi): string => b[locale];
 
 const ui = {
-  eyebrow: { ru: "Тренажёр устного счёта · пройди дорожку", en: "Mental-math trainer · walk the lane" },
+  eyebrow: {
+    ru: "Тренажёр устного счёта · пройди дорожку",
+    en: "Mental-math trainer · walk the lane",
+  },
   facts: {
     ru: "ProblemGenerator · DIFFICULTY_CONFIG · StatsService — 4 среза · веса 1·2·3 · челлендж дня · aiogram 3 · PostgreSQL + asyncpg · Redis FSM · APScheduler · ~9k строк · RU/EN",
     en: "ProblemGenerator · DIFFICULTY_CONFIG · StatsService — 4 cuts · weights 1·2·3 · daily challenge · aiogram 3 · PostgreSQL + asyncpg · Redis FSM · APScheduler · ~9k lines · RU/EN",
@@ -120,7 +123,10 @@ const ui = {
   mSolved: { ru: "Решено", en: "Solved" },
   mSolvedWhy: { ru: "сколько верных ответов всего", en: "total correct answers" },
   mAccuracy: { ru: "Точность", en: "Accuracy" },
-  mAccuracyWhy: { ru: "доля верных из всех попыток, %", en: "share of correct out of all attempts, %" },
+  mAccuracyWhy: {
+    ru: "доля верных из всех попыток, %",
+    en: "share of correct out of all attempts, %",
+  },
   mWeighted: { ru: "Очки", en: "Points" },
   mWeightedWhy: {
     ru: "сложное дороже: лёгкое ×1 · среднее ×2 · сложное ×3",
@@ -133,7 +139,10 @@ const ui = {
   countDay: { ru: "Засчитать день", en: "Count the day" },
   legOn: { ru: "день с верным ответом", en: "day with a correct answer" },
   legGap: { ru: "пропуск обнуляет серию", en: "a skip resets the streak" },
-  legSess: { ru: "второй подход за день ничего не меняет", en: "a 2nd session that day does nothing" },
+  legSess: {
+    ru: "второй подход за день ничего не меняет",
+    en: "a 2nd session that day does nothing",
+  },
   nowStreak: { ru: "текущая серия", en: "current streak" },
   dayUnit: { ru: "дн.", en: "d." },
 
@@ -148,8 +157,14 @@ const ui = {
     ru: "Мимо — верный подсвечен. Попытка засчитана, идём дальше.",
     en: "Missed — the right one's highlighted. The attempt counts; moving on.",
   },
-  hAuto: { ru: "Дальше можно прогнать набор одной кнопкой.", en: "You can auto-run the rest with one button." },
-  hSolved: { ru: "Набор пройден. Смотри, куда уходит результат.", en: "Set complete. Watch where your result goes." },
+  hAuto: {
+    ru: "Дальше можно прогнать набор одной кнопкой.",
+    en: "You can auto-run the rest with one button.",
+  },
+  hSolved: {
+    ru: "Набор пройден. Смотри, куда уходит результат.",
+    en: "Set complete. Watch where your result goes.",
+  },
   hLanded: {
     ru: "Твоя строка встала в табло. Прочитай его четырьмя способами.",
     en: "Your row is in the board. Read it four ways.",
@@ -182,7 +197,14 @@ type LvId = "easy" | "medium" | "hard";
 type Level = { id: LvId; name: Bi; dot: string; count: number; choices: number; weight: number };
 const levels: Level[] = [
   { id: "easy", name: { ru: "лёгкий", en: "easy" }, dot: "🟢", count: 5, choices: 2, weight: 1 },
-  { id: "medium", name: { ru: "средний", en: "medium" }, dot: "🟡", count: 7, choices: 3, weight: 2 },
+  {
+    id: "medium",
+    name: { ru: "средний", en: "medium" },
+    dot: "🟡",
+    count: 7,
+    choices: 3,
+    weight: 2,
+  },
   { id: "hard", name: { ru: "сложный", en: "hard" }, dot: "🔴", count: 10, choices: 4, weight: 3 },
 ];
 
@@ -209,9 +231,30 @@ type Player = {
   weighted: number;
 };
 const players: Player[] = [
-  { id: "A", name: { ru: "Аня", en: "Anya" }, streak: 6, solved: 980, accuracy: 92, weighted: 2050 },
-  { id: "B", name: { ru: "Борис", en: "Boris" }, streak: 5, solved: 1510, accuracy: 90, weighted: 2180 },
-  { id: "C", name: { ru: "Вера", en: "Vera" }, streak: 3, solved: 870, accuracy: 97, weighted: 1640 },
+  {
+    id: "A",
+    name: { ru: "Аня", en: "Anya" },
+    streak: 6,
+    solved: 980,
+    accuracy: 92,
+    weighted: 2050,
+  },
+  {
+    id: "B",
+    name: { ru: "Борис", en: "Boris" },
+    streak: 5,
+    solved: 1510,
+    accuracy: 90,
+    weighted: 2180,
+  },
+  {
+    id: "C",
+    name: { ru: "Вера", en: "Vera" },
+    streak: 3,
+    solved: 870,
+    accuracy: 97,
+    weighted: 1640,
+  },
   { id: "you", name: ui.you, you: true, streak: 4, solved: 1190, accuracy: 94, weighted: 2410 },
 ];
 
@@ -226,9 +269,14 @@ const startLevel: LvId = "medium";
 const bundle = {
   ops: Object.fromEntries(operations.map((o) => [o.id, { glyph: o.glyph, name: t(o.name) }])),
   levels: Object.fromEntries(
-    levels.map((l) => [l.id, { name: t(l.name), dot: l.dot, count: l.count, choices: l.choices, weight: l.weight }]),
+    levels.map((l) => [
+      l.id,
+      { name: t(l.name), dot: l.dot, count: l.count, choices: l.choices, weight: l.weight },
+    ]),
   ),
-  modes: Object.fromEntries(boardModes.map((m) => [m.key, { label: t(m.label), why: t(m.why), unit: t(m.unit) }])),
+  modes: Object.fromEntries(
+    boardModes.map((m) => [m.key, { label: t(m.label), why: t(m.why), unit: t(m.unit) }]),
+  ),
   players: players.map((p) => ({
     id: p.id,
     name: t(p.name),
@@ -305,7 +353,9 @@ const bundle = {
                 data-op={op.id}
                 aria-pressed={op.id === startOp ? "true" : "false"}
               >
-                <span class="dl__glyph" aria-hidden="true">{op.glyph}</span>
+                <span class="dl__glyph" aria-hidden="true">
+                  {op.glyph}
+                </span>
                 <span class="dl__op-name">{t(op.name)}</span>
               </button>
             ))
@@ -322,7 +372,9 @@ const bundle = {
                 data-level={lv.id}
                 aria-pressed={lv.id === startLevel ? "true" : "false"}
               >
-                <span class="dl__level-dot" aria-hidden="true">{lv.dot}</span>
+                <span class="dl__level-dot" aria-hidden="true">
+                  {lv.dot}
+                </span>
                 <span class="dl__level-name">{t(lv.name)}</span>
               </button>
             ))
@@ -343,7 +395,8 @@ const bundle = {
           <span class="dl__znum" aria-hidden="true">2</span>
           <h3 class="dl__ztitle">{t(ui.z2)}</h3>
           <span class="dl__counter" data-counter aria-live="polite">
-            {t(ui.problemOf)} 1 {t(ui.setOf)} {levels[1]?.count ?? 7}
+            {t(ui.problemOf)} 1 {t(ui.setOf)}
+            {levels[1]?.count ?? 7}
           </span>
         </div>
 
@@ -361,7 +414,9 @@ const bundle = {
             {
               [0, 1, 2, 3].map((k) => (
                 <button type="button" class="dl__choice" data-choice={k} hidden={k >= 2}>
-                  <span class="dl__choice-val" data-val>—</span>
+                  <span class="dl__choice-val" data-val>
+                    —
+                  </span>
                   <span class="dl__choice-mark" aria-hidden="true" data-mark />
                 </button>
               ))
@@ -378,7 +433,9 @@ const bundle = {
             <span class="dl__points-why" data-points-why></span>
           </span>
           <div class="dl__ctl">
-            <button type="button" class="dl__btn dl__btn--accent" data-autoplay>{t(ui.autoplay)}</button>
+            <button type="button" class="dl__btn dl__btn--accent" data-autoplay
+              >{t(ui.autoplay)}</button
+            >
             <button type="button" class="dl__btn dl__btn--ghost" data-reset>{t(ui.reset)}</button>
           </div>
         </div>
@@ -429,7 +486,9 @@ const bundle = {
           {
             players.map((p) => (
               <li class:list={["dl__row", { "is-you": p.you }]} data-row={p.id} style="--flip:0;">
-                <span class="dl__place" data-place aria-hidden="true">1</span>
+                <span class="dl__place" data-place aria-hidden="true">
+                  1
+                </span>
                 <span class="dl__medal" aria-hidden="true" data-medal />
                 <span class="dl__pname">
                   <span class="dl__pname-txt">{t(p.name)}</span>
@@ -474,10 +533,14 @@ const bundle = {
                     : `${t(ui.dayWord)} ${i + 1}`
                 }
               >
-                <span class="dl__day-num" aria-hidden="true">{i + 1}</span>
+                <span class="dl__day-num" aria-hidden="true">
+                  {i + 1}
+                </span>
                 <span class="dl__day-mark" aria-hidden="true" />
                 {i === initialDays.length - 1 ? (
-                  <span class="dl__day-today" aria-hidden="true">{t(ui.today)}</span>
+                  <span class="dl__day-today" aria-hidden="true">
+                    {t(ui.today)}
+                  </span>
                 ) : null}
               </button>
             ))
@@ -486,13 +549,21 @@ const bundle = {
 
         <div class="dl__streakfoot">
           <ul class="dl__legend" role="list">
-            <li class="dl__leg dl__leg--on"><span class="dl__leg-sw" aria-hidden="true" />{t(ui.legOn)}</li>
-            <li class="dl__leg dl__leg--gap"><span class="dl__leg-sw" aria-hidden="true" />{t(ui.legGap)}</li>
+            <li class="dl__leg dl__leg--on">
+              <span class="dl__leg-sw" aria-hidden="true"></span>{t(ui.legOn)}
+            </li>
+            <li class="dl__leg dl__leg--gap">
+              <span class="dl__leg-sw" aria-hidden="true"></span>{t(ui.legGap)}
+            </li>
             <li class="dl__leg dl__leg--sess">{t(ui.legSess)}</li>
           </ul>
           <div class="dl__streakright">
-            <button type="button" class="dl__btn dl__btn--ghost" data-count>{t(ui.countDay)}</button>
-            <p class="dl__now" data-now aria-live="polite">{t(ui.nowStreak)}: <b>4</b> {t(ui.dayUnit)}</p>
+            <button type="button" class="dl__btn dl__btn--ghost" data-count>{t(ui.countDay)}</button
+            >
+            <p class="dl__now" data-now aria-live="polite">
+              {t(ui.nowStreak)}: <b>4</b>
+              {t(ui.dayUnit)}
+            </p>
           </div>
         </div>
 
@@ -525,7 +596,6 @@ const bundle = {
     gap: var(--sp-4);
     container-type: inline-size;
   }
-
 
   /* Живая строка-ведение */
   .dl__hint {
@@ -867,7 +937,8 @@ const bundle = {
     padding: var(--sp-4);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-lg);
-    background: radial-gradient(120% 130% at 50% 0%, var(--a-soft), transparent 55%), var(--surface);
+    background:
+      radial-gradient(120% 130% at 50% 0%, var(--a-soft), transparent 55%), var(--surface);
   }
   .dl__question {
     display: flex;
@@ -1147,7 +1218,8 @@ const bundle = {
     font-size: var(--fs-14);
     white-space: nowrap;
     z-index: 5;
-    will-change: transform;
+    opacity: 1;
+    will-change: transform, opacity;
   }
   .dl__chip[hidden] {
     display: none;
@@ -1161,7 +1233,14 @@ const bundle = {
   }
   @media (prefers-reduced-motion: no-preference) {
     .dl__chip.dl__chip-travel {
-      transition: transform var(--dur-slower) var(--ease-soft);
+      /* opacity стартует не сразу, а под конец полёта — чип гаснет ровно
+         в момент, когда «садится» на строку табло, а не раньше времени */
+      transition:
+        transform 0.52s var(--ease-soft),
+        opacity 0.2s var(--ease-soft) 0.5s;
+    }
+    .dl__chip.dl__chip-arrive {
+      opacity: 0;
     }
     .dl__chip-label.dl__chip-swap {
       animation: dl-fade var(--dur-fast) var(--ease-soft);
@@ -1368,15 +1447,34 @@ const bundle = {
     font-size: var(--fs-13);
     color: var(--text-muted);
   }
+  /* opacity — не transform: .dl__row уже анимирует transform через FLIP-слайд
+     (см. .dl__board.is-flip .dl__row), animation на том же свойстве его перебьёт. */
   .dl__row.is-land {
-    animation: dl-land var(--dur-slow) var(--ease-soft);
+    animation: dl-land var(--dur-slower) var(--ease-soft);
   }
   @keyframes dl-land {
     0% {
-      opacity: 0.5;
+      opacity: 0.4;
     }
     100% {
       opacity: 1;
+    }
+  }
+  /* pop — только на значении, у него нет своего transform, конфликта с FLIP нет */
+  @media (prefers-reduced-motion: no-preference) {
+    .dl__row.is-land .dl__pval {
+      animation: dl-val-pop var(--dur-slower) var(--ease-spring);
+    }
+  }
+  @keyframes dl-val-pop {
+    0% {
+      transform: scale(0.82);
+    }
+    60% {
+      transform: scale(1.14);
+    }
+    100% {
+      transform: scale(1);
     }
   }
 
@@ -1792,7 +1890,10 @@ const bundle = {
           const [blo, bhi, exps] = RANGES.pow[level];
           const exp = exps[Math.floor(rng() * exps.length)] ?? 2;
           // для куба ограничим основание, чтобы число оставалось читаемым
-          const base = exp === 3 ? between(rng, 2, Math.min(bhi as number, 9)) : between(rng, blo as number, bhi as number);
+          const base =
+            exp === 3
+              ? between(rng, 2, Math.min(bhi as number, 9))
+              : between(rng, blo as number, bhi as number);
           return { expr: `${base}${SUP[String(exp)] ?? ""}`, answer: base ** exp, rem: null };
         }
         case "root": {
@@ -1815,7 +1916,9 @@ const bundle = {
       rng: () => number,
     ): { label: string; correct: boolean }[] => {
       const used = new Set<number>([p.answer]);
-      const out: { label: string; correct: boolean }[] = [{ label: String(p.answer), correct: true }];
+      const out: { label: string; correct: boolean }[] = [
+        { label: String(p.answer), correct: true },
+      ];
       let guard = 0;
       while (out.length < want && guard < 80) {
         guard += 1;
@@ -1882,7 +1985,9 @@ const bundle = {
     // DOM
     // ===================================================================
     const zones = new Map<string, HTMLElement>();
-    root.querySelectorAll<HTMLElement>("[data-zone]").forEach((z) => zones.set(z.dataset.zone ?? "", z));
+    root
+      .querySelectorAll<HTMLElement>("[data-zone]")
+      .forEach((z) => zones.set(z.dataset.zone ?? "", z));
     const ZONE_ORDER = ["setup", "solve", "board", "streak"];
 
     const hintEl = root.querySelector<HTMLElement>("[data-hint]");
@@ -1926,7 +2031,8 @@ const bundle = {
     let pendingLand: (() => void) | null = null; // незавершённая посадка чипа (finalize при уходе из вида)
     let inview = false;
 
-    const lvInfo = (): LvInfo => data.levels[curLevel] ?? { name: "", dot: "", count: 7, choices: 3, weight: 2 };
+    const lvInfo = (): LvInfo =>
+      data.levels[curLevel] ?? { name: "", dot: "", count: 7, choices: 3, weight: 2 };
 
     // Активная зона + пройденные зоны как функция состояния.
     const zoneForState = (): string => {
@@ -2120,7 +2226,8 @@ const bundle = {
 
       // показать верный (для остатка — «q ост. r»)
       if (phEl) {
-        phEl.textContent = p.rem !== null ? `${p.answer} ${txt("remShort")} ${p.rem}` : String(p.answer);
+        phEl.textContent =
+          p.rem !== null ? `${p.answer} ${txt("remShort")} ${p.rem}` : String(p.answer);
       }
       markPip(qIndex, isRight);
 
@@ -2210,7 +2317,8 @@ const bundle = {
       setHint("solved");
       // собрать чип
       const acc = triedCount > 0 ? Math.round((correctCount / triedCount) * 100) : 100;
-      if (chipLabelEl) chipLabelEl.textContent = `${correctCount}/${problems.length} · ${acc}% · +${pointsTotal} ${txt("points")}`;
+      if (chipLabelEl)
+        chipLabelEl.textContent = `${correctCount}/${problems.length} · ${acc}% · +${pointsTotal} ${txt("points")}`;
       if (chipEl) chipEl.hidden = false;
       pulse(chipEl);
       // через паузу — съезд в табло
@@ -2247,27 +2355,35 @@ const bundle = {
         if (l) {
           l.solved = me.solved + correctCount;
           l.weighted = me.weighted + pointsTotal;
-          l.accuracy = Math.round((me.accuracy * me.solved + correctCount * 100) / (me.solved + triedCount));
+          l.accuracy = Math.round(
+            (me.accuracy * me.solved + correctCount * 100) / (me.solved + triedCount),
+          );
         }
       }
       flashElbow("board");
+
+      // цель посадки — ТВОЯ строка табло (там, где она сейчас стоит до пересортировки),
+      // а не условная точка над списком: чип физически садится на строку, а не рядом.
+      const meRow = me ? rowEls.find((el) => el.dataset.row === me.id) : null;
+
+      const landRow = (): void => {
+        if (meRow && !reduced && inview) {
+          meRow.classList.remove("is-land");
+          void meRow.offsetWidth;
+          meRow.classList.add("is-land");
+        }
+      };
 
       const finishLanding = (): void => {
         pendingLand = null;
         if (chipEl) {
           chipEl.hidden = true;
           chipEl.style.transform = "";
-          chipEl.classList.remove("dl__chip-travel");
+          chipEl.classList.remove("dl__chip-travel", "dl__chip-arrive");
         }
         setState("landed");
         setHint("landed");
         setMode(curMode, true);
-        const meRow = me ? rowEls.find((el) => el.dataset.row === me.id) : null;
-        if (meRow && !reduced && inview) {
-          meRow.classList.remove("is-land");
-          void meRow.offsetWidth;
-          meRow.classList.add("is-land");
-        }
         // после паузы — намёк на чтение срезов
         later(1400, () => {
           if (state === "landed") setHint("cuts");
@@ -2275,31 +2391,42 @@ const bundle = {
         handing = false;
       };
 
-      // FLIP-съезд чипа в слот табло; фолбэк — просто появление строки.
-      if (reduced || !inview || !chipEl || !chipSlotEl) {
+      // FLIP-съезд чипа на строку табло; фолбэк — слот над списком, затем просто появление строки.
+      const landTarget = meRow ?? chipSlotEl;
+      if (reduced || !inview || !chipEl || !landTarget) {
+        landRow();
         finishLanding();
         return;
       }
       handing = true;
       const from = chipEl.getBoundingClientRect();
-      const to = chipSlotEl.getBoundingClientRect();
+      const to = landTarget.getBoundingClientRect();
       if (from.width === 0 || to.width === 0) {
+        landRow();
         finishLanding();
         return;
       }
-      const dx = to.left - from.left;
-      const dy = to.top - from.top;
-      pendingLand = finishLanding; // если уйдём из вида во время съезда — посадку завершит stopAll/IO
+      // центр чипа → центр строки, не левый верхний угол — тогда чип садится ровно на неё
+      const dx = to.left + to.width / 2 - (from.left + from.width / 2);
+      const dy = to.top + to.height / 2 - (from.top + from.height / 2);
+      pendingLand = () => {
+        landRow();
+        finishLanding();
+      };
       setChipLabel(`+${pointsTotal} ${txt("points")} ${txt("chipToBoard")}`);
       requestAnimationFrame(() => {
         chipEl.classList.add("dl__chip-travel");
-        chipEl.style.transform = `translate(${Math.round(dx)}px, ${Math.round(dy)}px)`;
+        // лёгкое сжатие по пути — читается как «чип стягивается в строку»
+        chipEl.style.transform = `translate(${Math.round(dx)}px, ${Math.round(dy)}px) scale(0.85)`;
       });
-      later(360, () => setChipLabel(txt("chipPlace")));
-      later(760, () => {
+      later(220, () => setChipLabel(txt("chipPlace")));
+      later(520, () => {
+        // приземление и растворение чипа синхронны с «попом» строки — без паузы между ними
         setChipLabel(txt("chipLanded"));
-        finishLanding();
+        chipEl.classList.add("dl__chip-arrive");
+        landRow();
       });
+      later(720, () => finishLanding());
     };
 
     // ===================================================================
@@ -2312,13 +2439,26 @@ const bundle = {
     let curMode = "streak";
     const medals = ["1", "2", "3"];
 
-    const live: Record<string, { solved: number; accuracy: number; weighted: number; streak: number }> = {};
+    const live: Record<
+      string,
+      { solved: number; accuracy: number; weighted: number; streak: number }
+    > = {};
     data.players.forEach((p) => {
-      live[p.id] = { solved: p.solved, accuracy: p.accuracy, weighted: p.weighted, streak: p.streak };
+      live[p.id] = {
+        solved: p.solved,
+        accuracy: p.accuracy,
+        weighted: p.weighted,
+        streak: p.streak,
+      };
     });
 
     const valueOf = (p: PData, key: string): number => {
-      const l = live[p.id] ?? { solved: p.solved, accuracy: p.accuracy, weighted: p.weighted, streak: p.streak };
+      const l = live[p.id] ?? {
+        solved: p.solved,
+        accuracy: p.accuracy,
+        weighted: p.weighted,
+        streak: p.streak,
+      };
       if (key === "streak") return l.streak;
       if (key === "solved") return l.solved;
       if (key === "accuracy") return l.accuracy;
@@ -2528,7 +2668,12 @@ const bundle = {
       if (loopEl) loopEl.classList.remove("is-on");
       root.querySelectorAll(".dl__elbow.is-flash").forEach((e) => e.classList.remove("is-flash"));
       data.players.forEach((p) => {
-        live[p.id] = { solved: p.solved, accuracy: p.accuracy, weighted: p.weighted, streak: p.streak };
+        live[p.id] = {
+          solved: p.solved,
+          accuracy: p.accuracy,
+          weighted: p.weighted,
+          streak: p.streak,
+        };
       });
       startSet(false);
       setState("idle");

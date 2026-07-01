@@ -10,20 +10,20 @@
     "en": ".work"
   },
   "tagline": {
-    "ru": "Смена появляется сообщением в чате - и пропадает с биржи, как только кто-то на неё нажал.",
-    "en": "A shift lands as a chat message - and vanishes from the board the moment someone taps it."
+    "ru": "Смена появляется сообщением в чате и пропадает с биржи, как только кто-то на неё нажал.",
+    "en": "A shift lands as a chat message and vanishes from the board the moment someone taps it."
   },
   "description": {
-    "ru": "Работодатель и работник закрывают разовую смену прямо в Telegram, без единого экрана снаружи чата. За кулисами порядок держит не диспетчер, а отдельный процесс - сам напоминает о выходе и закрывает просроченные заказы. Три роли, три набора меню, один и тот же чат.",
-    "en": "Employers and workers close a one-off shift entirely inside Telegram, with no screen outside the chat. Order is kept not by a dispatcher but by a separate process - it sends reminders and closes expired orders on its own. Three roles, three menus, one chat."
+    "ru": "Работодатель и работник закрывают разовую смену прямо в Telegram, без единого экрана снаружи чата. За кулисами порядок держит не диспетчер, а отдельный процесс: он сам напоминает о выходе и закрывает просроченные заказы. Три роли, три набора меню, один и тот же чат.",
+    "en": "Employers and workers close a one-off shift entirely inside Telegram, with no screen outside the chat. Order is kept not by a dispatcher but by a separate process: it sends reminders and closes expired orders on its own. Three roles, three menus, one chat."
   },
   "caseTagline": {
     "ru": "Смена без единой веб-страницы: биржа умещается в переписку, а прод-нагрузку тянет фоновый процесс.",
     "en": "A shift with zero web pages: the whole marketplace fits in a chat, while a background process carries the production load."
   },
   "caseDescription": {
-    "ru": "У DotWorkBot нет ни сайта, ни приложения для установки - есть чат в Telegram, куда прилетает сообщение о смене, и кнопка «взять», по которой её тут же разбирает работник. За этой простой перепиской стоит отдельный taskiq-воркер, который держит биржу в рабочем состоянии сам: шлёт напоминания о выходе, снимает бронь с неявившихся и закрывает просроченные заказы. Чтобы два инстанса воркера не продублировали одну и ту же операцию, он берёт лидер-лок в Redis через SET NX EX, а бэкапы Postgres и MinIO уходят в шифрованные AES-архивы через pyzipper. Прод собирался с нуля начиная с ноября 2025.",
-    "en": "DotWorkBot has no website and nothing to install - just a Telegram chat where a shift shows up as a message, and a 'claim' button a worker taps to take it. Behind that plain exchange sits a dedicated taskiq worker that keeps the marketplace running on its own: it sends arrival reminders, releases no-shows, and closes expired orders. To stop two worker instances from duplicating the same job, it grabs a Redis leader lock via SET NX EX, while Postgres and MinIO backups go out as AES-encrypted archives through pyzipper. The production build has been going since November 2025."
+    "ru": "У DotWorkBot нет ни сайта, ни приложения для установки: есть чат в Telegram, куда прилетает сообщение о смене, и кнопка «взять», по которой её тут же разбирает работник. За этой простой перепиской стоит отдельный taskiq-воркер, который держит биржу в рабочем состоянии сам: шлёт напоминания о выходе, снимает бронь с неявившихся и закрывает просроченные заказы. Чтобы два инстанса воркера не продублировали одну и ту же операцию, он берёт лидер-лок в Redis через SET NX EX, а бэкапы Postgres и MinIO уходят в шифрованные AES-архивы через pyzipper. Прод собирался с нуля начиная с ноября 2025.",
+    "en": "DotWorkBot has no website and nothing to install: just a Telegram chat where a shift shows up as a message, and a 'claim' button a worker taps to take it. Behind that plain exchange sits a dedicated taskiq worker that keeps the marketplace running on its own: it sends arrival reminders, releases no-shows, and closes expired orders. To stop two worker instances from duplicating the same job, it grabs a Redis leader lock via SET NX EX, while Postgres and MinIO backups go out as AES-encrypted archives through pyzipper. The production build has been going since November 2025."
   },
   "stack": [
     "Python 3.12",
@@ -75,10 +75,10 @@
   ],
   "overview": {
     "ru": [
-      "Биржа разовых смен целиком в Telegram: работодатель публикует смену, работник её берёт, а отдельный taskiq-воркер сам держит «физику» биржи - напоминает о выходе, освобождает неподтвердившихся и закрывает просроченные заказы, оставаясь единственным лидером через Redis-лок."
+      "Биржа разовых смен целиком в Telegram: работодатель публикует смену, работник её берёт, а отдельный taskiq-воркер сам держит «физику» биржи, напоминает о выходе, освобождает неподтвердившихся и закрывает просроченные заказы, оставаясь единственным лидером через Redis-лок."
     ],
     "en": [
-      "A one-off shift marketplace that lives entirely in Telegram: an employer posts a shift, a worker takes it, and a dedicated taskiq worker keeps the marketplace's 'physics' running on its own - nudging arrivals, releasing no-shows, and closing expired orders as the single leader via a Redis lock."
+      "A one-off shift marketplace that lives entirely in Telegram: an employer posts a shift, a worker takes it, and a dedicated taskiq worker keeps the marketplace's 'physics' running on its own, nudging arrivals, releasing no-shows, and closing expired orders as the single leader via a Redis lock."
     ]
   },
   "metrics": [
@@ -264,7 +264,7 @@
         "en": "Roles and flows"
       },
       "description": {
-        "ru": "Работник, работодатель и админ получают разные меню и фильтры доступа; регистрация работника - пошаговый FSM с телефоном, городом и геолокацией.",
+        "ru": "Работник, работодатель и админ получают разные меню и фильтры доступа; регистрация работника: пошаговый FSM с телефоном, городом и геолокацией.",
         "en": "Worker, employer, and admin get separate menus and access filters; worker sign-up is a step-by-step FSM with phone, city, and geolocation."
       }
     },
@@ -319,8 +319,8 @@
         "en": "Ratings and storage"
       },
       "description": {
-        "ru": "Оценки работников в отдельной модели и фотографии заказов в S3-совместимом хранилище - большие бинарники вне реляционной базы.",
-        "en": "Worker ratings in a dedicated model and order photos in S3-compatible storage - large binaries kept out of the relational DB."
+        "ru": "Оценки работников в отдельной модели и фотографии заказов в S3-совместимом хранилище: большие бинарники вне реляционной базы.",
+        "en": "Worker ratings in a dedicated model and order photos in S3-compatible storage: large binaries kept out of the relational DB."
       }
     }
   ],
