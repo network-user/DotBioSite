@@ -14,8 +14,16 @@
     "en": "Mental math as a daily habit, with a four-way leaderboard."
   },
   "description": {
-    "ru": "Двуязычный Telegram-тренажёр устного счёта, построенный вокруг удержания. Семь типов операций на трёх уровнях, серии дней и рейтинг, который смотрит на результат с четырёх сторон: стрик, всего решено, точность и взвешенные очки, где сложные задачи стоят дороже. Серия дней держится, пока ты не пропустишь день, а сложность ощутимо меняет наполнение задач.",
-    "en": "A bilingual Telegram mental-arithmetic trainer built around retention. Seven operation types across three levels, day-streaks, and a leaderboard that reads the same results four ways: streak, total solved, accuracy, and a weighted score where harder problems count more. The streak holds until you skip a day, and difficulty meaningfully changes what the problems look like."
+    "ru": "Двуязычный Telegram-тренажёр устного счёта, построенный вокруг удержания. Семь типов операций на трёх уровнях сложности, серия дней и рейтинг, который смотрит на результат с четырёх сторон: стрик, всего решено, точность и взвешенные очки.",
+    "en": "A bilingual Telegram mental-arithmetic trainer built around retention. Seven operation types across three difficulty levels, a day streak, and a leaderboard that reads the same result four ways: streak, total solved, accuracy, and a weighted score."
+  },
+  "caseTagline": {
+    "ru": "Решил пример - и один и тот же результат уже разложен на четыре места в рейтинге.",
+    "en": "Solve one problem and watch the same result land on four leaderboards at once."
+  },
+  "caseDescription": {
+    "ru": "Каждое решение в DotMath идёт по одной дорожке: пример - очки - место в рейтинге - серия дней, и один результат читается сразу в четырёх срезах - стрик, всего решено, точность, взвешенные очки, где сложное стоит дороже. У дневного челленджа своя механика: seed делает набор из 10 задач одинаковым для всех, а UNIQUE-констрейнты в базе не дают гонке за первый клик сломать «одну попытку на человека». Началось 14 февраля 2026 года как MVP на день, а сейчас это ~9 тысяч строк, где тренировочная FSM живёт в Redis и переживает рестарт контейнера, а база регулярно уходит в бэкап через pg_dump.",
+    "en": "Every solve in DotMath travels one lane: problem, points, leaderboard spot, streak - and that single result gets read four different ways at once: streak, total solved, accuracy, and a weighted score where harder problems count more. The daily challenge runs on its own mechanics: a seed makes the same 10 problems land for everyone, and UNIQUE constraints in the database keep a race for the first click from breaking the one-attempt-per-person rule. It started 14 Feb 2026 as a one-day MVP; today it's roughly 9k lines, with a training FSM that lives in Redis and survives a container restart, and a database that ships itself off to backup via pg_dump on a schedule."
   },
   "stack": [
     "Python 3.12",
@@ -44,22 +52,22 @@
     {
       "value": "7",
       "label": {
-        "ru": "типов операций",
+        "ru": "типов задач",
         "en": "operation types"
       }
     },
     {
       "value": "4",
       "label": {
-        "ru": "среза рейтинга",
-        "en": "leaderboard cuts"
+        "ru": "способа быть лучшим",
+        "en": "ways to lead"
       }
     },
     {
-      "value": "RU/EN",
+      "value": "retry",
       "label": {
-        "ru": "на лету",
-        "en": "live switch"
+        "ru": "работа над ошибками",
+        "en": "retry your mistakes"
       }
     }
   ],

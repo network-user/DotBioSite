@@ -5,8 +5,8 @@ import CaseStudy from "../../../components/CaseStudy.astro";
 import {
   projects,
   projectName,
-  projectTagline,
-  projectDescription,
+  projectCaseTagline,
+  projectCaseDescription,
   projectStartISO,
   repoUrl,
 } from "../../../lib/projects";
@@ -22,13 +22,13 @@ export const getStaticPaths = (() => {
 const { project } = Astro.props;
 const locale = "en" as const;
 const title = `${projectName(project, locale)} — ${authorName(locale)}`;
-const description = projectTagline(project, locale);
+const description = projectCaseTagline(project, locale);
 const codeRepositories = project.repos.map((r) => repoUrl(r)).filter(Boolean);
 const structuredData = {
   "@context": "https://schema.org",
   "@type": "SoftwareSourceCode",
   name: projectName(project, locale),
-  description: projectDescription(project, locale),
+  description: projectCaseDescription(project, locale),
   url: new URL(`/en/projects/${project.slug}`, config.PUBLIC_DOMAIN).toString(),
   image: project.cover ? new URL(project.cover, config.PUBLIC_DOMAIN).toString() : undefined,
   codeRepository: codeRepositories.length > 0 ? codeRepositories : undefined,

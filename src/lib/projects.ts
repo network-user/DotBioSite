@@ -175,6 +175,12 @@ export interface Project {
   comingSoon?: boolean;
 
   // ---------- Расширения для case-study страницы (все опциональны) ----------
+  /** Переопределяет `tagline` на case-странице (hero + meta description) и
+   *  оставляет `tagline` домашней карточке нетронутым. Без поля — общий текст. */
+  caseTagline?: { ru: string; en: string };
+  /** Переопределяет `description` на case-странице (schema.org structuredData).
+   *  Без поля — общий текст, как и раньше. */
+  caseDescription?: { ru: string; en: string };
   overview?: { ru: ReadonlyArray<string>; en: ReadonlyArray<string> };
   metrics?: ReadonlyArray<ProjectMetric>;
   stackGroups?: ProjectStackGroups;
@@ -255,6 +261,18 @@ export function projectTagline(p: Project, locale: Locale): string {
 
 export function projectDescription(p: Project, locale: Locale): string {
   return p.description[locale] ?? p.description.ru;
+}
+
+/** Case-страница: `caseTagline`, если задан, иначе домашний `tagline`. */
+export function projectCaseTagline(p: Project, locale: Locale): string {
+  if (p.caseTagline) return p.caseTagline[locale] ?? p.caseTagline.ru;
+  return projectTagline(p, locale);
+}
+
+/** Case-страница: `caseDescription`, если задан, иначе домашний `description`. */
+export function projectCaseDescription(p: Project, locale: Locale): string {
+  if (p.caseDescription) return p.caseDescription[locale] ?? p.caseDescription.ru;
+  return projectDescription(p, locale);
 }
 
 /**

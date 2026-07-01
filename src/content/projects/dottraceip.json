@@ -10,12 +10,20 @@
     "en": ".trace"
   },
   "tagline": {
-    "ru": "Массовый разбор IP: геолокация, ASN/BGP и репутация - асинхронно, в один проход.",
-    "en": "Bulk IP intel: geolocation, ASN/BGP, and reputation - async, in a single pass."
+    "ru": "Сотни IP на входе, готовый отчёт на выходе: гео, ASN/BGP и репутация за один асинхронный проход.",
+    "en": "Hundreds of IPs in, a finished report out: geo, ASN/BGP, and reputation in one async pass."
   },
   "description": {
-    "ru": "Асинхронный CLI для массового анализа IP: геолокация, ASN и BGP-префикс, обратный DNS и репутация (AbuseIPDB, Spamhaus). Вырос из реальной задачи - разобрать по логам сервера, из каких стран и сетей боты перебирают пароли к SSH/RDP. Движок на asyncio + aiohttp опрашивает по каждому IP несколько источников параллельно и пишет отчёт в TXT, JSON, CSV или HTML.",
-    "en": "An async CLI for bulk IP analysis: geolocation, ASN and BGP prefix, reverse DNS, and reputation (AbuseIPDB, Spamhaus). It grew out of a real task - figuring out from server logs which countries and networks bots brute-force SSH/RDP from. An asyncio + aiohttp engine queries several sources per IP in parallel and writes a report in TXT, JSON, CSV, or HTML."
+    "ru": "Асинхронный CLI, который берёт список IP и по каждому параллельно опрашивает шесть источников: геолокацию, ASN и BGP, сеть владельца, DNS и репутацию. Отказ одного источника не портит отчёт, а итог собирается в TXT, JSON, CSV или HTML.",
+    "en": "An async CLI that takes a list of IPs and queries six sources per address in parallel: geolocation, ASN and BGP, owner network, DNS, and reputation. One source failing doesn't break the report, and the result comes out as TXT, JSON, CSV, or HTML."
+  },
+  "caseTagline": {
+    "ru": "На входе - список IP из access-логов, на выходе - отчёт; всё, что между ними, укладывается в один запуск.",
+    "en": "A list of IPs from access logs goes in, a report comes out; everything between fits into one run."
+  },
+  "caseDescription": {
+    "ru": "Формат простой: текстовый файл с адресами на вход, TXT, JSON, CSV или HTML на выход - ни сервера, ни браузерного дашборда между ними. Внутри это не последовательный обход, а веер: движок держит семафор на N IP одновременно и по каждому адресу параллельно опрашивает шесть источников через asyncio.gather, так что если Spamhaus не ответил или bgpview лёг, остальные поля всё равно доедут до отчёта. Тот же run_scan одинаково запускается и из headless-команды в cron на сервере, и из Rich-меню в терминале - разница только в том, куда идёт live-дашборд.",
+    "en": "The shape is simple: a text file of addresses in, TXT, JSON, CSV, or HTML out, with no server and no browser dashboard in between. Under the hood it's not a sequential walk but a fan-out: the engine holds a semaphore over N IPs at once and queries six sources per address in parallel via asyncio.gather, so if Spamhaus times out or bgpview is down, the rest of the fields still make it into the report. The same run_scan call works identically from a headless cron job on a server or from the Rich menu in a terminal - the only difference is where the live dashboard renders."
   },
   "stack": [
     "Python 3.12",
@@ -44,24 +52,24 @@
   ],
   "highlights": [
     {
+      "value": "0",
+      "label": {
+        "ru": "IP не утекает",
+        "en": "no IP leaks"
+      }
+    },
+    {
       "value": "6",
       "label": {
-        "ru": "источников на IP",
-        "en": "sources per IP"
+        "ru": "источники не падают",
+        "en": "sources keep working"
       }
     },
     {
-      "value": "4",
+      "value": "HTML",
       "label": {
-        "ru": "формата экспорта",
-        "en": "export formats"
-      }
-    },
-    {
-      "value": "asyncio",
-      "label": {
-        "ru": "параллельный движок",
-        "en": "parallel engine"
+        "ru": "отчёт открывается сам",
+        "en": "opens itself"
       }
     }
   ],

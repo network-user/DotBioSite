@@ -14,8 +14,16 @@
     "en": "A learning workbench that AI extends on its own - content and interactivity alike."
   },
   "description": {
-    "ru": "Платформа для обучения коду, где AI-агент генерирует темы на любой запрос и упаковывает их в типобезопасные код-модули. Запускается локально - сервер и аккаунт не нужны. Код учащегося исполняется в изолированном браузерном sandbox с заблокированными сетевыми API: написанное никуда не передаётся, прогресс хранится в браузере.",
-    "en": "A coding education platform where an AI agent generates topics on any subject and packages them as type-safe code modules. Runs locally - no server, no account required. Learner code executes in an isolated browser sandbox with network APIs blocked: nothing you write is sent anywhere, and progress lives in the browser."
+    "ru": "Платформа для обучения, где AI-агент генерирует темы на любой запрос и упаковывает их в типобезопасные код-модули. Запускается локально - сервер и аккаунт не нужны. Код учащегося исполняется в изолированном браузерном sandbox с заблокированными сетевыми API: написанное никуда не передаётся, прогресс хранится в браузере.",
+    "en": "A learning platform where an AI agent generates topics on any subject and packages them as type-safe code modules. Runs locally - no server, no account required. Learner code executes in an isolated browser sandbox with network APIs blocked: nothing you write is sent anywhere, and progress lives in the browser."
+  },
+  "caseTagline": {
+    "ru": "Ускоренная подготовка к собеседованиям: сам выбираешь тему, а AI строит вокруг неё урок.",
+    "en": "Accelerated interview prep: you pick the topic, AI builds the lesson around it."
+  },
+  "caseDescription": {
+    "ru": "DotLearn создавался для индивидуальной, ускоренной подготовки к собеседованиям: вместо готовой программы - тема, которая нужна именно тебе. Заказываешь её, и AI-агент lesson-forge строит вокруг неё учебную среду: теорию с интерактивными визуализациями, тесты и упражнения с проверкой прямо в браузере. Проект в открытом доступе - сообщество может предлагать свои темы через pull request или форму заявки, либо разворачиваешь его у себя и готовишься полностью в одиночку.",
+    "en": "DotLearn was built for individual, accelerated interview prep: instead of a fixed curriculum, a topic you actually need. Request it, and the lesson-forge AI agent builds a learning environment around it - theory with interactive visualizations, exercises and tests checked right in the browser. The project is open: the community can propose topics via a pull request or a submission form, or you can self-host it and study entirely on your own."
   },
   "stack": [
     "TypeScript 5",
@@ -48,34 +56,34 @@
   "accent": "var(--accent-learn)",
   "highlights": [
     {
-      "value": "34",
-      "label": {
-        "ru": "темы в каталоге",
-        "en": "topics in the catalog"
-      }
-    },
-    {
       "value": "AI",
       "label": {
-        "ru": "темы пишет lesson-forge",
-        "en": "topics authored by lesson-forge"
+        "ru": "генерирует любой урок",
+        "en": "generates any lesson"
       }
     },
     {
-      "value": "local",
+      "value": "localhost",
       "label": {
-        "ru": "первый: без бэкенда",
-        "en": "first: no backend"
+        "ru": "работает без сервера",
+        "en": "no server needed"
+      }
+    },
+    {
+      "value": "34",
+      "label": {
+        "ru": "готовых курса",
+        "en": "ready-made courses"
       }
     }
   ],
   "overview": {
     "ru": [
-      "lesson-forge принимает запрос на тему, проверяет конфликты с каталогом и генерирует пакет: MDX-теория и YAML-задачи, прошедшие автоматическую валидацию в браузерном рантайме. Всё это коммитится в репо, а не записывается в базу - поэтому тему можно форкнуть, расширить или исправить обычным pull request.",
+      "После запроса начинается работа агента: lesson-forge проверяет тему на конфликты с каталогом и генерирует пакет - MDX-теория и YAML-задачи, прошедшие автоматическую валидацию в браузерном рантайме. Всё это коммитится в репо, а не записывается в базу - поэтому тему можно форкнуть, расширить или исправить обычным pull request.",
       "Код выполняется в Web Worker, где при старте нейтрализуются 15 сетевых API: fetch, WebSocket, RTCPeerConnection, BroadcastChannel и другие. Написанный код не может ни отправить данные, ни открыть скрытый канал - это не политика, это архитектура. Прогресс, заметки, закладки и FSRS-карточки для интервального повторения живут в IndexedDB; бэкенд опционален, платформа ставится как PWA и работает офлайн. Из настроек: язык контента (RU/EN на лету), сложность упражнений, дневная цель, шрифт, размер текста и параметры Monaco-редактора."
     ],
     "en": [
-      "lesson-forge takes a topic request, checks for conflicts with the existing catalog, and generates a package: MDX theory and YAML exercises that are automatically validated in the browser runtime. Everything gets committed to the repo, not written to a database - which means any topic can be forked, extended, or fixed with a normal pull request.",
+      "Once you ask, the agent gets to work: lesson-forge checks the topic for conflicts with the existing catalog and generates a package - MDX theory and YAML exercises that are automatically validated in the browser runtime. Everything gets committed to the repo, not written to a database - which means any topic can be forked, extended, or fixed with a normal pull request.",
       "Code runs in a Web Worker where 15 network APIs are neutralized at startup: fetch, WebSocket, RTCPeerConnection, BroadcastChannel, and others. What you write cannot send data out or open a hidden channel - that's architecture, not policy. Progress, notes, bookmarks, and FSRS flashcards live in IndexedDB; the backend is optional and the platform installs as a PWA for full offline use. Configurable settings include content language (RU/EN on the fly), exercise difficulty, daily goal, font, text size, and Monaco editor preferences."
     ]
   },

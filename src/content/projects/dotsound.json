@@ -17,6 +17,14 @@
     "ru": "Музыкальный сервис без рекламы, где весь твой звук собирается в одном месте. Загружай свои треки или подключай любимые стриминговые платформы. Музыка играет плавно, слова песни появляются сами в такт, а умные подборки подстраиваются под твой вкус и настроение.",
     "en": "An ad-free music service where all your sound lives in one place. Upload your own tracks or connect your favorite streaming platforms. Music plays smoothly, song lyrics appear in sync on their own, and smart mixes adapt to your taste and mood."
   },
+  "caseTagline": {
+    "ru": "За простым плеером - распределённая система: свой GPU-воркер для лирики, закрытое ядро для бизнес-правил.",
+    "en": "Behind a simple player sits a distributed system: its own GPU worker for lyrics, a closed core for business rules."
+  },
+  "caseDescription": {
+    "ru": "DotSound начинался как способ собрать музыку из Telegram и стримингов в одном плеере без рекламы, а вырос в экосистему из нескольких сервисов. Backend держит API, очередь задач и HLS-стриминг с дедупом треков по содержимому; отдельный pull-based GPU-воркер по HMAC-протоколу снимает вокал и распознаёт лирику, не открывая наружу ни одного порта. Бизнес-правила и политика выдачи рекомендаций вынесены в закрытое ядро - экосистема построена так, чтобы открытый код показывал архитектуру, не раскрывая логику ранжирования.",
+    "en": "DotSound started as a way to pull music from Telegram and streaming platforms into one ad-free player, then grew into an ecosystem of several services. The backend runs the API, task queue and HLS streaming with content-based track dedup; a separate pull-based GPU worker over an HMAC protocol lifts vocals and transcribes lyrics without exposing a single port. Business rules and recommendation ranking live in a closed core - the ecosystem is built so the open code shows the architecture without revealing the ranking logic."
+  },
   "stack": [
     "Python 3.12",
     "FastAPI",
@@ -71,24 +79,24 @@
   "accent": "var(--accent-sound)",
   "highlights": [
     {
-      "value": "4",
+      "value": "SHA-256",
       "label": {
-        "ru": "репозитория",
-        "en": "repositories"
-      }
-    },
-    {
-      "value": "HLS",
-      "label": {
-        "ru": "адаптивный стриминг",
-        "en": "adaptive streaming"
+        "ru": "трек не дублируется",
+        "en": "never duplicates a track"
       }
     },
     {
       "value": "ASR",
       "label": {
-        "ru": "авто-лирика на GPU",
-        "en": "auto-lyrics on GPU"
+        "ru": "слова всплывают сами",
+        "en": "lyrics appear themselves"
+      }
+    },
+    {
+      "value": "HLS",
+      "label": {
+        "ru": "без тормозов",
+        "en": "never stutters"
       }
     }
   ],

@@ -10,12 +10,20 @@
     "en": ".agents"
   },
   "tagline": {
-    "ru": "Управляй AI-агентами с телефона. Код не покидает машину.",
-    "en": "Drive AI coding agents from your phone. Code never leaves your machine."
+    "ru": "Твой телефон - кнопка allow/deny для AI-агента в IDE.",
+    "en": "Your phone is the allow/deny button for your coding agent."
   },
   "description": {
-    "ru": "Локальный security-first демон, который стоит рядом с Cursor, Claude Code и Antigravity и превращает Telegram в пульт управления ими. Live-статус сессий, approve/deny для рискованных shell- и MCP-вызовов, follow-up команды и tail transcript - всё с телефона. Принцип жёсткий: канал управления уходит в Telegram, но сам код, approvals и transcript остаются на твоей машине.",
-    "en": "A local, security-first daemon that sits next to Cursor, Claude Code, and Antigravity and turns Telegram into a remote control for them. Live session status, approve/deny for risky shell and MCP calls, follow-up commands, and transcript tail - all from your phone. The principle is strict: the control channel goes to Telegram, but the code, approvals, and transcript stay on your machine."
+    "ru": "DotAgents ставит хук в Cursor, Claude Code и Antigravity и ловит момент, когда агент тянется к рискованной команде. Решение прилетает тебе в Telegram: тапнул allow - выполняется, тапнул deny или промолчал - нет.",
+    "en": "DotAgents hooks into Cursor, Claude Code, and Antigravity and catches the exact moment an agent reaches for a risky command. The call goes straight to your phone via Telegram: tap allow and it runs, tap deny or say nothing and it doesn't."
+  },
+  "caseTagline": {
+    "ru": "Телефон вибрирует, на экране - команда, которую хочет выполнить агент, и две кнопки: allow, deny.",
+    "en": "Your phone buzzes with the command your agent wants to run, and two buttons: allow, deny."
+  },
+  "caseDescription": {
+    "ru": "Уведомление приходит в момент, когда меньше всего этого ждёшь: агент дошёл до строки, которая трогает файловую систему или сеть, и встал. На экране - сама команда и две кнопки, счётчик тикает вниз. Не успел или не ответил - действие отклонено, а не выполнено: fail-closed по умолчанию, а не по настройке. Держит эту связку демон, вшитый хуком в Cursor, Claude Code и Antigravity и long-poll'ящий решение с телефона; поверх - три режима работы, слои models/repos/services под капотом и Typer-CLI, который сам разводит хуки по всем трём агентам одной командой.",
+    "en": "The notification lands at the moment you least expect it: the agent hit a line that touches the filesystem or the network and froze. The screen shows the exact command and two buttons, with a countdown ticking down. Miss it or say nothing, and the action is denied, not run - fail-closed is the default, not a setting you flip. Underneath sits a daemon hooked into Cursor, Claude Code, and Antigravity, long-polling your phone for that decision; on top of it are three operating modes, a layered models/repos/services architecture, and a Typer CLI that wires the hooks into all three agents with one command."
   },
   "stack": [
     "Python 3.12",
@@ -52,17 +60,17 @@
       }
     },
     {
-      "value": "3",
+      "value": "live",
       "label": {
-        "ru": "AI-агента: Cursor · Claude Code · Antigravity",
-        "en": "AI agents: Cursor · Claude Code · Antigravity"
+        "ru": "видишь что происходит",
+        "en": "see what's happening"
       }
     },
     {
-      "value": "fail-closed",
+      "value": "stop",
       "label": {
-        "ru": "тишина = deny по умолчанию",
-        "en": "silence = deny by default"
+        "ru": "управляешь с телефона",
+        "en": "control from phone"
       }
     }
   ],

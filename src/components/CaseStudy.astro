@@ -4,8 +4,8 @@ import {
   type Project,
   projectName,
   projectBrand,
-  projectTagline,
-  projectDescription,
+  projectCaseTagline,
+  projectCaseDescription,
   projectStartDate,
   repoUrl,
 } from "../lib/projects";
@@ -29,8 +29,8 @@ const prefix = localePrefix(locale);
 
 const name = projectName(p, locale);
 const brand = projectBrand(p, locale);
-const tagline = projectTagline(p, locale);
-const desc = projectDescription(p, locale);
+const tagline = projectCaseTagline(p, locale);
+const desc = projectCaseDescription(p, locale);
 const startDate = projectStartDate(p);
 const backHref = `${prefix}/#projects`;
 const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";

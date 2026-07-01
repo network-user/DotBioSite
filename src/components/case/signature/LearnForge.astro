@@ -13,7 +13,7 @@
  *  1 · Клонируй и попроси — `git clone … && pnpm dev:web`, словами просишь агента.
  *  2 · Кузница кует урок — lesson-forge: план → manifest → theory.mdx + yaml + flashcards.
  *  3 · Контракт проверяет форму — общий Zod (`topic.schema.ts`, .strict()), web+api.
- *  4 · Решаешь в браузере — sql.js (JOIN author/book) и Pyodide (Vector.length) в Worker.
+ *  4 · Решаешь в браузере — Pyodide (класс Dog(Animal), полиморфизм) и sql.js (JOIN author/book) в Worker.
  *  5 · Интерактивная теория — 40+ живых визуализаций + theory-quiz по ходу чтения.
  *  6 · Привычка и карточки — стрик + GitHub-heatmap (IndexedDB), FSRS-карточка.
  *  7 · Унеси с собой — экспорт/импорт всего прогресса одним JSON (version 4).
@@ -40,8 +40,8 @@ type Bi = { ru: string; en: string };
 const t = (b: Bi): string => b[locale];
 
 const intro: Bi = {
-  ru: "Не слайды, а сквозной путь продукта: клонируешь репозиторий, просишь ИИ-агента собрать тему, смотришь как урок рождается из файлов, решаешь код прямо в браузере и копишь прогресс. Иди по шагам стрелками ←/→ — каждая сцена показывает себя сама.",
-  en: "Not slides but the product end to end: you clone the repo, ask an AI agent to forge a topic, watch a lesson born from files, solve code right in the browser and build up progress. Step through with ←/→ — each scene plays itself.",
+  ru: "Не слайды, а сквозной путь продукта: клонируешь репозиторий, просишь ИИ-агента собрать тему, смотришь как урок рождается из файлов, решаешь код прямо в браузере и копишь прогресс. Иди по шагам стрелками ←/→: каждая сцена показывает себя сама.",
+  en: "Not slides but the product end to end: you clone the repo, ask an AI agent to forge a topic, watch a lesson born from files, solve code right in the browser and build up progress. Step through with ←/→: each scene plays itself.",
 };
 
 const stats: { v: string; label: Bi; plain?: boolean }[] = [
@@ -59,8 +59,8 @@ const acts: Act[] = [
     eyebrow: { ru: "Клонируй и попроси", en: "Clone and ask" },
     title: { ru: "Запускаешь локально и просишь словами", en: "Run it locally, ask in plain words" },
     lede: {
-      ru: "Скачал репозиторий, поднял плеер одной командой — и прямо в редакторе попросил ИИ-агента собрать тему. Без форм и кода: обычным языком.",
-      en: "Clone the repo, bring up the player with one command, and ask the AI agent right in your editor. No forms, no code — just plain language.",
+      ru: "Скачал репозиторий, поднял плеер одной командой и прямо в редакторе попросил ИИ-агента собрать тему. Без форм и кода: обычным языком.",
+      en: "Clone the repo, bring up the player with one command, and ask the AI agent right in your editor. No forms, no code, just plain language.",
     },
   },
   {
@@ -68,17 +68,17 @@ const acts: Act[] = [
     eyebrow: { ru: "Кузница кует урок", en: "The forge builds a lesson" },
     title: { ru: "ИИ собирает тему как набор файлов", en: "AI assembles the topic as files" },
     lede: {
-      ru: "Скилл lesson-forge сначала показывает план программы и ждёт твоё «ок», потом пишет манифест, теорию и задачи — по одному файлу. Тема это код, а не строка в базе.",
-      en: "The lesson-forge skill first shows a curriculum plan and waits for your OK, then writes the manifest, theory and exercises — file by file. A topic is code, not a database row.",
+      ru: "Скилл lesson-forge сначала показывает план программы и ждёт твоё «ок», потом пишет манифест, теорию и задачи файл за файлом. Тема это код, а не строка в базе.",
+      en: "The lesson-forge skill first shows a curriculum plan and waits for your OK, then writes the manifest, theory and exercises one file at a time. A topic is code, not a database row.",
     },
   },
   {
     id: "contract",
     eyebrow: { ru: "Контракт проверяет форму", en: "The contract checks the shape" },
-    title: { ru: "Одна Zod-схема — единый стандарт", en: "One Zod schema — a single standard" },
+    title: { ru: "Одна Zod-схема - единый стандарт", en: "One Zod schema - a single standard" },
     lede: {
-      ru: "Кривую тему не пропустят: общий Zod-контракт валидирует и сайт, и сервер. Лишнее поле — отказ. Затем gold-решения реально прогоняются в sql.js.",
-      en: "A malformed topic won't pass: one shared Zod contract validates both web and server. An extra field means rejection. Then gold solutions actually run in sql.js.",
+      ru: "Кривую тему не пропустят: общий Zod-контракт валидирует и сайт, и сервер. Лишнее поле - отказ. Затем gold-решения реально прогоняются в Pyodide.",
+      en: "A malformed topic won't pass: one shared Zod contract validates both web and server. An extra field means rejection. Then gold solutions actually run in Pyodide.",
     },
   },
   {
@@ -86,8 +86,8 @@ const acts: Act[] = [
     eyebrow: { ru: "Решаешь в браузере", en: "You solve in the browser" },
     title: { ru: "Код исполняется прямо на странице", en: "Code runs right on the page" },
     lede: {
-      ru: "SQL через sql.js, Python через Pyodide — оба в Web Worker, без сервера. Пишешь решение, жмёшь Run и сразу видишь результат: таблицу или прогон тестов.",
-      en: "SQL via sql.js, Python via Pyodide — both in a Web Worker, no server. Write a solution, hit Run, and see the result at once: a table or a test run.",
+      ru: "Python работает через Pyodide, SQL через sql.js. Оба в Web Worker, без сервера. Пишешь решение, жмёшь Run и сразу видишь результат: прогон тестов или таблицу.",
+      en: "Python runs via Pyodide, SQL via sql.js. Both in a Web Worker, no server. Write a solution, hit Run, and see the result at once: a test run or a table.",
     },
   },
   {
@@ -95,8 +95,8 @@ const acts: Act[] = [
     eyebrow: { ru: "Интерактивная теория", en: "Interactive theory" },
     title: { ru: "Не стена текста, а живые схемы", en: "Not a wall of text, but live diagrams" },
     lede: {
-      ru: "В теорию встроены 40+ визуализаций — от JOIN и хеш-таблиц до attention и градиентного спуска. И проверочные вопросы прямо по ходу чтения.",
-      en: "Theory embeds 40+ visualizations — from JOINs and hash tables to attention and gradient descent. Plus quick check questions as you read.",
+      ru: "В теорию встроены 40+ визуализаций: от наследования классов и хеш-таблиц до attention и градиентного спуска. И проверочные вопросы прямо по ходу чтения.",
+      en: "Theory embeds 40+ visualizations: from class inheritance and hash tables to attention and gradient descent. Plus quick check questions as you read.",
     },
   },
   {
@@ -111,10 +111,10 @@ const acts: Act[] = [
   {
     id: "export",
     eyebrow: { ru: "Унеси с собой", en: "Take it with you" },
-    title: { ru: "Весь прогресс — один файл", en: "All your progress — one file" },
+    title: { ru: "Весь прогресс - один файл", en: "All your progress - one file" },
     lede: {
-      ru: "Прогресс, карточки, заметки и закладки выгружаются одним JSON. Бэкап и перенос между устройствами — без сервера и без аккаунта.",
-      en: "Progress, cards, notes and bookmarks export as one JSON. Back up and move between devices — no server, no account.",
+      ru: "Прогресс, карточки, заметки и закладки выгружаются одним JSON. Бэкап и перенос между устройствами без сервера и без аккаунта.",
+      en: "Progress, cards, notes and bookmarks export as one JSON. Back up and move between devices, no server, no account.",
     },
   },
 ];
@@ -127,24 +127,24 @@ const termLines: { text: string; kind: string }[] = [
   { text: "VITE ready · http://localhost:5173", kind: "ok" },
 ];
 const agentPrompt: Bi = {
-  ru: "Используй lesson-forge: добавь тему по SQL JOIN для новичка",
-  en: "Use lesson-forge: add a beginner topic on SQL JOIN",
+  ru: "lesson-forge добавь тему по основам ООП в Python для новичка",
+  en: "lesson-forge add a beginner topic on Python OOP basics",
 };
 
 /* ── Акт 2: план программы + файлы темы ──────────────────────────────── */
 const planConcepts: Bi[] = [
-  { ru: "SELECT и фильтрация", en: "SELECT and filtering" },
-  { ru: "ORDER BY и LIMIT", en: "ORDER BY and LIMIT" },
-  { ru: "Агрегация: COUNT, SUM, AVG", en: "Aggregation: COUNT, SUM, AVG" },
-  { ru: "JOIN-ы", en: "JOINs" },
-  { ru: "GROUP BY и HAVING", en: "GROUP BY and HAVING" },
-  { ru: "Подзапросы и CTE", en: "Subqueries and CTEs" },
+  { ru: "Классы и объекты", en: "Classes and objects" },
+  { ru: "__init__ и self", en: "__init__ and self" },
+  { ru: "Атрибуты экземпляра", en: "Instance attributes" },
+  { ru: "Наследование", en: "Inheritance" },
+  { ru: "Переопределение методов", en: "Method overriding" },
+  { ru: "Инкапсуляция и свойства", en: "Encapsulation and properties" },
 ];
 const forgeFiles: { name: string; kind: Bi }[] = [
   { name: "manifest.json", kind: { ru: "структурный контракт темы", en: "topic structural contract" } },
-  { name: "theory/04-joins.ru.mdx", kind: { ru: "теория-лонгрид с визуализацией", en: "longread theory with a viz" } },
-  { name: "exercises/04-joins.ru.yaml", kind: { ru: "задачи с gold-решением", en: "exercises with a gold solution" } },
-  { name: "flashcards/04-joins.ru.yaml", kind: { ru: "карточки для повторения", en: "flashcards for review" } },
+  { name: "theory/python-oop.ru.mdx", kind: { ru: "теория-лонгрид с визуализацией", en: "longread theory with a viz" } },
+  { name: "exercises/python-oop.ru.yaml", kind: { ru: "задачи с gold-решением", en: "exercises with a gold solution" } },
+  { name: "flashcards/python-oop.ru.yaml", kind: { ru: "карточки для повторения", en: "flashcards for review" } },
 ];
 
 /* ── Акт 3: Zod-контракт ─────────────────────────────────────────────── */
@@ -195,36 +195,49 @@ const sqlVariants: SqlVariant[] = [
       ["Ada", "Analytical engine"],
       ["Linus", "Kernel notes"],
     ],
-    note: { ru: "Grace без книги потерялась — не то", en: "Grace with no book is lost — not it" },
+    note: { ru: "Grace без книги потерялась, не то", en: "Grace with no book is lost, not it" },
   },
 ];
+const pyCode: string[] = [
+  "class Animal:",
+  "    def __init__(self, name):",
+  "        self.name = name",
+  "",
+  "    def speak(self):",
+  "        return f\"{self.name} makes a sound\"",
+  "",
+  "",
+  "class Dog(Animal):",
+  "    def speak(self):",
+  "        return f\"{self.name} says Woof\"",
+];
 const pyCases: { call: string; expect: string }[] = [
-  { call: "Vector(3, 4).length()", expect: "5.0" },
-  { call: "Vector(0, 0).length()", expect: "0.0" },
-  { call: "Vector(1, 1).length()", expect: "1.4142" },
+  { call: 'Dog("Rex").speak()', expect: "Rex says Woof" },
+  { call: 'Animal("Rex").speak()', expect: "Rex makes a sound" },
+  { call: 'isinstance(Dog("Rex"), Animal)', expect: "True" },
 ];
 
 /* ── Акт 5: теория-виз + проверочный вопрос ──────────────────────────── */
 const vizChips: Bi[] = [
-  { ru: "JOIN", en: "JOIN" },
+  { ru: "наследование", en: "inheritance" },
   { ru: "хеш-таблица", en: "hash table" },
   { ru: "attention", en: "attention" },
   { ru: "градиентный спуск", en: "gradient descent" },
   { ru: "токенизация", en: "tokenization" },
 ];
 const quizPrompt: Bi = {
-  ru: "Какие утверждения об INNER JOIN и LEFT JOIN верны?",
-  en: "Which statements about INNER JOIN and LEFT JOIN are true?",
+  ru: "Какие утверждения о наследовании классов в Python верны?",
+  en: "Which statements about class inheritance in Python are true?",
 };
 const quizChoices: { id: string; text: Bi; correct: boolean }[] = [
-  { id: "a", text: { ru: "INNER JOIN оставляет только строки с совпадением с обеих сторон.", en: "INNER JOIN keeps only rows matched on both sides." }, correct: true },
-  { id: "b", text: { ru: "LEFT JOIN сохраняет каждую строку правой таблицы.", en: "LEFT JOIN keeps every row of the right table." }, correct: false },
-  { id: "c", text: { ru: "LEFT JOIN заполняет отсутствующие колонки справа значением NULL.", en: "LEFT JOIN fills missing right-side columns with NULL." }, correct: true },
-  { id: "d", text: { ru: "Только INNER JOIN использует условие ON.", en: "Only INNER JOIN uses the ON condition." }, correct: false },
+  { id: "a", text: { ru: "Если подкласс не определяет свой __init__, вызывается __init__ родителя.", en: "If a subclass defines no __init__ of its own, the parent's __init__ is used." }, correct: true },
+  { id: "b", text: { ru: "Переопределяя __init__ в подклассе, вызывать super().__init__() не обязательно.", en: "Overriding __init__ in a subclass, calling super().__init__() is optional." }, correct: false },
+  { id: "c", text: { ru: "isinstance() учитывает всю цепочку наследования, а не только точный класс.", en: "isinstance() checks the whole inheritance chain, not just the exact class." }, correct: true },
+  { id: "d", text: { ru: "Подкласс не может переопределить метод, только добавить новые.", en: "A subclass can't override a method, only add new ones." }, correct: false },
 ];
 const quizExplain: Bi = {
-  ru: "INNER отбрасывает несовпадения; LEFT сохраняет левую сторону и заполняет NULL справа. ON используют оба JOIN-а.",
-  en: "INNER drops non-matches; LEFT keeps the left side and fills NULL on the right. Both JOINs use ON.",
+  ru: "Без своего __init__ подкласс использует родительский; но если __init__ переопределён, super().__init__() нужно вызвать явно, иначе поля родителя не инициализируются. isinstance() смотрит на всю иерархию классов.",
+  en: "Without its own __init__, a subclass uses the parent's; but once __init__ is overridden, super().__init__() must be called explicitly, or the parent's fields never get set. isinstance() looks at the whole class hierarchy.",
 };
 
 /* ── Акт 6: heatmap + стрик + карточка FSRS ──────────────────────────── */
@@ -239,8 +252,8 @@ const heatmap: number[] = Array.from({ length: HM_COLS * HM_ROWS }, (_, i) => {
   return wave > 8 ? 4 : wave > 6 ? 3 : wave > 4 ? 2 : wave > 2 ? 1 : 0;
 });
 const flashcard = {
-  front: { ru: "Что станет с автором без книги при LEFT JOIN?", en: "What happens to an author with no book under LEFT JOIN?" } as Bi,
-  back: { ru: "Строка автора останется, колонки книги будут NULL.", en: "The author row stays; the book columns become NULL." } as Bi,
+  front: { ru: "Что будет, если переопределить __init__ в подклассе и забыть вызвать super().__init__()?", en: "What happens if you override __init__ in a subclass and forget to call super().__init__()?" } as Bi,
+  back: { ru: "Инициализация родителя не выполнится: атрибуты, которые она задаёт, останутся не установлены.", en: "The parent's setup never runs: the attributes it sets never get created." } as Bi,
 };
 const fsrsRatings: { key: string; label: Bi; due: Bi; tone: string }[] = [
   { key: "again", label: { ru: "Снова", en: "Again" }, due: { ru: "<10 мин", en: "<10 min" }, tone: "err" },
@@ -261,7 +274,7 @@ const exportRows: Bi[] = [
 const sx = {
   runAgent: { ru: "Запустить агента", en: "Run the agent" },
   agentBusy: { ru: "lesson-forge активируется…", en: "lesson-forge activating…" },
-  agentDone: { ru: "скилл активирован — куёт тему", en: "skill activated — forging" },
+  agentDone: { ru: "скилл активирован, куёт тему", en: "skill activated, forging" },
   approve: { ru: "Утвердить план", en: "Approve the plan" },
   forge: { ru: "Сковать тему", en: "Forge the topic" },
   forging: { ru: "Куётся…", en: "Forging…" },
@@ -270,8 +283,8 @@ const sx = {
   inject: { ru: "Внедрить лишнее поле", en: "Inject an extra field" },
   fix: { ru: "Убрать поле", en: "Remove the field" },
   pass: { ru: "PASS · форма валидна для web и api", en: "PASS · valid for web and api" },
-  reject: { ru: "REJECT · ZodError: unrecognized key — отклонено web И api", en: "REJECT · ZodError: unrecognized key — rejected by web AND api" },
-  validate: { ru: "pnpm validate · gold-SQL прогнан в sql.js ✓", en: "pnpm validate · gold SQL ran in sql.js ✓" },
+  reject: { ru: "REJECT · ZodError: unrecognized key, отклонено web И api", en: "REJECT · ZodError: unrecognized key, rejected by web AND api" },
+  validate: { ru: "pnpm validate · gold-Python прогнан в Pyodide ✓", en: "pnpm validate · gold Python ran in Pyodide ✓" },
   run: { ru: "Запустить", en: "Run" },
   running: { ru: "исполняю в Web Worker…", en: "executing in a Web Worker…" },
   ready: { ru: "готово к запуску", en: "ready to run" },
@@ -279,8 +292,8 @@ const sx = {
   badGold: { ru: "✗ расходится с gold", en: "✗ differs from gold" },
   casesPass: { ru: "3/3 кейса пройдено ✓", en: "3/3 cases passed ✓" },
   check: { ru: "Проверить", en: "Check" },
-  quizRight: { ru: "верно — a и c", en: "correct — a and c" },
-  quizWrong: { ru: "не совсем — верны a и c", en: "not quite — a and c are right" },
+  quizRight: { ru: "верно, a и c", en: "correct, a and c" },
+  quizWrong: { ru: "не совсем, верны a и c", en: "not quite, a and c are right" },
   flip: { ru: "Перевернуть карточку", en: "Flip the card" },
   nextDue: { ru: "следующий показ через", en: "next review in" },
   exportBtn: { ru: "Экспорт", en: "Export" },
@@ -298,7 +311,7 @@ sBundle.locale = locale;
   class="lf"
   data-lf
   data-lf-bundle={JSON.stringify(sBundle)}
-  aria-label={t({ ru: "Как живёт DotLearn — интерактивная история", en: "How DotLearn lives — an interactive story" })}
+  aria-label={t({ ru: "Как живёт DotLearn: интерактивная история", en: "How DotLearn lives: an interactive story" })}
 >
   <p class="lf__intro">{t(intro)}</p>
 
@@ -414,7 +427,7 @@ sBundle.locale = locale;
                   </ol>
                 </div>
                 <div class="lf-files" data-lf-files>
-                  <span class="lf-files__cap caption">topics/sql-joins/</span>
+                  <span class="lf-files__cap caption">topics/python-oop/</span>
                   <ul class="lf-files__list" role="list">
                     {forgeFiles.map((f, k) => (
                       <li class="lf-file" data-file={k}>
@@ -466,22 +479,22 @@ sBundle.locale = locale;
             {a.id === "solve" && (
               <div class="lf-ide" data-lf-ide>
                 <div class="lf-ide__tabs" role="tablist" aria-label={t({ ru: "Рантайм", en: "Runtime" })}>
-                  <button class="lf-ide__tab" type="button" role="tab" data-lf-rt="sql" aria-selected="true" tabindex="0">
-                    <span class="mono">sql.js</span>
-                    <span class="lf-ide__tab-sub">{t({ ru: "SQLite в WASM", en: "SQLite in WASM" })}</span>
-                  </button>
-                  <button class="lf-ide__tab" type="button" role="tab" data-lf-rt="py" aria-selected="false" tabindex="-1">
+                  <button class="lf-ide__tab" type="button" role="tab" data-lf-rt="py" aria-selected="true" tabindex="0">
                     <span class="mono">Pyodide</span>
                     <span class="lf-ide__tab-sub">{t({ ru: "Python в WASM", en: "Python in WASM" })}</span>
+                  </button>
+                  <button class="lf-ide__tab" type="button" role="tab" data-lf-rt="sql" aria-selected="false" tabindex="-1">
+                    <span class="mono">sql.js</span>
+                    <span class="lf-ide__tab-sub">{t({ ru: "SQLite в WASM", en: "SQLite in WASM" })}</span>
                   </button>
                   <span class="lf-ide__worker caption">{t({ ru: "в Web Worker", en: "in a Web Worker" })}</span>
                 </div>
 
                 <div class="lf-ide__editor">
-                  <pre class="lf-ide__code mono" data-lf-code aria-live="polite"><code>{sqlVariants[0]!.code.join("\n")}</code></pre>
+                  <pre class="lf-ide__code mono" data-lf-code aria-live="polite"><code>{pyCode.join("\n")}</code></pre>
                 </div>
 
-                <div class="lf-ide__variants" data-lf-variants role="radiogroup" aria-label={t({ ru: "Вариант решения", en: "Solution variant" })}>
+                <div class="lf-ide__variants" data-lf-variants role="radiogroup" aria-label={t({ ru: "Вариант решения", en: "Solution variant" })} hidden>
                   {sqlVariants.map((v, k) => (
                     <button class="lf-chip" type="button" role="radio" data-lf-variant={k} aria-checked={k === 0 ? "true" : "false"} tabindex={k === 0 ? 0 : -1}>
                       {t(v.label)}
@@ -497,15 +510,15 @@ sBundle.locale = locale;
                   <span class="lf-status mono" data-lf-run-status role="status" aria-live="polite">{t(sx.ready)}</span>
                 </div>
 
-                <div class="lf-ide__out" data-lf-out data-kind="sql" data-state="idle">
+                <div class="lf-ide__out" data-lf-out data-kind="py" data-state="idle">
                   <div class="lf-ide__out-head">
                     <span class="caption">{t({ ru: "результат прогона", en: "run output" })}</span>
                     <span class="lf-ide__verdict mono" data-lf-verdict />
                   </div>
-                  <div class="lf-ide__table-wrap" data-lf-sqlout>
+                  <div class="lf-ide__table-wrap" data-lf-sqlout hidden>
                     <table class="lf-ide__table"><thead data-lf-thead /><tbody data-lf-tbody /></table>
                   </div>
-                  <ul class="lf-ide__cases" data-lf-pyout hidden>
+                  <ul class="lf-ide__cases" data-lf-pyout>
                     {pyCases.map((c, k) => (
                       <li class="lf-ide__case" data-case={k}>
                         <span class="lf-ide__case-mark" aria-hidden="true" />
@@ -2223,9 +2236,9 @@ sBundle.locale = locale;
       },
     ];
     const pyCode =
-      "class Vector:\n    def __init__(self, x, y):\n        self.x, self.y = x, y\n    def length(self):\n        return (self.x**2 + self.y**2) ** 0.5";
+      "class Animal:\n    def __init__(self, name):\n        self.name = name\n\n    def speak(self):\n        return f\"{self.name} makes a sound\"\n\n\nclass Dog(Animal):\n    def speak(self):\n        return f\"{self.name} says Woof\"";
     const sqlCols = ["name", "title"];
-    let runtime: "sql" | "py" = "sql";
+    let runtime: "sql" | "py" = "py";
     let variant = 0;
 
     const swapCode = (): void => {
@@ -2314,7 +2327,7 @@ sBundle.locale = locale;
       });
     };
     const selectRt = (k: number): void => {
-      runtime = k === 1 ? "py" : "sql";
+      runtime = k === 1 ? "sql" : "py";
       rtTabs.forEach((b, i) => {
         b.setAttribute("aria-selected", i === k ? "true" : "false");
         b.tabIndex = i === k ? 0 : -1;
@@ -2480,9 +2493,11 @@ sBundle.locale = locale;
       heatCells.forEach((c) => c.classList.add("is-on"));
       if (streakNum) streakNum.textContent = String(23);
       fileCard?.setAttribute("data-on", "true");
-      renderSql();
+      caseEls.forEach((c) => c.classList.add("is-pass"));
+      out?.setAttribute("data-state", "ok");
+      if (verdictEl) verdictEl.textContent = s("casesPass");
       if (runStatus) {
-        runStatus.textContent = "sql.js ✓";
+        runStatus.textContent = "Pyodide ✓";
         runStatus.setAttribute("data-tone", "ok");
       }
       return;

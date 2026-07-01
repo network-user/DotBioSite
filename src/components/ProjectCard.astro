@@ -94,8 +94,8 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
       <dl class="project-card__highlights" aria-label={t("projects.highlights")}>
         {highlights.map((h) => (
           <div class="project-card__highlight">
-            <dt>{h.label[locale]}</dt>
-            <dd>{h.value}</dd>
+            <dt>{h.value}</dt>
+            <dd>{h.label[locale]}</dd>
           </div>
         ))}
       </dl>
@@ -536,20 +536,20 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
   }
 
   .project-card__highlight dt {
-    color: var(--text-muted);
-    font-size: var(--fs-11);
-    text-transform: uppercase;
-    line-height: var(--lh-snug);
-  }
-
-  .project-card__highlight dd {
     color: var(--text);
     font-family: var(--font-stack-display);
     font-weight: var(--fw-bold);
     font-size: var(--fs-22);
     line-height: var(--lh-tight);
-    margin-block-start: 2px;
     overflow-wrap: anywhere;
+  }
+
+  .project-card__highlight dd {
+    color: var(--text-muted);
+    font-size: var(--fs-11);
+    text-transform: uppercase;
+    line-height: var(--lh-snug);
+    margin-block-start: 2px;
   }
 
   /* ---------- Stack chips ---------- */
