@@ -114,13 +114,31 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
   {
     p.repos.length > 1 && (
       <ul class="project-card__repos" aria-label={t("projects.repos")}>
-        {p.repos.map((r) => (
-          <li class="project-card__repo">
-            <Icon name="code" size={14} />
-            <span class="mono">{r.name}</span>
-            {r.role && <span class="project-card__repo-role">{r.role}</span>}
-          </li>
-        ))}
+        {p.repos.map((r) => {
+          const rUrl = repoUrl(r);
+          return (
+            <li class="project-card__repo">
+              {rUrl ? (
+                <a
+                  href={rUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="project-card__repo-link"
+                  aria-label={`${r.name} — ${t("projects.viewSource")}`}
+                >
+                  <Icon name="github" size={14} />
+                  <span class="mono">{r.name}</span>
+                </a>
+              ) : (
+                <>
+                  <Icon name="code" size={14} />
+                  <span class="mono">{r.name}</span>
+                </>
+              )}
+              {r.role && <span class="project-card__repo-role">{r.role}</span>}
+            </li>
+          );
+        })}
       </ul>
     )
   }
@@ -581,6 +599,21 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
     font-size: var(--fs-12);
     color: var(--text-secondary);
     min-width: 0;
+  }
+
+  .project-card__repo-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    min-width: 0;
+    color: inherit;
+    transition: color var(--dur-fast) var(--ease-standard);
+  }
+
+  .project-card__repo-link:hover,
+  .project-card__repo-link:focus-visible {
+    color: var(--text);
+    opacity: 1;
   }
 
   .project-card__repo-role {

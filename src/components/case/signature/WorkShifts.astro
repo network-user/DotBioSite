@@ -48,8 +48,8 @@ const NOW0 = 9;
 // ── Локализованные строки (единый серверный источник; клиент читает из payload).
 const ui = {
   intro: {
-    ru: "Это живая доска биржи разовых смен. Создайте смену, перетащите её работнику или крутите часы в обе стороны — фоновый воркер сам шлёт напоминания, освобождает слот при неявке и закрывает просроченные заказы.",
-    en: "This is the live board of a gig-shift marketplace. Create a shift, drag it to a worker or wind the clock both ways — a background worker sends reminders, frees the slot on a no-show and closes expired orders on its own.",
+    ru: "Это живая доска биржи разовых смен, и вы за работодателя. Работники сами берут смены: кто-то не выходит, кто-то уходит посреди смены, а большинство отрабатывают и сдают работу вам на приёмку - примите её или отклоните. Крутите часы, чтобы увидеть день целиком, или создайте свою смену.",
+    en: "This is the live board of a gig-shift marketplace, and you play the employer. Workers claim shifts on their own: some never show up, some leave mid-shift, and most work through and submit the job for your review - accept it or reject it. Wind the clock to watch the whole day, or post a shift of your own.",
   },
   clock: { ru: "Часы города", en: "City clock" },
   back: { ru: "−1 час", en: "−1 hour" },
@@ -62,31 +62,38 @@ const ui = {
   hist: { ru: "просмотр прошлого", en: "viewing past" },
   composerCap: { ru: "Новая смена", en: "New shift" },
   composerHint: {
-    ru: "Выберите тип — окно и ставка подставятся. Опубликуйте — смена появится в «Открыто».",
-    en: "Pick a type — window and rate autofill. Publish and it lands in “Open”.",
+    ru: "Выберите тип - окно и ставка подставятся. Опубликуйте - смена появится в «Открыто».",
+    en: "Pick a type - window and rate autofill. Publish and it lands in “Open”.",
   },
   preview: { ru: "Окно", en: "Window" },
   publish: { ru: "Опубликовать", en: "Publish" },
   cancel: { ru: "Отмена", en: "Cancel" },
   colOpen: { ru: "Открыто", en: "Open" },
   colProgress: { ru: "В работе", en: "In progress" },
+  colReview: { ru: "На приёмке", en: "In review" },
   colDone: { ru: "Закрыто", en: "Done" },
   emptyOpen: { ru: "нет открытых смен", en: "no open shifts" },
   emptyProgress: { ru: "никто не в работе", en: "nobody working" },
+  emptyReview: { ru: "нет работ на приёмке", en: "nothing to review" },
   emptyDone: { ru: "пока ничего не закрыто", en: "nothing closed yet" },
-  take: { ru: "Взять", en: "Take" },
-  confirm: { ru: "Принять", en: "Confirm" },
-  noshow: { ru: "Пропасть", en: "Go silent" },
-  close: { ru: "Закрыть", en: "Close" },
-  reclaim: { ru: "Взять снова", en: "Re-take" },
+  assign: { ru: "Назначить", en: "Assign" },
+  accept: { ru: "Принять работу", en: "Accept" },
+  reject: { ru: "Отклонить", en: "Reject" },
   drag: { ru: "Перетащить смену", en: "Drag shift" },
-  stOpen: { ru: "открыто · ждёт работника", en: "open · awaiting worker" },
-  stClaimed: { ru: "взято · ждёт подтверждения", en: "taken · awaiting confirm" },
-  stConfirmed: { ru: "подтверждено · выходит", en: "confirmed · showing up" },
-  stReleased: { ru: "слот освобождён · пере-предложено", en: "slot freed · re-offered" },
-  stReminded: { ru: "напоминание отправлено", en: "reminder sent" },
-  stDone: { ru: "выполнено", en: "completed" },
-  stCancelled: { ru: "просрочено · отменено", en: "expired · cancelled" },
+  stOpen: { ru: "ждёт работника", en: "awaiting worker" },
+  stAssigned: { ru: "назначен · ждёт выхода", en: "assigned · awaiting arrival" },
+  stReminded: { ru: "напоминание · ждёт выхода", en: "reminded · awaiting arrival" },
+  stOnShift: { ru: "на смене", en: "on shift" },
+  stSubmitted: { ru: "сдал работу · нужна приёмка", en: "submitted · needs review" },
+  stNoShow: { ru: "не вышел · снова ищем", en: "no-show · re-listing" },
+  stLeft: { ru: "ушёл со смены · снова ищем", en: "left shift · re-listing" },
+  stPostpone: { ru: "снялся · снова в эфире", en: "dropped · back on board" },
+  stAccepted: { ru: "принято · выполнено", en: "accepted · done" },
+  stRejected: { ru: "работа отклонена", en: "work rejected" },
+  stExpired: { ru: "просрочено · авто-отмена", en: "expired · auto-cancel" },
+  tSubmitted: { ru: "сдал работу · на приёмку", en: "submitted · to review" },
+  tAccepted: { ru: "работа принята", en: "work accepted" },
+  tRejected: { ru: "работа отклонена", en: "work rejected" },
   roster: { ru: "Работники города", en: "City workers" },
   free: { ru: "свободен", en: "free" },
   busy: { ru: "на смене", en: "on shift" },
@@ -96,9 +103,14 @@ const ui = {
     en: "_operational_control_loop sleeps · awaiting a tick",
   },
   under: { ru: "Под капотом", en: "Under the hood" },
+  underSub: { ru: "как биржа держится сама", en: "how the board runs itself" },
+  underLead: {
+    ru: "Биржа работает сама: один фоновый процесс-воркер шлёт напоминания и закрывает просроченные смены. Если запущено несколько его копий, они борются за один Redis-лок - «лидером» становится ровно одна, остальные ждут. Нажмите на реплику, чтобы отдать лок ей.",
+    en: "The board runs itself: one background worker process sends reminders and closes expired shifts. If several copies run, they race for a single Redis lock - exactly one becomes the leader while the rest wait. Tap a replica to hand it the lock.",
+  },
   underHint: {
-    ru: "Тап по реплике: она заберёт лок. Лидер всегда ровно один — он и «тикает» цикл.",
-    en: "Tap a replica: it grabs the lock. Always exactly one leader — and it ticks the loop.",
+    ru: "Тап по реплике: она заберёт лок. Лидер всегда ровно один - он и «тикает» цикл.",
+    en: "Tap a replica: it grabs the lock. Always exactly one leader - and it ticks the loop.",
   },
   lockKey: {
     ru: "SET nx ex · dotworkbot:operational_control:leader",
@@ -118,7 +130,7 @@ const ui = {
     en: "PostgreSQL · Redis (FSM/throttle/lock) · MinIO/S3 photos · AES backups · VPS deploy with rollback",
   },
   atLive: { ru: "в эфире · воркер действует сам", en: "live · worker acts on its own" },
-  reachedEnd: { ru: "конец дня — эфир на паузе", en: "end of day — live paused" },
+  reachedEnd: { ru: "конец дня - эфир на паузе", en: "end of day - live paused" },
   noFree: { ru: "нет свободных работников", en: "no free workers" },
   slot: { ru: "смена", en: "shift" },
   by: { ru: "исполнитель", en: "worker" },
@@ -147,48 +159,87 @@ type Seed = {
   claimedAt: number | null;
   claimWorker: string | null;
   confirmedAt: number | null;
-  willConfirm: boolean;
-  userControlled: boolean;
-  noAutoClaim: boolean;
-  hero: boolean;
-  forceNoShow: boolean;
+  submittedAt: number | null;
+  autoAcceptAt: number | null;
+  willConfirm: boolean; // выйдет ли работник на смену
+  willLeave: boolean; // уйдёт ли посреди смены
+  noAutoClaim: boolean; // sim не берёт её сам (истечёт)
 };
 const seed: Seed[] = [
   {
-    id: "WB-2999",
-    title: { ru: "Уборка после ивента", en: "Post-event cleanup" },
+    // Уже сдана к 9:00 → сразу «На приёмке»: примите или отклоните.
+    id: "WB-2990",
+    title: { ru: "Разгрузка фуры", en: "Truck unloading" },
+    city: { ru: "Кировский", en: "Kirovsky" },
+    start: 6,
+    end: 9,
+    rate: "360 ₽/ч",
+    bornAt: 6,
+    claimedAt: 6,
+    claimWorker: "@lena",
+    confirmedAt: 6,
+    submittedAt: 9,
+    autoAcceptAt: 12,
+    willConfirm: true,
+    willLeave: false,
+    noAutoClaim: false,
+  },
+  {
+    // Идёт смена (вышел, работает).
+    id: "WB-3001",
+    title: { ru: "Грузчик на склад", en: "Warehouse loader" },
+    city: { ru: "Соцгород", en: "Sotsgorod" },
+    start: 8,
+    end: 13,
+    rate: "350 ₽/ч",
+    bornAt: 7,
+    claimedAt: 8,
+    claimWorker: "@timur",
+    confirmedAt: 8,
+    submittedAt: null,
+    autoAcceptAt: null,
+    willConfirm: true,
+    willLeave: false,
+    noAutoClaim: false,
+  },
+  {
+    // Вышел, но уйдёт со смены посреди дня.
+    id: "WB-3030",
+    title: { ru: "Уборка офиса", en: "Office cleaning" },
     city: { ru: "Вахитово", en: "Vakhitovo" },
     start: 9,
-    end: 13,
-    rate: "320 ₽/ч",
+    end: 14,
+    rate: "300 ₽/ч",
     bornAt: 8,
     claimedAt: 9,
-    claimWorker: "@lena",
+    claimWorker: "@sofia",
     confirmedAt: 9,
+    submittedAt: null,
+    autoAcceptAt: null,
     willConfirm: true,
-    userControlled: false,
+    willLeave: true,
     noAutoClaim: false,
-    hero: false,
-    forceNoShow: false,
   },
   {
-    id: "WB-3010",
-    title: { ru: "Грузчик на выгрузку", en: "Cargo unloader" },
-    city: { ru: "Соцгород", en: "Sotsgorod" },
-    start: 11,
+    // Назначен, ждёт выхода (старт в 10).
+    id: "WB-3020",
+    title: { ru: "Пеший курьер", en: "Foot courier" },
+    city: { ru: "Центр", en: "Center" },
+    start: 10,
     end: 15,
-    rate: "350 ₽/ч",
-    bornAt: 9,
-    claimedAt: 10,
-    claimWorker: "@timur",
+    rate: "380 ₽/ч",
+    bornAt: 8,
+    claimedAt: 9,
+    claimWorker: "@ramil",
     confirmedAt: null,
-    willConfirm: false,
-    userControlled: false,
+    submittedAt: null,
+    autoAcceptAt: null,
+    willConfirm: true,
+    willLeave: false,
     noAutoClaim: false,
-    hero: false,
-    forceNoShow: true,
   },
   {
+    // Возьмёт кто-то сам, но не выйдет на старте (12).
     id: "WB-3038",
     title: { ru: "Промоутер у ТЦ", en: "Mall promoter" },
     city: { ru: "Центр", en: "Center" },
@@ -199,13 +250,14 @@ const seed: Seed[] = [
     claimedAt: null,
     claimWorker: null,
     confirmedAt: null,
-    willConfirm: true,
-    userControlled: false,
+    submittedAt: null,
+    autoAcceptAt: null,
+    willConfirm: false,
+    willLeave: false,
     noAutoClaim: false,
-    hero: false,
-    forceNoShow: false,
   },
   {
+    // Никто не берёт → просрочится и авто-отменится.
     id: "WB-3025",
     title: { ru: "Раздача листовок", en: "Flyer handout" },
     city: { ru: "Центр", en: "Center" },
@@ -216,30 +268,14 @@ const seed: Seed[] = [
     claimedAt: null,
     claimWorker: null,
     confirmedAt: null,
+    submittedAt: null,
+    autoAcceptAt: null,
     willConfirm: false,
-    userControlled: false,
+    willLeave: false,
     noAutoClaim: true,
-    hero: false,
-    forceNoShow: false,
   },
   {
-    id: "WB-3052",
-    title: { ru: "Курьер на день", en: "Courier for a day" },
-    city: { ru: "Авиастрой", en: "Aviastroy" },
-    start: 14,
-    end: 20,
-    rate: "400 ₽/ч",
-    bornAt: 10,
-    claimedAt: null,
-    claimWorker: null,
-    confirmedAt: null,
-    willConfirm: true,
-    userControlled: false,
-    noAutoClaim: false,
-    hero: false,
-    forceNoShow: false,
-  },
-  {
+    // Открыта: назначьте работника сами (полный цикл до приёмки).
     id: "WB-3041",
     title: { ru: "Разгрузка склада", en: "Warehouse unload" },
     city: { ru: "Кировский", en: "Kirovsky" },
@@ -250,11 +286,11 @@ const seed: Seed[] = [
     claimedAt: null,
     claimWorker: null,
     confirmedAt: null,
+    submittedAt: null,
+    autoAcceptAt: null,
     willConfirm: true,
-    userControlled: true,
+    willLeave: false,
     noAutoClaim: false,
-    hero: true,
-    forceNoShow: false,
   },
 ];
 
@@ -344,11 +380,12 @@ const payload = {
         class="ws__scrub-input"
         type="range"
         min={DAY_START}
-        max={NOW0}
+        max={DAY_END}
         step="1"
         value={NOW0}
         data-ws-scrub
         aria-label={t(ui.scrub)}
+        aria-valuetext={`${String(NOW0).padStart(2, "0")}:00`}
       />
     </label>
 
@@ -357,7 +394,13 @@ const payload = {
         <span class="ws__live-dot" aria-hidden="true"></span>
         <span data-ws-live-label>{t(ui.live)}</span>
       </button>
-      <button class="ws__btn ws__btn--create" type="button" data-ws-create aria-expanded="false">
+      <button
+        class="ws__btn ws__btn--create"
+        type="button"
+        data-ws-create
+        aria-expanded="false"
+        aria-controls="ws-composer"
+      >
         {t(ui.create)}
       </button>
       <span class="ws__hist mono" data-ws-hist hidden>
@@ -368,7 +411,7 @@ const payload = {
   </div>
 
   <!-- ── Композер новой смены (скрыт до «Создать») ───────────────────── -->
-  <div class="ws__composer" data-ws-composer hidden>
+  <div class="ws__composer" id="ws-composer" data-ws-composer hidden>
     <span class="ws__composer-cap">{t(ui.composerCap)}</span>
     <p class="ws__composer-hint">{t(ui.composerHint)}</p>
     <div class="ws__presets" role="group" aria-label={t(ui.composerCap)}>
@@ -390,7 +433,7 @@ const payload = {
     </div>
     <p class="ws__preview mono">
       <span class="ws__preview-cap">{t(ui.preview)}:</span>
-      <span data-ws-preview>—</span>
+      <span data-ws-preview>·</span>
     </p>
     <div class="ws__composer-btns">
       <button class="ws__btn ws__btn--publish" type="button" data-ws-publish>{t(ui.publish)}</button
@@ -401,6 +444,7 @@ const payload = {
 
   <!-- ── Доска: три колонки ──────────────────────────────────────────── -->
   <div class="ws__board" data-ws-board>
+    <div class="ws__toasts" data-ws-toasts aria-live="polite"></div>
     {
       (
         [
@@ -450,7 +494,7 @@ const payload = {
   <!-- ── Журнал воркера ──────────────────────────────────────────────── -->
   <div class="ws__logwrap">
     <span class="ws__log-cap">{t(ui.log)}</span>
-    <pre class="ws__log mono" data-ws-log aria-live="polite" tabindex="0">{t(ui.logIdle)}</pre>
+    <pre class="ws__log mono" data-ws-log tabindex="0">{t(ui.logIdle)}</pre>
   </div>
 
   <!-- ── «Под капотом»: гонка реплик за лидер-лок ────────────────────── -->
@@ -463,9 +507,11 @@ const payload = {
       aria-controls="ws-engine"
     >
       <span class="ws__under-chev" aria-hidden="true">▸</span>
-      <span>{t(ui.under)}</span>
+      <span class="ws__under-label">{t(ui.under)}</span>
+      <span class="ws__under-sub">{t(ui.underSub)}</span>
     </button>
     <div class="ws__engine" id="ws-engine" data-ws-engine hidden>
+      <p class="ws__under-lead">{t(ui.underLead)}</p>
       <div class="ws__lock-key">
         <span class="ws__lock-cmd mono">{t(ui.lockKey)}</span>
         <span class="ws__tick" aria-hidden="true">
@@ -504,8 +550,7 @@ const payload = {
     <span class="mono">{t(ui.stack)}</span>
   </p>
 
-  <!-- Слой тостов + слой drag-клона -->
-  <div class="ws__toasts" data-ws-toasts aria-live="polite"></div>
+  <!-- Слой drag-клона -->
   <div class="ws__draglayer" data-ws-draglayer aria-hidden="true"></div>
 
   <script is:inline type="application/json" data-ws-payload set:html={JSON.stringify(payload)} />
@@ -817,8 +862,10 @@ const payload = {
 
   /* ── Доска ───────────────────────────────────────────────────────── */
   .ws__board {
+    position: relative;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
     gap: var(--sp-3);
   }
   .ws__col {
@@ -888,37 +935,39 @@ const payload = {
   }
 
   /* ── Карточка смены ──────────────────────────────────────────────── */
-  .ws__card {
+  .ws :global(.ws__card) {
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    padding: var(--sp-3);
+    gap: 5px;
+    padding: var(--sp-3) var(--sp-4);
     border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-sm);
+    border-radius: var(--r-md);
     background: var(--surface);
     min-width: 0;
+    user-select: none;
+    -webkit-user-select: none;
     transition:
       opacity var(--dur-slow) var(--ease-soft),
       transform var(--dur-slow) var(--ease-spring),
       border-color var(--dur-med) var(--ease-standard);
   }
-  .ws__card[data-hero="1"] {
+  .ws :global(.ws__card[data-hero="1"]) {
     border-color: var(--line);
     background: var(--soft-2);
   }
-  .ws__card[data-col="done"] {
-    opacity: 0.62;
+  .ws :global(.ws__card[data-col="done"]) {
+    opacity: 0.58;
   }
-  .ws__card.is-ghost {
-    opacity: 0.35;
+  .ws :global(.ws__card.is-ghost) {
+    opacity: 0.3;
   }
-  .ws.is-inview .ws__card.is-moved {
+  .ws.is-inview :global(.ws__card.is-moved) {
     animation: ws-pop var(--dur-slow) var(--ease-spring);
   }
   @keyframes ws-pop {
     0% {
-      transform: scale(0.9) translateY(6px);
+      transform: scale(0.94) translateY(6px);
       opacity: 0.4;
     }
     100% {
@@ -927,25 +976,24 @@ const payload = {
     }
   }
 
-  .ws__card-top {
+  .ws :global(.ws__card-head) {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
+    align-items: center;
     gap: var(--sp-2);
   }
-  .ws__card-grip {
-    position: absolute;
-    top: var(--sp-2);
-    right: var(--sp-2);
+  .ws :global(.ws__card-grip) {
+    flex: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     padding: 0;
     border: none;
     background: transparent;
     color: var(--text-faint);
+    font-size: var(--fs-14);
+    line-height: 1;
     cursor: grab;
     touch-action: none;
     border-radius: var(--r-xs);
@@ -953,100 +1001,102 @@ const payload = {
       color var(--dur-fast) var(--ease-standard),
       background-color var(--dur-fast) var(--ease-standard);
   }
-  .ws__card-grip:hover {
+  .ws :global(.ws__card-grip:hover) {
     color: var(--text-secondary);
     background: var(--border);
   }
-  .ws__card-grip:focus-visible {
-    outline: var(--ring-width) solid var(--ring-focus);
-    outline-offset: 1px;
-  }
-  .ws__card-grip:active {
+  .ws :global(.ws__card-grip:active) {
     cursor: grabbing;
   }
-  .ws__card[data-locked="1"] .ws__card-grip {
-    opacity: 0.35;
+  .ws :global(.ws__card[data-locked="1"] .ws__card-grip) {
+    opacity: 0.3;
     cursor: not-allowed;
     pointer-events: none;
   }
 
-  .ws__card-id {
+  .ws :global(.ws__card-id) {
     font-size: var(--fs-11);
     color: var(--text-muted);
     letter-spacing: var(--ls-snug);
   }
-  .ws__card-window {
+  .ws :global(.ws__card-time) {
+    margin-right: auto;
     font-size: var(--fs-11);
     color: var(--text-secondary);
     font-variant-numeric: tabular-nums;
-    margin-right: 26px;
   }
-  .ws__card-title {
+  .ws :global(.ws__card-title) {
     font-family: var(--font-stack-display);
     font-weight: var(--fw-semibold);
-    font-size: var(--fs-14);
+    font-size: var(--fs-15);
     letter-spacing: var(--ls-tight);
     line-height: var(--lh-snug);
     color: var(--text);
     overflow-wrap: anywhere;
-    padding-right: 26px;
   }
-  .ws__card-city {
+  .ws :global(.ws__card-sub) {
     font-size: var(--fs-12);
     color: var(--text-muted);
     line-height: var(--lh-snug);
     overflow-wrap: anywhere;
   }
-  .ws__card-foot {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--sp-2);
-    flex-wrap: wrap;
-    margin-top: 2px;
-  }
-  .ws__card-rate {
-    font-size: var(--fs-11);
-    color: var(--accent);
-  }
-  .ws__card-worker {
+  .ws :global(.ws__card-status) {
     display: inline-flex;
     align-items: center;
     gap: var(--sp-2);
-    font-size: var(--fs-11);
-    color: var(--text-muted);
-    opacity: 0;
-    transform: translateY(3px);
-    transition:
-      opacity var(--dur-med) var(--ease-standard),
-      transform var(--dur-med) var(--ease-soft);
-  }
-  .ws__card[data-worker-set="1"] .ws__card-worker {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  .ws__card-status {
-    font-family: var(--font-stack-mono);
-    font-size: var(--fs-10);
+    font-size: var(--fs-12);
     line-height: var(--lh-snug);
-    color: var(--text-muted);
+    color: var(--text-secondary);
   }
-  .ws__card[data-state="confirmed"] .ws__card-status {
-    color: color-mix(in srgb, var(--accent) 60%, var(--text-secondary));
+  .ws :global(.ws__card-status::before) {
+    content: "";
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-radius: var(--r-pill);
+    background: var(--text-secondary);
   }
-  .ws__card[data-state="released"] .ws__card-status,
-  .ws__card[data-state="cancelled"] .ws__card-status {
+  .ws :global(.ws__card[data-col="progress"] .ws__card-status::before) {
+    background: var(--accent);
+  }
+  .ws :global(.ws__card[data-col="done"] .ws__card-status::before) {
+    background: var(--state-ok);
+  }
+  .ws :global(.ws__card[data-state="confirmed"] .ws__card-status::before) {
+    background: var(--state-ok);
+  }
+  .ws :global(.ws__card[data-state="released"] .ws__card-status::before),
+  .ws :global(.ws__card[data-state="cancelled"] .ws__card-status::before) {
+    background: var(--warn);
+  }
+  .ws :global(.ws__card[data-state="confirmed"] .ws__card-status) {
+    color: var(--text);
+  }
+  .ws :global(.ws__card[data-state="released"] .ws__card-status),
+  .ws :global(.ws__card[data-state="cancelled"] .ws__card-status) {
     color: var(--state-warn);
   }
 
-  .ws__card-remind {
+  .ws :global(.ws__card-worker) {
+    display: none;
+    align-items: center;
+    gap: var(--sp-1);
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+  }
+  .ws :global(.ws__card[data-worker-set="1"] .ws__card-worker) {
+    display: inline-flex;
+  }
+
+  .ws :global(.ws__card-remind) {
     position: absolute;
     top: 0;
     left: 0;
     width: 0;
     height: 0;
     border-style: solid;
-    border-width: 9px 9px 0 0;
+    border-width: 10px 10px 0 0;
     border-color: var(--accent) transparent transparent transparent;
     opacity: 0;
     transform: scale(0.6);
@@ -1055,26 +1105,30 @@ const payload = {
       opacity var(--dur-med) var(--ease-standard),
       transform var(--dur-med) var(--ease-spring);
   }
-  .ws__card[data-reminded="1"] .ws__card-remind {
+  .ws :global(.ws__card[data-reminded="1"] .ws__card-remind) {
     opacity: 0.95;
     transform: scale(1);
   }
 
-  .ws__card-actions {
+  .ws :global(.ws__card-actions) {
     display: flex;
     flex-wrap: wrap;
     gap: var(--sp-2);
     margin-top: var(--sp-1);
   }
-  .ws__card-btn {
-    min-height: var(--tap-min);
-    padding: var(--sp-1) var(--sp-3);
+  .ws :global(.ws__card-actions:empty) {
+    display: none;
+  }
+  .ws :global(.ws__card-btn) {
+    flex: 1 1 auto;
+    min-height: 40px;
+    padding: var(--sp-2) var(--sp-4);
     border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-pill);
-    background: var(--surface);
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
     color: var(--text-secondary);
     font-family: var(--font-stack-display);
-    font-size: var(--fs-12);
+    font-size: var(--fs-13);
     font-weight: var(--fw-medium);
     cursor: pointer;
     transition:
@@ -1083,28 +1137,35 @@ const payload = {
       background-color var(--dur-fast) var(--ease-standard),
       transform var(--dur-fast) var(--ease-soft);
   }
-  .ws__card-btn:hover {
+  .ws :global(.ws__card-btn:hover) {
     color: var(--text);
     border-color: var(--border-hover);
   }
-  .ws__card-btn:active {
-    transform: scale(0.96);
+  .ws :global(.ws__card-btn:active) {
+    transform: scale(0.97);
   }
-  .ws__card-btn:focus-visible {
+  .ws :global(.ws__card-btn:focus-visible) {
     outline: var(--ring-width) solid var(--ring-focus);
     outline-offset: 2px;
   }
-  .ws__card-btn--primary {
-    color: var(--text);
-    border-color: var(--line);
-    background: var(--soft);
+  .ws :global(.ws__card-btn--primary) {
+    color: var(--bg);
+    border-color: var(--accent);
+    background: var(--accent);
   }
-  .ws__card-btn--warn {
+  .ws :global(.ws__card-btn--primary:hover) {
+    color: var(--bg);
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 88%, #ffffff);
+  }
+  .ws :global(.ws__card-btn--warn) {
+    color: var(--state-warn);
     border-color: var(--warn);
+    background: transparent;
   }
-  .ws__card[data-locked="1"] .ws__card-btn {
+  .ws :global(.ws__card-btn:disabled) {
     opacity: 0.4;
-    pointer-events: none;
+    cursor: not-allowed;
   }
 
   /* ── Ростер ──────────────────────────────────────────────────────── */
@@ -1122,13 +1183,14 @@ const payload = {
     margin: 0;
     padding: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: var(--sp-2);
   }
   .ws__wk {
     display: flex;
     align-items: center;
     gap: var(--sp-2);
+    min-width: 0;
     padding: var(--sp-2) var(--sp-3);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-sm);
@@ -1155,15 +1217,24 @@ const payload = {
     transform: scale(1.15);
   }
   .ws__wk-name {
+    flex: none;
+    white-space: nowrap;
     color: var(--text);
     font-size: var(--fs-13);
   }
   .ws__wk-meta {
+    flex: 0 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-size: var(--fs-11);
     color: var(--text-muted);
   }
   .ws__wk-state {
+    flex: none;
     margin-left: auto;
+    white-space: nowrap;
     font-size: var(--fs-11);
     color: var(--text-muted);
     text-align: right;
@@ -1180,7 +1251,7 @@ const payload = {
   }
   .ws__log {
     margin: 0;
-    height: 148px;
+    height: 112px;
     overflow: auto;
     padding: var(--sp-3);
     border: var(--bw-thin) solid var(--border);
@@ -1228,6 +1299,7 @@ const payload = {
   .ws__under-toggle {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: var(--sp-2);
     width: 100%;
     min-height: var(--tap-min);
@@ -1257,6 +1329,18 @@ const payload = {
   }
   .ws__under-toggle[aria-expanded="true"] .ws__under-chev {
     transform: rotate(90deg);
+  }
+  .ws__under-sub {
+    text-transform: none;
+    letter-spacing: var(--ls-snug);
+    color: var(--text-faint);
+  }
+  .ws__under-lead {
+    margin: 0 0 var(--sp-3);
+    font-size: var(--fs-13);
+    line-height: var(--lh-normal);
+    color: var(--text-secondary);
+    max-width: 72ch;
   }
   .ws__engine {
     padding: 0 var(--sp-4) var(--sp-4);
@@ -1448,7 +1532,7 @@ const payload = {
     z-index: var(--z-elevated);
     pointer-events: none;
   }
-  .ws__toast {
+  .ws :global(.ws__toast) {
     padding: var(--sp-2) var(--sp-3);
     border: var(--bw-thin) solid var(--line);
     border-radius: var(--r-sm);
@@ -1457,18 +1541,18 @@ const payload = {
     font-family: var(--font-stack-mono);
     font-size: var(--fs-11);
     line-height: var(--lh-snug);
-    box-shadow: var(--shadow-2);
+    box-shadow: var(--shadow-3);
     opacity: 0;
     transform: translateY(-6px);
     transition:
       opacity var(--dur-med) var(--ease-standard),
       transform var(--dur-med) var(--ease-soft);
   }
-  .ws__toast.is-in {
+  .ws :global(.ws__toast.is-in) {
     opacity: 1;
     transform: translateY(0);
   }
-  .ws__toast--warn {
+  .ws :global(.ws__toast--warn) {
     border-color: var(--warn);
     color: var(--state-warn);
   }
@@ -1580,7 +1664,7 @@ const payload = {
     const MAX_TOASTS = 4;
 
     type Tone = "" | "acc" | "warn" | "dim";
-    type Col = "open" | "progress" | "done";
+    type Col = "open" | "progress" | "review" | "done";
 
     type WorkerJSON = { id: string; dist: string; rating: string };
     type SeedJSON = {
@@ -1594,11 +1678,11 @@ const payload = {
       claimedAt: number | null;
       claimWorker: string | null;
       confirmedAt: number | null;
+      submittedAt: number | null;
+      autoAcceptAt: number | null;
       willConfirm: boolean;
-      userControlled: boolean;
+      willLeave: boolean;
       noAutoClaim: boolean;
-      hero: boolean;
-      forceNoShow: boolean;
     };
     type PresetJSON = { id: string; title: string; city: string; rate: string; dur: number };
     // Локализованные строки: серверный ui-словарь сериализуется в payload.
@@ -1620,23 +1704,30 @@ const payload = {
       cancel: string;
       colOpen: string;
       colProgress: string;
+      colReview: string;
       colDone: string;
       emptyOpen: string;
       emptyProgress: string;
+      emptyReview: string;
       emptyDone: string;
-      take: string;
-      confirm: string;
-      noshow: string;
-      close: string;
-      reclaim: string;
+      assign: string;
+      accept: string;
+      reject: string;
       drag: string;
       stOpen: string;
-      stClaimed: string;
-      stConfirmed: string;
-      stReleased: string;
+      stAssigned: string;
       stReminded: string;
-      stDone: string;
-      stCancelled: string;
+      stOnShift: string;
+      stSubmitted: string;
+      stNoShow: string;
+      stLeft: string;
+      stPostpone: string;
+      stAccepted: string;
+      stRejected: string;
+      stExpired: string;
+      tSubmitted: string;
+      tAccepted: string;
+      tRejected: string;
       roster: string;
       free: string;
       busy: string;
@@ -1681,16 +1772,18 @@ const payload = {
       claimWorker: string | null;
       confirmedAt: number | null;
       releasedAt: number | null;
+      releaseReason: "" | "noshow" | "left" | "postpone";
       reclaimedAt: number | null;
       reclaimWorker: string | null;
       reconfirmedAt: number | null;
-      closedAt: number | null;
+      submittedAt: number | null;
+      autoAcceptAt: number | null;
+      acceptedAt: number | null;
+      rejectedAt: number | null;
       cancelledAt: number | null;
       willConfirm: boolean;
-      userControlled: boolean;
+      willLeave: boolean;
       noAutoClaim: boolean;
-      hero: boolean;
-      forceNoShow: boolean;
       remindLogged: boolean;
       el: HTMLLIElement | null;
     };
@@ -1701,8 +1794,13 @@ const payload = {
       worker: string | null;
       confirmed: boolean;
       released: boolean;
+      reason: "" | "noshow" | "left" | "postpone";
+      submitted: boolean;
+      // released-слот, старт которого уже прошёл: sim его больше не пере-берёт
+      // (auto-claim гейтится h < start), карточка истекает — не «пере-предложено».
+      expiring: boolean;
       reminded: boolean;
-      done: "" | "completed" | "cancelled";
+      done: "" | "accepted" | "rejected" | "cancelled";
     };
 
     function q<T extends Element>(root: Element | Document, sel: string): T | null {
@@ -1746,16 +1844,19 @@ const payload = {
         const cols: Record<Col, HTMLElement | null> = {
           open: q<HTMLElement>(root, '[data-ws-colbody="open"]'),
           progress: q<HTMLElement>(root, '[data-ws-colbody="progress"]'),
+          review: q<HTMLElement>(root, '[data-ws-colbody="review"]'),
           done: q<HTMLElement>(root, '[data-ws-colbody="done"]'),
         };
         const colSections: Record<Col, HTMLElement | null> = {
           open: q<HTMLElement>(root, '.ws__col[data-col="open"]'),
           progress: q<HTMLElement>(root, '.ws__col[data-col="progress"]'),
+          review: q<HTMLElement>(root, '.ws__col[data-col="review"]'),
           done: q<HTMLElement>(root, '.ws__col[data-col="done"]'),
         };
         const counts: Record<Col, HTMLElement | null> = {
           open: q<HTMLElement>(root, '[data-ws-colcount="open"]'),
           progress: q<HTMLElement>(root, '[data-ws-colcount="progress"]'),
+          review: q<HTMLElement>(root, '[data-ws-colcount="review"]'),
           done: q<HTMLElement>(root, '[data-ws-colcount="done"]'),
         };
         const logEl = q<HTMLElement>(root, "[data-ws-log]");
@@ -1808,109 +1909,70 @@ const payload = {
           claimWorker: s.claimWorker,
           confirmedAt: s.confirmedAt,
           releasedAt: null,
+          releaseReason: "",
           reclaimedAt: null,
           reclaimWorker: null,
           reconfirmedAt: null,
-          closedAt: null,
+          submittedAt: s.submittedAt,
+          autoAcceptAt: s.autoAcceptAt,
+          acceptedAt: null,
+          rejectedAt: null,
           cancelledAt: null,
           willConfirm: s.willConfirm,
-          userControlled: s.userControlled,
+          willLeave: s.willLeave,
           noAutoClaim: s.noAutoClaim,
-          hero: s.hero,
-          forceNoShow: s.forceNoShow,
           remindLogged: false,
           el: null,
         }));
 
-        const fmt = (h: number): string => `${String(Math.min(h, 23)).padStart(2, "0")}:00`;
+        const fmt = (h: number): string =>
+          `${String(Math.max(0, Math.min(h, 24))).padStart(2, "0")}:00`;
         const canEdit = (): boolean => !state.live && state.view === state.now;
 
-        // ── derive(shift, T): чистый кадр ──
+        // ── derive(shift, T): чистый кадр состояния под время T ──
+        const base = (): Derived => ({
+          present: true,
+          col: "open",
+          worker: null,
+          confirmed: false,
+          released: false,
+          reason: "",
+          submitted: false,
+          expiring: false,
+          reminded: false,
+          done: "",
+        });
         const derive = (s: Shift, T: number): Derived => {
-          if (T < s.bornAt) {
-            return {
-              present: false,
-              col: "open",
-              worker: null,
-              confirmed: false,
-              released: false,
-              reminded: false,
-              done: "",
-            };
-          }
-          if (s.closedAt !== null && T >= s.closedAt) {
-            return {
-              present: true,
-              col: "done",
-              worker: s.reclaimWorker ?? s.claimWorker,
-              confirmed: true,
-              released: false,
-              reminded: false,
-              done: "completed",
-            };
-          }
-          if (s.cancelledAt !== null && T >= s.cancelledAt) {
-            return {
-              present: true,
-              col: "done",
-              worker: null,
-              confirmed: false,
-              released: false,
-              reminded: false,
-              done: "cancelled",
-            };
-          }
+          if (T < s.bornAt) return { ...base(), present: false };
+          const activeWorker = s.reclaimWorker ?? s.claimWorker;
+          // финальные состояния (Закрыто)
+          if (s.acceptedAt !== null && T >= s.acceptedAt)
+            return { ...base(), col: "done", worker: activeWorker, confirmed: true, done: "accepted" };
+          if (s.rejectedAt !== null && T >= s.rejectedAt)
+            return { ...base(), col: "done", worker: activeWorker, done: "rejected" };
+          if (s.cancelledAt !== null && T >= s.cancelledAt)
+            return { ...base(), col: "done", done: "cancelled" };
+          // сдал работу → На приёмке (ждёт решения работодателя)
+          if (s.submittedAt !== null && T >= s.submittedAt)
+            return { ...base(), col: "review", worker: activeWorker, confirmed: true, submitted: true };
           const confirmed =
             (s.confirmedAt !== null && s.confirmedAt <= T) ||
             (s.reconfirmedAt !== null && s.reconfirmedAt <= T);
-
-          // reclaim-сегмент
+          // reclaim-сегмент (позже release)
           if (s.reclaimedAt !== null && T >= s.reclaimedAt) {
             const reminded = !confirmed && T >= s.start - REMIND_LEAD && T < s.start;
-            return {
-              present: true,
-              col: "progress",
-              worker: s.reclaimWorker,
-              confirmed,
-              released: false,
-              reminded,
-              done: "",
-            };
+            return { ...base(), col: "progress", worker: s.reclaimWorker, confirmed, reminded };
           }
-          // released-сегмент → снова open
+          // released-сегмент → снова Открыто (no-show / ушёл / снялся)
           if (s.releasedAt !== null && T >= s.releasedAt) {
-            return {
-              present: true,
-              col: "open",
-              worker: null,
-              confirmed: false,
-              released: true,
-              reminded: false,
-              done: "",
-            };
+            return { ...base(), released: true, reason: s.releaseReason, expiring: T >= s.start };
           }
-          // claimed-сегмент
+          // claimed-сегмент → назначен / на смене
           if (s.claimedAt !== null && T >= s.claimedAt) {
             const reminded = !confirmed && T >= s.start - REMIND_LEAD && T < s.start;
-            return {
-              present: true,
-              col: "progress",
-              worker: s.claimWorker,
-              confirmed,
-              released: false,
-              reminded,
-              done: "",
-            };
+            return { ...base(), col: "progress", worker: s.claimWorker, confirmed, reminded };
           }
-          return {
-            present: true,
-            col: "open",
-            worker: null,
-            confirmed: false,
-            released: false,
-            reminded: false,
-            done: "",
-          };
+          return base();
         };
 
         // ── Построить/получить карточку (один элемент на смену) ──
@@ -1918,22 +1980,18 @@ const payload = {
           const li = document.createElement("li");
           li.className = "ws__card";
           li.dataset.shift = s.id;
-          if (s.hero) li.dataset.hero = "1";
           li.innerHTML = `
             <span class="ws__card-remind" aria-hidden="true"></span>
-            <button class="ws__card-grip" type="button" data-ws-grip aria-label="${U.drag} ${s.id}">⠿</button>
-            <span class="ws__card-top">
+            <div class="ws__card-head">
               <span class="ws__card-id mono">${s.id}</span>
-              <span class="ws__card-window mono">${s.start}:00–${s.end}:00</span>
-            </span>
-            <span class="ws__card-title">${s.title}</span>
-            <span class="ws__card-city">${s.city}</span>
-            <span class="ws__card-worker mono"><span data-ws-card-worker></span></span>
-            <span class="ws__card-status mono" data-ws-card-status></span>
-            <span class="ws__card-foot">
-              <span class="ws__card-rate mono">${s.rate}</span>
-            </span>
-            <span class="ws__card-actions" data-ws-card-actions></span>`;
+              <span class="ws__card-time mono">${s.start}:00–${s.end}:00</span>
+              <button class="ws__card-grip" type="button" data-ws-grip tabindex="-1" aria-hidden="true" title="${U.drag} ${s.id}">⠿</button>
+            </div>
+            <div class="ws__card-title">${s.title}</div>
+            <div class="ws__card-sub mono">${s.city} · ${s.rate}</div>
+            <div class="ws__card-status" data-ws-card-status></div>
+            <div class="ws__card-worker mono"><span data-ws-card-worker></span></div>
+            <div class="ws__card-actions" data-ws-card-actions></div>`;
           const grip = q<HTMLButtonElement>(li, "[data-ws-grip]");
           if (grip) attachDrag(grip, s, li);
           s.el = li;
@@ -1960,23 +2018,26 @@ const payload = {
           };
           if (d.done) return;
           if (d.col === "open") {
-            mk("Take", d.released ? U.reclaim : U.take, "primary");
-          } else if (d.col === "progress") {
-            if (d.confirmed) {
-              mk("Close", U.close, "primary");
-            } else {
-              mk("Confirm", U.confirm, "primary");
-              if (s.hero) mk("Noshow", U.noshow, "warn");
-            }
+            mk("Assign", U.assign, "primary");
+          } else if (d.col === "review") {
+            mk("Accept", U.accept, "primary");
+            mk("Reject", U.reject, "warn");
           }
         };
 
         const statusText = (d: Derived): string => {
-          if (d.done === "completed") return U.stDone;
-          if (d.done === "cancelled") return U.stCancelled;
-          if (d.released) return U.stReleased;
+          if (d.done === "accepted") return U.stAccepted;
+          if (d.done === "rejected") return U.stRejected;
+          if (d.done === "cancelled") return U.stExpired;
+          if (d.submitted) return U.stSubmitted;
+          if (d.released)
+            return d.reason === "left"
+              ? U.stLeft
+              : d.reason === "postpone"
+                ? U.stPostpone
+                : U.stNoShow;
           if (d.col === "progress")
-            return d.confirmed ? U.stConfirmed : d.reminded ? U.stReminded : U.stClaimed;
+            return d.confirmed ? U.stOnShift : d.reminded ? U.stReminded : U.stAssigned;
           return U.stOpen;
         };
 
@@ -2008,14 +2069,16 @@ const payload = {
             el.dataset.col = d.col;
             el.dataset.reminded = d.reminded ? "1" : "0";
             el.dataset.state = d.done
-              ? d.done === "completed"
-                ? "confirmed"
-                : "cancelled"
-              : d.released
-                ? "released"
-                : d.confirmed
-                  ? "confirmed"
-                  : "claimed";
+              ? d.done === "accepted"
+                ? "accepted"
+                : d.done
+              : d.submitted
+                ? "submitted"
+                : d.released
+                  ? "released"
+                  : d.confirmed
+                    ? "confirmed"
+                    : "claimed";
             el.dataset.workerSet = d.worker ? "1" : "0";
             el.dataset.locked = canEdit() ? "0" : "1";
             const w = q<HTMLElement>(el, "[data-ws-card-worker]");
@@ -2027,7 +2090,7 @@ const payload = {
             if (d.col === "progress" && d.worker) busyBy[d.worker] = s.id;
           });
 
-          (["open", "progress", "done"] as Col[]).forEach((c) => {
+          (["open", "progress", "review", "done"] as Col[]).forEach((c) => {
             const el = counts[c];
             if (el) el.textContent = String(tally[c]);
           });
@@ -2043,8 +2106,9 @@ const payload = {
 
           // часы + слайдер
           timeEl.textContent = fmt(T);
-          scrub.max = String(state.now);
+          scrub.max = String(DAY_END);
           if (Number(scrub.value) !== T) scrub.value = String(T);
+          scrub.setAttribute("aria-valuetext", fmt(T));
 
           // история
           const viewingPast = state.view < state.now;
@@ -2112,7 +2176,7 @@ const payload = {
             const d = derive(s, h);
             return d.present && !d.done;
           }).length;
-          if (active < MAX_CONCURRENT && Math.random() < 0.3 && h < DAY_END - 2) {
+          if (active < MAX_CONCURRENT && Math.random() < 0.3 && h < DAY_END - 3) {
             const p = data.presets[Math.floor(Math.random() * data.presets.length)];
             if (p) {
               seq += 1;
@@ -2129,46 +2193,48 @@ const payload = {
                 claimWorker: null,
                 confirmedAt: null,
                 releasedAt: null,
+                releaseReason: "",
                 reclaimedAt: null,
                 reclaimWorker: null,
                 reconfirmedAt: null,
-                closedAt: null,
+                submittedAt: null,
+                autoAcceptAt: null,
+                acceptedAt: null,
+                rejectedAt: null,
                 cancelledAt: null,
-                willConfirm: Math.random() > 0.25,
-                userControlled: false,
+                willConfirm: Math.random() > 0.2,
+                willLeave: Math.random() < 0.15,
                 noAutoClaim: false,
-                hero: false,
-                forceNoShow: false,
                 remindLogged: false,
                 el: null,
               };
               shifts.push(sh);
-              log(`${fmt(h)}  new shift ${sh.id} → OPEN`, "dim");
+              log(`${fmt(h)}  новая смена ${sh.id} → Открыто`, "dim");
             }
           }
 
           shifts.forEach((s) => {
             const d = derive(s, h);
             if (!d.present || d.done) return;
+            const claimedSeg = d.col === "progress";
 
-            // 2. auto-claim открытых
-            if (d.col === "open" && !s.userControlled && !s.noAutoClaim && h < s.start) {
+            // 2. auto-claim: работник сам берёт открытую смену
+            if (d.col === "open" && !s.noAutoClaim && !d.expiring && h < s.start) {
               const w = nearestFree(h);
               if (w) {
-                if (d.released) {
+                if (s.releasedAt !== null) {
                   s.reclaimedAt = h;
                   s.reclaimWorker = w;
                 } else {
                   s.claimedAt = h;
                   s.claimWorker = w;
                 }
-                log(`${fmt(h)}  claim ${s.id} → ${w} (nearest free)`, "");
+                log(`${fmt(h)}  ${w} взял ${s.id}`, "");
                 return;
               }
             }
 
-            // 3. reminder — ровно один раз при входе в [start-LEAD, start)
-            const claimedSeg = d.col === "progress";
+            // 3. reminder — ровно раз при входе в [start-LEAD, start)
             if (
               claimedSeg &&
               !d.confirmed &&
@@ -2177,51 +2243,70 @@ const payload = {
               h < s.start
             ) {
               s.remindLogged = true;
-              log(`${fmt(h)}  remind ${s.id} → SET nx reminder_sent (once)`, "acc");
+              log(`${fmt(h)}  напоминание ${s.id} → SET nx (once)`, "acc");
               toast(`${U.stReminded}: ${s.id}`);
             }
 
-            // 4. auto-confirm
-            if (claimedSeg && !d.confirmed && !s.userControlled && h < s.start && !s.forceNoShow) {
-              // небольшой шанс отложить (postpone), если ещё есть запас
-              if (h < s.start - 1 && Math.random() < 0.12) {
-                s.releasedAt = h;
-                log(`${fmt(h)}  postpone ${s.id} → release slot → OPEN`, "warn");
-                toast(`${U.stReleased}: ${s.id}`, true);
-                return;
-              }
-              if (Math.random() > 0.4) {
-                if (s.reclaimedAt !== null) s.reconfirmedAt = h;
-                else s.confirmedAt = h;
-                log(`${fmt(h)}  confirm ${s.id} → confirmed_at set`, "");
-              }
+            // 4. до старта — небольшой шанс сняться
+            if (claimedSeg && !d.confirmed && h < s.start - 1 && Math.random() < 0.1) {
+              s.releasedAt = h;
+              s.releaseReason = "postpone";
+              log(`${fmt(h)}  ${d.worker ?? ""} снялся с ${s.id} → Открыто`, "warn");
+              toast(`${U.stPostpone}: ${s.id}`, true);
+              return;
             }
 
-            // 5. start-resolution: у старта claimed-unconfirmed сегмента
+            // 5. старт: вышел на смену или не вышел
             if (claimedSeg && !d.confirmed && h >= s.start) {
-              if (s.userControlled) {
-                // hero ведёт визитёр — sim не трогает
-              } else if (s.willConfirm && !s.forceNoShow) {
+              if (s.willConfirm) {
                 if (s.reclaimedAt !== null) s.reconfirmedAt = s.start;
                 else s.confirmedAt = s.start;
-                log(`${fmt(h)}  ${s.id} confirmed at start`, "");
+                log(`${fmt(h)}  ${d.worker ?? ""} вышел на ${s.id}`, "");
               } else {
                 s.releasedAt = s.start;
-                log(`${fmt(h)}  no-show ${s.id} at start → release → OPEN`, "warn");
-                toast(`${U.stReleased}: ${s.id}`, true);
+                s.releaseReason = "noshow";
+                log(`${fmt(h)}  ${d.worker ?? ""} не вышел на ${s.id} → Открыто`, "warn");
+                toast(`${U.stNoShow}: ${s.id}`, true);
               }
+              return;
             }
 
-            // 6. completion — прошёл end_time
-            if (h >= s.end) {
-              const dEnd = derive(s, s.end);
-              if (dEnd.col === "progress" && dEnd.confirmed) {
-                s.closedAt = s.end;
-                log(`${fmt(h)}  end_time → close ${s.id} (completed)`, "dim");
-              } else {
-                s.cancelledAt = s.end;
-                log(`${fmt(h)}  expired ${s.id} (end ${s.end}:00) → auto-close`, "dim");
-              }
+            // 6. ушёл со смены (посреди работы)
+            if (
+              claimedSeg &&
+              d.confirmed &&
+              s.willLeave &&
+              s.releasedAt === null &&
+              h >= s.start + 1 &&
+              h < s.end
+            ) {
+              s.releasedAt = h;
+              s.releaseReason = "left";
+              log(`${fmt(h)}  ${d.worker ?? ""} ушёл со смены ${s.id} → Открыто`, "warn");
+              toast(`${U.stLeft}: ${s.id}`, true);
+              return;
+            }
+
+            // 7. доработал до конца → сдал на приёмку
+            if (claimedSeg && d.confirmed && h >= s.end && s.submittedAt === null) {
+              s.submittedAt = s.end;
+              s.autoAcceptAt = Math.min(DAY_END, s.end + 2);
+              log(`${fmt(h)}  ${d.worker ?? ""} сдал ${s.id} → На приёмке`, "acc");
+              toast(`${U.tSubmitted}: ${s.id}`);
+              return;
+            }
+
+            // 8. авто-приёмка на автоплее (работодатель одобряет по умолчанию)
+            if (d.col === "review" && s.autoAcceptAt !== null && h >= s.autoAcceptAt) {
+              s.acceptedAt = h;
+              log(`${fmt(h)}  ${s.id} принято (авто)`, "dim");
+              return;
+            }
+
+            // 9. открытая/сорванная к end_time → просрочена
+            if (d.col === "open" && h >= s.end) {
+              s.cancelledAt = s.end;
+              log(`${fmt(h)}  ${s.id} просрочено → авто-отмена`, "dim");
             }
           });
         };

@@ -58,7 +58,18 @@ type Dossier = {
   network: string;
   host: string;
   abuse: number;
+  // На этом адресе Spamhaus DNSBL не отвечает вовремя (таймаут). Ровно один в
+  // наборе — чтобы показать: источник обычно отвечает, но и его сбой не рушит досье.
+  dnsblTimeout?: boolean;
+  // Источники, «мёртвые» на момент запроса (отказ, а не таймаут) — только на
+  // адресе-сценарии с ошибкой. Досье всё равно собирается из выживших.
+  deadSources?: string[];
 };
+
+// Общая шкала угрозы: красный (опасный) → зелёный (безопасный). Одна функция на
+// карточку-досье и на скан списком, чтобы цвета совпадали.
+const threatBand = (abuse: number): "high" | "mid" | "low" | "clean" =>
+  abuse >= 80 ? "high" : abuse >= 40 ? "mid" : abuse >= 10 ? "low" : "clean";
 const dossiers: Dossier[] = [
   {
     ip: "185.220.101.4",
@@ -68,7 +79,7 @@ const dossiers: Dossier[] = [
     asn: "AS205100",
     operator: { ru: "Tor-сеть · выходной узел", en: "Tor network · exit node" },
     network: "185.220.100.0/22",
-    host: "tor-exit.relay",
+    host: "tor-exit-de04.duskrelay.net",
     abuse: 100,
   },
   {
@@ -79,8 +90,12 @@ const dossiers: Dossier[] = [
     asn: "AS49505",
     operator: { ru: "облачный хостинг", en: "cloud hosting" },
     network: "45.155.204.0/23",
-    host: "—",
+    host: "vps-233.msk.coldvane.host",
     abuse: 92,
+    // Адрес-сценарий с ошибкой: Spamhaus в таймауте + ASN и RDAP «легли» на
+    // момент запроса. Досье всё равно собирается (страна, имя хоста, угроза).
+    dnsblTimeout: true,
+    deadSources: ["asn", "owner"],
   },
   {
     ip: "193.32.162.7",
@@ -90,7 +105,7 @@ const dossiers: Dossier[] = [
     asn: "AS209605",
     operator: { ru: "хостинг / VPS", en: "hosting / VPS" },
     network: "193.32.162.0/24",
-    host: "scan-07.probe",
+    host: "scan07.ams.packethowl.net",
     abuse: 64,
   },
   {
@@ -101,7 +116,7 @@ const dossiers: Dossier[] = [
     asn: "AS53667",
     operator: { ru: "VPS-провайдер", en: "VPS provider" },
     network: "104.244.76.0/24",
-    host: "tor.exit.us",
+    host: "edge13.lv.greywisp.io",
     abuse: 31,
   },
   {
@@ -126,7 +141,6 @@ type Src = {
   via: string;
   fills: string | null;
   http: boolean;
-  silent?: boolean;
   hint: Bi;
 };
 const sources: Src[] = [
@@ -197,10 +211,9 @@ const sources: Src[] = [
     via: "Spamhaus DNSBL",
     fills: null,
     http: false,
-    silent: true,
     hint: {
-      ru: "Spamhaus DNSBL: в спам- и ботнет-списках ли адрес. В демо отвечает таймаутом, и досье всё равно собирается.",
-      en: "Spamhaus DNSBL: is the address in spam/botnet lists? It times out in the demo, and the dossier still assembles.",
+      ru: "Spamhaus DNSBL: числится ли адрес в спам- и ботнет-списках. Обычно отвечает «в списках» или «чисто»; на одном адресе не успевает ответить - и досье всё равно собирается.",
+      en: "Spamhaus DNSBL: is the address in spam/botnet lists? Usually returns “listed” or “clean”; on one address it doesn't answer in time — and the dossier still assembles.",
     },
   },
 ];
@@ -274,20 +287,33 @@ const ui = {
     en: "Two mechanisms that make .след a real tool, not a toy.",
   },
   // прокси
-  proxyTitle: { ru: "Скрытно — через прокси", en: "Stealth — via proxy" },
+  proxyTitle: { ru: "Прокси прячет реальный IP", en: "The proxy hides your real IP" },
   proxyDesc: {
-    ru: "Как .след ходит к источникам и почему реальный IP не утекает, даже когда прокси сломан.",
-    en: "How .след reaches the sources and why the real IP never leaks, even when the proxy breaks.",
+    ru: "HTTP-запросы к источникам идут не напрямую, а через пул прокси: удалённая сторона видит адрес прокси, а не ваш. Если прокси сломается, .след не пойдёт в прямое соединение, а просто промолчит. Реальный IP не утекает даже при сбое.",
+    en: "HTTP requests to the sources don't go out directly; they pass through a proxy pool, so the remote side sees the proxy's address, not yours. If the proxy breaks, .след won't fall back to a direct connection. It just stays silent. The real IP never leaks, even on failure.",
   },
-  direct: { ru: "Прямо", en: "Direct" },
+  proxyHint: {
+    ru: "Переключите режим и смотрите на строку «источник видит».",
+    en: "Switch the mode and watch the “the source sees” line.",
+  },
+  direct: { ru: "Напрямую", en: "Direct" },
   proxied: { ru: "Через прокси", en: "Via proxy" },
-  pool: {
-    ru: "пул: HTTP · SOCKS4 · SOCKS5 · креды скрыты",
-    en: "pool: HTTP · SOCKS4 · SOCKS5 · creds masked",
+  breakProxy: { ru: "Сломать прокси", en: "Break the proxy" },
+  youCap: { ru: ".след (это вы)", en: ".след (you)" },
+  youIpLabel: { ru: "ваш IP", en: "your IP" },
+  proxyNodeCap: { ru: "пул прокси", en: "proxy pool" },
+  proxyNodeSub: {
+    ru: "HTTP · SOCKS4/5 · ротация, креды скрыты",
+    en: "HTTP · SOCKS4/5 · rotation, creds masked",
   },
-  breakProxy: { ru: "Сломать прокси", en: "Break proxy" },
-  httpGroup: { ru: "HTTP-источники (через прокси)", en: "HTTP sources (via proxy)" },
-  dnsGroup: { ru: "DNS и RDAP (всегда напрямую)", en: "DNS & RDAP (always direct)" },
+  srcNodeCap: { ru: "источник видит", en: "the source sees" },
+  hopLabel: {
+    ru: "HTTP-запрос: ip-api · AbuseIPDB · bgpview",
+    en: "HTTP request: ip-api · AbuseIPDB · bgpview",
+  },
+  guard: { ru: "guard закрыл прямой путь", en: "guard shut the direct path" },
+  dnsRail: { ru: "DNS / RDAP идут напрямую", en: "DNS / RDAP go direct" },
+  dnsRailSub: { ru: "Team Cymru · RDAP · reverse DNS", en: "Team Cymru · RDAP · reverse DNS" },
   // скан списком
   bulkTitle: { ru: "Скан целым списком", en: "Scan a whole list" },
   bulkDesc: {
@@ -299,10 +325,6 @@ const ui = {
   bulkColCc: { ru: "страна", en: "country" },
   bulkColThreat: { ru: "уровень угрозы", en: "threat level" },
 };
-
-// HTTP-источники (идут через прокси) и прямые — для прокси-демо.
-const httpVias = ["ip-api", "AbuseIPDB", "bgpview"];
-const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
 ---
 
 <section
@@ -335,6 +357,9 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
             data-net={d.network}
             data-host={d.host}
             data-abuse={d.abuse}
+            data-listed={d.abuse >= 50 ? "1" : "0"}
+            data-dnsbl={d.dnsblTimeout ? "timeout" : "ok"}
+            data-dead={d.deadSources ? d.deadSources.join(",") : ""}
             aria-pressed={i === 0 ? "true" : "false"}
           >
             <span class="mono">{d.ip}</span>
@@ -356,7 +381,6 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
             data-td-src={s.id}
             data-fills={s.fills ?? ""}
             data-http={s.http ? "1" : "0"}
-            data-silent={s.silent ? "1" : "0"}
             data-hint={t(s.hint)}
             aria-pressed="false"
           >
@@ -419,12 +443,11 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
       {
         rightSrc.map((s) => (
           <button
-            class={`td__src${s.silent ? " td__src--silent" : ""}`}
+            class="td__src"
             type="button"
             data-td-src={s.id}
             data-fills={s.fills ?? ""}
             data-http={s.http ? "1" : "0"}
-            data-silent={s.silent ? "1" : "0"}
             data-hint={t(s.hint)}
             aria-pressed="false"
           >
@@ -498,47 +521,80 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
 
         <div class="td__panels">
           <!-- ---------- (A) ПРОКСИ-GUARD ---------- -->
-          <div class="td__panel td__panel--proxy" data-td-proxy data-mode="direct">
+          <div class="td__panel td__panel--proxy" data-td-proxy data-mode="proxied">
             <div class="td__panel-h">
               <h4 class="td__panel-title">{t(ui.proxyTitle)}</h4>
               <p class="td__panel-desc">{t(ui.proxyDesc)}</p>
             </div>
 
             <div class="td__seg" role="group" aria-label={t(ui.proxyTitle)}>
+              <button class="td__seg-btn" type="button" data-td-mode="direct" aria-pressed="false">
+                {t(ui.direct)}
+              </button>
               <button
                 class="td__seg-btn is-on"
                 type="button"
-                data-td-mode="direct"
+                data-td-mode="proxied"
                 aria-pressed="true"
               >
-                {t(ui.direct)}
-              </button>
-              <button class="td__seg-btn" type="button" data-td-mode="proxied" aria-pressed="false">
                 {t(ui.proxied)}
               </button>
-              <button class="td__break" type="button" data-td-break disabled>
+              <button class="td__break" type="button" data-td-break>
                 <span class="td__break-ic" aria-hidden="true">⚡</span>{t(ui.breakProxy)}
               </button>
             </div>
-            <span class="td__pool mono" data-td-pool>{t(ui.pool)}</span>
+            <p class="td__seg-hint">{t(ui.proxyHint)}</p>
 
-            <div class="td__routes">
-              <div class="td__route" data-route="http">
-                <span class="td__route-cap">{t(ui.httpGroup)}</span>
-                <div class="td__route-pills">
-                  {
-                    httpVias.map((v) => (
-                      <span class="td__pill mono" data-td-http-pill>
-                        {v}
-                      </span>
-                    ))
-                  }
+            <!-- маршрут запроса: .след → прокси → источник -->
+            <div class="td__wire" aria-hidden="true">
+              <div class="td__node td__node--you">
+                <span class="td__node-dot"></span>
+                <div class="td__node-body">
+                  <span class="td__node-cap">{t(ui.youCap)}</span>
+                  <span class="td__node-ip mono">
+                    {t(ui.youIpLabel)} · <b>203.0.113.7</b>
+                  </span>
+                </div>
+                <span class="td__node-tag" data-td-you-tag></span>
+              </div>
+
+              <div class="td__conn td__conn--in">
+                <span class="td__conn-line"></span>
+                <span class="td__packet"></span>
+                <span class="td__conn-lbl">{t(ui.hopLabel)}</span>
+              </div>
+
+              <div class="td__node td__node--proxy">
+                <span class="td__node-dot"></span>
+                <div class="td__node-body">
+                  <span class="td__node-cap">{t(ui.proxyNodeCap)}</span>
+                  <span class="td__node-ip mono">{t(ui.proxyNodeSub)}</span>
+                </div>
+                <span class="td__node-tag" data-td-proxy-tag></span>
+              </div>
+
+              <div class="td__conn td__conn--out">
+                <span class="td__conn-line"></span>
+                <span class="td__packet"></span>
+                <span class="td__conn-guard">
+                  <span class="td__conn-guard-ic" aria-hidden="true">⛔</span>{t(ui.guard)}
+                </span>
+              </div>
+
+              <div class="td__node td__node--src" data-td-seen-node data-band="safe">
+                <span class="td__node-dot"></span>
+                <div class="td__node-body">
+                  <span class="td__node-cap">{t(ui.srcNodeCap)}</span>
+                  <span class="td__seen mono" data-td-seen>45.9.148.51</span>
+                  <span class="td__seen-tag" data-td-seen-tag></span>
                 </div>
               </div>
-              <div class="td__route" data-route="dns">
-                <span class="td__route-cap">{t(ui.dnsGroup)}</span>
-                <div class="td__route-pills">
-                  {dnsVias.map((v) => <span class="td__pill td__pill--dns mono">{v}</span>)}
+
+              <div class="td__rail">
+                <span class="td__rail-line"></span>
+                <div class="td__rail-body">
+                  <span class="td__rail-cap">{t(ui.dnsRail)}</span>
+                  <span class="td__rail-sub mono">{t(ui.dnsRailSub)}</span>
                 </div>
               </div>
             </div>
@@ -572,15 +628,16 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
                   [...dossiers]
                     .sort((a, b) => b.abuse - a.abuse)
                     .map((d, i) => (
-                      <li class="td__bulk-row is-in" data-td-bulk-row={i} style={`--i:${i}`}>
+                      <li
+                        class="td__bulk-row is-in"
+                        data-td-bulk-row={i}
+                        data-band={threatBand(d.abuse)}
+                        style={`--i:${i}`}
+                      >
                         <span class="td__bulk-ip mono">{d.ip}</span>
                         <span class="td__bulk-cc mono">{d.cc}</span>
                         <span class="td__bulk-bar" aria-hidden="true">
-                          <span
-                            class="td__bulk-fill"
-                            style={`--score:${d.abuse / 100}`}
-                            data-band={d.abuse >= 80 ? "high" : d.abuse >= 40 ? "mid" : "low"}
-                          />
+                          <span class="td__bulk-fill" style={`--score:${d.abuse / 100}`} />
                         </span>
                         <span class="td__bulk-num mono">{d.abuse}</span>
                       </li>
@@ -799,6 +856,23 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
   .td__src.is-silent-on .td__src-state {
     color: var(--td-warn);
   }
+  /* мёртвая нода: источник не ответил на момент запроса (отказ, не таймаут) */
+  .td__src.is-dead-on {
+    opacity: 0.5;
+    border-color: color-mix(in srgb, var(--threat-high) 46%, transparent);
+    background: transparent;
+  }
+  .td__src.is-dead-on .td__src-dot {
+    background: var(--threat-high);
+    border: none;
+    transform: none;
+    box-shadow: none;
+    opacity: 0.8;
+  }
+  .td__src.is-dead-on .td__src-state {
+    opacity: 1;
+    color: var(--threat-high);
+  }
   /* прокси-режим blocked: HTTP-ноды гаснут */
   .td__stage[data-mode="blocked"] .td__src[data-http="1"] {
     opacity: 0.4;
@@ -918,8 +992,9 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
   .td__field.is-filled .td__field-ph {
     display: none;
   }
-  /* код страны как мини-бейдж */
-  .td__cc {
+  /* код страны как мини-бейдж. Значение поля вставляется через innerHTML в
+     рантайме, scoped-стиль до него не долетает, поэтому нужен :global. */
+  .td__field-v :global(.td__cc) {
     display: inline-block;
     margin-right: var(--sp-2);
     padding: 1px var(--sp-2);
@@ -932,7 +1007,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     color: var(--td-accent);
     letter-spacing: var(--ls-wide);
   }
-  .td__asn {
+  .td__field-v :global(.td__asn) {
     color: var(--text-secondary);
   }
 
@@ -948,18 +1023,20 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     background: color-mix(in srgb, var(--surface) 50%, transparent);
   }
   .td__threat[data-band="high"] {
-    --bandc: var(--td-err);
-    border-color: color-mix(in srgb, var(--td-err) 38%, transparent);
+    --bandc: var(--threat-high);
+    border-color: color-mix(in srgb, var(--threat-high) 42%, transparent);
   }
   .td__threat[data-band="mid"] {
-    --bandc: var(--td-warn);
-    border-color: color-mix(in srgb, var(--td-warn) 34%, transparent);
+    --bandc: var(--threat-mid);
+    border-color: color-mix(in srgb, var(--threat-mid) 40%, transparent);
   }
   .td__threat[data-band="low"] {
-    --bandc: var(--td-warn);
+    --bandc: var(--threat-low);
+    border-color: color-mix(in srgb, var(--threat-low) 38%, transparent);
   }
   .td__threat[data-band="clean"] {
-    --bandc: var(--td-ok);
+    --bandc: var(--threat-clean);
+    border-color: color-mix(in srgb, var(--threat-clean) 36%, transparent);
   }
   .td__threat-top {
     display: flex;
@@ -1426,72 +1503,271 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     opacity: 0.32;
     cursor: not-allowed;
   }
-  .td__pool {
-    font-size: var(--fs-11);
-    color: var(--text-faint);
-    letter-spacing: var(--ls-snug);
-    opacity: 0.45;
-    transition: opacity var(--dur-med) var(--ease-standard);
-    overflow-wrap: anywhere;
-  }
-  .td__panel--proxy[data-mode="proxied"] .td__pool,
-  .td__panel--proxy[data-mode="blocked"] .td__pool {
-    opacity: 1;
+  .td__seg-hint {
+    margin-top: calc(-1 * var(--sp-1));
+    font-size: var(--fs-12);
     color: var(--text-muted);
+    line-height: var(--lh-snug);
   }
-  .td__routes {
+
+  /* ---------- маршрут запроса (.след → прокси → источник) ---------- */
+  .td__wire {
     display: flex;
     flex-direction: column;
-    gap: var(--sp-3);
     padding: var(--sp-3);
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-sm);
     background: var(--bg-deep);
   }
-  .td__route {
+  .td__node {
     display: flex;
-    flex-direction: column;
-    gap: var(--sp-2);
-  }
-  .td__route-cap {
-    color: var(--text-muted);
-    font-size: var(--fs-11);
-    text-transform: uppercase;
-    letter-spacing: var(--ls-wide);
-  }
-  .td__route[data-route="http"] .td__route-cap {
-    color: var(--td-accent);
-  }
-  .td__route-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-2);
-  }
-  .td__pill {
-    font-size: var(--fs-12);
-    color: var(--text-secondary);
-    padding: 3px var(--sp-3);
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
     border: var(--bw-thin) solid var(--border);
-    border-radius: var(--r-pill);
+    border-radius: var(--r-sm);
     background: var(--surface);
     transition:
-      color var(--dur-med) var(--ease-standard),
       border-color var(--dur-med) var(--ease-standard),
+      background-color var(--dur-med) var(--ease-standard),
       opacity var(--dur-med) var(--ease-standard);
   }
-  /* proxied: HTTP-пилюли подсвечены акцентом */
-  .td__panel--proxy[data-mode="proxied"] .td__pill[data-td-http-pill] {
+  .td__node-dot {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--td-accent);
+  }
+  .td__node--you .td__node-dot {
+    background: var(--text-secondary);
+  }
+  .td__node-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  .td__node-cap {
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-semibold);
+    font-size: var(--fs-13);
+    color: var(--text);
+  }
+  .td__node-ip {
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+  }
+  .td__node-ip b {
+    color: var(--text-secondary);
+    font-weight: var(--fw-semibold);
+  }
+  .td__node-tag {
+    flex: none;
+    font-size: var(--fs-10);
+    text-transform: uppercase;
+    letter-spacing: var(--ls-wide);
+    padding: 2px var(--sp-2);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-pill);
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  /* узел «вы»: тег скрыт / виден */
+  .td__node--you .td__node-tag {
     color: var(--td-accent);
+    border-color: var(--td-line);
+  }
+  .td__panel--proxy[data-mode="direct"] .td__node--you .td__node-tag {
+    color: var(--threat-high);
+    border-color: color-mix(in srgb, var(--threat-high) 48%, transparent);
+  }
+
+  /* узел «прокси»: активен / в обход / сломан */
+  .td__panel--proxy[data-mode="proxied"] .td__node--proxy {
     border-color: var(--td-line);
     background: var(--td-soft);
   }
-  /* blocked: HTTP заблокированы, DNS идут */
-  .td__panel--proxy[data-mode="blocked"] .td__pill[data-td-http-pill] {
-    color: var(--td-err);
-    border-color: color-mix(in srgb, var(--td-err) 44%, transparent);
-    opacity: 0.7;
-    text-decoration: line-through;
-    text-decoration-color: color-mix(in srgb, var(--td-err) 60%, transparent);
+  .td__panel--proxy[data-mode="direct"] .td__node--proxy {
+    opacity: 0.45;
+  }
+  .td__panel--proxy[data-mode="blocked"] .td__node--proxy {
+    border-color: color-mix(in srgb, var(--threat-high) 46%, transparent);
+    background: color-mix(in srgb, var(--threat-high) 8%, var(--surface));
+  }
+  .td__node--proxy .td__node-tag {
+    color: var(--td-accent);
+    border-color: var(--td-line);
+  }
+  .td__panel--proxy[data-mode="direct"] .td__node--proxy .td__node-tag {
+    color: var(--text-muted);
+    border-color: var(--border);
+  }
+  .td__panel--proxy[data-mode="blocked"] .td__node--proxy .td__node-tag {
+    color: var(--threat-high);
+    border-color: color-mix(in srgb, var(--threat-high) 46%, transparent);
+  }
+
+  /* узел-«источник» — герой: что реально видит удалённая сторона */
+  .td__node--src {
+    align-items: flex-start;
+  }
+  .td__seen {
+    font-size: var(--fs-18);
+    font-weight: var(--fw-bold);
+    letter-spacing: var(--ls-tight);
+    color: var(--text);
+    overflow-wrap: anywhere;
+    transition: color var(--dur-med) var(--ease-standard);
+  }
+  .td__seen-tag {
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
+  }
+  .td__node--src[data-band="safe"] {
+    border-color: var(--td-line);
+    background: var(--td-soft);
+  }
+  .td__node--src[data-band="safe"] .td__seen {
+    color: var(--td-accent);
+  }
+  .td__node--src[data-band="leak"] {
+    border-color: color-mix(in srgb, var(--threat-high) 50%, transparent);
+    background: color-mix(in srgb, var(--threat-high) 10%, var(--surface));
+  }
+  .td__node--src[data-band="leak"] .td__seen {
+    color: var(--threat-high);
+  }
+  .td__node--src[data-band="blocked"] .td__seen {
+    font-size: var(--fs-14);
+    color: var(--text-muted);
+  }
+
+  /* коннекторы между узлами + бегущий пакет */
+  .td__conn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    height: 34px;
+    margin-left: var(--sp-4);
+    padding-left: var(--sp-4);
+  }
+  .td__conn-line {
+    position: absolute;
+    left: 0;
+    top: -2px;
+    bottom: -2px;
+    width: 2px;
+    background: var(--td-line);
+  }
+  .td__packet {
+    position: absolute;
+    left: -2px;
+    top: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--td-accent);
+    box-shadow: 0 0 0 3px var(--td-faint);
+    opacity: 0;
+  }
+  .td.is-inview .td__conn .td__packet {
+    animation: td-packet 1.9s var(--ease-standard) infinite;
+  }
+  .td__conn--out .td__packet {
+    animation-delay: 0.5s;
+  }
+  @keyframes td-packet {
+    0% {
+      transform: translateY(0);
+      opacity: 0;
+    }
+    14% {
+      opacity: 1;
+    }
+    86% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(34px);
+      opacity: 0;
+    }
+  }
+  .td__conn-lbl {
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+  }
+  /* blocked: guard закрывает участок прокси → источник */
+  .td__panel--proxy[data-mode="blocked"] .td__conn--out .td__packet {
+    animation: none;
+    opacity: 0;
+  }
+  .td__panel--proxy[data-mode="blocked"] .td__conn--out .td__conn-line {
+    background: repeating-linear-gradient(var(--threat-high) 0 4px, transparent 4px 8px);
+  }
+  .td__conn-guard {
+    display: none;
+    align-items: center;
+    gap: var(--sp-2);
+    font-size: var(--fs-11);
+    font-weight: var(--fw-semibold);
+    color: var(--threat-high);
+  }
+  .td__panel--proxy[data-mode="blocked"] .td__conn-guard {
+    display: inline-flex;
+  }
+  .td__conn-guard-ic {
+    font-size: var(--fs-12);
+    line-height: 1;
+  }
+
+  /* боковой рельс: DNS/RDAP всегда идут напрямую */
+  .td__rail {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    margin-top: var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
+    border: var(--bw-thin) dashed var(--border);
+    border-radius: var(--r-sm);
+    background: transparent;
+    transition:
+      border-color var(--dur-med) var(--ease-standard),
+      background-color var(--dur-med) var(--ease-standard);
+  }
+  .td__rail-line {
+    flex: none;
+    width: 22px;
+    height: 2px;
+    background: repeating-linear-gradient(90deg, var(--text-muted) 0 4px, transparent 4px 7px);
+  }
+  .td__rail-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+  .td__rail-cap {
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
+  }
+  .td__rail-sub {
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+  }
+  .td__panel--proxy[data-mode="blocked"] .td__rail {
+    border-style: solid;
+    border-color: var(--td-line);
+    background: var(--td-soft);
+  }
+  .td__panel--proxy[data-mode="blocked"] .td__rail-cap {
+    color: var(--text);
   }
   /* вердикт */
   .td__verdict-box {
@@ -1638,7 +1914,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: var(--td-warn);
+    background: var(--bandc, var(--td-warn));
     transform: scaleX(0);
     transform-origin: left center;
     transition: transform var(--dur-slow) var(--ease-soft);
@@ -1646,19 +1922,24 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
   .td__bulk-row.is-in .td__bulk-fill {
     transform: scaleX(var(--score, 0));
   }
-  .td__bulk-fill[data-band="high"] {
-    background: var(--td-err);
+  /* Шкала угрозы: красный (опасный) → зелёный (безопасный). --bandc задаётся на
+     строке и красит и полосу, и число — одним источником правды. */
+  .td__bulk-row[data-band="high"] {
+    --bandc: var(--threat-high);
   }
-  .td__bulk-fill[data-band="mid"] {
-    background: var(--td-warn);
+  .td__bulk-row[data-band="mid"] {
+    --bandc: var(--threat-mid);
   }
-  .td__bulk-fill[data-band="low"] {
-    background: var(--td-accent);
+  .td__bulk-row[data-band="low"] {
+    --bandc: var(--threat-low);
+  }
+  .td__bulk-row[data-band="clean"] {
+    --bandc: var(--threat-clean);
   }
   .td__bulk-num {
     font-size: var(--fs-13);
     font-weight: var(--fw-semibold);
-    color: var(--text);
+    color: var(--bandc, var(--text));
     font-variant-numeric: tabular-nums;
     text-align: right;
   }
@@ -1711,6 +1992,9 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     }
     .td__card::after {
       animation: none !important;
+    }
+    .td.is-inview .td__conn .td__packet {
+      animation: none;
     }
     .td__gauge-fill,
     .td__bulk-fill,
@@ -1769,6 +2053,9 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
       net: string;
       host: string;
       abuse: number;
+      listed: boolean;
+      dnsblTimeout: boolean;
+      dead: string[];
     };
     const read = (c: HTMLElement): Dos => ({
       ip: c.dataset.ip ?? "",
@@ -1780,6 +2067,9 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
       net: c.dataset.net ?? "",
       host: c.dataset.host ?? "",
       abuse: Number(c.dataset.abuse) || 0,
+      listed: c.dataset.listed === "1",
+      dnsblTimeout: c.dataset.dnsbl === "timeout",
+      dead: (c.dataset.dead ?? "").split(",").filter(Boolean),
     });
 
     let current: Dos = read(chips[0] ?? document.createElement("div"));
@@ -1853,11 +2143,16 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
       }
     };
 
-    const lightSrc = (id: string, state: "off" | "on" | "silent"): void => {
+    const lightSrc = (
+      id: string,
+      state: "off" | "on" | "silent" | "dead",
+      label?: string,
+    ): void => {
       const el = srcEls.find((s) => s.dataset.tdSrc === id);
       if (!el) return;
       el.classList.toggle("is-on", state === "on");
       el.classList.toggle("is-silent-on", state === "silent");
+      el.classList.toggle("is-dead-on", state === "dead");
       el.setAttribute("aria-pressed", state === "off" ? "false" : "true");
       if (!reduced && state !== "off") {
         el.classList.remove("is-report");
@@ -1866,8 +2161,20 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
       }
       const st = el.querySelector<HTMLElement>("[data-td-src-state]");
       if (st)
-        st.textContent = state === "silent" ? tr("таймаут", "timeout") : state === "on" ? "ok" : "";
+        st.textContent =
+          label ??
+          (state === "silent"
+            ? tr("таймаут", "timeout")
+            : state === "dead"
+              ? tr("нет ответа", "no reply")
+              : state === "on"
+                ? "ok"
+                : "");
     };
+
+    // Подпись состояния источника «Чёрные списки» под текущий адрес.
+    const dnsblLabel = (): string =>
+      current.listed ? tr("в списках", "listed") : tr("чисто", "clean");
 
     const resetCard = (): void => {
       ipEl.textContent = current.ip;
@@ -1912,20 +2219,32 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
       setTraceUI("running");
 
       const blocked = stage.dataset.mode === "blocked";
+      const dnsblTimeout = current.dnsblTimeout;
       let ms = START;
       let answered = 0;
 
       order.forEach((id) => {
-        const silent = id === "dnsbl";
+        const isDnsbl = id === "dnsbl";
+        const willTimeout = isDnsbl && dnsblTimeout;
+        const isDead = current.dead.includes(id);
         const isHttp = srcEls.find((s) => s.dataset.tdSrc === id)?.dataset.http === "1";
-        ms += silent ? SILENT : id === "rep" ? REP : STEP;
+        ms += willTimeout ? SILENT : id === "rep" ? REP : STEP;
         later(() => {
-          if (silent) {
+          if (willTimeout) {
             lightSrc(id, "silent");
+            return;
+          }
+          if (isDead) {
+            lightSrc(id, "dead");
             return;
           }
           if (blocked && isHttp) {
             lightSrc(id, "silent");
+            return;
+          }
+          if (isDnsbl) {
+            lightSrc(id, "on", dnsblLabel());
+            answered += 1;
             return;
           }
           lightSrc(id, "on");
@@ -1939,6 +2258,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
       later(
         () => {
           setTraceUI("idle");
+          const failed = 6 - answered;
           if (statusEl) {
             statusEl.textContent = tr(`собрано · ${answered}/6`, `assembled · ${answered}/6`);
             statusEl.classList.add("is-done");
@@ -1950,10 +2270,15 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
                   "Прокси-guard: HTTP-источники не ушли в direct — досье собрано только из DNS и RDAP, реальный IP не утёк.",
                   "Proxy guard: HTTP sources didn't fall back to direct — the dossier came from DNS and RDAP only, the real IP never leaked.",
                 )
-              : tr(
-                  "Готово: ответили 5 из 6. Spamhaus молчит, но через asyncio.gather(return_exceptions=True) это значение, а не падение — досье собрано.",
-                  "Done: 5 of 6 answered. Spamhaus is silent, but via asyncio.gather(return_exceptions=True) that's a value, not a crash — the dossier is assembled.",
-                );
+              : failed > 0
+                ? tr(
+                    `Готово: собрано ${answered} из 6, остальные не отозвались (таймаут и отказ). asyncio.gather(return_exceptions=True) вернул сбои как значения, а не падение, и досье собрано из выживших.`,
+                    `Done: ${answered} of 6 assembled, the rest didn't respond (timeout and refusals). asyncio.gather(return_exceptions=True) returned the failures as values, not a crash — the dossier is built from the survivors.`,
+                  )
+                : tr(
+                    `Готово: ответили все ${answered} из 6. Даже если источник отвалится, asyncio.gather(return_exceptions=True) вернёт значение вместо падения.`,
+                    `Done: all ${answered} of 6 answered. Even if a source dropped, asyncio.gather(return_exceptions=True) would return a value instead of crashing.`,
+                  );
           }
         },
         D(ms + FINAL),
@@ -1967,9 +2292,19 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
       const blocked = stage.dataset.mode === "blocked";
       let answered = 0;
       order.forEach((id) => {
+        const isDnsbl = id === "dnsbl";
         const isHttp = srcEls.find((s) => s.dataset.tdSrc === id)?.dataset.http === "1";
-        if (id === "dnsbl" || (blocked && isHttp)) {
+        if (current.dead.includes(id)) {
+          lightSrc(id, "dead");
+          return;
+        }
+        if ((isDnsbl && current.dnsblTimeout) || (blocked && isHttp)) {
           lightSrc(id, "silent");
+          return;
+        }
+        if (isDnsbl) {
+          lightSrc(id, "on", dnsblLabel());
+          answered += 1;
           return;
         }
         lightSrc(id, "on");
@@ -2131,6 +2466,49 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     const modeBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-td-mode]"));
     const breakBtn = root.querySelector<HTMLButtonElement>("[data-td-break]");
     const proxyNote = root.querySelector<HTMLElement>("[data-td-proxy-note]");
+    const seenEl = root.querySelector<HTMLElement>("[data-td-seen]");
+    const seenNode = root.querySelector<HTMLElement>("[data-td-seen-node]");
+    const seenTagEl = root.querySelector<HTMLElement>("[data-td-seen-tag]");
+    const youTagEl = root.querySelector<HTMLElement>("[data-td-you-tag]");
+    const proxyTagEl = root.querySelector<HTMLElement>("[data-td-proxy-tag]");
+
+    // Что удалённый источник записывает как «источник запроса» в каждом режиме.
+    // Это и есть суть: голубой — адрес прокси, красный — ваш реальный IP.
+    const seenOf = {
+      direct: {
+        ip: "203.0.113.7",
+        tag: tr("это ваш реальный IP", "that's your real IP"),
+        band: "leak",
+        you: tr("виден", "exposed"),
+        proxy: tr("не используется", "unused"),
+        note: tr(
+          "Без прокси удалённая сторона видит ваш реальный адрес. Это антипример: так делать нельзя.",
+          "Without a proxy the remote side sees your real address. This is the anti-example: don't do this.",
+        ),
+      },
+      proxied: {
+        ip: "45.9.148.51",
+        tag: tr("адрес прокси, не ваш", "the proxy address, not yours"),
+        band: "safe",
+        you: tr("скрыт", "hidden"),
+        proxy: tr("активен", "active"),
+        note: tr(
+          "Запрос уходит через прокси, тот подставляет свой адрес. Источник логирует прокси, ваш реальный IP он не увидит.",
+          "The request leaves through the proxy, which substitutes its own address. The source logs the proxy; it never sees your real IP.",
+        ),
+      },
+      blocked: {
+        ip: tr("запрос не отправлен", "request not sent"),
+        tag: tr("прямой путь закрыт guard'ом", "direct path shut by the guard"),
+        band: "blocked",
+        you: tr("скрыт", "hidden"),
+        proxy: tr("сломан", "down"),
+        note: tr(
+          "Прокси упал. Наивный клиент пошёл бы напрямую и спалил IP, но «.след» вместо этого вообще не отправляет HTTP-запрос: досье достраивается из DNS и RDAP, реальный IP не утёк.",
+          "The proxy is down. A naive client would fall back to direct and burn the IP, but .след doesn't send the HTTP request at all: the dossier is completed from DNS and RDAP, and the real IP never leaked.",
+        ),
+      },
+    };
 
     const setMode = (mode: "direct" | "proxied" | "blocked"): void => {
       stage.dataset.mode = mode;
@@ -2142,32 +2520,86 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
         b.setAttribute("aria-pressed", on ? "true" : "false");
       });
       if (breakBtn) breakBtn.disabled = mode === "direct";
-      if (proxyNote) {
-        proxyNote.textContent =
-          mode === "direct"
-            ? tr(
-                "Прямое соединение: реальный IP виден источникам.",
-                "Direct connection: the real IP is visible to the sources.",
-              )
-            : mode === "proxied"
-              ? tr(
-                  "Запросы идут через пул HTTP/SOCKS, креды замаскированы. Реальный IP скрыт.",
-                  "Requests go through an HTTP/SOCKS pool, credentials masked. The real IP is hidden.",
-                )
-              : tr(
-                  "Коннектор не собрался. HTTP-источники не уходят в прямое соединение — реальный IP не утёк. Идут только DNS и RDAP.",
-                  "The connector failed to build. HTTP sources don't fall back to direct — the real IP never leaked. Only DNS and RDAP run.",
-                );
+
+      const s = seenOf[mode];
+      if (seenEl) seenEl.textContent = s.ip;
+      if (seenTagEl) seenTagEl.textContent = s.tag;
+      if (seenNode) seenNode.dataset.band = s.band;
+      if (youTagEl) youTagEl.textContent = s.you;
+      if (proxyTagEl) proxyTagEl.textContent = s.proxy;
+      if (proxyNote) proxyNote.textContent = s.note;
+    };
+    // Автопрогон сценария прокси. Отдельные таймеры от основной сцены: когда
+    // панель в вид, root (вся секция) уже может считаться офскрин — общий
+    // clearTimers() не должен гасить проигрыш. Чистятся при уходе панели/скрытии.
+    const pTimers: number[] = [];
+    const clearPTimers = (): void => {
+      while (pTimers.length) {
+        const id = pTimers.pop();
+        if (id !== undefined) window.clearTimeout(id);
       }
     };
+    const pLater = (fn: () => void, ms: number): void => {
+      const id = window.setTimeout(() => {
+        const i = pTimers.indexOf(id);
+        if (i >= 0) pTimers.splice(i, 1);
+        fn();
+      }, ms);
+      pTimers.push(id);
+    };
+    let proxyTouched = false;
+    let proxyPlayed = false;
+    // История одним проходом: утечка (direct) → прокси прячет (proxied) →
+    // сломать (blocked, guard спасает) → вернуться в безопасный режим (proxied).
+    const playProxyScenario = (): void => {
+      if (reduced || proxyTouched || proxyPlayed) return;
+      proxyPlayed = true;
+      const step = (m: "direct" | "proxied" | "blocked"): void => {
+        if (!proxyTouched) setMode(m);
+      };
+      setMode("direct");
+      pLater(() => step("proxied"), 1500);
+      pLater(() => step("blocked"), 3200);
+      pLater(() => step("proxied"), 5200);
+    };
+
     modeBtns.forEach((b) => {
       const mode = b.dataset.tdMode as "direct" | "proxied";
-      b.addEventListener("click", () => setMode(mode));
+      b.addEventListener("click", () => {
+        proxyTouched = true;
+        clearPTimers();
+        setMode(mode);
+      });
     });
     breakBtn?.addEventListener("click", () => {
+      proxyTouched = true;
+      clearPTimers();
       if (stage.dataset.mode !== "direct") setMode("blocked");
     });
-    setMode("direct");
+    setMode("proxied");
+
+    // Проигрываем сценарий, когда прокси-панель реально попадает в вид (она внизу,
+    // так что верхняя трассировка досье к этому моменту давно закончилась).
+    if (proxyPanel && typeof IntersectionObserver !== "undefined") {
+      const pio = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            if (e.isIntersecting) {
+              playProxyScenario();
+            } else {
+              // Прерванный проигрыш не должен оставить глобальный режим в blocked —
+              // иначе повторная трассировка досье наверху молча уйдёт в 3/6.
+              clearPTimers();
+              if (proxyPlayed && !proxyTouched && stage.dataset.mode !== "proxied") {
+                setMode("proxied");
+              }
+            }
+          }
+        },
+        { threshold: 0.55 },
+      );
+      pio.observe(proxyPanel);
+    }
 
     // ---- скан списком ----
     const bulkRun = root.querySelector<HTMLButtonElement>("[data-td-bulk-run]");
@@ -2192,8 +2624,8 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
         () => {
           if (bulkNote)
             bulkNote.textContent = tr(
-              "asyncio.gather опрашивает 6 источников на адрес, семафор держит нагрузку. Сбой источника не рушит скан — из логов сразу видно худших нарушителей. Отсортировано по уровню угрозы.",
-              "asyncio.gather queries 6 sources per address, the semaphore caps the load. A failing source never breaks the scan — the worst offenders surface straight from the logs. Sorted by threat level.",
+              "asyncio.gather опрашивает 6 источников на адрес, семафор держит до 3 одновременно. Сбой источника не рушит скан: из логов сразу видно худших нарушителей. Отсортировано по уровню угрозы.",
+              "asyncio.gather queries 6 sources per address, the semaphore caps it at 3 at once. A failing source never breaks the scan: the worst offenders surface straight from the logs. Sorted by threat level.",
             );
         },
         D(420) * (bulkRows.length + 1),
@@ -2208,6 +2640,7 @@ const dnsVias = ["Team Cymru", "RDAP", "reverse DNS", "Spamhaus"];
     const stopAll = (): void => {
       inview = false;
       clearTimers();
+      clearPTimers();
       root.classList.remove("is-inview");
     };
 

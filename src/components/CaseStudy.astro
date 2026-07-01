@@ -69,7 +69,7 @@ const signatureLedes: Record<string, { ru: string; en: string }> = {
     en: "Seven steps as one story - from cloning the repo to exporting your progress. Step through with ←/→ and watch how it works inside.",
   },
   dottraceip: {
-    ru: "Не список полей, а живое досье на адрес. Выберите IP из логов брутфорса и нажмите «Проследить» - и посмотрите, как всё работает изнутри.",
+    ru: 'Не список полей, а живое досье на адрес. Выберите IP из списка и нажмите "Проследить" и посмотрите, как всё работает изнутри.',
     en: "Not a list of fields but a live dossier on an address. Pick an IP from the brute-force logs, hit “Trace”, and see how it works inside.",
   },
   dotagents: {
@@ -77,8 +77,8 @@ const signatureLedes: Record<string, { ru: string; en: string }> = {
     en: "Two screens, one story: Claude Code runs in the terminal on the left, you sit in Telegram on the right. The agent hit a dangerous command and froze; decide for it from your phone and watch the control loop from the inside.",
   },
   dotworkbot: {
-    ru: "Живая kanban-доска биржи смен, а не список полей. Создайте смену, перетащите её работнику и крутите часы в обе стороны - фоновый воркер сам шлёт напоминания, освобождает слот при неявке и закрывает просроченные заказы. Посмотрите, как всё работает изнутри.",
-    en: "A live kanban board for a gig-shift marketplace, not a list of fields. Create a shift, drag it to a worker and wind the clock both ways - a background worker sends reminders, frees the slot on a no-show and auto-closes expired orders. See how it works inside.",
+    ru: "Живая kanban-доска биржи смен, а не список полей - попробуйте её ниже и посмотрите, как всё работает изнутри.",
+    en: "A live kanban board for a gig-shift marketplace, not a list of fields - try it below and see how it works inside.",
   },
 };
 const signatureLede = (signatureLedes[p.slug] ?? {
@@ -137,12 +137,30 @@ const signatureLede = (signatureLedes[p.slug] ?? {
               data-reveal
               data-reveal-delay="240"
             >
-              {p.repos.map((r) => (
-                <li class="case__repos-pill">
-                  <Icon name="code" size={12} />
-                  <span class="mono">{r.name}</span>
-                </li>
-              ))}
+              {p.repos.map((r) => {
+                const rUrl = repoUrl(r);
+                return (
+                  <li class="case__repos-pill">
+                    {rUrl ? (
+                      <a
+                        href={rUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="case__repos-pill-link"
+                        aria-label={`${r.name} — ${t("projects.viewSource")}`}
+                      >
+                        <Icon name="github" size={12} />
+                        <span class="mono">{r.name}</span>
+                      </a>
+                    ) : (
+                      <>
+                        <Icon name="code" size={12} />
+                        <span class="mono">{r.name}</span>
+                      </>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )
         }
@@ -635,6 +653,20 @@ const signatureLede = (signatureLedes[p.slug] ?? {
     color: var(--text-secondary);
     font-size: var(--fs-11);
     background: var(--glass-tint-1);
+  }
+
+  .case__repos-pill-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-1);
+    color: inherit;
+    transition: color var(--dur-fast) var(--ease-standard);
+  }
+
+  .case__repos-pill-link:hover,
+  .case__repos-pill-link:focus-visible {
+    color: var(--text);
+    opacity: 1;
   }
 
   .case__actions {

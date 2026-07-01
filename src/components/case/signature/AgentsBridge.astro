@@ -473,6 +473,14 @@ const ui = {
             <!-- системный разделитель «/clear» -->
             <div class="ab__sys" data-clear hidden><span data-clear-txt></span></div>
 
+            <!-- исходящее: ты ставишь агенту новую задачу -->
+            <div class="ab__bubble ab__bubble--out ab__newmsg" data-newmsg hidden>
+              <div class="ab__b-body">
+                <p class="ab__newmsg-txt" data-newmsg-txt></p>
+                <span class="ab__b-time mono">14:31</span>
+              </div>
+            </div>
+
             <!-- живое сообщение сессии -->
             <div class="ab__bubble ab__bubble--in ab__live" data-live hidden>
               <div class="ab__b-body">
@@ -533,44 +541,40 @@ const ui = {
                 </div>
               </div>
             </div>
-
-            <!-- завершение задачи + селектор следующей -->
-            <div class="ab__bubble ab__bubble--in ab__doneb" data-done hidden>
-              <div class="ab__b-body">
-                <p class="ab__doneb-head">
-                  ✅ <b>{locale === "ru" ? "Задача завершена" : "Task complete"}</b>
-                  <span class="ab__b-time" data-done-time>14:36</span>
-                </p>
-                <p class="ab__doneb-sum mono" data-done-sum></p>
-                <p class="ab__doneb-pick caption">{t(ui.donePick)}</p>
-              </div>
-              <div class="ab__ikb">
-                <div class="ab__ikb-row">
-                  {
-                    scenarios.map((s) => (
-                      <button
-                        type="button"
-                        class="ab__ikb-btn ab__ikb-btn--act"
-                        data-scene-go={s.id}
-                      >
-                        {t(s.label)}
-                      </button>
-                    ))
-                  }
-                </div>
-                <div class="ab__ikb-row">
-                  <button type="button" class="ab__ikb-btn ab__ikb-btn--muted" data-scene-replay
-                    >{t(ui.doneReplay)}</button
-                  >
-                </div>
-              </div>
-            </div>
           </div>
 
           <div class="ab__tg-compose" aria-hidden="true">
             <span class="ab__tg-clip"></span>
             <span class="ab__tg-input">{t(ui.compose)}</span>
             <span class="ab__tg-mic"></span>
+          </div>
+
+          <!-- модальное уведомление: задача завершена + выбор следующей -->
+          <div class="ab__modal" data-modal hidden>
+            <div
+              class="ab__modal-card"
+              role="dialog"
+              aria-label={locale === "ru" ? "Задача завершена" : "Task complete"}
+            >
+              <span class="ab__modal-badge" aria-hidden="true">✓</span>
+              <p class="ab__modal-title">
+                {locale === "ru" ? "Задача завершена" : "Task complete"}
+              </p>
+              <p class="ab__modal-sum mono" data-done-sum></p>
+              <p class="ab__modal-pick caption">{t(ui.donePick)}</p>
+              <div class="ab__modal-btns">
+                {
+                  scenarios.map((s) => (
+                    <button type="button" class="ab__modal-btn" data-scene-go={s.id}>
+                      {t(s.label)}
+                    </button>
+                  ))
+                }
+              </div>
+              <button type="button" class="ab__modal-replay" data-scene-replay
+                >{t(ui.doneReplay)}</button
+              >
+            </div>
           </div>
         </div>
       </div>
@@ -1205,44 +1209,29 @@ const ui = {
   .ab__phone {
     width: 100%;
     max-width: 322px;
+    height: 604px;
+    display: flex;
+    flex-direction: column;
     border: var(--bw-thin) solid var(--glass-edge);
     border-radius: 26px;
     background: var(--bg-elevated);
     padding: 10px;
     box-shadow: var(--shadow-2);
   }
-  .ab__phone[data-buzz] {
-    animation: ab-buzz 440ms var(--ease-standard);
-  }
-  @keyframes ab-buzz {
-    0%,
-    100% {
-      transform: translateX(0);
-    }
-    20% {
-      transform: translateX(-3px);
-    }
-    40% {
-      transform: translateX(3px);
-    }
-    60% {
-      transform: translateX(-2px);
-    }
-    80% {
-      transform: translateX(2px);
-    }
-  }
   .ab__phone-notch {
     width: 46px;
     height: 4px;
+    flex: none;
     margin: 0 auto 8px;
     border-radius: var(--r-pill);
     background: var(--border-hover);
   }
   .ab__tg {
+    position: relative;
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    height: 100%;
     border: var(--bw-thin) solid var(--border);
     border-radius: var(--r-lg);
     background: var(--bg-deep);
@@ -1309,12 +1298,16 @@ const ui = {
 
   .ab__tg-body {
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: var(--sp-2);
     padding: var(--sp-3);
-    min-height: 300px;
-    overflow: hidden;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .ab__tg-body::-webkit-scrollbar {
+    display: none;
   }
 
   /* скелетоны истории */
@@ -1367,6 +1360,7 @@ const ui = {
     border-radius: 14px;
     border-bottom-left-radius: 4px;
     background: var(--surface);
+    transform-origin: bottom left;
   }
   .ab__bubble[hidden] {
     display: none;
@@ -1384,6 +1378,22 @@ const ui = {
     border-bottom-left-radius: 10px;
     clip-path: polygon(0 100%, 100% 100%, 100% 0);
   }
+  /* исходящее сообщение (ты → боту) */
+  .ab__bubble--out {
+    align-self: flex-end;
+    border-color: var(--ab-line);
+    border-radius: 14px;
+    border-bottom-right-radius: 4px;
+    background: var(--ab-soft);
+    transform-origin: bottom right;
+  }
+  .ab__newmsg-txt {
+    margin: 0;
+    font-size: var(--fs-12);
+    line-height: var(--lh-snug);
+    color: var(--text);
+    overflow-wrap: anywhere;
+  }
   .ab__b-body {
     display: flex;
     flex-direction: column;
@@ -1396,29 +1406,36 @@ const ui = {
     font-size: var(--fs-10);
     color: var(--text-faint);
   }
-  .ab__appr-head .ab__b-time,
-  .ab__doneb-head .ab__b-time {
+  .ab__appr-head .ab__b-time {
     float: right;
     margin-left: var(--sp-2);
   }
 
-  /* прилёт / удаление сообщения */
+  /* появление сообщения — как в Telegram: растёт из нижнего угла + мягкий доводчик */
   .ab__bubble[data-arrive] {
-    animation: ab-arrive var(--dur-med) var(--ease-soft) both;
+    animation: ab-arrive 260ms var(--ease-spring) both;
   }
   @keyframes ab-arrive {
     from {
       opacity: 0;
-      transform: translate3d(0, 10px, 0);
+      transform: translateY(4px) scale(0.8);
+    }
+    55% {
+      opacity: 1;
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
     }
   }
+  /* удаление сообщения — быстрое схлопывание в угол */
   .ab__bubble[data-leave] {
-    animation: ab-leave var(--dur-fast) var(--ease-standard) both;
+    animation: ab-leave 180ms var(--ease-standard) both;
   }
   @keyframes ab-leave {
     to {
       opacity: 0;
-      transform: translate3d(0, -6px, 0) scale(0.97);
+      transform: scale(0.86);
     }
   }
 
@@ -1498,8 +1515,11 @@ const ui = {
     color: var(--accent);
     font-family: inherit;
     font-size: var(--fs-12);
-    line-height: 1.1;
+    line-height: 1.15;
     text-align: center;
+    overflow-wrap: normal;
+    word-break: keep-all;
+    hyphens: none;
   }
   .ab__ikb-btn--muted {
     color: var(--text-muted);
@@ -1579,20 +1599,120 @@ const ui = {
     color: var(--text-secondary);
   }
 
-  /* завершение задачи */
-  .ab__doneb-head {
+  /* модальное уведомление о завершении задачи */
+  .ab__modal {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--sp-4);
+    background: color-mix(in srgb, var(--bg-deep) 72%, transparent);
+    border-radius: var(--r-lg);
+  }
+  .ab__modal[hidden] {
+    display: none;
+  }
+  .ab__modal[data-arrive] .ab__modal-card {
+    animation: ab-modal-in var(--dur-med) var(--ease-spring) both;
+  }
+  @keyframes ab-modal-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.94);
+    }
+  }
+  .ab__modal-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-2);
+    width: 100%;
+    max-width: 260px;
+    padding: var(--sp-4) var(--sp-4) var(--sp-3);
+    border: var(--bw-thin) solid var(--ab-line);
+    border-radius: var(--r-lg);
+    background: var(--bg-elevated);
+    box-shadow: var(--shadow-2);
+    text-align: center;
+  }
+  .ab__modal-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--ab-ok) 20%, transparent);
+    color: var(--ab-ok);
+    font-size: var(--fs-16);
+  }
+  .ab__modal-title {
     margin: 0;
-    font-size: var(--fs-13);
+    font-family: var(--font-stack-display);
+    font-weight: var(--fw-semibold);
+    font-size: var(--fs-15);
     color: var(--text);
   }
-  .ab__doneb-sum {
+  .ab__modal-sum {
     margin: 0;
     font-size: var(--fs-12);
     color: var(--ab-hot);
   }
-  .ab__doneb-pick {
-    margin: 0;
+  .ab__modal-pick {
+    margin: var(--sp-1) 0 0;
     color: var(--text-muted);
+  }
+  .ab__modal-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+  }
+  .ab__modal-btn,
+  .ab__modal-replay {
+    min-height: var(--tap-min);
+    padding: var(--sp-2);
+    border: var(--bw-thin) solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--ab-ikb);
+    color: var(--accent);
+    font-family: inherit;
+    font-size: var(--fs-13);
+    cursor: pointer;
+    transition:
+      background-color var(--dur-fast) var(--ease-standard),
+      transform var(--dur-fast) var(--ease-soft);
+  }
+  .ab__modal-replay {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    min-height: auto;
+    padding: var(--sp-1);
+    font-size: var(--fs-12);
+  }
+  .ab__modal-btn:hover {
+    background: var(--ab-ikb-hi);
+  }
+  .ab__modal-replay:hover {
+    color: var(--text);
+  }
+  .ab__modal-btn:focus-visible,
+  .ab__modal-replay:focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+  @media (hover: none) {
+    .ab__modal-btn:active {
+      transform: scale(0.97);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ab__modal[data-arrive] .ab__modal-card {
+      animation: none !important;
+    }
   }
 
   /* строка ввода */
@@ -1901,8 +2021,7 @@ const ui = {
     .ab__spin,
     .ab__wire-dot,
     .ab__bubble[data-arrive],
-    .ab__bubble[data-leave],
-    .ab__phone[data-buzz] {
+    .ab__bubble[data-leave] {
       animation: none !important;
     }
   }
@@ -1988,7 +2107,6 @@ const ui = {
       const files = Array.from(root.querySelectorAll<HTMLElement>("[data-file]"));
       const wireLabel = root.querySelector<HTMLElement>("[data-wire-label]");
 
-      const phone = root.querySelector<HTMLElement>("[data-phone]");
       const tgSub = root.querySelector<HTMLElement>("[data-tg-sub]");
       const clearDiv = root.querySelector<HTMLElement>("[data-clear]");
       const clearTxt = root.querySelector<HTMLElement>("[data-clear-txt]");
@@ -2001,6 +2119,7 @@ const ui = {
       const liveFiles = root.querySelector<HTMLElement>("[data-live-files]");
       const liveMode = root.querySelector<HTMLElement>("[data-live-mode]");
 
+      const tgBody = root.querySelector<HTMLElement>("[data-tg]");
       const appr = root.querySelector<HTMLElement>("[data-appr]");
       const apprSid = root.querySelector<HTMLElement>("[data-appr-sid]");
       const apprKind = root.querySelector<HTMLElement>("[data-appr-kind]");
@@ -2012,7 +2131,9 @@ const ui = {
       const denyBtn = root.querySelector<HTMLButtonElement>('[data-act="deny"]');
       const ignoreBtn = root.querySelector<HTMLButtonElement>('[data-act="ignore"]');
 
-      const doneB = root.querySelector<HTMLElement>("[data-done]");
+      const newmsg = root.querySelector<HTMLElement>("[data-newmsg]");
+      const newmsgTxt = root.querySelector<HTMLElement>("[data-newmsg-txt]");
+      const modal = root.querySelector<HTMLElement>("[data-modal]");
       const doneSum = root.querySelector<HTMLElement>("[data-done-sum]");
       const sceneGoBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-scene-go]"));
       const replayBtn = root.querySelector<HTMLButtonElement>("[data-scene-replay]");
@@ -2151,15 +2272,13 @@ const ui = {
       };
 
       // ── анимации ──
-      const buzz = (): void => {
-        if (reduced || !phone) return;
-        phone.removeAttribute("data-buzz");
-        void phone.offsetWidth;
-        phone.setAttribute("data-buzz", "1");
+      const scrollChat = (): void => {
+        if (tgBody) tgBody.scrollTop = tgBody.scrollHeight;
       };
       const bubbleIn = (el: HTMLElement): void => {
         el.hidden = false;
         el.removeAttribute("data-leave");
+        scrollChat();
         if (reduced) return;
         el.removeAttribute("data-arrive");
         void el.offsetWidth;
@@ -2248,7 +2367,6 @@ const ui = {
           if (apprWhat) apprWhat.textContent = st.mcp ? "MCP tool" : "shell command";
           if (apprWhy) apprWhy.textContent = st.why;
           bubbleIn(appr);
-          buzz();
           if (activeMode === "readonly") {
             setButtons(false);
             later(() => decide("allow"), D(850));
@@ -2286,6 +2404,20 @@ const ui = {
         later(next, D(620));
       };
 
+      const openModal = (): void => {
+        if (!modal) return;
+        modal.hidden = false;
+        if (reduced) return;
+        modal.removeAttribute("data-arrive");
+        void modal.offsetWidth;
+        modal.setAttribute("data-arrive", "1");
+      };
+      const closeModal = (): void => {
+        if (!modal) return;
+        modal.hidden = true;
+        modal.removeAttribute("data-arrive");
+      };
+
       const finish = (): void => {
         phase = "done";
         stage.dataset.state = "done";
@@ -2294,13 +2426,14 @@ const ui = {
         setTermStatus(TXT.done);
         paintLive("done");
         if (doneSum) doneSum.textContent = sc.done;
-        bubbleIn(doneB!);
-        buzz();
+        // отдельное модальное уведомление о завершении
+        later(openModal, D(420));
       };
 
-      // ── старт сцены ──
+      // ── старт новой сессии: ты ставишь задачу → бот подхватывает ──
       const startScene = (idx: number): void => {
         clearTimers();
+        closeModal();
         sceneIdx = ((idx % scenes.length) + scenes.length) % scenes.length;
         si = 0;
         toolCount = 0;
@@ -2310,7 +2443,7 @@ const ui = {
         phase = "running";
         clearTerm();
         appr.hidden = true;
-        if (doneB) doneB.hidden = true;
+        live.hidden = true;
         setButtons(false);
         setSub(false);
         files.forEach((f) => f.classList.remove("is-active", "is-touched"));
@@ -2322,15 +2455,24 @@ const ui = {
         firstRun = false;
 
         const sc = scene();
-        live.hidden = false;
-        paintLive("run");
-        bubbleIn(live);
-        buzz();
         stage.dataset.state = "working";
         stage.dataset.kind = "shell";
         setTermStatus(TXT.working);
-        addLine("prompt", { text: `> ${sc.task}` });
-        later(next, D(600));
+
+        // 1) исходящее: ты ставишь агенту задачу
+        if (newmsgTxt) newmsgTxt.textContent = `🆕 ${sc.task}`;
+        if (newmsg) bubbleIn(newmsg);
+
+        // 2) бот «печатает…» → 3) прилетает live-сессия → 4) терминал стартует
+        setSub(true);
+        later(() => {
+          setSub(false);
+          live.hidden = false;
+          paintLive("run");
+          bubbleIn(live);
+          addLine("prompt", { text: sc.task });
+          later(next, D(560));
+        }, D(780));
       };
 
       // ── запуск после интро + во вьюпорте ──

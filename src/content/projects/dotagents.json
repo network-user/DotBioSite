@@ -84,11 +84,11 @@
   },
   "metrics": [
     {
-      "value": "~10",
+      "value": "10",
       "unit": "дней",
       "label": {
-        "ru": "от каркаса до Stage 2: спавн, Mini App, сессии",
-        "en": "from scaffold to Stage 2: spawn, Mini App, sessions"
+        "ru": "активной разработки от первого коммита до рабочего MVP, дальше полировка",
+        "en": "of active build from first commit to a working MVP, then polish"
       }
     },
     {
@@ -120,7 +120,7 @@
       }
     },
     {
-      "value": "127.0.0.1",
+      "value": "localhost",
       "label": {
         "ru": "loopback: код не уходит с машины",
         "en": "loopback: code never leaves the machine"
