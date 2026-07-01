@@ -676,22 +676,22 @@ const nav = {
         <div class="sf__viz sf__viz--pipeline" data-sf-viz="pipeline" hidden>
           <div class="sf__pl-flow">
             <div class="sf__pl-node" data-pl-node="raw"
-              data-pl-hint-ru={pipelineHints.raw.ru}
-              data-pl-hint-en={pipelineHints.raw.en}>
+              data-pl-hint-ru={pipelineHints.raw?.ru}
+              data-pl-hint-en={pipelineHints.raw?.en}>
               <span class="sf__pl-ico mono" aria-hidden="true">♪</span>
               <span class="sf__pl-label">{t(pipeline.raw)}</span>
             </div>
             <span class="sf__arrow" aria-hidden="true"></span>
             <div class="sf__pl-node" data-pl-node="dedup"
-              data-pl-hint-ru={pipelineHints.dedup.ru}
-              data-pl-hint-en={pipelineHints.dedup.en}>
+              data-pl-hint-ru={pipelineHints.dedup?.ru}
+              data-pl-hint-en={pipelineHints.dedup?.en}>
               <span class="sf__pl-ico mono" aria-hidden="true">⊘</span>
               <span class="sf__pl-label">{t(pipeline.dedup)}</span>
             </div>
             <span class="sf__arrow" aria-hidden="true"></span>
             <div class="sf__pl-node sf__pl-node--core" data-pl-node="ffmpeg"
-              data-pl-hint-ru={pipelineHints.ffmpeg.ru}
-              data-pl-hint-en={pipelineHints.ffmpeg.en}>
+              data-pl-hint-ru={pipelineHints.ffmpeg?.ru}
+              data-pl-hint-en={pipelineHints.ffmpeg?.en}>
               <span class="sf__pl-ico mono" aria-hidden="true">⚙</span>
               <span class="sf__pl-label">{t(pipeline.ffmpeg)}</span>
             </div>
@@ -3004,7 +3004,9 @@ const nav = {
     const lsEqTick = (ts: number): void => {
       const t = ts * 0.001;
       lsEqBars.forEach((bar, i) => {
-        const [f1, f2, f3, a1, a2, a3] = EQ_CFG[i];
+        const cfg = EQ_CFG[i];
+        if (!cfg) return;
+        const [f1, f2, f3, a1, a2, a3] = cfg;
         const raw = Math.sin(t * f1) * a1 + Math.sin(t * f2) * a2 + Math.sin(t * f3) * a3;
         const v = Math.max(0.1, Math.min(0.98, (raw + 1) * 0.5));
         bar.style.transform = `scaleY(${v.toFixed(3)})`;
