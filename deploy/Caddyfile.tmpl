@@ -1,35 +1,25 @@
-# Шаблон конфига Caddy. deploy/setup.sh подставит {{DOMAIN}} и {{ROOT}}
-# и запишет результат в /etc/caddy/Caddyfile. Вручную править не нужно:
-# меняй этот шаблон и перезапусти setup.sh.
+# Шаблон конфига Caddy для деплоя ЗА Cloudflare Tunnel.
+# deploy/setup.sh подставит {{ROOT}} и {{PORT}} и запишет результат в
+# /etc/caddy/Caddyfile. Вручную править не нужно: меняй этот шаблон и
+# перезапусти setup.sh.
+#
+# Ключевое отличие от «обычного» деплоя: Caddy слушает ТОЛЬКО loopback
+# (127.0.0.1:{{PORT}}) по HTTP и НЕ трогает порты 80/443 хоста. Публичный
+# HTTPS терминирует Cloudflare, cloudflared туннелит поддомен на этот порт.
+# Поэтому здесь нет имени домена и нет ACME: наружу Caddy не смотрит,
+# сертификаты не выпускает, ни с чем на 80/443 не конфликтует.
 
-# ── Глобальные опции ────────────────────────────────────────────────────────
-# Анти-slowloris таймауты: главная защита одиночного сервера от «удержания»
-# соединений медленной отправкой/чтением. Ограничивают, сколько клиент может
-# тянуть передачу заголовков/тела, держать idle-соединение и слать заголовки.
-{
-	servers {
-		timeouts {
-			read_body   10s
-			read_header 5s
-			write       60s
-			idle        2m
-		}
-		max_header_size 16KB
-	}
-}
-
-{{DOMAIN}} {
+# Схема http:// + loopback-адрес => Caddy НЕ включает auto-HTTPS и не биндит
+# 80/443. Слушает только локальный порт, доступный лишь cloudflared на этом же
+# хосте.
+http://127.0.0.1:{{PORT}} {
 	root * {{ROOT}}
 
-	# Режем огромные тела запросов на входе (сайт статический, POST-тел нет).
-	request_body {
-		max_size 256KB
-	}
-
-	# Сжатие на лету (zstd предпочтительнее, gzip как фолбэк)
+	# Сжатие на лету (zstd предпочтительнее, gzip как фолбэк). Cloudflare может
+	# сжать и сам, но так отдаём уже сжатое и на loopback.
 	encode zstd gzip
 
-	# ── Security-заголовки (перенесено из public/_headers) ──────────────────
+	# ── Security-заголовки (доходят до браузера через Cloudflare) ────────────
 	header {
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
@@ -40,13 +30,13 @@
 		Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data: https:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; form-action 'self'; upgrade-insecure-requests"
 		# Скрываем "Server: Caddy"
 		-Server
-		# HSTS: деплой только по HTTPS (Caddy авто-Let's Encrypt). Необратимо
-		# на срок max-age, браузеры запомнят домен как HTTPS-only. "preload"
-		# добавлять только когда все поддомены гарантированно на HTTPS.
+		# HSTS: публичный доступ только по HTTPS (его обеспечивает Cloudflare).
+		# Необратимо на срок max-age, браузеры запомнят поддомен как HTTPS-only.
+		# "preload" добавлять только когда весь поддомен гарантированно на HTTPS.
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 	}
 
-	# ── Cache-Control (перенесено из public/_headers) ───────────────────────
+	# ── Cache-Control ───────────────────────────────────────────────────────
 	# Хэшированные ассеты: на год, immutable
 	@assets path /_assets/*
 	header @assets Cache-Control "public, max-age=31536000, immutable"

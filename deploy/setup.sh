@@ -1,22 +1,33 @@
 #!/usr/bin/env bash
 # =============================================================================
-# DotBioSite: первичная настройка и деплой на сервер (Ubuntu/Debian).
+# DotBioSite: первичная настройка и деплой портфолио ЗА Cloudflare Tunnel
+# (Ubuntu/Debian). Изолированный вариант: не открывает наружу ни одного порта
+# и НЕ трогает 80/443 хоста, поэтому спокойно сосуществует с другим сервисом
+# (например, Docker-стеком, который уже держит 80/443) - пересечений нет.
 #
 # Что делает (идемпотентно, можно гонять повторно):
-#   1. Ставит Node 20 (NodeSource) и Caddy, если их нет.
-#   2. Спрашивает/принимает домен, создаёт .env (если его ещё нет).
-#   3. Собирает статику (npm ci → build) и СРАЗУ чистит node_modules,
+#   1. Ставит Node 20 (NodeSource), Caddy и cloudflared, если их нет.
+#   2. Спрашивает/принимает поддомен, создаёт .env (если его ещё нет).
+#   3. Собирает статику (npm ci -> build) и СРАЗУ чистит node_modules,
 #      .astro и npm-кэш; на диске остаётся только готовый dist/.
-#   4. Генерирует /etc/caddy/Caddyfile из шаблона и перезапускает Caddy.
-#      Caddy сам получит TLS-сертификат Let's Encrypt (домен + порты 80/443).
+#   4. Генерирует /etc/caddy/Caddyfile из шаблона: Caddy слушает ТОЛЬКО
+#      127.0.0.1:$PORT по HTTP, наружу не смотрит.
+#   5. Устанавливает cloudflared и подключает туннель по токену. Публичный
+#      HTTPS на поддомене выдаёт Cloudflare, трафик идёт через туннель на
+#      локальный Caddy. Порты 80/443 хоста не используются.
 #
 # Запуск:
-#   sudo bash deploy/setup.sh example.com
-#   (домен можно не указывать, скрипт спросит)
+#   sudo bash deploy/setup.sh me.example.com
+#   (поддомен можно не указывать, скрипт спросит)
+#   Токен туннеля - через переменную окружения или интерактивно:
+#   sudo TUNNEL_TOKEN='eyJ...' bash deploy/setup.sh me.example.com
 # =============================================================================
 set -euo pipefail
 
 NODE_MAJOR=20
+# Локальный порт Caddy (только loopback, наружу не публикуется). Поменять при
+# конфликте с чем-то локальным: PORT=8790 sudo bash deploy/setup.sh ...
+PORT="${PORT:-8787}"
 
 # --- root -------------------------------------------------------------------
 if [ "$(id -u)" -ne 0 ]; then
@@ -32,26 +43,30 @@ ENV_FILE="$REPO_DIR/.env"
 CADDYFILE="/etc/caddy/Caddyfile"
 TEMPLATE="$SCRIPT_DIR/Caddyfile.tmpl"
 
-# --- домен -------------------------------------------------------------------
+# --- порт: только целое число (уходит в конфиг Caddy) ------------------------
+case "$PORT" in "" | *[!0-9]*) echo "Ошибка: PORT должен быть целым числом." >&2; exit 1 ;; esac
+
+# --- поддомен ----------------------------------------------------------------
+# Нужен для PUBLIC_DOMAIN (site URL, OG в сборке). Сам маршрут поддомена на
+# туннель задаётся в дашборде Cloudflare, не здесь.
 DOMAIN="${1:-${DOMAIN:-}}"
 if [ -z "$DOMAIN" ]; then
-	read -rp "Домен (например, example.com): " DOMAIN
+	read -rp "Поддомен портфолио (например, me.example.com): " DOMAIN
 fi
-# отрезаем протокол и хвост, если ввели целиком
 DOMAIN="${DOMAIN#http://}"
 DOMAIN="${DOMAIN#https://}"
 DOMAIN="${DOMAIN%%/*}"
 if [ -z "$DOMAIN" ]; then
-	echo "Ошибка: домен обязателен." >&2
+	echo "Ошибка: поддомен обязателен." >&2
 	exit 1
 fi
-# Валидация: только буквы, цифры, точка и дефис (имя хоста). Закрывает попадание
-# спецсимволов в sed-подстановку Caddyfile ('|', '&') и мусора в сам конфиг.
+# Валидация: только буквы, цифры, точка и дефис (имя хоста).
 if ! printf '%s' "$DOMAIN" | grep -qE '^[A-Za-z0-9.-]+$'; then
 	echo "Ошибка: недопустимый домен '$DOMAIN' (разрешены буквы, цифры, точка, дефис)." >&2
 	exit 1
 fi
-echo "==> Домен: $DOMAIN"
+echo "==> Поддомен: $DOMAIN"
+echo "==> Локальный порт Caddy (loopback): $PORT"
 
 export DEBIAN_FRONTEND=noninteractive
 
@@ -68,9 +83,6 @@ if command -v node >/dev/null 2>&1; then
 fi
 if [ "$need_node" -eq 1 ]; then
 	echo "==> Установка Node ${NODE_MAJOR} (NodeSource, подписанный keyring)..."
-	# Не пайпим установочный скрипт NodeSource в bash от root: добавляем
-	# подписанный apt-репозиторий вручную (как для Caddy ниже), чтобы apt
-	# проверял GPG-подпись пакетов и MITM/компрометация CDN не давала RCE.
 	curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
 		| gpg --batch --yes --dearmor -o /usr/share/keyrings/nodesource.gpg
 	echo "deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" \
@@ -95,10 +107,23 @@ else
 	echo "==> Caddy уже есть: $(caddy version)"
 fi
 
+# --- cloudflared -------------------------------------------------------------
+# Ставим из официального .deb с GitHub (тянет нужную арх., подхватывает
+# apt-зависимости). Сам туннель подключаем ниже по токену.
+if ! command -v cloudflared >/dev/null 2>&1; then
+	echo "==> Установка cloudflared..."
+	ARCH="$(dpkg --print-architecture)"
+	curl -fsSL "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${ARCH}.deb" \
+		-o /tmp/cloudflared.deb
+	apt-get install -y -qq /tmp/cloudflared.deb >/dev/null
+	rm -f /tmp/cloudflared.deb
+else
+	echo "==> cloudflared уже есть: $(cloudflared --version 2>/dev/null | head -n1)"
+fi
+
 # --- .env --------------------------------------------------------------------
-# Создаём только если файла ещё нет, чтобы не затирать ручные правки при
-# повторных запусках. Поля имени НЕ пишем (Zod применит дефолты .ядро/.core;
-# пустые значения тут уронили бы сборку из-за min(1)).
+# Создаём только если файла ещё нет, чтобы не затирать ручные правки. Поля
+# имени НЕ пишем (Zod применит дефолты .ядро/.core; пустые уронили бы сборку).
 if [ ! -f "$ENV_FILE" ]; then
 	echo "==> Создаю .env"
 	cat > "$ENV_FILE" <<EOF
@@ -143,13 +168,39 @@ fi
 # Caddy работает под пользователем caddy, даём доступ на чтение статики
 chmod -R a+rX "$DIST_DIR"
 
-# --- Caddyfile ---------------------------------------------------------------
-echo "==> Конфиг Caddy для $DOMAIN..."
+# --- Caddyfile (loopback, без домена и ACME) ---------------------------------
+echo "==> Конфиг Caddy (loopback 127.0.0.1:$PORT)..."
 mkdir -p /etc/caddy
-sed -e "s|{{DOMAIN}}|$DOMAIN|g" -e "s|{{ROOT}}|$DIST_DIR|g" "$TEMPLATE" > "$CADDYFILE"
+sed -e "s|{{ROOT}}|$DIST_DIR|g" -e "s|{{PORT}}|$PORT|g" "$TEMPLATE" > "$CADDYFILE"
 caddy validate --config "$CADDYFILE" --adapter caddyfile
 systemctl enable --now caddy >/dev/null 2>&1 || true
 systemctl reload caddy 2>/dev/null || systemctl restart caddy
+
+# --- Cloudflare Tunnel -------------------------------------------------------
+# cloudflared держит исходящее соединение к Cloudflare и туннелит поддомен на
+# 127.0.0.1:$PORT. Наружу порты не открываются. Маршрут (public hostname
+# поддомен -> http://localhost:$PORT) задаётся в дашборде Cloudflare при
+# создании туннеля; сюда нужен только его токен (секрет, в git не хранить).
+if systemctl is-active --quiet cloudflared 2>/dev/null; then
+	echo "==> cloudflared уже запущен, туннель не трогаю"
+else
+	TOKEN="${TUNNEL_TOKEN:-}"
+	if [ -z "$TOKEN" ]; then
+		echo
+		echo "Вставь Tunnel token из Cloudflare Zero Trust:"
+		echo "  Networks -> Tunnels -> (создать/выбрать туннель) -> Install connector,"
+		echo "  скопируй строку токена (eyJ...). Пусто = пропустить, подключишь позже."
+		read -rsp "TUNNEL_TOKEN: " TOKEN; echo
+	fi
+	if [ -n "$TOKEN" ]; then
+		echo "==> Подключаю cloudflared к туннелю..."
+		cloudflared service install "$TOKEN"
+		systemctl enable --now cloudflared >/dev/null 2>&1 || true
+	else
+		echo "==> Токен не задан. cloudflared установлен, туннель НЕ подключён."
+		echo "    Подключить позже: sudo cloudflared service install <TOKEN>"
+	fi
+fi
 
 # --- чистим кэш пакетного менеджера ------------------------------------------
 apt-get clean
@@ -159,13 +210,16 @@ rm -rf /var/lib/apt/lists/*
 echo
 echo "================================================================"
 echo " Готово. Сайт: https://$DOMAIN"
-echo " (первый запрос может секунду подождать выпуск TLS-сертификата)"
+echo "----------------------------------------------------------------"
+echo " В дашборде Cloudflare у туннеля должен быть public hostname:"
+echo "   $DOMAIN  ->  HTTP  ->  localhost:$PORT"
+echo " Порты 80/443 хоста НЕ используются (их можно не открывать)."
 echo "----------------------------------------------------------------"
 echo " Размер dist/: $(du -sh "$DIST_DIR" 2>/dev/null | cut -f1)"
 echo " Свободно на диске:"
 df -h / | sed 's/^/   /'
 echo "================================================================"
 echo " Обновить сайт позже:  sudo bash deploy/update.sh"
-echo " Защита от флуда:      sudo bash deploy/harden.sh"
 echo " Логи Caddy:           journalctl -u caddy -f"
+echo " Логи туннеля:         journalctl -u cloudflared -f"
 echo "================================================================"
