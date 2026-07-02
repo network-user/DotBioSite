@@ -79,21 +79,26 @@ sudo docker compose up -d --build
 
 ## Шаг 3. Подключить к фронт-Caddy DotSound (один раз)
 
-В репозитории DotSound уже добавлены два site-блока в `Caddyfile` (секция
-"Co-hosted sites"). Осталось:
+В репозитории DotSound уже есть два site-блока в `Caddyfile` (секция
+"Co-hosted sites"), их домены читаются из переменных `PORTFOLIO_DOMAIN` и
+`DOTLEARN_DOMAIN`. Сам Caddyfile (с именами переменных) уже закоммичен -
+реальные домены в git не попадают. Осталось:
 
-1. **Заменить домены-плейсхолдеры** `portfolio.example.com` и `learn.example.com`
-   на свои реальные поддомены.
-2. **Закоммитить в git DotSound (origin/main).** Это обязательно: `deploy.sh`
-   DotSound делает `git reset --hard origin/main`, и только-локальные правки
-   Caddyfile сотрутся при следующем его деплое.
-3. Перезагрузить фронт-Caddy без даунтайма:
-
-```bash
-cd /opt/dotsound/DotSoundBackend
-docker compose -f docker-compose.yml -f docker-compose.prod.yml \
-  exec caddy caddy reload --config /etc/caddy/Caddyfile
-```
+1. **Задать поддомены в `.env` DotSound** (`/opt/dotsound/DotSoundBackend/.env`):
+   ```
+   PORTFOLIO_DOMAIN=me.example.com
+   DOTLEARN_DOMAIN=learn.example.com
+   ```
+   Формат - голый хостнейм без `https://`. `.env` не в git, поэтому домены не
+   раскрываются и переживают `git reset --hard` в `deploy.sh`. Если переменная
+   пуста, блок падает на дефолт `*.localhost` (внутренний сайт, DotSound не
+   задет).
+2. Перезагрузить фронт-Caddy без даунтайма:
+   ```bash
+   cd /opt/dotsound/DotSoundBackend
+   docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+     exec caddy caddy reload --config /etc/caddy/Caddyfile
+   ```
 
 Через несколько секунд оба поддомена отвечают по HTTPS (Caddy выпустит для них
 сертификаты). Существующий сайт DotSound при `reload` не прерывается.

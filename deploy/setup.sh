@@ -147,15 +147,11 @@ echo
 echo "================================================================"
 echo " Готово. Контейнер portfolio отдаёт статику в сети dotsound."
 echo "----------------------------------------------------------------"
-echo " Осталось (один раз) в стеке DotSound - добавить в его Caddyfile:"
-echo
-echo "   $DOMAIN {"
-echo "       reverse_proxy portfolio:80"
-echo "   }"
-echo
+echo " Осталось (один раз) в стеке DotSound - задать поддомен в его .env:"
+echo "   PORTFOLIO_DOMAIN=$DOMAIN"
 echo " и перезагрузить фронт-Caddy DotSound:"
 echo "   docker compose -f docker-compose.yml -f docker-compose.prod.yml exec caddy caddy reload --config /etc/caddy/Caddyfile"
-echo " (детали и как это переживает git reset - в deploy/README.md)"
+echo " (site-блок уже в Caddyfile DotSound; детали - в deploy/README.md)"
 echo "----------------------------------------------------------------"
 echo " Размер dist/: $(du -sh "$DIST_DIR" 2>/dev/null | cut -f1)"
 echo " Обновить сайт позже:  sudo bash deploy/update.sh"
