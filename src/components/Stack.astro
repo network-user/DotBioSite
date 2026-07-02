@@ -17,16 +17,16 @@ interface StackGroup {
   icon: StackIcon;
   items: ReadonlyArray<string>;
   /**
-   * Сколько первых чипов — «ядро» группы, которое видно всегда (только для
+   * Сколько первых чипов образуют «ядро» группы, которое видно всегда (только для
    * primary-групп). Остальные чипы и непоказанные группы целиком раскрываются
-   * по кнопке. Порядок в `items` подобран так, что ядро — самое узнаваемое и
+   * по кнопке. Порядок в `items` подобран так, что ядро идёт самым узнаваемым и
    * весомое; нишевое уходит в хвост.
    */
   core?: number;
 }
 
 /**
- * Стек жёстко не привязан к i18n — это технические термины,
+ * Стек жёстко не привязан к i18n: это технические термины,
  * читаются одинаково на обоих языках. Иконки берутся из общего набора
  * Icon.astro (24×24 stroke).
  */
@@ -164,8 +164,8 @@ const groups: ReadonlyArray<StackGroup> = [
 /**
  * Свёрнуто видно только ядро трёх primary-групп (Backend / Frontend / AI · ML):
  * сразу читается фокус, без свалки чипов. По кнопке-счётчику раскрывается весь
- * арсенал — хвосты primary-групп дорисовываются в тех же карточках, плюс
- * появляются остальные группы. Механика — чистый CSS (checkbox + `~`): без JS,
+ * арсенал: хвосты primary-групп дорисовываются в тех же карточках, плюс
+ * появляются остальные группы. Механика на чистом CSS (checkbox + `~`): без JS,
  * без мигания при загрузке, доступно с клавиатуры.
  */
 const PRIMARY_COUNT = 3;
@@ -177,7 +177,7 @@ const layout = groups.map((g, i) => {
   return { group: g, isPrimary, coreCount };
 });
 
-/** Сколько чипов спрятано в свёрнутом виде — это число выносим на кнопку. */
+/** Сколько чипов спрятано в свёрнутом виде: это число выносим на кнопку. */
 const hiddenCount = layout.reduce(
   (sum, { group, isPrimary, coreCount }) =>
     sum + (isPrimary ? Math.max(0, group.items.length - coreCount) : group.items.length),
@@ -235,7 +235,7 @@ const hiddenCount = layout.reduce(
       }
     </div>
 
-    {/* height:0 + overflow:visible — карточки плавают ниже секции, не сдвигая Projects */}
+    {/* height:0 + overflow:visible: карточки плавают ниже секции, не сдвигая Projects */}
     <div class="stack__extras-wrap" id="stack-extras">
       <div class="stack__extras-grid">
         {
@@ -345,12 +345,12 @@ const hiddenCount = layout.reduce(
     gap: var(--sp-4);
     overflow: hidden;
     /* Counter-drift к курсору снят (см. .stack__grid). Hover-подъём целиком на
-       .glass--hover (translateY + тень) — он чисто hover-driven, без --ptr. */
+       .glass--hover (translateY + тень): он чисто hover-driven, без --ptr. */
   }
 
   /* Pointer-follow sheen: a soft radial light that tracks the cursor inside the
      card. Positioned via transform (translate of an oversized layer) and faded
-     with opacity only — no filter/box-shadow churn. --mx/--my (px, card-local)
+     with opacity only, no filter/box-shadow churn. --mx/--my (px, card-local)
      are written by a rAF-batched scoped listener; defaults keep it centered. */
   .stack__sheen {
     position: absolute;
@@ -442,7 +442,7 @@ const hiddenCount = layout.reduce(
     transform: translateY(-2px);
   }
 
-  /* Disclosure: свёрнуто видно только ядро primary-групп. Раскрытие — чистый
+  /* Disclosure: свёрнуто видно только ядро primary-групп. Раскрытие идёт чистым
      CSS через скрытый чекбокс + общий комбинатор `~`: без JS, без FOUC,
      фокус с клавиатуры сохранён. Хвосты ядра и доп.группы помечены `--extra`. */
   .stack__expand {
@@ -638,7 +638,7 @@ const hiddenCount = layout.reduce(
   }
 
   /* Тач-эквивалент hover: обводку даёт общий хук .glass--hover.is-touch-active
-     (glass.css), а здесь — запуск sweep-полосы, когда карточка попадает в центр
+     (glass.css), а здесь идёт запуск sweep-полосы, когда карточка попадает в центр
      вьюпорта при прокрутке (на desktop её запускает :hover). Отдельная мобильная
      реализация; desktop (hover: hover) этого правила не видит. */
   @media (hover: none) {

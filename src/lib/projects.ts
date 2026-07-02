@@ -1,5 +1,5 @@
 /**
- * projects.ts — загрузка и типизация проектов из `content/projects/*.json`.
+ * projects.ts: загрузка и типизация проектов из `content/projects/*.json`.
  *
  * Используем `import.meta.glob` от Vite для статического импорта всех JSON.
  * Это работает и в SSR (Astro pages), и в островах при необходимости.
@@ -12,14 +12,14 @@ export interface ProjectRepo {
   /** Короткое отображаемое имя в карточке (например, "Backend"). */
   name: string;
   /**
-   * Имя GitHub-репозитория. Если не задано — берётся `name`. URL собирается
+   * Имя GitHub-репозитория. Если не задано, берётся `name`. URL собирается
    * как `https://github.com/<PUBLIC_GITHUB_USER>/<repo>`. Указывай явно,
    * когда отображаемое имя отличается от имени репо (например, "Backend" в
    * UI, но `DotSoundBackend` в GitHub).
    */
   repo?: string;
   /**
-   * Явный URL репозитория. Перекрывает авто-сборку из `repo`/`name` — полезно
+   * Явный URL репозитория. Перекрывает авто-сборку из `repo`/`name`: полезно
    * для репозиториев под чужим аккаунтом/организацией.
    */
   url?: string;
@@ -37,9 +37,9 @@ export type ProjectCategory = "platform" | "bot" | "tool" | "site" | "library";
 export type ProjectStatus = "active" | "wip" | "beta" | "archived";
 /**
  * Тир проекта в витрине:
- *   - "product" (по умолчанию) — флагманский продукт: featured-карточка, case-
+ *   - "product" (по умолчанию): флагманский продукт, featured-карточка, case-
  *     страница, веха в таймлайне.
- *   - "infra" — инструмент/инфраструктура экосистемы DotCore: лёгкая карточка
+ *   - "infra": инструмент/инфраструктура экосистемы DotCore, лёгкая карточка
  *     со ссылкой прямо в репозиторий, без отдельной case-страницы и без вехи в
  *     таймлайне. Рендерится отдельной подсекцией «Экосистема DotCore».
  */
@@ -75,13 +75,13 @@ export interface ProjectArchitectureNode {
   width?: number;
   height?: number;
   emphasis?: "default" | "strong";
-  /** Радиальная раскладка (для звёзд): `angle` — направление от хаба в градусах
-   *  (0 = вверх, по часовой), `radius` — вынос от центра холста в px. Хаб задаёт
+  /** Радиальная раскладка (для звёзд): `angle`: направление от хаба в градусах
+   *  (0 = вверх, по часовой), `radius`: вынос от центра холста в px. Хаб задаёт
    *  `radius: 0` и встаёт в центр. Приоритетнее `col`. См. Architecture.astro. */
   angle?: number;
   radius?: number;
-  /** Слоистая раскладка (для потоков): `col` — колонка слева направо (стадия
-   *  потока), `row` — порядок внутри колонки сверху вниз. Компонент сам считает
+  /** Слоистая раскладка (для потоков): `col`: колонка слева направо (стадия
+   *  потока), `row`: порядок внутри колонки сверху вниз. Компонент сам считает
    *  ровные, выровненные координаты. См. Architecture.astro. */
   col?: number;
   row?: number;
@@ -89,7 +89,7 @@ export interface ProjectArchitectureNode {
    *  не заданы ни `angle`, ни `col`. */
   x?: number;
   y?: number;
-  /** Короткое двуязычное пояснение роли узла — раскрывается по клику на капсулу
+  /** Короткое двуязычное пояснение роли узла: раскрывается по клику на капсулу
    *  в диаграмме (см. Architecture.astro, слой «клик → пояснение»). */
   desc?: { ru: string; en: string };
 }
@@ -107,18 +107,18 @@ export interface ProjectArchitectureEdge {
    *  рёбрам-перескокам, которым авто-грань мешала бы обойти соседний блок. */
   fromSide?: "t" | "b" | "l" | "r";
   toSide?: "t" | "b" | "l" | "r";
-  /** Принудительно односторонний поток (без ответного пакета в анимации) — для
+  /** Принудительно односторонний поток (без ответного пакета в анимации): для
    *  записей-стоков: отчёт на диск, нотификация, отгрузка в очередь. По умолчанию
-   *  односторонними считаются только `async`-рёбра; `sync`/`data` — round-trip. */
+   *  односторонними считаются только `async`-рёбра; `sync`/`data`: round-trip. */
   oneway?: boolean;
 }
 
 export interface ProjectCluster {
   label: string;
-  /** Id узлов кластера — рамка считается как их общий bounding box + отступ
+  /** Id узлов кластера: рамка считается как их общий bounding box + отступ
    *  (предпочтительно при слоистой раскладке). */
   members?: ReadonlyArray<string>;
-  /** Явные координаты рамки (legacy) — используются, если не заданы `members`. */
+  /** Явные координаты рамки (legacy): используются, если не заданы `members`. */
   x?: number;
   y?: number;
   width?: number;
@@ -130,7 +130,7 @@ export interface ProjectCapability {
   title: { ru: string; en: string };
   description: { ru: string; en: string };
   /** Опциональная конкретика, раскрываемая по клику (число, механизм, пример).
-   *  Нет — карточка статична; есть — появляется кнопка раскрытия. */
+   *  Нет: карточка статична; есть: появляется кнопка раскрытия. */
   detail?: { ru: string; en: string };
 }
 
@@ -158,21 +158,21 @@ export interface Project {
   links?: ProjectLinks;
   /** Путь к обложке, относительный (`/projects/<slug>/cover.webp`) или абсолютный URL. */
   cover?: string;
-  /** OG-картинка для соцсетей (логотип-локап). Если не задана — берётся `cover`. */
+  /** OG-картинка для соцсетей (логотип-локап). Если не задана, берётся `cover`. */
   ogImage?: string;
   /** Project accent color used for card borders, media glow, and hero treatment. */
   accent?: string;
   /** Short measurable proof points for the project card. */
   highlights?: ReadonlyArray<ProjectHighlight>;
-  /** Если true — проект показывается в TODO разделе как «скоро». */
+  /** Если true, проект показывается в TODO разделе как «скоро». */
   comingSoon?: boolean;
 
   // ---------- Расширения для case-study страницы (все опциональны) ----------
   /** Переопределяет `tagline` на case-странице (hero + meta description) и
-   *  оставляет `tagline` домашней карточке нетронутым. Без поля — общий текст. */
+   *  оставляет `tagline` домашней карточке нетронутым. Без поля: общий текст. */
   caseTagline?: { ru: string; en: string };
   /** Переопределяет `description` на case-странице (schema.org structuredData).
-   *  Без поля — общий текст, как и раньше. */
+   *  Без поля: общий текст, как и раньше. */
   caseDescription?: { ru: string; en: string };
   overview?: { ru: ReadonlyArray<string>; en: ReadonlyArray<string> };
   metrics?: ReadonlyArray<ProjectMetric>;
@@ -191,16 +191,16 @@ const modules = import.meta.glob<{ default: Project }>("../content/projects/*.js
 /**
  * Кураторский порядок проектов в сетке на главной. Первый = «featured».
  * Слаги вне списка попадают в конец и сортируются по `year` (новые выше).
- * Это единственное место, где задаётся порядок витрины — Timeline и YearStrip
+ * Это единственное место, где задаётся порядок витрины: Timeline и YearStrip
  * имеют собственную сортировку по году и от этого списка не зависят.
  */
 const FEATURED_ORDER: ReadonlyArray<string> = [
-  "dotsound", // .звук — флагман, featured-карточка
-  "dotlearn", // .учёба — new, full-stack TS платформа
-  "dotmath", // .счёт — тренажёр устного счёта
+  "dotsound", // .звук: флагман, featured-карточка
+  "dotlearn", // .учёба: new, full-stack TS платформа
+  "dotmath", // .счёт: тренажёр устного счёта
   "dotagents", // .агенты
   "dotworkbot", // .работа
-  "dottraceip", // .след — async CLI для массового анализа IP
+  "dottraceip", // .след: async CLI для массового анализа IP
 ];
 
 const orderIndex = (slug: string): number => {
@@ -224,7 +224,7 @@ const allProjects: ReadonlyArray<Project> = Object.values(modules)
 
 /**
  * Продукты-флагманы (тир "product"). Это единственный список, который питает
- * витрину, таймлайн, case-страницы и sitemap — infra-инструменты сюда не
+ * витрину, таймлайн, case-страницы и sitemap: infra-инструменты сюда не
  * попадают, поэтому для них не генерируются пустые case-страницы и они не
  * становятся вехами в таймлайне.
  */
@@ -270,13 +270,13 @@ export function projectCaseDescription(p: Project, locale: Locale): string {
 
 /**
  * URL репозитория с graceful fallback:
- *   1) если в JSON явно задан `repo.url` — берём его (например, репо в чужой org);
+ *   1) если в JSON явно задан `repo.url`, берём его (например, репо в чужой org);
  *   2) если задана env-переменная `PUBLIC_REPO_<ИДЕНТ>` (см. {@link repoUrlOverride})
- *      — берём её: так URL'ы репо держатся вне кода, по одному на репозиторий;
- *   3) если задан `PUBLIC_GITHUB_USER` — собираем `https://github.com/<user>/<ident>`;
- *   4) иначе возвращаем пустую строку — компоненты не рендерят ссылку.
+ *      берём её: так URL'ы репо держатся вне кода, по одному на репозиторий;
+ *   3) если задан `PUBLIC_GITHUB_USER`, собираем `https://github.com/<user>/<ident>`;
+ *   4) иначе возвращаем пустую строку: компоненты не рендерят ссылку.
  *
- * Идентификатор репо (`repo.repo ?? repo.name`) — один и тот же ключ и для
+ * Идентификатор репо (`repo.repo ?? repo.name`): один и тот же ключ и для
  * env-переменной, и для авто-сборки URL. Это позволяет держать JSON-ы проектов
  * без захардкоженного username и шарить репозиторий как шаблон.
  */
@@ -292,7 +292,7 @@ export function repoUrl(repo: ProjectRepo): string {
 
 /**
  * Ссылка на сайт проекта: сперва env-override `PUBLIC_LINK_DOMAIN_<SLUG>`
- * (см. {@link projectLinkOverride}), иначе — `links.domain` из JSON.
+ * (см. {@link projectLinkOverride}), иначе `links.domain` из JSON.
  */
 export function projectDomainUrl(p: Project): string {
   const fromEnv = projectLinkOverride("domain", p.slug);
@@ -302,7 +302,7 @@ export function projectDomainUrl(p: Project): string {
 
 /**
  * Ссылка на Telegram проекта: сперва env-override `PUBLIC_LINK_TELEGRAM_<SLUG>`,
- * иначе — `links.telegram` из JSON.
+ * иначе `links.telegram` из JSON.
  */
 export function projectTelegramUrl(p: Project): string {
   const fromEnv = projectLinkOverride("telegram", p.slug);
@@ -311,8 +311,8 @@ export function projectTelegramUrl(p: Project): string {
 }
 
 /**
- * «Дата старта» проекта для таймлайна и eyebrow — берётся из первой вехи
- * `timeline` (например, «Sep 2025»). Если timeline пуст — fallback на `year`.
+ * «Дата старта» проекта для таймлайна и eyebrow: берётся из первой вехи
+ * `timeline` (например, «Sep 2025»). Если timeline пуст, fallback на `year`.
  * Это единственный источник правды для месяца запуска, чтобы eyebrow на
  * case-странице и главный Timeline не расходились.
  */
@@ -339,7 +339,7 @@ const MONTH_INDEX: Record<string, number> = {
 
 /**
  * Сортировочный ключ для строк дат вида «Mon YYYY» или «YYYY».
- * Возвращает `year * 100 + month` — больше = новее. Парсинг устойчив к регистру.
+ * Возвращает `year * 100 + month`: больше = новее. Парсинг устойчив к регистру.
  */
 export function timelineDateSortKey(date: string): number {
   const withMonth = date.match(/([A-Za-z]{3,})\s+(\d{4})/);

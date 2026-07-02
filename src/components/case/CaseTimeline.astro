@@ -1,9 +1,9 @@
 ---
 /**
- * CaseTimeline.astro — короткая вертикальная шкала истории проекта.
+ * CaseTimeline.astro: короткая вертикальная шкала истории проекта.
  *
  * Принимает массив из `project.timeline`: {date, title, description?}. Каждый
- * пункт — точка слева + текст справа. Используется внутри case-study;
+ * пункт: точка слева + текст справа. Используется внутри case-study;
  * отличается от глобального Timeline на главной более компактным размером и
  * отсутствием обводящего glass-блока.
  *
@@ -101,7 +101,7 @@ const hiddenCount = collapsible ? items.length - collapseAfter : 0;
 
 <script>
   // Раскрывающаяся хронология: первые N точек видны, остальные скрыты до клика.
-  // Скрытые пункты остаются под наблюдением reveal-обсервера (BaseLayout) —
+  // Скрытые пункты остаются под наблюдением reveal-обсервера (BaseLayout):
   // при показе они доезжают своей scroll-reveal анимацией.
   document.querySelectorAll<HTMLElement>("[data-timeline-collapsible]").forEach((wrap) => {
     const toggle = wrap.querySelector<HTMLButtonElement>("[data-timeline-toggle]");
@@ -167,7 +167,7 @@ const hiddenCount = collapsible ? items.length - collapseAfter : 0;
   }
 
   /* Доп. точки не участвуют в общем scroll-reveal (иначе остались бы opacity:0
-     без .is-visible при раскрытии) — у них своя анимация появления по клику. */
+     без .is-visible при раскрытии): у них своя анимация появления по клику. */
   .case-timeline__item--extra {
     animation: case-timeline-in var(--dur-slow) var(--ease-soft) both;
     animation-delay: calc(var(--extra-i, 0) * 60ms);

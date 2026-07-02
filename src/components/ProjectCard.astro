@@ -126,7 +126,7 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
                   target="_blank"
                   rel="noopener noreferrer"
                   class="project-card__repo-link"
-                  aria-label={`${r.name} — ${t("projects.viewSource")}`}
+                  aria-label={`${r.name}: ${t("projects.viewSource")}`}
                 >
                   <Icon name="github" size={14} />
                   <span class="mono">{r.name}</span>
@@ -181,7 +181,7 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
 
 <style>
   /* =====================================================================
-   * Project card — single liquid-glass pane.
+   * Project card: single liquid-glass pane.
    *
    * Apple-dark direction: one cohesive frosted surface (backdrop-filter via
    * .glass) instead of nested bordered boxes. Monochrome typography with the
@@ -297,7 +297,7 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
     transition: transform var(--dur-slow) var(--ease-soft);
   }
 
-  /* Плавающий глиф: медленный вертикальный drift, только transform — compositor. */
+  /* Плавающий глиф: медленный вертикальный drift, только transform (compositor). */
   @keyframes glyph-float {
     0%,
     100% {
@@ -331,7 +331,7 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
     white-space: nowrap;
   }
 
-  /* Дыхание: opacity бренда пульсирует медленно — «живой текст». */
+  /* Дыхание: opacity бренда пульсирует медленно, «живой текст». */
   @keyframes logo-brand-breathe {
     0%,
     100% {
@@ -353,7 +353,7 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
     transform: scale(1.04);
   }
 
-  /* При ховере паузируем дыхание — фокус на ховер-эффекте */
+  /* При ховере паузируем дыхание: фокус на ховер-эффекте */
   .project-card:hover .project-card__glyph,
   .project-card:hover .project-card__logo-brand {
     animation-play-state: paused;
@@ -475,7 +475,7 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
     color: var(--text-muted);
   }
 
-  /* Заголовок бренда: white-space: nowrap — страховка от переноса.
+  /* Заголовок бренда: white-space: nowrap как страховка от переноса.
      Бренды (`.агенты`, `.работа`) коротки, но кириллица чуть шире латиницы. */
   .project-card__brand {
     font-size: var(--fs-28);
@@ -490,7 +490,7 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
     white-space: nowrap;
   }
 
-  /* Мягкое дыхание — градиент живёт */
+  /* Мягкое дыхание: градиент живёт */
   @keyframes brand-breathe {
     0%,
     100% {
@@ -538,7 +538,7 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
     border-block: var(--bw-thin) solid var(--border);
   }
 
-  /* Каждый highlight — своя строка (value + label в один flex-ряд), а не
+  /* Каждый highlight занимает свою строку (value + label в один flex-ряд), а не
      колонка в узкой grid-сетке: длинные лейблы больше не переносятся
      посередине слова и не «гуляют» по высоте между соседними пунктами. */
   .project-card__highlight {
@@ -741,10 +741,10 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
 
   /* Тач-эквивалент hover (ОТДЕЛЬНАЯ мобильная реализация). На desktop обводку и
      glow проявляет курсор (:hover) и tilt; на тач курсора нет, поэтому:
-       • .is-touch-active — карточка в центре вьюпорта (scroll-driven, JS в
-         BaseLayout): подсвечиваем обводку, glow и чуть приподнимаем логотип —
+       • .is-touch-active: карточка в центре вьюпорта (scroll-driven, JS в
+         BaseLayout): подсвечиваем обводку, glow и чуть приподнимаем логотип, и
          карточки «оживают» по очереди при прокрутке.
-       • :active — мгновенный отклик на касание.
+       • :active: мгновенный отклик на касание.
      (hover: none) гарантирует, что desktop (hover: hover) это не видит. */
   @media (hover: none) {
     .project-card.is-touch-active {

@@ -26,7 +26,7 @@ const navLinks = [
   { href: `${prefix}/#contact`, label: t("nav.contact"), section: "contact" },
 ];
 
-// Активный пункт по умолчанию — определяется по hash в URL при первой отрисовке.
+// Активный пункт по умолчанию определяется по hash в URL при первой отрисовке.
 // Дальше его обновит скрипт ниже (через IntersectionObserver при скролле).
 const initialHash = Astro.url.hash.replace("#", "");
 ---
@@ -104,7 +104,7 @@ const initialHash = Astro.url.hash.replace("#", "");
     border-radius: var(--r-pill);
     margin-inline: auto;
     max-width: calc(var(--container-wide) - var(--sp-4));
-    /* box-shadow убран из перехода — тень не композируется, её анимация
+    /* box-shadow убран из перехода: тень не композируется, её анимация
        перерисовывала размытый регион хедера на каждом кадре скролла. */
     transition: background-color var(--dur-med) var(--ease-standard);
   }
@@ -353,7 +353,7 @@ const initialHash = Astro.url.hash.replace("#", "");
     }
   }
 
-  /* Тач-отклик: на desktop фидбэк даёт :hover, на тач — :active при касании
+  /* Тач-отклик: на desktop фидбэк даёт :hover, на тач :active при касании
      (nav-ссылки в мобильном меню, переключатель языка, кнопка-гамбургер).
      Отдельная мобильная реализация; desktop (hover: hover) этого не видит. */
   @media (hover: none) {
@@ -377,11 +377,11 @@ const initialHash = Astro.url.hash.replace("#", "");
    * Active highlight strategy:
    *   1. IntersectionObserver наблюдает за всеми секциями (#about, #stack, ...).
    *   2. Из видимых выбираем ту, у которой наибольший intersectionRatio.
-   *   3. Если ни одна не видна — снимаем активность со всех ссылок.
+   *   3. Если ни одна не видна, снимаем активность со всех ссылок.
    *   4. Скользящий underline позиционируется через CSS-переменные на nav-родителе.
    *      Это даёт один плавный transition вместо отдельных tail-dot'ов.
    *
-   * Scrolled state: при scrollY > 24 на <header> ставится `.is-scrolled` —
+   * Scrolled state: при scrollY > 24 на <header> ставится `.is-scrolled`,
    * inner pill переключается на ultra-tint + сильный blur.
    */
   const SECTIONS = ["about", "stack", "projects", "timeline", "contact"];

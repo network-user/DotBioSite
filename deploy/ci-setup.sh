@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# DotBioSite — доступ для GitHub Actions к уже развёрнутому серверу.
+# DotBioSite: доступ для GitHub Actions к уже развёрнутому серверу.
 #
 # Запускать ПОСЛЕ deploy/setup.sh (репозиторий уже должен лежать на сервере,
 # сайт уже поднят). Создаёт отдельного пользователя ci-deploy с узкой
 # sudo-привилегией: без пароля можно выполнить ТОЛЬКО deploy/update.sh в
-# этом репозитории — ничего больше. Ключ этого пользователя живёт только в
+# этом репозитории, ничего больше. Ключ этого пользователя живёт только в
 # GitHub Secrets, руками им никто не пользуется.
 #
 # Запуск:
@@ -31,7 +31,7 @@ chmod 600 "/home/$CI_USER/.ssh/authorized_keys"
 
 echo "==> sudo-правило: только $REPO_DIR/deploy/update.sh, без пароля"
 # Узкая привилегия: этому пользователю НИЧЕГО больше нельзя, даже sudo bash
-# с другим аргументом — sudoers матчит команду с аргументами буквально.
+# с другим аргументом: sudoers матчит команду с аргументами буквально.
 cat > /etc/sudoers.d/ci-deploy <<EOF
 $CI_USER ALL=(root) NOPASSWD: /bin/bash $REPO_DIR/deploy/update.sh
 EOF
@@ -42,7 +42,7 @@ cat <<MSG
 
 ==> Готово. Осталось (см. deploy/README.md → "Автодеплой из GitHub"):
   1. На своей машине: ssh-keygen -t ed25519 -C "github-actions" -f dotbio_ci_key -N ""
-  2. Публичный ключ (dotbio_ci_key.pub) — в /home/$CI_USER/.ssh/authorized_keys
+  2. Публичный ключ (dotbio_ci_key.pub) в /home/$CI_USER/.ssh/authorized_keys
   3. В GitHub → Settings → Secrets and variables → Actions добавить:
        DEPLOY_SSH_KEY       содержимое dotbio_ci_key (приватный ключ целиком)
        DEPLOY_HOST          IP или домен сервера

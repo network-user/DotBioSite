@@ -1,10 +1,10 @@
 ---
 /**
- * ArchNode.astro — glass-капсула узла архитектурной диаграммы.
+ * ArchNode.astro: glass-капсула узла архитектурной диаграммы.
  *
  * Один <g> с rect 140×56, скруглением, лёгкой обводкой и подписью по центру.
  * Опциональная иконка (тонкий glyph из набора Icon.astro) рендерится слева
- * от подписи. Координата `x,y` — центр капсулы; компонент сам смещает рамку
+ * от подписи. Координата `x,y` = центр капсулы; компонент сам смещает рамку
  * на полразмера, чтобы при позиционировании от центра можно было считать
  * рёбра без дополнительных оффсетов.
  */
@@ -42,7 +42,7 @@ const iconGap = 8;
 
 // Центрируем блок [иконка + зазор + текст] как единое целое и выкладываем текст
 // слева-направо от иконки (text-anchor="start"). Ширина текста оценивается по
-// числу символов — этого достаточно, чтобы иконка и подпись не накладывались
+// числу символов: этого достаточно, чтобы иконка и подпись не накладывались
 // даже на длинных лейблах («Backend Hub», «Elasticsearch 8»).
 const charW = 7.1;
 const textW = label.length * charW;
@@ -145,7 +145,7 @@ const textX = startX + (icon ? iconSize + iconGap : 0);
     stroke-width: 1;
   }
 
-  /* Hub node: lit with the project accent — the one point colour leans in. */
+  /* Hub node: lit with the project accent, the one point colour leans in. */
   .arch-node--strong .arch-node__bg {
     fill: var(--glass-tint-3);
     stroke: color-mix(in srgb, var(--project-accent) 52%, var(--glass-edge-bright));

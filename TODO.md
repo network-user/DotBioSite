@@ -4,14 +4,14 @@
 
 ## Новые проекты на витрину
 
-- [ ] **DotAgents** — Telegram‑мост для AI coding‑агентов (Cursor, Claude Code, cursor‑agent).
+- [ ] **DotAgents**: Telegram‑мост для AI coding‑агентов (Cursor, Claude Code, cursor‑agent).
   - Repo: <https://github.com/network-user/DotAgents>
   - Стек: Python 3.12 + aiogram 3 + FastAPI + SQLite, CLI `dotagents`, MIT
   - Статус апстрима: working beta, Stage 1+2 готовы, Stage 3 (MCP, voice→Whisper, ACP) в roadmap
   - Что нужно: добавить `src/content/projects/dotagents.json` + обложку
     в `public/projects/dotagents/cover.webp`
 
-- [ ] **DotWorkBot** («Гусь работа») — Telegram‑бот для подбора разовой рабочей силы.
+- [ ] **DotWorkBot** («Гусь работа»): Telegram‑бот для подбора разовой рабочей силы.
   - Repo: <https://github.com/network-user/DotWorkBot>
   - Стек: Python 3.11 + aiogram 3 + PostgreSQL + Redis + taskiq + Alembic, Docker, CI/CD
   - Статус: готовый к продакшену MVP, 62 теста, скрипты деплоя на VPS
@@ -28,7 +28,7 @@
 
 ## Технические
 
-- [x] ~~Заменить Google Fonts `@import` на selfhosted~~ — сделано через
+- [x] ~~Заменить Google Fonts `@import` на selfhosted~~ - сделано через
       `@fontsource-variable/inter` (npm), шрифт попадает в bundle при билде.
 - [ ] Добавить PWA manifest + service worker для offline‑кеша главной страницы.
 - [ ] Подключить self‑hosted Plausible или Umami (без cookies, GDPR‑friendly).
@@ -39,7 +39,7 @@
 
 - [ ] Blog / Devlog раздел (Astro Content Collections + Markdown).
 - [ ] RSS‑фид.
-- [ ] Light theme (опционально, сейчас принципиально только dark — как DotSound).
+- [ ] Light theme (опционально, сейчас принципиально только dark, как DotSound).
 - [ ] Контактная форма через Cloudflare Pages Functions / Workers (POST → Telegram / Email).
 - [ ] Page transitions через Astro View Transitions API.
 

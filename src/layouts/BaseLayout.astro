@@ -13,7 +13,7 @@ type JsonLd = Record<string, unknown>;
 
 interface Props {
   locale: Locale;
-  /** Заголовок страницы. Если не задан — собирается как `${authorName} — ${meta.tagline}`. */
+  /** Заголовок страницы. Если не задан, собирается как `${authorName}: ${meta.tagline}`. */
   title?: string;
   /** Описание для SEO/OG. */
   description?: string;
@@ -40,9 +40,9 @@ const {
 } = Astro.props;
 
 const t = useTranslations(locale);
-// Composes <author> — <tagline> so the brand part comes from .env (PUBLIC_AUTHOR_NAME_*)
+// Composes <author>: <tagline> so the brand part comes from .env (PUBLIC_AUTHOR_NAME_*)
 // while the i18n string stays for the human-readable tagline.
-const pageTitle = title ?? `${authorName(locale)} — ${t("meta.tagline")}`;
+const pageTitle = title ?? `${authorName(locale)}: ${t("meta.tagline")}`;
 const pageDescription = description ?? t("meta.description");
 const canonical = new URL(Astro.url.pathname, config.PUBLIC_DOMAIN).toString();
 const altLocale: Locale = locale === "ru" ? "en" : "ru";
@@ -177,13 +177,13 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
         revealEls.forEach((el) => io.observe(el));
 
         // --- Пауза анимаций за экраном ---
-        // Бесконечные декоративные анимации (пульс/дрейф/орбиты, а главное —
+        // Бесконечные декоративные анимации (пульс/дрейф/орбиты, а главное
         // main-thread-дорогие stroke-dashoffset «потоки» в схемах) крутятся даже
         // когда секция вне вьюпорта, и держат рендер-поток занятым во время
         // скролла. Вешаем .anim-paused на секции за пределами экрана (с запасом
         // 200px, чтобы движение оживало чуть раньше появления). CSS-правило в
         // global.css замораживает все их animation-play-state. Видимое на экране
-        // не меняется; user-выбор — гасить только вне экрана.
+        // не меняется; user-выбор: гасить только вне экрана.
         const animSections = document.querySelectorAll<HTMLElement>("section");
         if (animSections.length > 0) {
           const animIo = new IntersectionObserver(
@@ -200,10 +200,10 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
 
       // --- Пауза всего движения на скрытой вкладке ---
       // Фоновый арт (.backdrop-art) висит на фиксированном .bg-layer ВНЕ <section>,
-      // поэтому секционный .anim-paused его не трогает — орбиты/электроны/пульс идут
+      // поэтому секционный .anim-paused его не трогает: орбиты/электроны/пульс идут
       // всегда. Пока вкладка в фоне, гасим ВСЕ CSS-анимации разом (класс на <html>),
       // снимаем на возврате. rAF браузер троттлит сам, но offset-distance электронов
-      // сэмплируется на main-thread и может тикать — это трата CPU впустую.
+      // сэмплируется на main-thread и может тикать: это трата CPU впустую.
       {
         const root = document.documentElement;
         const syncHidden = () => root.classList.toggle("is-hidden", document.hidden);
@@ -214,7 +214,7 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
       // --- Курсор-кольцо: лёгкий фокус у указателя (замена «свечению за мышью») ---
       const ring = document.querySelector<HTMLElement>("[data-cursor]");
       if (ring && window.matchMedia("(pointer: fine)").matches) {
-        // Кэшируем размеры вьюпорта — чтение innerWidth/innerHeight в кадре может
+        // Кэшируем размеры вьюпорта: чтение innerWidth/innerHeight в кадре может
         // форсить layout. Обновляем только на resize, не на каждом кадре.
         let x = window.innerWidth / 2;
         let y = window.innerHeight / 2;
@@ -274,7 +274,7 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
       // === Frame warp: упругие SVG-рамки, реагирующие на курсор ===
       // Тот же эффект, что в таймлайне, но переиспользуемый: вешается на любой
       // [data-warp]. Рамка рисуется в одном SVG-overlay на «корень» (по умолчанию
-      // ближайшая <section> или [data-warp-root]) — НЕ внутри карточки, иначе её
+      // ближайшая <section> или [data-warp-root]), НЕ внутри карточки, иначе её
       // overflow:hidden обрезал бы прогиб наружу. Только fine-указатель без
       // reduced-motion; считается лишь пока курсор в корне и движется.
       (() => {
@@ -499,7 +499,7 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
           });
 
           // Подсветка обводки рамки под курсором (замена hover-подъёма). Если на
-          // карточке есть data-accent (цвет проекта) — подсвечиваем им, иначе
+          // карточке есть data-accent (цвет проекта), подсвечиваем им, иначе
           // нейтральным ярким краем.
           entries.forEach((e) => {
             const hot = e.card.dataset.accent || "var(--glass-edge-bright)";
@@ -527,14 +527,14 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
     <script>
       // === Мобильный интерактив: «оживление» при скролле + отклик на тап ===
       // На тач-устройствах нет курсора, поэтому весь desktop-слой (cursor-ring,
-      // frame-warp, tilt/sheen — все под pointer:fine) выключен. Это ОТДЕЛЬНАЯ
+      // frame-warp, tilt/sheen, все под pointer:fine) выключен. Это ОТДЕЛЬНАЯ
       // реализация для тача, она не пересекается с desktop-эффектами.
       //
       //   1. Scroll-driven: пока карточка [data-touch-live] находится в центре
-      //      вьюпорта — на неё вешается .is-touch-active (CSS-эквивалент hover:
+      //      вьюпорта, на неё вешается .is-touch-active (CSS-эквивалент hover:
       //      подсветка обводки, верхний блик, лёгкий подъём). По мере прокрутки
-      //      карточки оживают по очереди — страница «дышит» без действий.
-      //   2. Tap-отклик даёт CSS :active под (hover: none) — мгновенная реакция
+      //      карточки оживают по очереди, страница «дышит» без действий.
+      //   2. Tap-отклик даёт CSS :active под (hover: none): мгновенная реакция
       //      на касание. Здесь же добавляем кратко-живущий .is-tapped, чтобы
       //      «вспышка» читалась и после отпускания пальца (а не только пока зажат).
       //
@@ -549,7 +549,7 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
         // (1) Центр-вьюпорта активация. rootMargin сжимает зону срабатывания до
         // центральной полосы экрана: карточка «горит», лишь пока её центр рядом с
         // центром вьюпорта. Под reduced-motion активацию-по-скроллу не включаем
-        // (это движение) — остаётся только tap-отклик ниже.
+        // (это движение), остаётся только tap-отклик ниже.
         if (live.length && !reduced) {
           const io = new IntersectionObserver(
             (entries) => {
@@ -563,7 +563,7 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
         }
 
         // (2) Tap-вспышка: короткий .is-tapped на касании. Делегируем один
-        // слушатель на документ; цель — ближайший интерактив-контейнер.
+        // слушатель на документ; цель: ближайший интерактив-контейнер.
         const TAP = "[data-touch-live],.glass--hover,.cta,[role='button'],button,a";
         document.addEventListener(
           "pointerdown",
@@ -601,7 +601,7 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
     /* Промоутим фиксированный фон в собственный композит-слой. Иначе при скролле
        контент «проезжает» над ним и в части движков фон (вместе с дорогим
        SVG-фильтром схемы) перерисовывается каждый кадр. Свой слой растеризуется
-       один раз и просто переиспользуется — скролл его не трогает. */
+       один раз и просто переиспользуется, скролл его не трогает. */
     transform: translateZ(0);
     backface-visibility: hidden;
   }
@@ -638,7 +638,7 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
     pointer-events: none;
   }
 
-  /* Faint engineering grid — anchors the "constellation / dot" brand motif. */
+  /* Faint engineering grid, anchors the "constellation / dot" brand motif. */
   .ambient-bg::before {
     inset: 0;
     background:
@@ -661,7 +661,7 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
   /* ---------- Курсор-кольцо (фокус у указателя) ----------
    * Лёгкая замена «свечению за мышью»: тонкое кольцо быстро следует за курсором,
    * без инерции-лага и без blur/blend прежнего 600px-слоя. Системный курсор виден.
-   * Позицию ставит JS (transform); здесь — вид и реакция на hover. */
+   * Позицию ставит JS (transform); здесь вид и реакция на hover. */
   .cursor-ring {
     position: fixed;
     top: 0;
@@ -686,7 +686,7 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
     opacity: 0.65;
   }
 
-  /* Над интерактивным — кольцо раскрывается и наполняется. */
+  /* Над интерактивным кольцо раскрывается и наполняется. */
   .cursor-ring.is-active {
     width: 44px;
     height: 44px;

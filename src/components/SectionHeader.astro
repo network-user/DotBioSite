@@ -1,6 +1,6 @@
 ---
 /**
- * SectionHeader — единый kicker + title + lede для всех секций.
+ * SectionHeader: единый kicker + title + lede для всех секций.
  * Уважает Apple-style large titles с отрицательным letter-spacing.
  */
 interface Props {
@@ -21,7 +21,7 @@ const { kicker, title, lede, id, align = "left" } = Astro.props;
         <span class="section-header__dot" aria-hidden="true">
           ·
         </span>
-        {kicker}
+        <slot name="kicker">{kicker}</slot>
       </p>
     )
   }

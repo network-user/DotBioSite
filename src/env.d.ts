@@ -20,11 +20,11 @@ interface ImportMetaEnv {
 
   readonly AUTHOR_EMAIL?: string;
 
-  /** Явный URL репозитория проекта — один ключ на репо (см. config.repoEnvKey).
+  /** Явный URL репозитория проекта: один ключ на репо (см. config.repoEnvKey).
    *  Напр. PUBLIC_REPO_DOTSOUNDBACKEND, PUBLIC_REPO_DOTCORE_SKILLS. */
   readonly [key: `PUBLIC_REPO_${string}`]: string | undefined;
 
-  /** Явная ссылка проекта (сайт/telegram) — один ключ на проект+тип ссылки
+  /** Явная ссылка проекта (сайт/telegram): один ключ на проект+тип ссылки
    *  (см. config.projectLinkEnvKey). Напр. PUBLIC_LINK_DOMAIN_DOTSOUND,
    *  PUBLIC_LINK_TELEGRAM_DOTMATH. */
   readonly [key: `PUBLIC_LINK_${string}`]: string | undefined;

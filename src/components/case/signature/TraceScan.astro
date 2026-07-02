@@ -1,21 +1,21 @@
 ---
 /**
- * TraceScan.astro — сигнатурная визуализация .след (DotTraceIP).
+ * TraceScan.astro: сигнатурная визуализация .след (DotTraceIP).
  *
  * Концепт: ДОСЬЕ НА АДРЕС. Голый IP из логов брутфорса превращается в живую
- * карточку-досье. Посетитель выбирает адрес, жмёт «Проследить» — и шесть
+ * карточку-досье. Посетитель выбирает адрес, жмёт «Проследить», и шесть
  * источников опрашиваются параллельно, сходясь в одну карточку: страна,
  * оператор/ASN, сеть, имя хоста и крупный индикатор угрозы с вердиктом.
- * Один источник (Spamhaus) отвечает таймаутом, но досье всё равно собирается —
+ * Один источник (Spamhaus) отвечает таймаутом, но досье всё равно собирается:
  * это и есть asyncio.gather(return_exceptions=True) на простом языке.
  *
- * Главный экран — карточка досье (одно понятное действие). Ниже: «Сохранить
- * досье» (тот же результат в 4 форматах, как настоящий файл) и «Под капотом» —
+ * Главный экран: карточка досье (одно понятное действие). Ниже: «Сохранить
+ * досье» (тот же результат в 4 форматах, как настоящий файл) и «Под капотом»:
  * два механизма, делающие .след рабочим инструментом: прокси-приватность и
  * скан целого списка.
  *
  * Движение: только transform/opacity, конечные CSS-переходы. Постоянного rAF
- * нет — анимация ведётся одним setTimeout-конвейером later(), который чистится
+ * нет: анимация ведётся одним setTimeout-конвейером later(), который чистится
  * офскрин / на скрытой вкладке / при pagehide. Всё гейтится IntersectionObserver
  * (.td.is-inview). prefers-reduced-motion → финальный статичный кадр, интеракции
  * работают.
@@ -26,7 +26,7 @@
  *    AbuseIPDB (репутация), Spamhaus DNSBL. Сбой одного → дефолты empty_info.
  *  - семафор ограничивает конкурентность по IP; as_completed + Rich Live.
  *  - прокси HTTP/SOCKS4/SOCKS5, ротация пула, маскировка кредов; guard: если
- *    коннектор не собрался — HTTP-источники не уходят в direct, реальный IP не
+ *    коннектор не собрался: HTTP-источники не уходят в direct, реальный IP не
  *    утекает (идут только DNS/RDAP в thread-pool).
  *  - экспорт TXT (построчно в скане) + JSON/CSV/HTML (самодостаточный, сортируемый).
  *  - 64 теста pytest-asyncio + ruff + mypy в CI.
@@ -59,9 +59,9 @@ type Dossier = {
   host: string;
   abuse: number;
   // На этом адресе Spamhaus DNSBL не отвечает вовремя (таймаут). Ровно один в
-  // наборе — чтобы показать: источник обычно отвечает, но и его сбой не рушит досье.
+  // наборе, чтобы показать: источник обычно отвечает, но и его сбой не рушит досье.
   dnsblTimeout?: boolean;
-  // Источники, «мёртвые» на момент запроса (отказ, а не таймаут) — только на
+  // Источники, «мёртвые» на момент запроса (отказ, а не таймаут): только на
   // адресе-сценарии с ошибкой. Досье всё равно собирается из выживших.
   deadSources?: string[];
 };
@@ -123,11 +123,11 @@ const dossiers: Dossier[] = [
     ip: "5.188.206.18",
     cc: "SC",
     country: { ru: "Сейшелы", en: "Seychelles" },
-    city: { ru: "—", en: "—" },
+    city: { ru: "-", en: "-" },
     asn: "AS35048",
     operator: { ru: "офшорный хостинг", en: "offshore hosting" },
     network: "5.188.206.0/23",
-    host: "—",
+    host: "-",
     abuse: 8,
   },
 ];
@@ -164,7 +164,7 @@ const sources: Src[] = [
     fills: "operator",
     http: true,
     hint: {
-      ru: "Номер и имя автономной системы плюс BGP-префикс. Сначала по DNS (Team Cymru), если молчит — по HTTP (bgpview).",
+      ru: "Номер и имя автономной системы плюс BGP-префикс. Сначала по DNS (Team Cymru), если молчит: по HTTP (bgpview).",
       en: "AS number and name plus the BGP prefix. DNS first (Team Cymru), HTTP fallback (bgpview).",
     },
   },
@@ -189,7 +189,7 @@ const sources: Src[] = [
     http: false,
     hint: {
       ru: "Обратный DNS: PTR-запись, какое имя стоит за адресом.",
-      en: "Reverse DNS: the PTR record — the name behind the address.",
+      en: "Reverse DNS: the PTR record, the name behind the address.",
     },
   },
   {
@@ -212,8 +212,8 @@ const sources: Src[] = [
     fills: null,
     http: false,
     hint: {
-      ru: "Spamhaus DNSBL: числится ли адрес в спам- и ботнет-списках. Обычно отвечает «в списках» или «чисто»; на одном адресе не успевает ответить - и досье всё равно собирается.",
-      en: "Spamhaus DNSBL: is the address in spam/botnet lists? Usually returns “listed” or “clean”; on one address it doesn't answer in time — and the dossier still assembles.",
+      ru: "Spamhaus DNSBL: числится ли адрес в спам- и ботнет-списках. Обычно отвечает «в списках» или «чисто»; на одном адресе не успевает ответить, и досье всё равно собирается.",
+      en: "Spamhaus DNSBL: is the address in spam/botnet lists? Usually returns 'listed' or 'clean'; on one address it doesn't answer in time, and the dossier still assembles.",
     },
   },
 ];
@@ -242,8 +242,8 @@ const exports: { fmt: string; ext: string; note: Bi }[] = [
     fmt: "JSON",
     ext: "json",
     note: {
-      ru: "полный объект на каждый адрес — для кода и API",
-      en: "a full object per address — for code and APIs",
+      ru: "полный объект на каждый адрес: для кода и API",
+      en: "a full object per address: for code and APIs",
     },
   },
   {
@@ -255,7 +255,7 @@ const exports: { fmt: string; ext: string; note: Bi }[] = [
     fmt: "HTML",
     ext: "html",
     note: {
-      ru: "самодостаточный отчёт: открыл в браузере — сортируется по столбцам",
+      ru: "самодостаточный отчёт: открыл в браузере, сортируется по столбцам",
       en: "a self-contained report: open it in a browser and sort by columns",
     },
   },
@@ -272,13 +272,13 @@ const ui = {
   idle: { ru: "не собрано", en: "not assembled" },
   threat: { ru: "Уровень угрозы", en: "Threat level" },
   srcCap: {
-    ru: "Шесть источников — нажмите, чтобы узнать, что даёт каждый:",
-    en: "Six sources — tap to see what each one returns:",
+    ru: "Шесть источников: нажмите, чтобы узнать, что даёт каждый:",
+    en: "Six sources: tap to see what each one returns:",
   },
   exportCap: { ru: "Сохранить досье", en: "Save the dossier" },
   exportSub: {
-    ru: "Один и тот же результат в любом формате — для глаз, таблиц или браузера.",
-    en: "The same result in any format — for the eye, spreadsheets, or a browser.",
+    ru: "Один и тот же результат в любом формате: для глаз, таблиц или браузера.",
+    en: "The same result in any format: for the eye, spreadsheets, or a browser.",
   },
   under: { ru: "Под капотом", en: "Under the hood" },
   underTeaser: { ru: "приватность и масштаб", en: "privacy & scale" },
@@ -294,7 +294,7 @@ const ui = {
   },
   proxyHint: {
     ru: "Переключите режим и смотрите на строку «источник видит».",
-    en: "Switch the mode and watch the “the source sees” line.",
+    en: "Switch the mode and watch the 'the source sees' line.",
   },
   direct: { ru: "Напрямую", en: "Direct" },
   proxied: { ru: "Через прокси", en: "Via proxy" },
@@ -331,7 +331,7 @@ const ui = {
   class="td"
   id="trace-dossier"
   data-td
-  aria-label={t({ ru: "Досье на IP-адрес — DotTraceIP", en: "IP dossier — DotTraceIP" })}
+  aria-label={t({ ru: "Досье на IP-адрес: DotTraceIP", en: "IP dossier: DotTraceIP" })}
 >
   <p class="td__intro">{t(intro)}</p>
 
@@ -410,7 +410,7 @@ const ui = {
               <dt class="td__field-k">{t(f.label)}</dt>
               <dd class="td__field-v" data-td-field-v>
                 <span class="td__field-ph" aria-hidden="true">
-                  —
+                  -
                 </span>
               </dd>
             </div>
@@ -421,7 +421,7 @@ const ui = {
       <div class="td__threat" data-td-threat data-band="idle">
         <div class="td__threat-top">
           <span class="td__threat-cap">{t(ui.threat)}</span>
-          <span class="td__threat-score mono" data-td-score>—</span>
+          <span class="td__threat-score mono" data-td-score>-</span>
           <span class="td__threat-verdict" data-td-verdict hidden></span>
         </div>
         <div class="td__gauge" aria-hidden="true">
@@ -743,7 +743,7 @@ const ui = {
     box-shadow: var(--shadow-2);
   }
 
-  /* На мобиле колонки «растворяются» — их ноды попадают в общую 2-колоночную
+  /* На мобиле колонки «растворяются»: их ноды попадают в общую 2-колоночную
      сетку сцены, а карточка идёт первой (order). */
   .td__col {
     display: contents;
@@ -1611,7 +1611,7 @@ const ui = {
     border-color: color-mix(in srgb, var(--threat-high) 46%, transparent);
   }
 
-  /* узел-«источник» — герой: что реально видит удалённая сторона */
+  /* узел-«источник», герой: что реально видит удалённая сторона */
   .td__node--src {
     align-items: flex-start;
   }
@@ -1923,7 +1923,7 @@ const ui = {
     transform: scaleX(var(--score, 0));
   }
   /* Шкала угрозы: красный (опасный) → зелёный (безопасный). --bandc задаётся на
-     строке и красит и полосу, и число — одним источником правды. */
+     строке и красит и полосу, и число: одним источником правды. */
   .td__bulk-row[data-band="high"] {
     --bandc: var(--threat-high);
   }
@@ -2007,8 +2007,8 @@ const ui = {
 <script>
   // Оркестратор досье .след. Без степпера и без постоянного rAF: трассировка и
   // скан списком ведутся одним setTimeout-конвейером later(), который чистится
-  // офскрин / на скрытой вкладке / при pagehide. Индикатор угрозы — CSS-переход
-  // (composited). Всё гейтится IntersectionObserver. prefers-reduced-motion —
+  // офскрин / на скрытой вкладке / при pagehide. Индикатор угрозы: CSS-переход
+  // (composited). Всё гейтится IntersectionObserver. prefers-reduced-motion:
   // финальный статичный кадр, интеракции работают.
   (() => {
     const root = document.querySelector<HTMLElement>("[data-td]");
@@ -2035,7 +2035,7 @@ const ui = {
 
     if (!stage || !ipEl) return;
 
-    // Темп анимации (мс). Намеренно неспешный — чтобы было видно, как каждый
+    // Темп анимации (мс). Намеренно неспешный, чтобы было видно, как каждый
     // источник по очереди «отчитывается».
     const START = 500;
     const STEP = 540;
@@ -2105,13 +2105,13 @@ const ui = {
     // ---- значение поля карточки ----
     const fieldValue = (id: string, d: Dos): string => {
       if (id === "country") {
-        const city = d.city && d.city !== "—" ? ` · ${d.city}` : "";
+        const city = d.city && d.city !== "-" ? ` · ${d.city}` : "";
         return `<span class="td__cc">${d.cc}</span>${d.country}${city}`;
       }
       if (id === "operator") return `<span class="td__asn">${d.asn}</span> · ${d.op}`;
       if (id === "network") return d.net;
       if (id === "host")
-        return d.host && d.host !== "—" ? d.host : tr("нет PTR-записи", "no PTR record");
+        return d.host && d.host !== "-" ? d.host : tr("нет PTR-записи", "no PTR record");
       return "";
     };
 
@@ -2122,7 +2122,7 @@ const ui = {
       el.classList.toggle("is-filled", on);
       if (v) {
         if (on) v.innerHTML = fieldValue(id, current);
-        else v.innerHTML = '<span class="td__field-ph" aria-hidden="true">—</span>';
+        else v.innerHTML = '<span class="td__field-ph" aria-hidden="true">-</span>';
       }
     };
 
@@ -2137,7 +2137,7 @@ const ui = {
         gaugeEl.style.setProperty("--score", (current.abuse / 100).toFixed(2));
       } else {
         threatEl.dataset.band = "idle";
-        scoreEl.textContent = "—";
+        scoreEl.textContent = "-";
         verdictEl.hidden = true;
         gaugeEl.style.setProperty("--score", "0");
       }
@@ -2193,16 +2193,16 @@ const ui = {
       tracing = state === "running";
       if (traceT)
         traceT.textContent =
-          state === "running" ? tr("Слежу…", "Tracing…") : tr("Проследить заново", "Trace again");
+          state === "running" ? tr("Слежу...", "Tracing...") : tr("Проследить заново", "Trace again");
       if (traceBtn) traceBtn.disabled = state === "running";
       if (statusEl && state === "running") {
-        statusEl.textContent = tr("сканирую…", "scanning…");
+        statusEl.textContent = tr("сканирую...", "scanning...");
         statusEl.classList.add("is-scan");
         statusEl.classList.remove("is-done");
       }
     };
 
-    // порядок отчёта источников (последний — молчащий Spamhaus)
+    // порядок отчёта источников (последний: молчащий Spamhaus)
     const order = ["geo", "asn", "owner", "host", "rep", "dnsbl"];
     const fillOf: Record<string, string | null> = {
       geo: "country",
@@ -2267,13 +2267,13 @@ const ui = {
           if (noteEl) {
             noteEl.textContent = blocked
               ? tr(
-                  "Прокси-guard: HTTP-источники не ушли в direct — досье собрано только из DNS и RDAP, реальный IP не утёк.",
-                  "Proxy guard: HTTP sources didn't fall back to direct — the dossier came from DNS and RDAP only, the real IP never leaked.",
+                  "Прокси-guard: HTTP-источники не ушли в direct, досье собрано только из DNS и RDAP, реальный IP не утёк.",
+                  "Proxy guard: HTTP sources didn't fall back to direct, the dossier came from DNS and RDAP only, the real IP never leaked.",
                 )
               : failed > 0
                 ? tr(
                     `Готово: собрано ${answered} из 6, остальные не отозвались (таймаут и отказ). asyncio.gather(return_exceptions=True) вернул сбои как значения, а не падение, и досье собрано из выживших.`,
-                    `Done: ${answered} of 6 assembled, the rest didn't respond (timeout and refusals). asyncio.gather(return_exceptions=True) returned the failures as values, not a crash — the dossier is built from the survivors.`,
+                    `Done: ${answered} of 6 assembled, the rest didn't respond (timeout and refusals). asyncio.gather(return_exceptions=True) returned the failures as values, not a crash: the dossier is built from the survivors.`,
                   )
                 : tr(
                     `Готово: ответили все ${answered} из 6. Даже если источник отвалится, asyncio.gather(return_exceptions=True) вернёт значение вместо падения.`,
@@ -2363,8 +2363,8 @@ const ui = {
       s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
     const buildPreview = (fmt: string, d: Dos): string => {
-      const host = d.host && d.host !== "—" ? d.host : tr("нет PTR", "no PTR");
-      const cityPart = d.city && d.city !== "—" ? `, ${d.city}` : "";
+      const host = d.host && d.host !== "-" ? d.host : tr("нет PTR", "no PTR");
+      const cityPart = d.city && d.city !== "-" ? `, ${d.city}` : "";
       if (fmt === "TXT") {
         const L = isEn
           ? {
@@ -2386,8 +2386,8 @@ const ui = {
         const pad = (k: string): string => (k + ":").padEnd(9, " ");
         const rows = [
           `<span class="td-k">${pad(L.ip)}</span><span class="td-v">${d.ip}</span>`,
-          `<span class="td-k">${pad(L.country)}</span><span class="td-v">${d.cc} — ${esc(d.country)}${esc(cityPart)}</span>`,
-          `<span class="td-k">${pad(L.asn)}</span><span class="td-v">${d.asn} — ${esc(d.op)}</span>`,
+          `<span class="td-k">${pad(L.country)}</span><span class="td-v">${d.cc} - ${esc(d.country)}${esc(cityPart)}</span>`,
+          `<span class="td-k">${pad(L.asn)}</span><span class="td-v">${d.asn} - ${esc(d.op)}</span>`,
           `<span class="td-k">${pad(L.net)}</span><span class="td-v">${d.net}</span>`,
           `<span class="td-k">${pad(L.host)}</span><span class="td-v">${esc(host)}</span>`,
           `<span class="td-k">${pad(L.threat)}</span><span class="td-accent">${d.abuse} / 100</span>`,
@@ -2473,7 +2473,7 @@ const ui = {
     const proxyTagEl = root.querySelector<HTMLElement>("[data-td-proxy-tag]");
 
     // Что удалённый источник записывает как «источник запроса» в каждом режиме.
-    // Это и есть суть: голубой — адрес прокси, красный — ваш реальный IP.
+    // Это и есть суть: голубой значит адрес прокси, красный значит ваш реальный IP.
     const seenOf = {
       direct: {
         ip: "203.0.113.7",
@@ -2530,7 +2530,7 @@ const ui = {
       if (proxyNote) proxyNote.textContent = s.note;
     };
     // Автопрогон сценария прокси. Отдельные таймеры от основной сцены: когда
-    // панель в вид, root (вся секция) уже может считаться офскрин — общий
+    // панель в вид, root (вся секция) уже может считаться офскрин: общий
     // clearTimers() не должен гасить проигрыш. Чистятся при уходе панели/скрытии.
     const pTimers: number[] = [];
     const clearPTimers = (): void => {
@@ -2587,7 +2587,7 @@ const ui = {
             if (e.isIntersecting) {
               playProxyScenario();
             } else {
-              // Прерванный проигрыш не должен оставить глобальный режим в blocked —
+              // Прерванный проигрыш не должен оставить глобальный режим в blocked,
               // иначе повторная трассировка досье наверху молча уйдёт в 3/6.
               clearPTimers();
               if (proxyPlayed && !proxyTouched && stage.dataset.mode !== "proxied") {

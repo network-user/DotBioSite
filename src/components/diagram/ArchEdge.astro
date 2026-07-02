@@ -1,14 +1,14 @@
 ---
 /**
- * ArchEdge.astro — ребро архитектурной диаграммы.
+ * ArchEdge.astro: ребро архитектурной диаграммы.
  *
  * Спица между двумя портами на гранях капсул. Касательные кубической кривой на
  * концах задаются нормалями граней (`fromDir`/`toDir`): спица выходит и входит
  * ПЕРПЕНДИКУЛЯРНО грани, поэтому наконечник упирается ровно в середину стороны
- * блока — горизонтально или вертикально, без косого «протыкания угла». Между
+ * блока, горизонтально или вертикально, без косого «протыкания угла». Между
  * разнесёнными портами кривая идёт мягкой S-дугой. Если направления не заданы,
- * касательные берутся вдоль хорды from→to (прямая спица — обратная совместимость).
- * Параметр `bend` дополнительно выгибает спицу по нормали к хорде — чтобы
+ * касательные берутся вдоль хорды from→to (прямая спица, обратная совместимость).
+ * Параметр `bend` дополнительно выгибает спицу по нормали к хорде, чтобы
  * ребро-перескок обошло чужой блок.
  *
  * Три kind'а отличаются паттерном и оттенком штриха:
@@ -17,15 +17,15 @@
  *   data  → мелкий dot-dash, приглушённый (чтение/запись в хранилище)
  *
  * Анимация потока моделирует РЕАЛЬНОЕ взаимодействие, а не просто «точка едет»:
- *   • round-trip (sync, data) — запрос source→target, короткая «обработка»
+ *   • round-trip (sync, data): запрос source→target, короткая «обработка»
  *     (рипл у цели), затем ответ target→source более тусклым пакетом.
- *   • one-way (async или edge.oneway) — один исходящий пакет без ответа.
- * Всё на CSS motion-path (offset-path) + transform/opacity — компоновочно
+ *   • one-way (async или edge.oneway): один исходящий пакет без ответа.
+ * Всё на CSS motion-path (offset-path) + transform/opacity, компоновочно
  * дёшево и целиком гаснет при prefers-reduced-motion (остаётся штрих со стрелкой).
  *
- * Наконечники — залитые треугольники по касательной к кривой. У round-trip
+ * Наконечники: залитые треугольники по касательной к кривой. У round-trip
  * рёбер их два (у цели и у источника, второй приглушён), поэтому видно, что
- * данные ходят в обе стороны, даже когда анимация выключена; у one-way — один.
+ * данные ходят в обе стороны, даже когда анимация выключена; у one-way один.
  */
 
 type EdgeKind = "sync" | "async" | "data";
@@ -38,25 +38,25 @@ interface Point {
 interface Props {
   from: Point;
   to: Point;
-  /** Единичные касательные на концах — нормали граней-портов (наружу). Спица
+  /** Единичные касательные на концах: нормали граней-портов (наружу). Спица
    *  выходит/входит строго по ним, поэтому наконечник перпендикулярен грани и
-   *  садится в её середину. По умолчанию — направление хорды from→to (прямая). */
+   *  садится в её середину. По умолчанию направление хорды from→to (прямая). */
   fromDir?: Point;
   toDir?: Point;
   kind?: EdgeKind;
   label?: string;
-  /** id узлов-концов — пробрасываются в DOM (`data-from`/`data-to`) как
+  /** id узлов-концов: пробрасываются в DOM (`data-from`/`data-to`) как
    *  машиночитаемая разметка концов ребра. */
   fromId?: string;
   toId?: string;
-  /** Принудительно односторонний поток (без ответного пакета) — для записей-
+  /** Принудительно односторонний поток (без ответного пакета): для записей-
    *  стоков: отчёт на диск, нотификация, отгрузка в очередь. По умолчанию
    *  односторонними считаются только async-рёбра. */
   oneway?: boolean;
-  /** Порядковый номер ребра — лёгкий фазовый сдвиг анимации, чтобы пакеты по
+  /** Порядковый номер ребра: лёгкий фазовый сдвиг анимации, чтобы пакеты по
    *  разным рёбрам не пульсировали в унисон. */
   seq?: number;
-  /** Выгиб спицы перпендикулярно лучу from→to, в px (знак = сторона). 0 — прямая
+  /** Выгиб спицы перпендикулярно лучу from→to, в px (знак = сторона). 0: прямая
    *  (по умолчанию). Ненулевой нужен ребру-перескоку через колонку, чтобы оно
    *  обходило промежуточный блок дугой, а не цепляло его угол. */
   bend?: number;
@@ -84,7 +84,7 @@ const len = Math.hypot(dx, dy) || 1;
 const ux = dx / len;
 const uy = dy / len;
 
-// Касательные на концах кривой: по нормалям граней-портов (fromDir/toDir), иначе —
+// Касательные на концах кривой: по нормалям граней-портов (fromDir/toDir), иначе
 // вдоль хорды from→to (прямая спица, как было). Контрольные точки выносятся по
 // этим касательным, поэтому при ортогональных портах кривая выходит и входит
 // перпендикулярно граням (S-образно), а наконечник упирается в середину стороны.
@@ -94,7 +94,7 @@ const tdx = toDir ? toDir.x : ux;
 const tdy = toDir ? toDir.y : uy;
 
 // Ненулевой `bend` дополнительно смещает контрольные точки по нормали к хорде
-// (−uy, ux) — дуга в обход промежуточного блока.
+// (−uy, ux): дуга в обход промежуточного блока.
 const k = Math.min(96, Math.max(26, len * 0.45));
 const nx = -uy * bend;
 const ny = ux * bend;
@@ -119,10 +119,10 @@ const midX = 0.125 * from.x + 0.375 * c1.x + 0.375 * c2.x + 0.125 * to.x;
 const midY = 0.125 * from.y + 0.375 * c1.y + 0.375 * c2.y + 0.125 * to.y;
 
 // Направление и ритм потока. async по умолчанию односторонний (нет ответа),
-// sync/data — round-trip; явный `oneway` перекрывает это правило.
+// sync/data: round-trip; явный `oneway` перекрывает это правило.
 const isOneWay = oneway ?? kind === "async";
 const cycle = isOneWay ? 3.2 : 4.4;
-// Фазовый сдвиг отрицательной задержкой — desync без пустого старта.
+// Фазовый сдвиг отрицательной задержкой: desync без пустого старта.
 const shift = `${((seq % 6) * -0.55).toFixed(2)}s`;
 const pulseVars = `offset-path: path('${path}'); --pulse-dur: ${cycle}s; --pulse-shift: ${shift};`;
 
@@ -186,7 +186,7 @@ const bsy = backS.y + Math.cos(angleS) * wing;
 </g>
 
 <style>
-  /* Faint wider underlay — gives the thin line a touch of depth on dark glass. */
+  /* Faint wider underlay: gives the thin line a touch of depth on dark glass. */
   .arch-edge__halo {
     fill: none;
     stroke: var(--bg-deep);
@@ -208,7 +208,7 @@ const bsy = backS.y + Math.cos(angleS) * wing;
     fill: var(--text-muted);
   }
 
-  /* Return-side head for round-trip edges — muted so the primary direction still
+  /* Return-side head for round-trip edges: muted so the primary direction still
      reads, while the two-way nature of the link stays explicit. */
   .arch-edge__head-back {
     stroke: none;
@@ -216,7 +216,7 @@ const bsy = backS.y + Math.cos(angleS) * wing;
     opacity: 0.85;
   }
 
-  /* sync — solid, neutral with a whisper of the project accent. */
+  /* sync: solid, neutral with a whisper of the project accent. */
   .arch-edge--sync .arch-edge__path,
   .arch-edge--sync .arch-edge__head {
     stroke: none;
@@ -229,7 +229,7 @@ const bsy = backS.y + Math.cos(angleS) * wing;
     fill: color-mix(in srgb, var(--text-secondary) 78%, var(--project-accent));
   }
 
-  /* async — accent-tinted dashed rail (the "special" transport: pull / spawn / cron). */
+  /* async: accent-tinted dashed rail (the "special" transport: pull / spawn / cron). */
   .arch-edge--async .arch-edge__path {
     stroke: color-mix(in srgb, var(--project-accent) 68%, var(--text-secondary));
     stroke-dasharray: 7 7;
@@ -238,7 +238,7 @@ const bsy = backS.y + Math.cos(angleS) * wing;
     fill: color-mix(in srgb, var(--project-accent) 68%, var(--text-secondary));
   }
 
-  /* data — muted fine dot-dash rail toward the store. */
+  /* data: muted fine dot-dash rail toward the store. */
   .arch-edge--data .arch-edge__path {
     stroke: var(--text-muted);
     stroke-dasharray: 1.5 5;
@@ -277,7 +277,7 @@ const bsy = backS.y + Math.cos(angleS) * wing;
     opacity: 0.1;
   }
 
-  /* Response packet: smaller, muted — reads as "the result coming back". */
+  /* Response packet: smaller, muted, reads as "the result coming back". */
   .arch-edge__res-core {
     fill: var(--text-secondary);
     opacity: 0.7;

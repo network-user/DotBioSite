@@ -36,8 +36,8 @@ const desc = projectCaseDescription(p, locale);
 const startDate = projectStartDate(p);
 const backHref = `${prefix}/#projects`;
 const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
-// DotSound — мультирепо-экосистема (Backend/Bot/ComputeWorker): "primary" здесь
-// неоднозначен, поэтому подпись остаётся родовой; у остальных — имя репозитория.
+// DotSound: мультирепо-экосистема (Backend/Bot/ComputeWorker), где "primary"
+// неоднозначен, поэтому подпись остаётся родовой; у остальных берём имя репозитория.
 const primaryRepoLabel =
   p.slug === "dotsound" ? t("case.primaryRepo") : (p.repos[0]?.name ?? t("case.primaryRepo"));
 const domainUrl = projectDomainUrl(p);
@@ -47,8 +47,8 @@ const accent = p.accent ?? "var(--accent)";
 const overviewParas = p.overview ? p.overview[locale] : [desc];
 
 const hasMetrics = p.metrics && p.metrics.length > 0;
-// Если у метрик заданы `span` — секция «масштаб» рендерится фиксированной
-// 12-колоночной сеткой с явными ширинами плиток (иначе — авто-сетка + лид).
+// Если у метрик заданы `span`, секция «масштаб» рендерится фиксированной
+// 12-колоночной сеткой с явными ширинами плиток (иначе авто-сетка + лид).
 const metricsSpanned = !!(p.metrics && p.metrics.some((m) => typeof m.span === "number"));
 const hasStackGroups =
   p.stackGroups && Object.values(p.stackGroups).some((arr) => arr && arr.length > 0);
@@ -57,7 +57,7 @@ const hasCapabilities = p.capabilities && p.capabilities.length > 0;
 const hasTimeline = p.timeline && p.timeline.length > 0;
 const hasLinks = Boolean(domainUrl || telegramUrl || p.links?.docs);
 
-// Сигнатурная визуализация «как это работает» — bespoke-анимация ключевых
+// Сигнатурная визуализация «как это работает»: bespoke-анимация ключевых
 // механизмов проекта. Список slug-ов, для которых она есть (см. ProjectSignature).
 const SIGNATURE_SLUGS = new Set([
   "dotsound",
@@ -73,24 +73,24 @@ const hasSignature = SIGNATURE_SLUGS.has(p.slug);
 // концепцией конкретной сигнатуры. Фолбэк - общий «выбери домен».
 const signatureLedes: Record<string, { ru: string; en: string }> = {
   dotlearn: {
-    ru: "Семь шагов одной историей - от клонирования репозитория до экспорта прогресса. Иди стрелками ←/→ и смотри, как всё работает изнутри.",
-    en: "Seven steps as one story - from cloning the repo to exporting your progress. Step through with ←/→ and watch how it works inside.",
+    ru: "Семь шагов одной историей: от клонирования репозитория до экспорта прогресса. Иди стрелками ←/→ и смотри, как всё работает изнутри.",
+    en: "Seven steps as one story: from cloning the repo to exporting your progress. Step through with ←/→ and watch how it works inside.",
   },
   dottraceip: {
     ru: 'Не список полей, а живое досье на адрес. Выберите IP из списка и нажмите "Проследить" и посмотрите, как всё работает изнутри.',
-    en: "Not a list of fields but a live dossier on an address. Pick an IP from the brute-force logs, hit “Trace”, and see how it works inside.",
+    en: "Not a list of fields but a live dossier on an address. Pick an IP from the brute-force logs, hit 'Trace', and see how it works inside.",
   },
   dotagents: {
-    ru: "Два экрана одной истории: слева в терминале работает Claude Code, справа в Telegram - ты. Агент дошёл до опасной команды и встал; реши за него с телефона и посмотри, как контроль работает изнутри.",
+    ru: "Два экрана одной истории: слева в терминале работает Claude Code, справа в Telegram сидишь ты. Агент дошёл до опасной команды и встал; реши за него с телефона и посмотри, как контроль работает изнутри.",
     en: "Two screens, one story: Claude Code runs in the terminal on the left, you sit in Telegram on the right. The agent hit a dangerous command and froze; decide for it from your phone and watch the control loop from the inside.",
   },
   dotworkbot: {
-    ru: "Живая kanban-доска биржи смен, а не список полей - попробуйте её ниже и посмотрите, как всё работает изнутри.",
-    en: "A live kanban board for a gig-shift marketplace, not a list of fields - try it below and see how it works inside.",
+    ru: "Живая kanban-доска биржи смен, а не список полей. Попробуйте её ниже и посмотрите, как всё работает изнутри.",
+    en: "A live kanban board for a gig-shift marketplace, not a list of fields. Try it below and see how it works inside.",
   },
 };
 const signatureLede = (signatureLedes[p.slug] ?? {
-  ru: "Интерактивный разбор ключевых механик. Выбери домен - увидишь, как всё работает изнутри.",
+  ru: "Интерактивный разбор ключевых механик. Выбери домен, увидишь как всё работает изнутри.",
   en: "An interactive breakdown of the core mechanics. Pick a domain to see how it works inside.",
 })[locale];
 ---
@@ -139,7 +139,7 @@ const signatureLede = (signatureLedes[p.slug] ?? {
 
         {
           /* Только для мультирепо-экосистем (DotSound): у одного репозитория
-             имя уже показано в основной GitHub-кнопке ниже — пилюля дублировала бы его. */
+             имя уже показано в основной GitHub-кнопке ниже, и пилюля дублировала бы его. */
           p.repos.length > 1 && (
             <ul
               class="case__repos-pills"
@@ -157,7 +157,7 @@ const signatureLede = (signatureLedes[p.slug] ?? {
                         target="_blank"
                         rel="noopener noreferrer"
                         class="case__repos-pill-link"
-                        aria-label={`${r.name} — ${t("projects.viewSource")}`}
+                        aria-label={`${r.name}: ${t("projects.viewSource")}`}
                       >
                         <Icon name="github" size={12} />
                         <span class="mono">{r.name}</span>
@@ -216,7 +216,7 @@ const signatureLede = (signatureLedes[p.slug] ?? {
               class="case__cover-btn"
               data-lightbox-src={p.cover}
               data-lightbox-title={name}
-              aria-label={`${name} — открыть обложку`}
+              aria-label={`${name}: открыть обложку`}
               type="button"
             >
               <img
@@ -258,7 +258,7 @@ const signatureLede = (signatureLedes[p.slug] ?? {
       {overviewParas.map((para) => <p class="case__lede body">{para}</p>)}
     </section>
 
-    <!-- 2b. Signature visualization — «как это работает» (bespoke per project) -->
+    <!-- 2b. Signature visualization: «как это работает» (bespoke per project) -->
     {
       hasSignature && (
         <section class="case__section case__section--bleed" data-reveal>
@@ -329,7 +329,7 @@ const signatureLede = (signatureLedes[p.slug] ?? {
               clusters={p.clusters ?? []}
               locale={locale}
               hint={t("case.architectureHint")}
-              ariaLabel={`${name} — ${t("case.architecture")}`}
+              ariaLabel={`${name}: ${t("case.architecture")}`}
             />
           </div>
         </section>
@@ -392,7 +392,7 @@ const signatureLede = (signatureLedes[p.slug] ?? {
       )
     }
 
-    <!-- Repos (always — shows multiple repos for ecosystems) -->
+    <!-- Repos (always shown for ecosystems with multiple repos) -->
     {
       p.repos.length > 1 && (
         <section class="case__section" data-reveal>
@@ -491,7 +491,7 @@ const signatureLede = (signatureLedes[p.slug] ?? {
   </div>
   <button class="case-lightbox__close" id="case-lightbox-close" aria-label="Закрыть">✕</button>
   <p class="case-lightbox__hint">
-    Колесо мыши — зум · Drag — перемещение · Дабл-клик — сброс · ESC — закрыть
+    Колесо мыши: зум · Drag: перемещение · Дабл-клик: сброс · ESC: закрыть
   </p>
 </div>
 
@@ -604,7 +604,7 @@ const signatureLede = (signatureLedes[p.slug] ?? {
     color: transparent;
   }
 
-  /* Дыхание заголовка: только яркость — «живой свет» на буквах, без геометрии.
+  /* Дыхание заголовка: только яркость, «живой свет» на буквах, без геометрии.
      Старт отложен (animation-delay) до конца reveal; кадр 0% = финал reveal
      (opacity:1) → стыковка без рывка. Амплитуда крошечная, цикл медленный. */
   @keyframes case-brand-breathe {
@@ -702,7 +702,7 @@ const signatureLede = (signatureLedes[p.slug] ?? {
   /* Медленный свет по «стеклу»: узкая диагональная светлая полоса раз в цикл
      проезжает по обложке и надолго замирает за кадром. Только transform
      (composited); overflow:hidden у фигуры обрезает полосу. Отдельный <span>,
-     а не ::before — псевдоэлементы заняты .glass (top-shine / bottom-edge). */
+     а не ::before: псевдоэлементы заняты .glass (top-shine / bottom-edge). */
   .case__cover-sheen {
     position: absolute;
     inset: -25% -12%;
@@ -795,7 +795,7 @@ const signatureLede = (signatureLedes[p.slug] ?? {
   }
 
   /* Тач: :hover нет, поэтому лупа-подсказка не появлялась и обложка выглядела
-     некликабельной. На coarse-указателе показываем её постоянно и приглушённо —
+     некликабельной. На coarse-указателе показываем её постоянно и приглушённо:
      сигнал, что по обложке можно тапнуть (лайтбокс открывается по тапу). */
   @media (pointer: coarse) {
     .case__cover-zoom {
@@ -841,7 +841,7 @@ const signatureLede = (signatureLedes[p.slug] ?? {
     cursor: grab;
     user-select: none;
     -webkit-user-select: none;
-    /* На тач: жесты pan/zoom (double-tap, drag) обрабатывает JS — гасим нативные
+    /* На тач: жесты pan/zoom (double-tap, drag) обрабатывает JS, поэтому гасим нативные
        жесты браузера на самой сцене, чтобы они не конфликтовали с перетаскиванием. */
     touch-action: none;
   }
@@ -956,7 +956,7 @@ const signatureLede = (signatureLedes[p.slug] ?? {
   }
 
   /* Спан-режим «масштаба»: фиксированная 12-колоночная сетка с явными ширинами
-     плиток (--span). Мобайл — ровные 2 колонки, спаны не применяются.
+     плиток (--span). Мобайл: ровные 2 колонки, спаны не применяются.
      Повышенная специфичность перебивает базовую авто-сетку при любом порядке. */
   .case__metrics.case__metrics--spanned {
     grid-template-columns: repeat(2, 1fr);
@@ -992,7 +992,7 @@ const signatureLede = (signatureLedes[p.slug] ?? {
     min-width: 0;
   }
 
-  /* Accent tick centered at the top edge — the data-point marker. */
+  /* Accent tick centered at the top edge: the data-point marker. */
   .case__metric::before {
     content: "";
     position: absolute;
@@ -1020,7 +1020,7 @@ const signatureLede = (signatureLedes[p.slug] ?? {
     font-size: var(--fs-22);
   }
 
-  /* «Масштаб»: число — герой плитки, центрируем по обеим осям; снизу акцент-бар. */
+  /* «Масштаб»: число героем плитки, центрируем по обеим осям; снизу акцент-бар. */
   .case__scale .case__metric {
     justify-content: center;
     align-items: center;
@@ -1235,9 +1235,9 @@ const signatureLede = (signatureLedes[p.slug] ?? {
     }
   }
 
-  /* Тач-устройства: подсказка лайтбокса говорит про «колесо мыши / drag» — на
-     телефоне это неверно. Жесты там очевидны (double-tap — зум, перетаскивание,
-     ✕/тап-вне — закрыть), поэтому подсказку скрываем. Закрытие крестиком видно. */
+  /* Тач-устройства: подсказка лайтбокса говорит про «колесо мыши / drag», но на
+     телефоне это неверно. Жесты там очевидны (double-tap: зум, перетаскивание,
+     ✕/тап-вне: закрыть), поэтому подсказку скрываем. Закрытие крестиком видно. */
   @media (pointer: coarse) {
     .case-lightbox__hint {
       display: none;
@@ -1361,7 +1361,7 @@ const signatureLede = (signatureLedes[p.slug] ?? {
       dragging = false;
     });
 
-    /* Двойной клик — сброс или zoom x2 */
+    /* Двойной клик: сброс или zoom x2 */
     stage.addEventListener("dblclick", (e: MouseEvent) => {
       if (scale > 1) {
         reset(true);

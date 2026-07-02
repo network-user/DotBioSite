@@ -83,7 +83,7 @@ const milestones = projects
     width: 100%;
     height: 100%;
     pointer-events: none;
-    /* Прогиб толкает точки наружу до ~15px — не обрезаем по краям слоя. */
+    /* Прогиб толкает точки наружу до ~15px, поэтому не обрезаем по краям слоя. */
     overflow: visible;
     z-index: 2;
     /* По умолчанию слой не показан: его включает JS, выставив резерв на CSS. */
@@ -98,7 +98,7 @@ const milestones = projects
     backface-visibility: hidden;
   }
 
-  /* В режиме прогиба линию/рамки/точки рисует SVG — гасим CSS-резерв. */
+  /* В режиме прогиба линию/рамки/точки рисует SVG, поэтому гасим CSS-резерв. */
   .timeline.tl-warp-on::before {
     display: none;
   }
@@ -108,7 +108,7 @@ const milestones = projects
   .timeline.tl-warp-on .timeline__body {
     border-color: transparent;
   }
-  /* Подъём карточки на hover убран в режиме прогиба — иначе SVG-рамка отрывается
+  /* Подъём карточки на hover убран в режиме прогиба, иначе SVG-рамка отрывается
      от карточки. Обратную связь даёт подсветка обводки рамки (.is-hot ниже). */
   .timeline.tl-warp-on .timeline__body:hover {
     transform: none;
@@ -129,7 +129,7 @@ const milestones = projects
   }
 
   /* tl-frame / tl-dot* создаются в JS через createElementNS и НЕ получают
-     scope-атрибут Astro — поэтому их правила обёрнуты в :global() (иначе селектор
+     scope-атрибут Astro, поэтому их правила обёрнуты в :global() (иначе селектор
      скоупится и не матчит, а SVG-path с дефолтным fill превращается в ЧЁРНЫЙ
      прямоугольник поверх карточки). Скоуп держим через предка .timeline. */
   .timeline :global(.tl-frame) {
@@ -155,7 +155,7 @@ const milestones = projects
     stroke-width: 1.3;
   }
 
-  /* Точки: внешняя <g> двигается прогибом (JS-transform), внутренняя — растёт и
+  /* Точки: внешняя <g> двигается прогибом (JS-transform), внутренняя растёт и
      дышит (CSS-transform), чтобы две анимации не конфликтовали на одном узле. */
   .timeline :global(.tl-dot__pulse) {
     transform-box: fill-box;
@@ -589,7 +589,7 @@ const milestones = projects
     function enableWarp() {
       if (!ink || !lineEl || !section) return;
 
-      // Градиент линии (затухает к краям, акцент в середине) — в defs слоя.
+      // Градиент линии (затухает к краям, акцент в середине): в defs слоя.
       // Белый градиент линии с затуханием к краям; строит buildGradient из measure().
       // objectBoundingBox + вертикаль → offset 0..1 = верх..низ линии.
       const defs = document.createElementNS(SVGNS, "defs");
@@ -653,7 +653,7 @@ const milestones = projects
         ensure();
       });
 
-      // Подсветка рамки при hover — нейтральный белый (без per-project цвета).
+      // Подсветка рамки при hover: нейтральный белый (без per-project цвета).
       ol!.querySelectorAll<HTMLElement>("[data-tl-card]").forEach((card, i) => {
         card.addEventListener("pointerenter", () => {
           frameEls[i]?.classList.add("is-hot");

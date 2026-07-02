@@ -1,5 +1,5 @@
 # Шаблон конфига Caddy. deploy/setup.sh подставит {{DOMAIN}} и {{ROOT}}
-# и запишет результат в /etc/caddy/Caddyfile. Вручную править не нужно —
+# и запишет результат в /etc/caddy/Caddyfile. Вручную править не нужно:
 # меняй этот шаблон и перезапусти setup.sh.
 
 # ── Глобальные опции ────────────────────────────────────────────────────────
@@ -47,20 +47,20 @@
 	}
 
 	# ── Cache-Control (перенесено из public/_headers) ───────────────────────
-	# Хэшированные ассеты — на год, immutable
+	# Хэшированные ассеты: на год, immutable
 	@assets path /_assets/*
 	header @assets Cache-Control "public, max-age=31536000, immutable"
 
-	# Обложки проектов и иконки — на неделю
+	# Обложки проектов и иконки: на неделю
 	@week path /projects/* /favicon.svg /icon-192.svg /icon-512.svg
 	header @week Cache-Control "public, max-age=604800"
 
-	# Манифест, sitemap, robots — на час
+	# Манифест, sitemap, robots: на час
 	@shortcache path /manifest.webmanifest /sitemap.xml /robots.txt
 	header @shortcache Cache-Control "public, max-age=3600"
 
-	# Если позже добавишь src/pages/404.astro — Astro сгенерит /404.html,
-	# и Caddy начнёт отдавать его на 404. Пока файла нет — отдаётся
+	# Если позже добавишь src/pages/404.astro, Astro сгенерит /404.html,
+	# и Caddy начнёт отдавать его на 404. Пока файла нет, отдаётся
 	# стандартная страница ошибки Caddy, это безопасно.
 	handle_errors {
 		rewrite * /404.html

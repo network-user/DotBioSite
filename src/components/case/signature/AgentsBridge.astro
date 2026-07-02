@@ -31,8 +31,8 @@
  *
  * Строки/факты сверены по репозиторию DotAgents: live_renderer.py (заголовок
  * «Claude Code · <id>», статусы ⚡/⏳/✏️, «Last tool», «Approval:», футер
- * «started … · N tools · N files · mode: remote»), notifier.py + strings.py
- * («Approval · <sid>», «kind:…·risk:…», «Что вы разрешаете / What you
+ * «started ... · N tools · N files · mode: remote»), notifier.py + strings.py
+ * («Approval · <sid>», «kind:...·risk:...», «Что вы разрешаете / What you
  * approve», Allow/Deny = Разрешить/Отклонить), before_shell/before_mcp →
  * long-poll до 270 c (fail-closed), режимы remote/readonly/standby,
  * Claude Code stream-json (Read/Grep/Edit/Write/Bash + MCP).
@@ -48,8 +48,8 @@ type Bi = { ru: string; en: string };
 const t = (b: Bi): string => b[locale];
 
 const intro: Bi = {
-  ru: "Два экрана одной сессии: слева Claude Code работает в терминале, справа ты управляешь им из Telegram - разрешаешь или отклоняешь каждую рискованную команду.",
-  en: "Two screens, one session: Claude Code runs in the terminal on the left, you drive it from Telegram on the right - approving or denying every risky command.",
+  ru: "Два экрана одной сессии: слева Claude Code работает в терминале, справа ты управляешь им из Telegram: разрешаешь или отклоняешь каждую рискованную команду.",
+  en: "Two screens, one session: Claude Code runs in the terminal on the left, you drive it from Telegram on the right, approving or denying every risky command.",
 };
 
 // ── Сценарии = задачи. Каждая: несколько шагов, среди них 2-3 рискованных
@@ -102,8 +102,8 @@ const scenarios: Scenario[] = [
         risk: "high",
         riskLabel: { ru: "высокий", en: "high" },
         why: {
-          ru: "Снесёт всю папку мимо корзины - не вернуть.",
-          en: "Wipes the whole folder past the trash - unrecoverable.",
+          ru: "Снесёт всю папку мимо корзины, не вернуть.",
+          en: "Wipes the whole folder past the trash, unrecoverable.",
         },
         allow: { ru: "dist/ удалена", en: "dist/ removed" },
         deny: { ru: "оставляю · чищу вручную позже", en: "kept · will clean up manually" },
@@ -127,8 +127,8 @@ const scenarios: Scenario[] = [
         risk: "high",
         riskLabel: { ru: "высокий", en: "high" },
         why: {
-          ru: "Опубликует пакет для всех - откатить нельзя.",
-          en: "Publishes the package for everyone - can't be undone.",
+          ru: "Опубликует пакет для всех, откатить нельзя.",
+          en: "Publishes the package for everyone, can't be undone.",
         },
         allow: { ru: "опубликовано · v1.4.0", en: "published · v1.4.0" },
         deny: { ru: "публикация отменена", en: "publish cancelled" },
@@ -219,8 +219,8 @@ const scenarios: Scenario[] = [
         risk: "critical",
         riskLabel: { ru: "критический", en: "critical" },
         why: {
-          ru: "Файл с паролями и ключами - уедет в контекст модели.",
-          en: "The secrets file - it would leak into the model's context.",
+          ru: "Файл с паролями и ключами уедет в контекст модели.",
+          en: "The secrets file would leak into the model's context.",
         },
         allow: { ru: "секреты в контексте модели", en: "secrets in the model's context" },
         deny: { ru: "доступ к .env заблокирован", en: ".env access blocked" },
@@ -242,8 +242,8 @@ const scenarios: Scenario[] = [
         risk: "high",
         riskLabel: { ru: "высокий", en: "high" },
         why: {
-          ru: "Изменит схему боевой базы - без бэкапа рискованно.",
-          en: "Alters the production DB schema - risky without a backup.",
+          ru: "Изменит схему боевой базы, без бэкапа рискованно.",
+          en: "Alters the production DB schema, risky without a backup.",
         },
         allow: { ru: "миграции применены · 3 версии", en: "migrations applied · 3 versions" },
         deny: { ru: "миграции отменены", en: "migrations cancelled" },
@@ -332,12 +332,12 @@ const ui = {
     en: "Claude Code works on its own in the terminal on your machine",
   },
   introStep2: {
-    ru: "Дошёл до опасной команды - хук ставит его на паузу и пишет тебе в Telegram",
-    en: "It hits a risky command - the hook pauses it and messages you in Telegram",
+    ru: "Дошёл до опасной команды: хук ставит его на паузу и пишет тебе в Telegram",
+    en: "It hits a risky command: the hook pauses it and messages you in Telegram",
   },
   introStep3: {
-    ru: "Жмёшь Allow или Deny - и так, пока задача не будет готова",
-    en: "You tap Allow or Deny - and so on, until the task is done",
+    ru: "Жмёшь Allow или Deny, и так, пока задача не будет готова",
+    en: "You tap Allow or Deny, and so on, until the task is done",
   },
   introStart: { ru: "Попробовать", en: "Try it" },
   labelMachine: { ru: "Твоя машина", en: "Your machine" },
@@ -347,8 +347,8 @@ const ui = {
   project: "my-app",
   tgSub: { ru: "бот", en: "bot" },
   invariant: {
-    ru: "Канал управления уходит в Telegram. Код, approvals и transcript остаются на машине - API слушает только 127.0.0.1.",
-    en: "The control channel goes to Telegram. Code, approvals and transcript stay on the machine - the API listens on 127.0.0.1 only.",
+    ru: "Канал управления уходит в Telegram. Код, approvals и transcript остаются на машине: API слушает только 127.0.0.1.",
+    en: "The control channel goes to Telegram. Code, approvals and transcript stay on the machine: the API listens on 127.0.0.1 only.",
   },
   underLabel: { ru: "Режимы и безопасность", en: "Modes & security" },
   modeTitle: { ru: "Режим демона", en: "Daemon mode" },
@@ -1416,7 +1416,7 @@ const ui = {
     margin-left: var(--sp-2);
   }
 
-  /* появление сообщения — как в Telegram: растёт из нижнего угла + мягкий доводчик */
+  /* появление сообщения, как в Telegram: растёт из нижнего угла + мягкий доводчик */
   .ab__bubble[data-arrive] {
     animation: ab-arrive 260ms var(--ease-spring) both;
   }
@@ -1433,7 +1433,7 @@ const ui = {
       transform: translateY(0) scale(1);
     }
   }
-  /* удаление сообщения — быстрое схлопывание в угол */
+  /* удаление сообщения: быстрое схлопывание в угол */
   .ab__bubble[data-leave] {
     animation: ab-leave 180ms var(--ease-standard) both;
   }
@@ -2087,7 +2087,7 @@ const ui = {
       if (!scenes.length) return;
 
       const TXT = {
-        working: tr("Claude Code работает…", "Claude Code is working…"),
+        working: tr("Claude Code работает...", "Claude Code is working..."),
         paused: tr(
           "на паузе · ждёт решения в Telegram",
           "paused · waiting for a decision in Telegram",
@@ -2095,8 +2095,8 @@ const ui = {
         done: tr("работа завершена", "work complete"),
         cleared: tr("/clear · новый контекст", "/clear · new context"),
         subBot: tr("бот", "bot"),
-        subTyping: tr("печатает…", "typing…"),
-        liveRun: tr("⚡ running…", "⚡ running…"),
+        subTyping: tr("печатает...", "typing..."),
+        liveRun: tr("⚡ running...", "⚡ running..."),
         liveWait: tr("⏳ waiting approval", "⏳ waiting approval"),
         liveDone: tr("✅ done", "✅ done"),
         lastTool: tr("Last tool:", "Last tool:"),
@@ -2242,7 +2242,7 @@ const ui = {
       // ── статус терминала ──
       const setTermStatus = (label: string): void => {
         if (!termStatusTxt) return;
-        // первый текстовый узел — метка статуса; meta остаётся
+        // первый текстовый узел: метка статуса; meta остаётся
         const meta = termMeta;
         termStatusTxt.textContent = label + " ";
         if (meta) termStatusTxt.appendChild(meta);
@@ -2361,7 +2361,7 @@ const ui = {
         const displayCmd = st.mcp ? `${st.tool}(${st.cmd})` : st.cmd;
         paintLive("wait", displayCmd);
 
-        // чат: «печатает…» → прилетает запрос
+        // чат: «печатает...» → прилетает запрос
         setSub(true);
         later(() => {
           setSub(false);
@@ -2471,7 +2471,7 @@ const ui = {
         if (newmsgTxt) newmsgTxt.textContent = `🆕 ${sc.task}`;
         if (newmsg) bubbleIn(newmsg);
 
-        // 2) бот «печатает…» → 3) прилетает live-сессия → 4) терминал стартует
+        // 2) бот «печатает...» → 3) прилетает live-сессия → 4) терминал стартует
         setSub(true);
         later(() => {
           setSub(false);

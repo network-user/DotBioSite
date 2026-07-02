@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# DotBioSite — обновление уже развёрнутого сайта.
+# DotBioSite: обновление уже развёрнутого сайта.
 # Подтягивает изменения, пересобирает статику, чистит за собой и
 # перезагружает Caddy. Toolchain (Node/Caddy) и .env не трогает.
 #
@@ -21,7 +21,7 @@ cd "$REPO_DIR"
 
 if [ -d .git ]; then
 	echo "==> git pull..."
-	git pull --ff-only || echo "  (pull пропущен — нет апстрима или есть локальные правки)"
+	git pull --ff-only || echo "  (pull пропущен: нет апстрима или есть локальные правки)"
 fi
 
 echo "==> Пересборка..."
@@ -33,7 +33,7 @@ rm -rf node_modules .astro
 npm cache clean --force >/dev/null 2>&1 || true
 
 if [ ! -d "$DIST_DIR" ] || [ -z "$(ls -A "$DIST_DIR" 2>/dev/null)" ]; then
-	echo "Ошибка: dist/ пустой — сборка не удалась, Caddy не трогаю." >&2
+	echo "Ошибка: dist/ пустой, сборка не удалась, Caddy не трогаю." >&2
 	exit 1
 fi
 chmod -R a+rX "$DIST_DIR"

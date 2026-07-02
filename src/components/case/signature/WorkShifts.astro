@@ -1,27 +1,27 @@
 ---
 /**
- * WorkShifts.astro — сигнатурная визуализация .работа (DotWorkBot).
+ * WorkShifts.astro: сигнатурная визуализация .работа (DotWorkBot).
  *
- * Концепция: ЖИВАЯ ДИСПЕТЧЕРСКАЯ ДОСКА (kanban) разовых смен, посетитель — за
- * РАБОТОДАТЕЛЯ. Колонки: Открыто → В работе → На приёмке → Закрыто. Часы —
+ * Концепция: ЖИВАЯ ДИСПЕТЧЕРСКАЯ ДОСКА (kanban) разовых смен, посетитель: за
+ * РАБОТОДАТЕЛЯ. Колонки: Открыто → В работе → На приёмке → Закрыто. Часы:
  * событийная «машина времени»: now = максимум достигнутого времени (только
  * вперёд, +1ч и «Авто» ДОПИСЫВАЮТ события), view = плейхед, который можно мотать
- * назад кнопкой −1ч и только ПЕРЕИГРЫВАТЬ (без дописи). Индикатор «Ход дня» —
+ * назад кнопкой −1ч и только ПЕРЕИГРЫВАТЬ (без дописи). Индикатор «Ход дня»:
  * не интерактивная полоса, заполняется к текущему часу. Каждая смена хранит лишь
  * метки событий (bornAt/claimedAt/confirmedAt/releasedAt/submittedAt/acceptedAt/
- * rejectedAt/…); derive(shift,T) — ЧИСТАЯ функция кадра. Пока крутишь время,
+ * rejectedAt/...); derive(shift,T): ЧИСТАЯ функция кадра. Пока крутишь время,
  * работники сами берут открытые смены; кто-то не выходит (no-show), кто-то уходит
  * посреди смены, большинство отрабатывают и сдают работу «На приёмку». Работодатель
  * (вы) назначает открытые смены (кнопка) и на приёмке жмёт «Принять работу» или
  * «Отклонить»; на автоплее («Авто») приёмка одобряется сама. Фоновый воркер за
  * REMIND_LEAD часов шлёт РОВНО ОДНО напоминание, возвращает сорванные слоты в
- * «Открыто» и авто-отменяет просроченные. Перемещение — только кнопками карточек.
+ * «Открыто» и авто-отменяет просроченные. Перемещение: только кнопками карточек.
  *
  * Роли: worker / employer / admin. Ядро: PostgreSQL · Redis (FSM/throttle/lock)
  * · MinIO/S3 фото · AES-бэкапы · VPS-деплой с откатом. Акцент var(--accent-work).
  *
  * Перф-бюджет: анимируем ТОЛЬКО transform/opacity, никогда layout. Нет постоянного
- * rAF — автоплей («Авто») ведёт setTimeout-конвейер, полностью очищаемый офскрин,
+ * rAF: автоплей («Авто») ведёт setTimeout-конвейер, полностью очищаемый офскрин,
  * на скрытой вкладке (visibilitychange) и на pagehide; тосты гасятся
  * отслеживаемыми таймерами. Единственная infinite-CSS (пульс точки «Авто») scoped
  * под .ws.is-inview[data-live="on"] и замирает за кадром. Всё гейтится
@@ -45,8 +45,8 @@ const NOW0 = 9;
 // ── Локализованные строки (единый серверный источник; клиент читает из payload).
 const ui = {
   intro: {
-    ru: "Это живая доска биржи разовых смен, и вы за работодателя. Работники сами берут смены: кто-то не выходит, кто-то уходит посреди смены, а большинство отрабатывают и сдают работу вам на приёмку - примите её или отклоните. Крутите часы, чтобы увидеть день целиком, или создайте свою смену.",
-    en: "This is the live board of a gig-shift marketplace, and you play the employer. Workers claim shifts on their own: some never show up, some leave mid-shift, and most work through and submit the job for your review - accept it or reject it. Wind the clock to watch the whole day, or post a shift of your own.",
+    ru: "Это живая доска биржи разовых смен, и вы за работодателя. Работники сами берут смены: кто-то не выходит, кто-то уходит посреди смены, а большинство отрабатывают и сдают работу вам на приёмку: примите её или отклоните. Крутите часы, чтобы увидеть день целиком, или создайте свою смену.",
+    en: "This is the live board of a gig-shift marketplace, and you play the employer. Workers claim shifts on their own: some never show up, some leave mid-shift, and most work through and submit the job for your review: accept it or reject it. Wind the clock to watch the whole day, or post a shift of your own.",
   },
   clock: { ru: "Часы города", en: "City clock" },
   back: { ru: "−1 час", en: "−1 hour" },
@@ -59,8 +59,8 @@ const ui = {
   hist: { ru: "просмотр прошлого", en: "viewing past" },
   composerCap: { ru: "Новая смена", en: "New shift" },
   composerHint: {
-    ru: "Выберите тип - окно и ставка подставятся. Опубликуйте - смена появится в «Открыто».",
-    en: "Pick a type - window and rate autofill. Publish and it lands in “Open”.",
+    ru: "Выберите тип: окно и ставка подставятся. Опубликуйте, и смена появится в «Открыто».",
+    en: "Pick a type: window and rate autofill. Publish and it lands in 'Open'.",
   },
   preview: { ru: "Окно", en: "Window" },
   publish: { ru: "Опубликовать", en: "Publish" },
@@ -102,12 +102,12 @@ const ui = {
   under: { ru: "Под капотом", en: "Under the hood" },
   underSub: { ru: "как биржа держится сама", en: "how the board runs itself" },
   underLead: {
-    ru: "Биржа работает сама: один фоновый процесс-воркер шлёт напоминания и закрывает просроченные смены. Если запущено несколько его копий, они борются за один Redis-лок - «лидером» становится ровно одна, остальные ждут. Нажмите на реплику, чтобы отдать лок ей.",
-    en: "The board runs itself: one background worker process sends reminders and closes expired shifts. If several copies run, they race for a single Redis lock - exactly one becomes the leader while the rest wait. Tap a replica to hand it the lock.",
+    ru: "Биржа работает сама: один фоновый процесс-воркер шлёт напоминания и закрывает просроченные смены. Если запущено несколько его копий, они борются за один Redis-лок: «лидером» становится ровно одна, остальные ждут. Нажмите на реплику, чтобы отдать лок ей.",
+    en: "The board runs itself: one background worker process sends reminders and closes expired shifts. If several copies run, they race for a single Redis lock: exactly one becomes the leader while the rest wait. Tap a replica to hand it the lock.",
   },
   underHint: {
-    ru: "Тап по реплике: она заберёт лок. Лидер всегда ровно один - он и «тикает» цикл.",
-    en: "Tap a replica: it grabs the lock. Always exactly one leader - and it ticks the loop.",
+    ru: "Тап по реплике: она заберёт лок. Лидер всегда ровно один, он и «тикает» цикл.",
+    en: "Tap a replica: it grabs the lock. Always exactly one leader, and it ticks the loop.",
   },
   lockKey: {
     ru: "SET nx ex · dotworkbot:operational_control:leader",
@@ -127,7 +127,7 @@ const ui = {
     en: "PostgreSQL · Redis (FSM/throttle/lock) · MinIO/S3 photos · AES backups · VPS deploy with rollback",
   },
   atLive: { ru: "в эфире · воркер действует сам", en: "live · worker acts on its own" },
-  reachedEnd: { ru: "конец дня - эфир на паузе", en: "end of day - live paused" },
+  reachedEnd: { ru: "конец дня, эфир на паузе", en: "end of day, live paused" },
   noFree: { ru: "нет свободных работников", en: "no free workers" },
   slot: { ru: "смена", en: "shift" },
   by: { ru: "исполнитель", en: "worker" },
@@ -697,7 +697,7 @@ const payload = {
   .ws[data-live="on"] .ws__live-dot {
     background: var(--accent);
   }
-  /* Пульс «в эфире» — только когда виден и играет */
+  /* Пульс «в эфире»: только когда виден и играет */
   .ws.is-inview[data-live="on"] .ws__live-dot {
     animation: ws-breathe 1.5s var(--ease-drift) infinite;
   }
@@ -1340,11 +1340,11 @@ const payload = {
 </style>
 
 <script>
-  // Живая диспетчерская доска .работа. Часы — событийная машина времени: now
+  // Живая диспетчерская доска .работа. Часы: событийная машина времени: now
   // только растёт (+1ч / «В эфире» дописывают события), view можно мотать назад
-  // и переигрывать. derive(shift,T) — чистый кадр; render(view) раскладывает
+  // и переигрывать. derive(shift,T): чистый кадр; render(view) раскладывает
   // карточки. Скрипт лишь переключает классы/атрибуты и позиции; всё, что
-  // движется, — transform/opacity в CSS. Нет постоянного rAF: автоплей ведёт
+  // движется, transform/opacity в CSS. Нет постоянного rAF: автоплей ведёт
   // setTimeout-конвейер, чистящийся офскрин, на скрытой вкладке и на pagehide.
   // Всё гейтится IntersectionObserver; reduced-motion → читаемый кадр, интеракции
   // применяются мгновенно.
@@ -1453,7 +1453,7 @@ const payload = {
       presets: PresetJSON[];
     };
 
-    // Смена — событийная запись. Метки null, пока событие не произошло.
+    // Смена: событийная запись. Метки null, пока событие не произошло.
     type Shift = {
       id: string;
       title: string;
@@ -1491,7 +1491,7 @@ const payload = {
       reason: "" | "noshow" | "left" | "postpone";
       submitted: boolean;
       // released-слот, старт которого уже прошёл: sim его больше не пере-берёт
-      // (auto-claim гейтится h < start), карточка истекает — не «пере-предложено».
+      // (auto-claim гейтится h < start), карточка истекает, а не «пере-предложено».
       expiring: boolean;
       reminded: boolean;
       done: "" | "accepted" | "rejected" | "cancelled";
@@ -1680,7 +1680,7 @@ const payload = {
             <span class="ws__card-remind" aria-hidden="true"></span>
             <div class="ws__card-head">
               <span class="ws__card-id mono">${s.id}</span>
-              <span class="ws__card-time mono">${s.start}:00–${s.end}:00</span>
+              <span class="ws__card-time mono">${s.start}:00-${s.end}:00</span>
             </div>
             <div class="ws__card-title">${s.title}</div>
             <div class="ws__card-sub mono">${s.city} · ${s.rate}</div>
@@ -1865,7 +1865,7 @@ const payload = {
 
         // ── stepHour(h): продвинуть симуляцию на час вперёд (мутирует события) ──
         const stepHour = (h: number): void => {
-          // 1. spawn — иногда рождается новая смена (кап по concurrency)
+          // 1. spawn: иногда рождается новая смена (кап по concurrency)
           const active = shifts.filter((s) => {
             const d = derive(s, h);
             return d.present && !d.done;
@@ -1928,7 +1928,7 @@ const payload = {
               }
             }
 
-            // 3. reminder — ровно раз при входе в [start-LEAD, start)
+            // 3. reminder: ровно раз при входе в [start-LEAD, start)
             if (
               claimedSeg &&
               !d.confirmed &&
@@ -1941,7 +1941,7 @@ const payload = {
               toast(`${U.stReminded}: ${s.id}`);
             }
 
-            // 4. до старта — небольшой шанс сняться
+            // 4. до старта: небольшой шанс сняться
             if (claimedSeg && !d.confirmed && h < s.start - 1 && Math.random() < 0.1) {
               s.releasedAt = h;
               s.releaseReason = "postpone";
@@ -2112,7 +2112,7 @@ const payload = {
         };
         liveBtn?.addEventListener("click", () => {
           if (reduced.matches) {
-            // reduced-motion: автоплей запрещён — просто шаг вперёд
+            // reduced-motion: автоплей запрещён, просто шаг вперёд
             if (state.now < DAY_END) {
               advanceTo(state.now + 1);
             } else {
@@ -2131,7 +2131,7 @@ const payload = {
           if (!previewEl || !p) return;
           const start = Math.min(DAY_END - 1, Math.max(state.now, DAY_START) + 1);
           const end = Math.min(DAY_END, start + p.dur);
-          previewEl.textContent = `${p.title} · ${p.city} · ${start}:00–${end}:00 · ${p.rate}`;
+          previewEl.textContent = `${p.title} · ${p.city} · ${start}:00-${end}:00 · ${p.rate}`;
         };
         const openComposer = (open: boolean): void => {
           if (composer) composer.hidden = !open;

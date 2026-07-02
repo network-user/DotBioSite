@@ -382,8 +382,8 @@
         "en": "Adaptive HLS over content-addressed storage: the same track is stored once for everyone, segments cached as immutable."
       },
       "detail": {
-        "ru": "Адресом сегмента служит сам хеш содержимого: blobs/a1/a1f9….ts. Одинаковый трек не транскодируется дважды, а сегменты кешируются как immutable на год.",
-        "en": "A segment's address is the content hash itself: blobs/a1/a1f9….ts. An identical track is never transcoded twice, and segments cache immutable for a year."
+        "ru": "Адресом сегмента служит сам хеш содержимого: blobs/a1/a1f9...ts. Одинаковый трек не транскодируется дважды, а сегменты кешируются как immutable на год.",
+        "en": "A segment's address is the content hash itself: blobs/a1/a1f9...ts. An identical track is never transcoded twice, and segments cache immutable for a year."
       }
     },
     {

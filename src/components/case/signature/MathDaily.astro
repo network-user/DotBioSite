@@ -1,10 +1,10 @@
 ---
 /**
- * MathDaily.astro — сигнатурная визуализация .счёт (DotMath): «Дорожка дня».
+ * MathDaily.astro: сигнатурная визуализация .счёт (DotMath): «Дорожка дня».
  *
  * Метафора: ОДНА нисходящая дорожка, по которой идёт твой результат. Сверху вниз
  * читается причинная петля проекта: Настройка → Реши → Табло → Серия. В каждый
- * момент подсвечена РОВНО ОДНА зона (остальные приглушены прозрачностью) — поэтому
+ * момент подсвечена РОВНО ОДНА зона (остальные приглушены прозрачностью), поэтому
  * глаз всегда знает, куда смотреть. Когда набор пройден, твой результат не «появляется»
  * в табло новой строкой, а ФИЗИЧЕСКИ съезжает по дорожке вниз и СТАНОВИТСЯ твоей
  * строкой; по пути его подпись меняется (+N очк. → ↑ место → +1 день). Так связь
@@ -13,11 +13,11 @@
  * Что можно потыкать:
  *   1) Выбрать 1 из 7 операций (+, −, ×, ÷, ÷ с остатком, степени, корни) и 1 из 3
  *      уровней. Уровень меняет диапазон чисел, размер набора (5/7/10) и число
- *      вариантов (2/3/4) — как DIFFICULTY_CONFIG. Под выбором — живой config-readout.
+ *      вариантов (2/3/4), как DIFFICULTY_CONFIG. Под выбором: живой config-readout.
  *   2) Решить набор: примеры считаются НАСТОЯЩИМ арифметическим значением в JS
  *      (14 × 7 = 98). «С остатком» теперь честное «47 ÷ 9 = 5 ост. 2»: в ответе целое
  *      частное, остаток показывается отдельной подписью (а не кодом «q · rem»).
- *      Счётчик очков набегает по весу уровня (1/2/3) — вес видно ДО того, как табло
+ *      Счётчик очков набегает по весу уровня (1/2/3): вес видно ДО того, как табло
  *      назовёт срез «Очки».
  *   3) Табло с 4 срезами (StatsService.get_top_users_by_streak / _by_solved /
  *      _by_accuracy / _by_weighted). У срезов человеческие имена и одна строка-смысл.
@@ -25,10 +25,10 @@
  *   4) Серия дней: 7 ячеек. День хотя бы с одним верным даёт +1; тап выключает день
  *      (пропуск) и обнуляет серию от разрыва; второй подход за день её не двигает.
  *
- * Перф-бюджет: анимируем ТОЛЬКО transform/opacity (съезд чипа — FLIP-translate, смена
- * активной зоны и стрелок-связок — opacity, перестановка строк — FLIP). Ни width/height,
+ * Перф-бюджет: анимируем ТОЛЬКО transform/opacity (съезд чипа: FLIP-translate, смена
+ * активной зоны и стрелок-связок: opacity, перестановка строк: FLIP). Ни width/height,
  * ни box-shadow/filter/backdrop-filter в движении. Постоянного rAF нет: автопрогон и
- * пульс-подсказка — цепочки setTimeout (later()), чистятся за экраном / на скрытой
+ * пульс-подсказка: цепочки setTimeout (later()), чистятся за экраном / на скрытой
  * вкладке / на pagehide. Всё движение под IntersectionObserver (.is-inview).
  * prefers-reduced-motion → финальный читаемый кадр (чип уже стал строкой табло, день
  * засчитан, серия +1), а все тапы/переключения/сортировка продолжают работать.
@@ -54,8 +54,8 @@ const ui = {
     en: "Mental-math trainer · walk the lane",
   },
   facts: {
-    ru: "ProblemGenerator · DIFFICULTY_CONFIG · StatsService — 4 среза · веса 1·2·3 · челлендж дня · aiogram 3 · PostgreSQL + asyncpg · Redis FSM · APScheduler · ~9k строк · RU/EN",
-    en: "ProblemGenerator · DIFFICULTY_CONFIG · StatsService — 4 cuts · weights 1·2·3 · daily challenge · aiogram 3 · PostgreSQL + asyncpg · Redis FSM · APScheduler · ~9k lines · RU/EN",
+    ru: "ProblemGenerator · DIFFICULTY_CONFIG · StatsService: 4 среза · веса 1·2·3 · челлендж дня · aiogram 3 · PostgreSQL + asyncpg · Redis FSM · APScheduler · ~9k строк · RU/EN",
+    en: "ProblemGenerator · DIFFICULTY_CONFIG · StatsService: 4 cuts · weights 1·2·3 · daily challenge · aiogram 3 · PostgreSQL + asyncpg · Redis FSM · APScheduler · ~9k lines · RU/EN",
   },
 
   // --- Зоны ---
@@ -63,7 +63,7 @@ const ui = {
   z1cap: { ru: "что тренируем", en: "what to train" },
   z2: { ru: "Реши", en: "Solve" },
   z3: { ru: "Табло", en: "Board" },
-  z3cap: { ru: "один результат — четыре среза", en: "one result — four cuts" },
+  z3cap: { ru: "один результат: четыре среза", en: "one result: four cuts" },
   z4: { ru: "Серия дней", en: "Day streak" },
   z4cap: { ru: "последние 7 дней", en: "last 7 days" },
 
@@ -90,7 +90,7 @@ const ui = {
   remShort: { ru: "ост.", en: "r" },
   correctIs: { ru: "верный ответ:", en: "correct answer:" },
   remGloss: {
-    ru: "в ответе — целое от деления; остаток показан отдельно",
+    ru: "в ответе целое от деления; остаток показан отдельно",
     en: "the answer is the whole quotient; the remainder is shown separately",
   },
   points: { ru: "очк.", en: "pts" },
@@ -102,7 +102,7 @@ const ui = {
   reset: { ru: "Заново", en: "Reset" },
   retryNote: {
     ru: "промахи копятся: «перерешать ошибки» собрал бы новый набор только из них",
-    en: "misses pile up: “retry mistakes” would build a fresh set from those only",
+    en: "misses pile up: 'retry mistakes' would build a fresh set from those only",
   },
 
   // результат-чип
@@ -148,14 +148,14 @@ const ui = {
 
   // подсказки-ведение (одна живая строка)
   hIdle: { ru: "Выбери, что тренировать.", en: "Pick what to train." },
-  hOp: { ru: "Хорошо — теперь выбери уровень сложности.", en: "Good — now pick a difficulty." },
+  hOp: { ru: "Хорошо. Теперь выбери уровень сложности.", en: "Good. Now pick a difficulty." },
   hConfig: {
-    ru: "Готово. Реши набор — примеры настоящие, считаются на лету.",
-    en: "Set. Solve the set — real problems, computed live.",
+    ru: "Готово. Реши набор: примеры настоящие, считаются на лету.",
+    en: "Set. Solve the set: real problems, computed live.",
   },
   hWrong: {
-    ru: "Мимо — верный подсвечен. Попытка засчитана, идём дальше.",
-    en: "Missed — the right one's highlighted. The attempt counts; moving on.",
+    ru: "Мимо: верный подсвечен. Попытка засчитана, идём дальше.",
+    en: "Missed: the right one's highlighted. The attempt counts; moving on.",
   },
   hAuto: {
     ru: "Дальше можно прогнать набор одной кнопкой.",
@@ -170,12 +170,12 @@ const ui = {
     en: "Your row is in the board. Read it four ways.",
   },
   hCuts: {
-    ru: "Один результат — четыре рейтинга. Твоё место в каждом разное.",
+    ru: "Один результат: четыре рейтинга. Твоё место в каждом разное.",
     en: "One result, four rankings. Your place differs in each.",
   },
   hCounted: {
-    ru: "Один верный за день держит серию, пропуск — обнуляет. И завтра заново — это и есть привычка.",
-    en: "One correct a day keeps the streak; a skip resets it. And tomorrow again — that's the habit.",
+    ru: "Один верный за день держит серию, пропуск обнуляет. И завтра заново: это и есть привычка.",
+    en: "One correct a day keeps the streak; a skip resets it. And tomorrow again: that's the habit.",
   },
 };
 
@@ -217,9 +217,9 @@ const boardModes: Mode[] = [
   { key: "weighted", label: ui.mWeighted, why: ui.mWeightedWhy, unit: { ru: "", en: "" } },
 ];
 
-// --- Игроки. Лидер в каждом срезе РАЗНЫЙ: streak→A (по умолчанию; твоя серия живая —
+// --- Игроки. Лидер в каждом срезе РАЗНЫЙ: streak→A (по умолчанию; твоя серия живая:
 // можешь обогнать, редактируя дни), solved→B, accuracy→C, weighted→ты.
-// «Ты» лидируешь по очкам при том, что решено меньше, чем у Бориса, — это и продаёт
+// «Ты» лидируешь по очкам при том, что решено меньше, чем у Бориса, это и продаёт
 // идею взвешенных очков (сложное стоит дороже). ---
 type Player = {
   id: string;
@@ -404,7 +404,7 @@ const bundle = {
 
         <div class="dl__play" data-play>
           <div class="dl__question" data-question>
-            <span class="dl__expr" data-expr>—</span>
+            <span class="dl__expr" data-expr>-</span>
             <span class="dl__eq" aria-hidden="true">=</span>
             <span class="dl__ph" data-ph aria-hidden="true">?</span>
             <span class="dl__rem-tag" data-rem-tag hidden>{t(ui.withRemainder)}</span>
@@ -415,7 +415,7 @@ const bundle = {
               [0, 1, 2, 3].map((k) => (
                 <button type="button" class="dl__choice" data-choice={k} hidden={k >= 2}>
                   <span class="dl__choice-val" data-val>
-                    —
+                    -
                   </span>
                   <span class="dl__choice-mark" aria-hidden="true" data-mark />
                 </button>
@@ -683,7 +683,7 @@ const bundle = {
     border-color: var(--a);
     transform: scale(1.15);
   }
-  /* пройденные зоны (выше активной) — узел залит, но не увеличен */
+  /* пройденные зоны (выше активной): узел залит, но не увеличен */
   .dl__zone.is-done .dl__node {
     background: var(--a-line);
     border-color: var(--a-line);
@@ -987,7 +987,7 @@ const bundle = {
     display: none;
   }
 
-  /* Колонок ровно столько, сколько вариантов (2/3/4) — без одинокой кнопки в строке. */
+  /* Колонок ровно столько, сколько вариантов (2/3/4): без одинокой кнопки в строке. */
   .dl__choices {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
@@ -1066,11 +1066,11 @@ const bundle = {
     opacity: 0.4;
   }
   @media (prefers-reduced-motion: no-preference) {
-    /* верный выбор — короткий уверенный рост */
+    /* верный выбор: короткий уверенный рост */
     .dl__choice.dl__confirm {
       animation: dl-confirm 0.4s var(--ease-spring);
     }
-    /* неверный выбор — молча оседает вниз */
+    /* неверный выбор: молча оседает вниз */
     .dl__choice.dl__fall {
       animation: dl-fall 0.4s var(--ease-soft);
     }
@@ -1233,7 +1233,7 @@ const bundle = {
   }
   @media (prefers-reduced-motion: no-preference) {
     .dl__chip.dl__chip-travel {
-      /* opacity стартует не сразу, а под конец полёта — чип гаснет ровно
+      /* opacity стартует не сразу, а под конец полёта: чип гаснет ровно
          в момент, когда «садится» на строку табло, а не раньше времени */
       transition:
         transform 0.52s var(--ease-soft),
@@ -1364,7 +1364,7 @@ const bundle = {
     border-color: var(--a);
     background: color-mix(in srgb, var(--a) 13%, var(--surface));
   }
-  /* акцентная планка слева — «эта строка твоя» видно даже боковым зрением */
+  /* акцентная планка слева: «эта строка твоя» видно даже боковым зрением */
   .dl__row.is-you::before {
     content: "";
     position: absolute;
@@ -1447,7 +1447,7 @@ const bundle = {
     font-size: var(--fs-13);
     color: var(--text-muted);
   }
-  /* opacity — не transform: .dl__row уже анимирует transform через FLIP-слайд
+  /* opacity, не transform: .dl__row уже анимирует transform через FLIP-слайд
      (см. .dl__board.is-flip .dl__row), animation на том же свойстве его перебьёт. */
   .dl__row.is-land {
     animation: dl-land var(--dur-slower) var(--ease-soft);
@@ -1460,7 +1460,7 @@ const bundle = {
       opacity: 1;
     }
   }
-  /* pop — только на значении, у него нет своего transform, конфликта с FLIP нет */
+  /* pop: только на значении, у него нет своего transform, конфликта с FLIP нет */
   @media (prefers-reduced-motion: no-preference) {
     .dl__row.is-land .dl__pval {
       animation: dl-val-pop var(--dur-slower) var(--ease-spring);
@@ -1754,12 +1754,12 @@ const bundle = {
 <script>
   // Оркестратор «Дорожки дня» (.счёт). Одна нисходящая дорожка, ровно одна активная
   // зона, результат-чип физически съезжает в табло и становится строкой. Состояние:
-  // idle → configured → solving → solved → landed → counted; активная зона и подсказка
-  // — чистая функция состояния.
+  // idle → configured → solving → solved → landed → counted; активная зона и подсказка:
+  // чистая функция состояния.
   //
-  // Движение — только transform/opacity. Автопрогон и пульс — цепочки setTimeout
+  // Движение: только transform/opacity. Автопрогон и пульс: цепочки setTimeout
   // (later()), чистятся за экраном / на скрытой вкладке / на pagehide. Всё под
-  // IntersectionObserver (.is-inview). При prefers-reduced-motion — финальный читаемый
+  // IntersectionObserver (.is-inview). При prefers-reduced-motion: финальный читаемый
   // кадр, все тапы/переключения/сортировка работают.
   (() => {
     const root = document.querySelector<HTMLElement>("[data-dl]");
@@ -1818,13 +1818,13 @@ const bundle = {
     };
 
     // ===================================================================
-    // ГЕНЕРАТОР ЗАДАЧ — настоящая арифметика под операцию и уровень.
+    // ГЕНЕРАТОР ЗАДАЧ: настоящая арифметика под операцию и уровень.
     // (зеркалит ProblemGenerator × DIFFICULTY_CONFIG/OPERATION_RANGES, упрощённо
     // до устно-решаемых чисел; ответ всегда целое.)
     // ===================================================================
     type LevelKey = "easy" | "medium" | "hard";
 
-    // Детерминированный PRNG (mulberry32) — стабильные наборы без Math.random.
+    // Детерминированный PRNG (mulberry32): стабильные наборы без Math.random.
     const mkRng = (seed: number): (() => number) => {
       let s = seed >>> 0;
       return (): number => {
@@ -1958,11 +1958,11 @@ const bundle = {
       const up = txt("upToWord");
       if (op === "add" || op === "sub") {
         const [lo, hi] = op === "add" ? RANGES.add[level] : RANGES.sub[level];
-        return `${txt("numbersWord")} ${lo}–${hi}`;
+        return `${txt("numbersWord")} ${lo}-${hi}`;
       }
       if (op === "mul") {
         const [lo, hi] = RANGES.mul[level];
-        return `${txt("factorsWord")} ${lo}–${hi}`;
+        return `${txt("factorsWord")} ${lo}-${hi}`;
       }
       if (op === "div") {
         const [, hi] = RANGES.div[level];
@@ -2027,7 +2027,7 @@ const bundle = {
     let answered = false;
     let setSolved = false;
     let autoRunning = false;
-    let handing = false; // идёт съезд чипа — глушим повторные тапы
+    let handing = false; // идёт съезд чипа: глушим повторные тапы
     let pendingLand: (() => void) | null = null; // незавершённая посадка чипа (finalize при уходе из вида)
     let inview = false;
 
@@ -2077,7 +2077,7 @@ const bundle = {
     };
 
     // ===================================================================
-    // ЗОНА 1 — НАСТРОЙКА
+    // ЗОНА 1: НАСТРОЙКА
     // ===================================================================
     const renderConfig = (): void => {
       const lv = lvInfo();
@@ -2088,7 +2088,7 @@ const bundle = {
     };
 
     // ===================================================================
-    // ЗОНА 2 — РЕШИ
+    // ЗОНА 2: РЕШИ
     // ===================================================================
     const buildSet = (): void => {
       const lv = lvInfo();
@@ -2140,7 +2140,7 @@ const bundle = {
       answered = false;
       if (phEl) phEl.textContent = "?";
       if (exprEl) {
-        exprEl.textContent = p ? p.expr : "—";
+        exprEl.textContent = p ? p.expr : "-";
         if (!reduced && inview) {
           exprEl.classList.remove("dl__expr-swap");
           void exprEl.offsetWidth;
@@ -2224,7 +2224,7 @@ const bundle = {
         }
       });
 
-      // показать верный (для остатка — «q ост. r»)
+      // показать верный (для остатка: «q ост. r»)
       if (phEl) {
         phEl.textContent =
           p.rem !== null ? `${p.answer} ${txt("remShort")} ${p.rem}` : String(p.answer);
@@ -2247,7 +2247,7 @@ const bundle = {
 
       if (!auto) {
         if (!isRight) setHint("wrong");
-        // после двух решённых вручную — намекнуть на «Прогон»
+        // после двух решённых вручную: намекнуть на «Прогон»
         if (triedCount >= 2 && qIndex + 1 < problems.length) {
           setHint("auto");
           pulse(autoBtn);
@@ -2321,12 +2321,12 @@ const bundle = {
         chipLabelEl.textContent = `${correctCount}/${problems.length} · ${acc}% · +${pointsTotal} ${txt("points")}`;
       if (chipEl) chipEl.hidden = false;
       pulse(chipEl);
-      // через паузу — съезд в табло
+      // через паузу: съезд в табло
       later(900, () => handoff());
     };
 
     // ===================================================================
-    // ПЕРЕДАЧА — чип съезжает в табло и становится строкой «ты».
+    // ПЕРЕДАЧА: чип съезжает в табло и становится строкой «ты».
     // ===================================================================
     const flashElbow = (toZone: string): void => {
       const z = zones.get(toZone === "board" ? "solve" : "board");
@@ -2347,8 +2347,8 @@ const bundle = {
 
     const handoff = (): void => {
       // обновить живые значения «тебя» до посадки. Идемпотентно: считаем от seed-
-      // значений (me.*), а не накоплением — повторный прогон сходится к seed+последний
-      // набор, а не раздувается. Точность — реальная доля верных по объёму попыток.
+      // значений (me.*), а не накоплением: повторный прогон сходится к seed+последний
+      // набор, а не раздувается. Точность: реальная доля верных по объёму попыток.
       const me = data.players.find((p) => p.you);
       if (me) {
         const l = live[me.id];
@@ -2362,7 +2362,7 @@ const bundle = {
       }
       flashElbow("board");
 
-      // цель посадки — ТВОЯ строка табло (там, где она сейчас стоит до пересортировки),
+      // цель посадки: ТВОЯ строка табло (там, где она сейчас стоит до пересортировки),
       // а не условная точка над списком: чип физически садится на строку, а не рядом.
       const meRow = me ? rowEls.find((el) => el.dataset.row === me.id) : null;
 
@@ -2384,14 +2384,14 @@ const bundle = {
         setState("landed");
         setHint("landed");
         setMode(curMode, true);
-        // после паузы — намёк на чтение срезов
+        // после паузы: намёк на чтение срезов
         later(1400, () => {
           if (state === "landed") setHint("cuts");
         });
         handing = false;
       };
 
-      // FLIP-съезд чипа на строку табло; фолбэк — слот над списком, затем просто появление строки.
+      // FLIP-съезд чипа на строку табло; фолбэк: слот над списком, затем просто появление строки.
       const landTarget = meRow ?? chipSlotEl;
       if (reduced || !inview || !chipEl || !landTarget) {
         landRow();
@@ -2406,7 +2406,7 @@ const bundle = {
         finishLanding();
         return;
       }
-      // центр чипа → центр строки, не левый верхний угол — тогда чип садится ровно на неё
+      // центр чипа → центр строки, не левый верхний угол: тогда чип садится ровно на неё
       const dx = to.left + to.width / 2 - (from.left + from.width / 2);
       const dy = to.top + to.height / 2 - (from.top + from.height / 2);
       pendingLand = () => {
@@ -2416,12 +2416,12 @@ const bundle = {
       setChipLabel(`+${pointsTotal} ${txt("points")} ${txt("chipToBoard")}`);
       requestAnimationFrame(() => {
         chipEl.classList.add("dl__chip-travel");
-        // лёгкое сжатие по пути — читается как «чип стягивается в строку»
+        // лёгкое сжатие по пути: читается как «чип стягивается в строку»
         chipEl.style.transform = `translate(${Math.round(dx)}px, ${Math.round(dy)}px) scale(0.85)`;
       });
       later(220, () => setChipLabel(txt("chipPlace")));
       later(520, () => {
-        // приземление и растворение чипа синхронны с «попом» строки — без паузы между ними
+        // приземление и растворение чипа синхронны с «попом» строки, без паузы между ними
         setChipLabel(txt("chipLanded"));
         chipEl.classList.add("dl__chip-arrive");
         landRow();
@@ -2430,7 +2430,7 @@ const bundle = {
     };
 
     // ===================================================================
-    // ЗОНА 3 — ТАБЛО (4 среза, FLIP-перестановка)
+    // ЗОНА 3: ТАБЛО (4 среза, FLIP-перестановка)
     // ===================================================================
     const board = root.querySelector<HTMLElement>("[data-board]");
     const modeBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-mode]"));
@@ -2531,7 +2531,7 @@ const bundle = {
     });
 
     // ===================================================================
-    // ЗОНА 4 — СЕРИЯ ДНЕЙ
+    // ЗОНА 4: СЕРИЯ ДНЕЙ
     // ===================================================================
     const dayBtns = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-day]"));
     const nowEl = root.querySelector<HTMLElement>("[data-now]");
@@ -2567,7 +2567,7 @@ const bundle = {
       }
     };
 
-    // «Ты»: серия в табло — живая. Считаем её от дней и пересортировываем топ
+    // «Ты»: серия в табло живая. Считаем её от дней и пересортировываем топ
     // (место по «дням подряд» меняется в зависимости от твоей серии).
     const youId = data.players.find((p) => p.you)?.id;
     const pushStreak = (animate: boolean): void => {

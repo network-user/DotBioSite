@@ -21,7 +21,7 @@ export const getStaticPaths = (() => {
 
 const { project } = Astro.props;
 const locale = "ru" as const;
-const title = `${projectName(project, locale)} — ${authorName(locale)}`;
+const title = `${projectName(project, locale)}: ${authorName(locale)}`;
 const description = projectCaseTagline(project, locale);
 const codeRepositories = project.repos.map((r) => repoUrl(r)).filter(Boolean);
 const structuredData = {

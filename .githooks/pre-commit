@@ -13,9 +13,9 @@ fail=0
 while IFS= read -r f; do
   [ -z "$f" ] && continue
   case "$f" in
-  .env.example) ;; # шаблон без значений — можно
+  .env.example) ;; # шаблон без значений, можно
   *settings.local.json | .env | .env.local | .env.* | *.pem | *.key | *.p12 | *.pfx)
-    echo "✖ blocked: '$f' выглядит приватным/секретным — не коммить."
+    echo "✖ blocked: '$f' выглядит приватным/секретным, не коммить."
     fail=1
     ;;
   esac
@@ -33,7 +33,7 @@ fi
 
 if [ "$fail" -ne 0 ]; then
   echo "Коммит отменён secret-guard'ом (.githooks/pre-commit)."
-  echo "Если это ложное срабатывание — закоммить с --no-verify осознанно."
+  echo "Если это ложное срабатывание, закоммить с --no-verify осознанно."
   exit 1
 fi
 exit 0

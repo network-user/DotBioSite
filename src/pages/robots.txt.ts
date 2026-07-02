@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { config } from "../lib/config";
 
 /**
- * robots.txt — generated at build so the sitemap URL is absolute.
+ * robots.txt: generated at build so the sitemap URL is absolute.
  * Lighthouse SEO audit rejects relative sitemap paths.
  */
 export const GET: APIRoute = () => {

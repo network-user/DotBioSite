@@ -76,10 +76,10 @@
   ],
   "overview": {
     "ru": [
-      "Cursor или Claude Code работает на твоей машине — DotAgents стоит рядом и отдаёт тебе контроль через Telegram. Живое сообщение с тем, что агент делает прямо сейчас. Запрос на approve, когда он тянется к рискованной команде. Follow-up в очередь, пока ты в дороге. Всё локально: облачного релея нет, код с машины не уходит."
+      "Cursor или Claude Code работает на твоей машине, а DotAgents стоит рядом и отдаёт тебе контроль через Telegram. Живое сообщение с тем, что агент делает прямо сейчас. Запрос на approve, когда он тянется к рискованной команде. Follow-up в очередь, пока ты в дороге. Всё локально: облачного релея нет, код с машины не уходит."
     ],
     "en": [
-      "Cursor or Claude Code runs on your machine — DotAgents sits beside it and hands you control through Telegram. A live message showing what the agent is doing right now. An approve request the moment it reaches for a risky command. A follow-up queued while you're away. All local: no cloud relay, code never leaves the machine."
+      "Cursor or Claude Code runs on your machine. DotAgents sits beside it and hands you control through Telegram. A live message showing what the agent is doing right now. An approve request the moment it reaches for a risky command. A follow-up queued while you're away. All local: no cloud relay, code never leaves the machine."
     ]
   },
   "metrics": [

@@ -109,7 +109,7 @@ const portraitContacts: {
 </section>
 
 <style>
-  /* Заголовок секции — строго одна строка, масштабируется с вьюпортом */
+  /* Заголовок секции: строго одна строка, масштабируется с вьюпортом */
   :global(#about .section-header__title) {
     white-space: nowrap;
     font-size: clamp(18px, 5.5vw, 56px);
@@ -156,7 +156,7 @@ const portraitContacts: {
   }
 
   /* Мягкий блик, медленно проходящий по рамке. Двигаем только transform/opacity
-     диагональной полосы — без анимации фильтров/теней и без mix-blend-mode.
+     диагональной полосы, без анимации фильтров/теней и без mix-blend-mode.
      Полоса слегка шире и мягче, чтобы свет «проявлялся», а не вспыхивал. */
   .about__sheen {
     position: absolute;
@@ -297,8 +297,8 @@ const portraitContacts: {
     margin-block-start: var(--sp-3);
   }
 
-  /* Пилюли — реальный контент (ссылки): видимы по умолчанию на первом кадре,
-     не ждут JS/IntersectionObserver. Вход «по очереди» — бонус: вся анимация
+  /* Пилюли, реальный контент (ссылки): видимы по умолчанию на первом кадре,
+     не ждут JS/IntersectionObserver. Вход «по очереди» приятный бонус: вся анимация
      самодостаточна в keyframe about-pill-in (from opacity:0 → to opacity:1),
      поэтому при выключенном JS пилюли просто остаются на месте видимыми. */
   .about__social-item {
@@ -442,7 +442,7 @@ const portraitContacts: {
     }
   }
 
-  /* Тач-отклик пилюль-ссылок: на desktop их ведёт :hover (+shimmer), на тач —
+  /* Тач-отклик пилюль-ссылок: на desktop их ведёт :hover (+shimmer), на тач
      мгновенная реакция на касание и кратко-живущая вспышка .is-tapped. Отдельная
      мобильная реализация; desktop (hover: hover) этого не видит. */
   @media (hover: none) {
@@ -471,7 +471,7 @@ const portraitContacts: {
 <script>
   // Гейтим бесконечный блик по реальной видимости портрета: .is-inview есть
   // только пока он на экране. Глобальный data-reveal-обсервер одноразовый, поэтому
-  // здесь свой, переключающийся в обе стороны. Только смена класса — без JS-анимации.
+  // здесь свой, переключающийся в обе стороны. Только смена класса, без JS-анимации.
   (() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced || !("IntersectionObserver" in window)) return;

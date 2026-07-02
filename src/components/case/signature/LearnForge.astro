@@ -1,33 +1,33 @@
 ---
 /**
- * LearnForge.astro — сигнатурная визуализация .учёба (DotLearn).
+ * LearnForge.astro - сигнатурная визуализация .учёба (DotLearn).
  *
- * ФОРМА — «МАРШРУТ ПРОДУКТА» (сознательно НЕ shell-селектор .звук): сверху
+ * ФОРМА - «МАРШРУТ ПРОДУКТА» (сознательно НЕ shell-селектор .звук): сверху
  * горизонтальная прогресс-линия из 7 станций (линия заливается до текущего
- * шага), снизу — один крупный stage активного акта. Пользователь идёт по пути
+ * шага), снизу - один крупный stage активного акта. Пользователь идёт по пути
  * продукта стрелками ←/→ или клавишами; активная сцена сама проигрывает демо.
- * Цель — чтобы человек, мало знакомый с программированием, протыкал интерактив
+ * Цель - чтобы человек, мало знакомый с программированием, протыкал интерактив
  * и понял продукт целиком: от `git clone` до экспорта прогресса.
  *
  * Акты (опираются на реальные артефакты репозитория DotLearn):
- *  1 · Клонируй и попроси — `git clone … && pnpm dev:web`, словами просишь агента.
- *  2 · Кузница кует урок — lesson-forge: план → manifest → theory.mdx + yaml + flashcards.
- *  3 · Контракт проверяет форму — общий Zod (`topic.schema.ts`, .strict()), web+api.
- *  4 · Решаешь в браузере — Pyodide (класс Dog(Animal), полиморфизм) и sql.js (JOIN author/book) в Worker.
- *  5 · Интерактивная теория — живые визуализации + theory-quiz по ходу чтения.
- *  6 · Привычка и карточки — стрик + GitHub-heatmap (IndexedDB), FSRS-карточка.
- *  7 · Унеси с собой — экспорт/импорт всего прогресса одним JSON (version 4).
+ *  1 · Клонируй и попроси: `git clone ... && pnpm dev:web`, словами просишь агента.
+ *  2 · Кузница кует урок: lesson-forge: план → manifest → theory.mdx + yaml + flashcards.
+ *  3 · Контракт проверяет форму: общий Zod (`topic.schema.ts`, .strict()), web+api.
+ *  4 · Решаешь в браузере: Pyodide (класс Dog(Animal), полиморфизм) и sql.js (JOIN author/book) в Worker.
+ *  5 · Интерактивная теория: живые визуализации + theory-quiz по ходу чтения.
+ *  6 · Привычка и карточки: стрик + GitHub-heatmap (IndexedDB), FSRS-карточка.
+ *  7 · Унеси с собой: экспорт/импорт всего прогресса одним JSON (version 4).
  *
  * Бюджет анимации (строго): анимируются ТОЛЬКО transform и opacity. Постоянного
- * rAF нет — демо ведётся цепочками setTimeout (массив timers), которые ЧИСТЯТСЯ
+ * rAF нет: демо ведётся цепочками setTimeout (массив timers), которые ЧИСТЯТСЯ
  * за экраном / на скрытой вкладке (visibilitychange) / на pagehide. Всё движение
  * под классом .is-inview (IntersectionObserver на корне) и гасится вне кадра.
  * prefers-reduced-motion → финальный читаемый кадр; все кнопки/тоглы работают.
  *
  * Факты сверены по репозиторию (точно): 34 темы; 7 типов упражнений; рантаймы
  * sql.js / Pyodide / JS / git в Web Workers; Zod-контракт общий для web+api;
- * lesson-forge — офлайн-скилл, РАНТАЙМ-AI НЕТ; прогресс/heatmap/стрик —
- * Dexie/IndexedDB; карточки — ts-fsrs; экспорт прогресса — version 4.
+ * lesson-forge: офлайн-скилл, РАНТАЙМ-AI НЕТ; прогресс/heatmap/стрик:
+ * Dexie/IndexedDB; карточки: ts-fsrs; экспорт прогресса: version 4.
  */
 import type { Locale } from "../../../lib/i18n";
 
@@ -84,9 +84,9 @@ const acts: Act[] = [
   {
     id: "contract",
     eyebrow: { ru: "Контракт проверяет форму", en: "The contract checks the shape" },
-    title: { ru: "Одна Zod-схема - единый стандарт", en: "One Zod schema - a single standard" },
+    title: { ru: "Одна Zod-схема, единый стандарт", en: "One Zod schema, a single standard" },
     lede: {
-      ru: "Кривую тему не пропустят: общий Zod-контракт валидирует и сайт, и сервер. Лишнее поле - отказ. Затем gold-решения реально прогоняются в Pyodide.",
+      ru: "Кривую тему не пропустят: общий Zod-контракт валидирует и сайт, и сервер. Лишнее поле означает отказ. Затем gold-решения реально прогоняются в Pyodide.",
       en: "A malformed topic won't pass: one shared Zod contract validates both web and server. An extra field means rejection. Then gold solutions actually run in Pyodide.",
     },
   },
@@ -123,7 +123,7 @@ const acts: Act[] = [
   {
     id: "export",
     eyebrow: { ru: "Унеси с собой", en: "Take it with you" },
-    title: { ru: "Весь прогресс - один файл", en: "All your progress - one file" },
+    title: { ru: "Весь прогресс в одном файле", en: "All your progress in one file" },
     lede: {
       ru: "Прогресс, карточки, заметки и закладки выгружаются одним JSON. Бэкап и перенос между устройствами без сервера и без аккаунта.",
       en: "Progress, cards, notes and bookmarks export as one JSON. Back up and move between devices, no server, no account.",
@@ -133,7 +133,7 @@ const acts: Act[] = [
 
 /* ── Акт 1: терминал + промпт агенту ─────────────────────────────────── */
 const termLines: { text: string; kind: string }[] = [
-  { text: "git clone …/dotlearn.git", kind: "cmd" },
+  { text: "git clone .../dotlearn.git", kind: "cmd" },
   { text: "pnpm install", kind: "cmd" },
   { text: "pnpm dev:web", kind: "cmd" },
   { text: "VITE ready · http://localhost:5173", kind: "ok" },
@@ -175,8 +175,8 @@ const forgeFiles: { name: string; kind: Bi }[] = [
 const schemaFields: { key: string; type: string }[] = [
   { key: "slug", type: "z.string().regex(SLUG)" },
   { key: "title", type: "z.string().min(3)" },
-  { key: "runtime", type: "z.enum(['sql.js','pyodide',…])" },
-  { key: "difficulty", type: "z.enum(['beginner',…])" },
+  { key: "runtime", type: "z.enum(['sql.js','pyodide',...])" },
+  { key: "difficulty", type: "z.enum(['beginner',...])" },
   { key: "concepts", type: "z.array(Concept).min(1)" },
   { key: "author", type: "{ kind:'agent', model }" },
 ];
@@ -346,11 +346,11 @@ const exportRows: Bi[] = [
 /* ── Строки для скрипта (единый источник, без дублей в JS) ────────────── */
 const sx = {
   runAgent: { ru: "Запустить агента", en: "Run the agent" },
-  agentBusy: { ru: "lesson-forge активируется…", en: "lesson-forge activating…" },
+  agentBusy: { ru: "lesson-forge активируется...", en: "lesson-forge activating..." },
   agentDone: { ru: "скилл активирован, куёт тему", en: "skill activated, forging" },
   approve: { ru: "Утвердить план", en: "Approve the plan" },
   forge: { ru: "Сковать тему", en: "Forge the topic" },
-  forging: { ru: "Куётся…", en: "Forging…" },
+  forging: { ru: "Куётся...", en: "Forging..." },
   forged: { ru: "тема собрана", en: "topic assembled" },
   planWait: { ru: "план ждёт твоего «ок»", en: "plan awaits your OK" },
   inject: { ru: "Внедрить лишнее поле", en: "Inject an extra field" },
@@ -365,7 +365,7 @@ const sx = {
     en: "pnpm validate · gold Python ran in Pyodide ✓",
   },
   run: { ru: "Запустить", en: "Run" },
-  running: { ru: "исполняю в Web Worker…", en: "executing in a Web Worker…" },
+  running: { ru: "исполняю в Web Worker...", en: "executing in a Web Worker..." },
   ready: { ru: "готово к запуску", en: "ready to run" },
   okGold: { ru: "✓ совпало с gold", en: "✓ matches gold" },
   badGold: { ru: "✗ расходится с gold", en: "✗ differs from gold" },
@@ -922,7 +922,7 @@ sBundle.locale = locale;
     grid-auto-columns: 1fr;
     position: relative;
   }
-  /* трек-линия и заливка прогресса — на высоте центра узла */
+  /* трек-линия и заливка прогресса: на высоте центра узла */
   .lf__spine::before,
   .lf__spine::after {
     content: "";
@@ -1016,7 +1016,7 @@ sBundle.locale = locale;
     opacity: 1;
     transform: rotate(-45deg) translateY(-1px) scale(1);
   }
-  /* активная станция: залитый акцентом узел — однозначно доминирует */
+  /* активная станция: залитый акцентом узел, однозначно доминирует */
   .lf__st[aria-selected="true"] {
     color: var(--text);
   }
@@ -2311,9 +2311,9 @@ sBundle.locale = locale;
 </style>
 
 <script>
-  /* LearnForge — история-навигатор «маршрут продукта» (.учёба).
+  /* LearnForge - история-навигатор «маршрут продукта» (.учёба).
    *
-   * Движение: только transform/opacity. Постоянного rAF нет — демо ведётся
+   * Движение: только transform/opacity. Постоянного rAF нет: демо ведётся
    * через setTimeout (массив timers), которые чистятся за экраном / на скрытой
    * вкладке / на pagehide. Класс .is-inview на корне включает CSS-анимации.
    * prefers-reduced-motion → собранный читаемый кадр; интерактив жив. */

@@ -1,11 +1,11 @@
 /**
- * config.ts — типизированный парсинг и валидация переменных окружения.
+ * config.ts: типизированный парсинг и валидация переменных окружения.
  *
  * Стратегия:
  *   1) `import.meta.env` доступен и в Astro pages (build-time), и в React-островах
  *      (через PUBLIC_-префикс).
  *   2) Zod-схема выполняется ОДИН РАЗ при импорте модуля. Если обязательная
- *      переменная отсутствует — билд падает с понятной ошибкой.
+ *      переменная отсутствует, билд падает с понятной ошибкой.
  *   3) Все опциональные поля имеют дефолты с graceful fallback в UI:
  *      пустая соцсеть → ссылка не рендерится, пустое фото → монограмма и т.д.
  *
@@ -21,7 +21,7 @@ const urlOrEmpty = z.string().url().or(emptyUrl);
 
 const schema = z.object({
   PUBLIC_DOMAIN: z.string().url().default("https://dotcore.pages.dev"),
-  // Пустые дефолты — сайт работает как шаблон, не привязанный к конкретному
+  // Пустые дефолты: сайт работает как шаблон, не привязанный к конкретному
   // GitHub-аккаунту. Заполни в .env, чтобы появились ссылки на репозиторий
   // в футере и автоматически собрались URL'ы репо проектов в карточках.
   PUBLIC_GITHUB_USER: z.string().default(""),
@@ -42,7 +42,7 @@ const schema = z.object({
   AUTHOR_EMAIL: z.string().email().or(emptyUrl).default(""),
 });
 
-/** Безопасно парсим — собираем только нужные ключи, остальные игнорируем. */
+/** Безопасно парсим: собираем только нужные ключи, остальные игнорируем. */
 function pickEnv(): Record<string, string> {
   const env = import.meta.env as unknown as Record<string, string | undefined>;
   const keys = Object.keys(schema.shape);
@@ -69,7 +69,7 @@ export type Config = typeof config;
 
 /**
  * Полный объект переменных окружения (build-time). В отличие от `config` с
- * фиксированной Zod-схемой, здесь читаем динамические ключи `PUBLIC_REPO_*` —
+ * фиксированной Zod-схемой, здесь читаем динамические ключи `PUBLIC_REPO_*`:
  * по одному URL на репозиторий проекта. Доступ по ключу безопасен: сайт
  * собирается статически, и Vite кладёт все PUBLIC_-переменные в `import.meta.env`.
  */
@@ -92,7 +92,7 @@ export function repoEnvKey(repoIdent: string): string {
 
 /**
  * URL репозитория из env по его идентификатору. Пустая строка, если переменная
- * не задана — тогда `repoUrl()` падает дальше на сборку из `PUBLIC_GITHUB_USER`.
+ * не задана, тогда `repoUrl()` падает дальше на сборку из `PUBLIC_GITHUB_USER`.
  */
 export function repoUrlOverride(repoIdent: string): string {
   const v = rawEnv[repoEnvKey(repoIdent)];
@@ -103,7 +103,7 @@ export type ProjectLinkKind = "domain" | "telegram";
 
 /**
  * Имя env-переменной с явной ссылкой проекта (сайт/telegram-бот) по её типу и
- * project slug. Тот же принцип, что и `repoEnvKey`, но ключ — сам slug проекта
+ * project slug. Тот же принцип, что и `repoEnvKey`, но ключ: сам slug проекта
  * (он уже стабилен и уникален), а не производное от репозитория.
  * Пример: ("domain", "dotsound") → `PUBLIC_LINK_DOMAIN_DOTSOUND`.
  */
@@ -116,7 +116,7 @@ export function projectLinkEnvKey(kind: ProjectLinkKind, slug: string): string {
 }
 
 /**
- * Ссылка проекта (сайт/telegram) из env. Пустая строка, если не задана — тогда
+ * Ссылка проекта (сайт/telegram) из env. Пустая строка, если не задана, тогда
  * компонент падает на `project.links?.[kind]` из JSON.
  */
 export function projectLinkOverride(kind: ProjectLinkKind, slug: string): string {

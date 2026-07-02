@@ -31,7 +31,7 @@
 # 1. Поставить git, если его нет
 sudo apt-get update && sudo apt-get install -y git
 
-# 2. Склонировать репозиторий (рекомендуемый путь — /srv, права под Caddy там корректные)
+# 2. Склонировать репозиторий (рекомендуемый путь - /srv, права под Caddy там корректные)
 sudo git clone <URL_РЕПОЗИТОРИЯ> /srv/dotcore
 cd /srv/dotcore
 

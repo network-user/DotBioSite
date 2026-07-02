@@ -332,8 +332,8 @@
         "en": "Start and MVP"
       },
       "description": {
-        "ru": "Роли работник/работодатель/админ, мульти-слотовые заказы, taskiq-воркер, MinIO, рейтинги, рассылки — всё ядро в первый день.",
-        "en": "Worker/employer/admin roles, multi-slot orders, taskiq worker, MinIO, ratings, and broadcasts — the full core on day one."
+        "ru": "Роли работник/работодатель/админ, мульти-слотовые заказы, taskiq-воркер, MinIO, рейтинги, рассылки: всё ядро в первый день.",
+        "en": "Worker/employer/admin roles, multi-slot orders, taskiq worker, MinIO, ratings, and broadcasts: the full core on day one."
       }
     },
     {

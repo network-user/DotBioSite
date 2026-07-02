@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# DotBioSite — лёгкая защита от флуда на уровне ядра (nftables).
+# DotBioSite: лёгкая защита от флуда на уровне ядра (nftables).
 #
 # Что делает:
 #   - Создаёт ОТДЕЛЬНУЮ таблицу nftables `ddos_guard` с политикой accept:
@@ -11,7 +11,7 @@
 #     (браузеры переиспользуют соединения по HTTP/2, новых открывают мало).
 #   - Ставит systemd-юнит, чтобы правила пережили перезагрузку.
 #
-# Это НЕ защита от мощного объёмного DDoS — для этого нужен внешний CDN/скрабинг
+# Это НЕ защита от мощного объёмного DDoS: для этого нужен внешний CDN/скрабинг
 # (см. deploy/README.md → Cloudflare). Это поднимает планку против простых
 # флудов и одиночных «долбящих» источников при near-zero расходе диска и RAM.
 #
@@ -26,10 +26,10 @@ if [ "$(id -u)" -ne 0 ]; then
 	exec sudo -E bash "$0" "$@"
 fi
 
-# Порог НОВЫХ соединений в секунду на один IP; BURST — кратковременный запас.
+# Порог НОВЫХ соединений в секунду на один IP; BURST: кратковременный запас.
 RATE="${RATE:-50}"
 BURST="${BURST:-100}"
-# RATE/BURST подставляются в текст nft-правил — пускаем только целые числа,
+# RATE/BURST подставляются в текст nft-правил; пускаем только целые числа,
 # чтобы env-значение не внесло в конфиг ничего, кроме порога.
 case "$RATE" in "" | *[!0-9]*) echo "Ошибка: RATE должен быть целым числом." >&2; exit 1 ;; esac
 case "$BURST" in "" | *[!0-9]*) echo "Ошибка: BURST должен быть целым числом." >&2; exit 1 ;; esac
@@ -51,7 +51,7 @@ echo "==> Правила ddos_guard (порог: $RATE нов.соед/с на I
 mkdir -p "$RULES_DIR"
 cat > "$RULES_FILE" <<EOF
 #!/usr/sbin/nft -f
-# Отдельная таблица: policy accept — ничего не закрываем, только дропаем флуд.
+# Отдельная таблица: policy accept, ничего не закрываем, только дропаем флуд.
 # Остальной firewall (ufw/docker/SSH) не затрагивается. Пересоздаётся идемпотентно.
 add table inet ddos_guard
 delete table inet ddos_guard
@@ -69,12 +69,12 @@ table inet ddos_guard {
 		timeout 1m
 	}
 	chain input {
-		# priority -10 — раньше основной таблицы; policy accept — не локаем себя
+		# priority -10: раньше основной таблицы; policy accept, не локаем себя
 		type filter hook input priority -10; policy accept;
 
 		ct state established,related accept
 
-		# По каждому IP: не больше $RATE новых соединений/с (burst $BURST) — иначе drop.
+		# По каждому IP: не больше $RATE новых соединений/с (burst $BURST), иначе drop.
 		tcp dport { 80, 443 } ct state new add @flood4 { ip saddr limit rate over $RATE/second burst $BURST packets } drop
 		tcp dport { 80, 443 } ct state new add @flood6 { ip6 saddr limit rate over $RATE/second burst $BURST packets } drop
 	}

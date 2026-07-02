@@ -23,7 +23,7 @@ const LEDE_STEP = 2.4;
 const CHAR_STEP = 0.02;
 
 // Каждая кнопка-канал (email/копия/github/telegram) покачивается на своей
-// внутренней обёртке (.contact__channel-sway), а не на самой кнопке — иначе
+// внутренней обёртке (.contact__channel-sway), а не на самой кнопке, иначе
 // анимация конфликтовала бы с translateY(-2px) из .glass--hover:hover.
 // Сдвиг фазы на кнопку, чтобы «буйки» покачивались не синхронно.
 const CHANNEL_SWAY_STEP = 0.5;
@@ -59,6 +59,7 @@ const briefOptions = hasEmail
 <section class="section contact" id="contact" aria-labelledby="contact-title">
   <div class="container contact__inner">
     <SectionHeader id="contact-title" kicker={t("contact.kicker")} align="center">
+      <span slot="kicker" class="contact__kicker-text">{t("contact.kicker")}</span>
       <span slot="title" class="contact__headline-rotator" data-reveal data-reveal-delay="60">
         {
           ledePhrases.map((phrase, i) => (
@@ -112,7 +113,7 @@ const briefOptions = hasEmail
           <>
             <button
               type="button"
-              class="contact__channel contact__channel--email contact-email glass glass--hover"
+              class="contact__channel contact__channel--email contact-email glass glass--hover contact__channel--sway"
               data-channel
               data-touch-live
               data-e={emailB64}
@@ -120,21 +121,20 @@ const briefOptions = hasEmail
               data-body={t("contact.emailBody")}
               aria-label={t("contact.email")}
               data-reveal
+              style={`animation-delay: ${(0 * CHANNEL_SWAY_STEP).toFixed(2)}s`}
             >
               <span class="contact__channel-glow" aria-hidden="true" />
               <span class="contact__channel-pulse" aria-hidden="true" />
-              <span class="contact__channel-sway" style={`animation-delay: ${(0 * CHANNEL_SWAY_STEP).toFixed(2)}s`}>
-                <Icon name="mail" size={20} />
-                <span class="contact__channel-label" data-contact-label>
-                  {t("contact.email")}
-                </span>
-                <Icon name="arrow-right" size={15} class="contact__channel-trailing" />
+              <Icon name="mail" size={20} />
+              <span class="contact__channel-label" data-contact-label>
+                {t("contact.email")}
               </span>
+              <Icon name="arrow-right" size={15} class="contact__channel-trailing" />
               <span class="contact__channel-ring" aria-hidden="true" />
             </button>
             <button
               type="button"
-              class="contact__channel contact__channel--copy contact-email glass glass--hover"
+              class="contact__channel contact__channel--copy contact-email glass glass--hover contact__channel--sway"
               data-channel
               data-touch-live
               data-e={emailB64}
@@ -143,19 +143,22 @@ const briefOptions = hasEmail
               aria-label={t("contact.copyEmail")}
               data-reveal
               data-reveal-delay="80"
+              style={`animation-delay: ${(1 * CHANNEL_SWAY_STEP).toFixed(2)}s`}
             >
               <span class="contact__channel-glow" aria-hidden="true" />
-              <span class="contact__channel-sway" style={`animation-delay: ${(1 * CHANNEL_SWAY_STEP).toFixed(2)}s`}>
-                <Icon name="copy" size={20} />
-                <span class="contact__channel-label" data-contact-label>
-                  {t("contact.copyEmail")}
-                </span>
-                <Icon name="check" size={15} class="contact__copy-check" />
+              <Icon name="copy" size={20} />
+              <span class="contact__channel-label" data-contact-label>
+                {t("contact.copyEmail")}
               </span>
+              <Icon name="check" size={15} class="contact__copy-check" />
             </button>
           </>
         ) : (
-          <span class="contact__channel contact__channel--disabled glass" aria-disabled="true">
+          <span
+            class="contact__channel contact__channel--disabled glass contact__channel--sway"
+            aria-disabled="true"
+            style={`animation-delay: ${(0 * CHANNEL_SWAY_STEP).toFixed(2)}s`}
+          >
             <Icon name="mail" size={20} />
             <span class="contact__channel-label">{t("contact.emailUnavailable")}</span>
           </span>
@@ -169,29 +172,26 @@ const briefOptions = hasEmail
               href={s.url}
               target="_blank"
               rel="noopener noreferrer me"
-              class="contact__channel glass glass--hover"
+              class="contact__channel glass glass--hover contact__channel--sway"
               data-channel
               data-touch-live
               aria-label={t(`contact.${s.id}`)}
               data-reveal
               data-reveal-delay={(i + 1) * 80}
+              style={`animation-delay: ${((i + 2) * CHANNEL_SWAY_STEP).toFixed(2)}s`}
             >
               <span class="contact__channel-glow" aria-hidden="true" />
-              <span
-                class="contact__channel-sway"
-                style={`animation-delay: ${((i + 2) * CHANNEL_SWAY_STEP).toFixed(2)}s`}
-              >
-                <Icon name={s.id} size={20} />
-                <span class="contact__channel-label">{t(`contact.${s.id}`)}</span>
-                <Icon name="external" size={15} class="contact__channel-trailing" />
-              </span>
+              <Icon name={s.id} size={20} />
+              <span class="contact__channel-label">{t(`contact.${s.id}`)}</span>
+              <Icon name="external" size={15} class="contact__channel-trailing" />
             </a>
           ) : (
             <span
-              class="contact__channel contact__channel--disabled glass"
+              class="contact__channel contact__channel--disabled glass contact__channel--sway"
               aria-disabled="true"
               data-reveal
               data-reveal-delay={(i + 1) * 80}
+              style={`animation-delay: ${((i + 2) * CHANNEL_SWAY_STEP).toFixed(2)}s`}
             >
               <Icon name={s.id} size={20} />
               <span class="contact__channel-label">{t(`contact.${s.id}`)}</span>
@@ -257,7 +257,7 @@ const briefOptions = hasEmail
 <script>
   /* Email decoder: распаковывает обфусцированный адрес (base64 от перевёрнутой
      строки) из data-e и по клику открывает mailto или копирует. Вынесен из
-     is:inline в обычный <script>, поэтому Astro хостит его во внешний бандл —
+     is:inline в обычный <script>, поэтому Astro хостит его во внешний бандл:
      CSP может быть script-src 'self' без 'unsafe-inline'. No-op без кнопок. */
   const decodeEmail = (b64: string): string => {
     try {
@@ -417,32 +417,25 @@ const briefOptions = hasEmail
     flex-shrink: 0;
   }
 
-  /* Внутренняя обёртка контента кнопки - покачивается как буёк на воде,
-     независимо от самой кнопки (та поднимается на hover через .glass--hover,
-     и эти два transform не должны конкурировать за одно и то же свойство). */
-  .contact__channel-sway {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    gap: inherit;
-    width: 100%;
-    min-width: 0;
-  }
-
+  /* Кнопка-канал покачивается как буёк на воде. Анимация задаёт отдельные
+     translate/rotate (НЕ transform) - это независимые CSS-свойства, которые
+     композируются с transform автоматически, поэтому не конкурируют с
+     translateY(-2px) из .glass--hover:hover (тот остаётся на transform). */
   @media (prefers-reduced-motion: no-preference) {
-    .contact__channel-sway {
-      animation: contact-channel-sway 5s var(--ease-drift) infinite;
+    .contact__channel--sway {
+      animation: contact-channel-sway 4s var(--ease-drift) infinite;
     }
   }
 
   @keyframes contact-channel-sway {
     0%,
     100% {
-      transform: translateY(0) rotate(0deg);
+      translate: 0 0;
+      rotate: 0deg;
     }
     50% {
-      transform: translateY(-3px) rotate(-1deg);
+      translate: 0 -7px;
+      rotate: -2.5deg;
     }
   }
 
@@ -511,7 +504,7 @@ const briefOptions = hasEmail
     .contact__channel-pulse {
       transform-origin: 18% 50%;
       /* Long, lazy breath: 9s so the wash drifts in and out calmly.
-         transform/opacity only; stays on the compositor. will-change снят —
+         transform/opacity only; stays on the compositor. will-change снят:
          persistent-слой памяти не оправдан для столь медленной анимации. */
       animation: contact-breathe 9s var(--ease-drift) infinite;
     }
@@ -622,7 +615,7 @@ const briefOptions = hasEmail
   }
 
   /* Тач-эквивалент hover (ОТДЕЛЬНАЯ мобильная реализация). Обводку каналов даёт
-     общий хук .glass--hover.is-touch-active/:active (glass.css); здесь — запуск
+     общий хук .glass--hover.is-touch-active/:active (glass.css); здесь запуск
      sweep-полосы email-кнопки при попадании в центр вьюпорта и tap-отклик
      brief-кнопок (на desktop их ведёт :hover). desktop (hover: hover) не видит. */
   @media (hover: none) {
@@ -684,13 +677,19 @@ const briefOptions = hasEmail
     }
   }
 
-  /* Кикер «контакты» покачивается медленно и плавно, будто на воде - только
-     здесь (id contact-title уникален на странице), остальные секции этот
-     :global не задевает. */
+  /* Кикер «контакты» покачивается медленно и плавно, будто на воде. Анимация
+     на ОТДЕЛЬНОМ inline-элементе (slot="kicker"), а не на родительском <p> -
+     у того уже есть data-reveal со своим transform на transition, и он бы
+     конфликтовал с transform из бесконечной анимации (анимации всегда
+     перебивают transition на том же свойстве - реального покачивания было бы
+     не видно). */
+  .contact__kicker-text {
+    display: inline-block;
+  }
+
   @media (prefers-reduced-motion: no-preference) {
-    :global(#contact-title .section-header__kicker) {
-      display: inline-flex;
-      animation: contact-kicker-float 6s var(--ease-drift) infinite;
+    .contact__kicker-text {
+      animation: contact-kicker-float 4.8s var(--ease-drift) infinite;
     }
   }
 
@@ -700,7 +699,7 @@ const briefOptions = hasEmail
       transform: translateY(0) rotate(0deg);
     }
     50% {
-      transform: translateY(-4px) rotate(-1deg);
+      transform: translateY(-6px) rotate(-2deg);
     }
   }
 

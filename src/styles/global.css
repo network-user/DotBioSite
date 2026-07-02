@@ -1,8 +1,8 @@
 /* =============================================================================
- * global.css — reset + базовые стили
+ * global.css: reset + базовые стили
  *
  * Порядок импортов важен:
- *   1) tokens.css — все CSS custom properties
+ *   1) tokens.css: все CSS custom properties
  *   2) Inter из Google Fonts (TODO: заменить на selfhosted /public/fonts/)
  *   3) reset + base
  * ============================================================================= */
@@ -10,10 +10,10 @@
 @import "./tokens.css";
 
 /*
- * Шрифты selfhosted через @fontsource — никаких внешних запросов к Google
+ * Шрифты selfhosted через @fontsource, без внешних запросов к Google
  * Fonts / CDN (GDPR-friendly, быстро). Vite копирует их в dist/_assets/ с хэшем.
- *   • Inter Variable — body / UI (нейтральный, чистый).
- *   • Bricolage Grotesque Variable — display / бренд (характерный, мягкий гротеск).
+ *   • Inter Variable: body / UI (нейтральный, чистый).
+ *   • Bricolage Grotesque Variable: display / бренд (характерный, мягкий гротеск).
  */
 @import "@fontsource-variable/inter/index.css";
 @import "@fontsource-variable/bricolage-grotesque/index.css";
@@ -60,7 +60,7 @@ body {
 }
 
 /* По умолчанию весь не-интерактивный контент использует обычный курсор-стрелку,
-   а не текстовый I-beam — это совпадает с design intent (контент воспринимается
+   а не текстовый I-beam: это совпадает с design intent (контент воспринимается
    как блоки, а не как выделяемый текст). Для интерактивных элементов курсоры
    восстанавливаются ниже. */
 :where(
@@ -261,7 +261,7 @@ ol {
   position: relative;
   /* content-visibility:auto УБРАН: после снятия backdrop-filter с карточек
      оффскрин-секции и так дёшевы, а content-visibility давал всплески рендера
-     и пересчёт высот при прокрутке — это ощущалось как дёрганый скролл. */
+     и пересчёт высот при прокрутке: это ощущалось как дёрганый скролл. */
 }
 
 @media (max-width: 767px) {
@@ -281,12 +281,12 @@ ol {
 }
 
 /* ---------- Scroll-reveal: «проявление» ----------
- * Контент проявляется из дымки — лёгкий подъём + рост из чуть размытого и
+ * Контент проявляется из дымки: лёгкий подъём + рост из чуть размытого и
  * приглушённого состояния в резкое. Управляется IntersectionObserver в BaseLayout. */
 [data-reveal] {
   opacity: 0;
   transform: translateY(20px);
-  /* filter: blur() УБРАН из перехода — это был самый дорогой эффект страницы:
+  /* filter: blur() УБРАН из перехода: это был самый дорогой эффект страницы:
      полноценный GPU-filter-pass на каждый из десятков reveal-элементов при
      скролле (главная причина «тяжести»). Появление остаётся на opacity+transform,
      они композируются бесплатно. */
@@ -330,10 +330,10 @@ ol {
 
 /* ---------- Пауза анимаций на скрытой вкладке ----------
  * Фоновый арт (.backdrop-art) висит на фиксированном .bg-layer ВНЕ секций, поэтому
- * секционный .anim-paused его не глушит — орбиты/электроны/пульс ядра идут всегда.
+ * секционный .anim-paused его не глушит: орбиты/электроны/пульс ядра идут всегда.
  * Когда вкладка уходит в фон, смотреть некому: гасим ВСЕ CSS-анимации разом до
  * возврата фокуса. Браузер троттлит rAF в фоне сам, но offset-distance электронов
- * сэмплируется на main-thread и может продолжать тикать — это трата CPU впустую.
+ * сэмплируется на main-thread и может продолжать тикать: это трата CPU впустую.
  * Класс .is-hidden вешает BaseLayout по visibilitychange. */
 html.is-hidden *,
 html.is-hidden *::before,
@@ -351,7 +351,7 @@ html.is-hidden *::after {
   z-index: 1;
   pointer-events: none;
   opacity: var(--grain-opacity);
-  /* mix-blend-mode: overlay убран — это fullscreen-blend на каждый кадр скролла;
+  /* mix-blend-mode: overlay убран: это fullscreen-blend на каждый кадр скролла;
      на near-black он почти неотличим от обычной полупрозрачности. */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 160px 160px;
@@ -377,7 +377,7 @@ html.is-hidden *::after {
 /* ---------- Frame warp (упругие рамки от курсора) ----------
  * Тот же эффект, что в таймлайне, но переиспользуемый: контроллер в BaseLayout
  * вешается на любой [data-warp]. Рамка рисуется в ОДНОМ SVG-overlay на «корень»
- * (секцию), а не внутри карточки — иначе overflow:hidden карточки обрезал бы
+ * (секцию), а не внутри карточки, иначе overflow:hidden карточки обрезал бы
  * прогиб наружу. Overlay изолирован в свой композит-слой: переписывание путей
  * на каждый кадр прогиба перерисовывает только его, не задевая контент под ним. */
 .warp-ink {
@@ -397,17 +397,17 @@ html.is-hidden *::after {
   transition: stroke var(--dur-med) var(--ease-standard);
 }
 
-/* Рамку рисует SVG — родную CSS-границу гасим (иначе двойная: прямая + гнутая). */
+/* Рамку рисует SVG, родную CSS-границу гасим (иначе двойная: прямая + гнутая). */
 .is-warped {
   border-color: transparent !important;
 }
 
-/* Нижняя декоративная линия .glass--bordered не нужна — её заменяет SVG-рамка. */
+/* Нижняя декоративная линия .glass--bordered не нужна, её заменяет SVG-рамка. */
 .is-warped.glass--bordered::after {
   display: none;
 }
 
-/* Подъём карточки на hover в режиме прогиба убран — иначе SVG-рамка (в overlay
+/* Подъём карточки на hover в режиме прогиба убран, иначе SVG-рамка (в overlay
    секции) не следует за поднявшейся карточкой и отрывается. Обратную связь даёт
    подсветка обводки рамки. */
 .is-warped.glass--hover:hover {
@@ -473,9 +473,9 @@ html.is-hidden *::after {
   }
 }
 
-/* Тач-отклик кнопок: на desktop его даёт :hover, на тач — мгновенная реакция на
+/* Тач-отклик кнопок: на desktop его даёт :hover, на тач это мгновенная реакция на
    палец (:active) плюс кратко-живущая «вспышка» .is-tapped (см. BaseLayout).
-   Только (hover: none) — desktop не затрагиваем. */
+   Только (hover: none), desktop не затрагиваем. */
 @media (hover: none) {
   .cta--primary:active,
   .cta--primary.is-tapped {
@@ -496,7 +496,7 @@ html.is-hidden *::after {
 
 /* Тач: вторичные тоггл-кнопки (аккордеоны кейса, «назад») заданы через padding/шрифт
    и на тач-экранах не дотягивают до 44px. Доводим hit-area до --tap-min ТОЛЬКО на
-   тач (hover:none) — плотность desktop не трогаем. Правила глобальные, но матчатся
+   тач (hover:none), плотность desktop не трогаем. Правила глобальные, но матчатся
    по классу поверх скоупа (сами компоненты min-height не задают → без конфликта).
    Футер и портрет-ссылка about доводятся в своих компонентах. */
 @media (hover: none) {
@@ -543,7 +543,7 @@ html.is-hidden *::after {
 }
 
 /* =============================================================================
- * Typography extras — eyebrow, display-xl, metric, tabular
+ * Typography extras: eyebrow, display-xl, metric, tabular
  * ============================================================================= */
 .eyebrow {
   font-family: var(--font-stack-display);

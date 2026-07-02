@@ -1,10 +1,10 @@
 ---
 /**
- * SoundFlow.astro — сигнатурная визуализация .звук (DotSound), флагман.
+ * SoundFlow.astro - сигнатурная визуализация .звук (DotSound), флагман.
  *
  * Формат: интерактивный обзор ВОЗМОЖНОСТЕЙ ПЛАТФОРМЫ (не пользовательский flow).
- * Слева селектор из 7 доменов «что внутри» (по README DotSoundBackend), справа —
- * заголовок, описание и живая мини-схема. Монохром, акцент — единичная подсветка.
+ * Слева селектор из 7 доменов «что внутри» (по README DotSoundBackend), справа:
+ * заголовок, описание и живая мини-схема. Монохром, акцент - единичная подсветка.
  *
  * Домены: Хранение (chunked + ClamAV + SHA-256 dedup) → Транскод (FFmpeg → HLS,
  * waveform, snippet) → Воспроизведение (адаптивный HLS + синхро-лирика) → Импорт
@@ -25,11 +25,6 @@ const { locale } = Astro.props;
 type Bi = { ru: string; en: string };
 const t = (b: Bi): string => b[locale];
 
-const intro: Bi = {
-  ru: "Семь архитектурных доменов платформы. Выбери слева - справа раскроется механика и интерактивная схема с реальными примерами.",
-  en: "Seven architectural domains of the platform. Pick one on the left - the mechanics and an interactive diagram with real examples open on the right.",
-};
-
 type Pillar = { id: string; label: Bi; tag: Bi; title: Bi; pitch: Bi; desc: Bi };
 const pillars: Pillar[] = [
   {
@@ -38,12 +33,12 @@ const pillars: Pillar[] = [
     tag: { ru: "без дублей · антивирус", en: "no dupes · antivirus" },
     title: { ru: "Загрузка треков", en: "Track upload" },
     pitch: {
-      ru: "Трек заходит в систему один раз - и навсегда.",
-      en: "A track enters the system once - and for good.",
+      ru: "Трек заходит в систему один раз и навсегда.",
+      en: "A track enters the system once and for good.",
     },
     desc: {
-      ru: "При загрузке файл проверяется на вирусы и получает уникальный цифровой отпечаток. Если такой трек уже есть в базе - он не дублируется, вместо этого прибавляется счётчик. Один файл в хранилище, сколько бы людей его ни заливали.",
-      en: "On upload the file is scanned for viruses and gets a unique digital fingerprint. If that track is already in the database it isn't duplicated — the reference count goes up instead. One file in storage no matter how many people upload it.",
+      ru: "При загрузке файл проверяется на вирусы и получает уникальный цифровой отпечаток. Если такой трек уже есть в базе, он не дублируется, вместо этого прибавляется счётчик. Один файл в хранилище, сколько бы людей его ни заливали.",
+      en: "On upload the file is scanned for viruses and gets a unique digital fingerprint. If that track is already in the database it isn't duplicated: the reference count goes up instead. One file in storage no matter how many people upload it.",
     },
   },
   {
@@ -52,7 +47,7 @@ const pillars: Pillar[] = [
     tag: { ru: "все форматы · форма волны", en: "all formats · waveform" },
     title: { ru: "Обработка после загрузки", en: "Post-upload processing" },
     pitch: {
-      ru: "Из одного файла - форматы, форма волны, тексты.",
+      ru: "Из одного файла: форматы, форма волны, тексты.",
       en: "One file yields formats, waveform, and lyrics.",
     },
     desc: {
@@ -84,8 +79,8 @@ const pillars: Pillar[] = [
       en: "A whole catalog moves in by one link.",
     },
     desc: {
-      ru: "Достаточно вставить ссылку - платформа скачает трек, плейлист или весь каталог артиста. Поддерживаются SoundCloud, Spotify, Yandex Music, VK, Bandcamp, YouTube и Telegram. Каждая ссылка проверяется на безопасность, прогресс виден в реальном времени.",
-      en: "Just paste a link — the platform downloads the track, playlist, or an artist's entire catalog. Supported: SoundCloud, Spotify, Yandex Music, VK, Bandcamp, YouTube, and Telegram. Every URL is safety-checked, progress is shown in real time.",
+      ru: "Достаточно вставить ссылку, и платформа скачает трек, плейлист или весь каталог артиста. Поддерживаются SoundCloud, Spotify, Yandex Music, VK, Bandcamp, YouTube и Telegram. Каждая ссылка проверяется на безопасность, прогресс виден в реальном времени.",
+      en: "Just paste a link, and the platform downloads the track, playlist, or an artist's entire catalog. Supported: SoundCloud, Spotify, Yandex Music, VK, Bandcamp, YouTube, and Telegram. Every URL is safety-checked, progress is shown in real time.",
     },
   },
   {
@@ -95,8 +90,8 @@ const pillars: Pillar[] = [
     title: { ru: "Персональная лента и миксы", en: "Personal feed and mixes" },
     pitch: { ru: "Лента собирается под твой вкус.", en: "The feed assembles around your taste." },
     desc: {
-      ru: "Главный экран собирается под каждого: «Продолжить слушать», «Для вас», «Новые релизы», Daily Mix, жанровые миксы, радио и «Забытые сокровища». Алгоритм улучшается с каждым прослушиванием - смотрит что слушают до конца, а что пропускают.",
-      en: "The home screen is personal: Continue listening, For you, New releases, Daily Mix, genre mixes, radio, and Forgotten Treasures. The algorithm improves with every listen — it tracks what people finish and what they skip.",
+      ru: "Главный экран собирается под каждого: «Продолжить слушать», «Для вас», «Новые релизы», Daily Mix, жанровые миксы, радио и «Забытые сокровища». Алгоритм улучшается с каждым прослушиванием: смотрит, что слушают до конца, а что пропускают.",
+      en: "The home screen is personal: Continue listening, For you, New releases, Daily Mix, genre mixes, radio, and Forgotten Treasures. The algorithm improves with every listen: it tracks what people finish and what they skip.",
     },
   },
   {
@@ -109,8 +104,8 @@ const pillars: Pillar[] = [
       en: "Finds by title and artist, even misspelled.",
     },
     desc: {
-      ru: "Результаты появляются сразу во время набора. Можно писать русскими буквами и найти артиста с английским именем - и наоборот. Работает даже с опечатками, популярные треки поднимаются выше.",
-      en: "Results appear as you type. Type in Russian and find an artist with an English name — and vice versa. Works even with typos; more-played tracks rank higher.",
+      ru: "Результаты появляются сразу во время набора. Можно писать русскими буквами и найти артиста с английским именем, и наоборот. Работает даже с опечатками, популярные треки поднимаются выше.",
+      en: "Results appear as you type. Type in Russian and find an artist with an English name, and vice versa. Works even with typos; more-played tracks rank higher.",
     },
   },
   {
@@ -123,8 +118,8 @@ const pillars: Pillar[] = [
       en: "Heavy compute moves to a separate GPU server.",
     },
     desc: {
-      ru: "Всё ресурсоёмкое - распознавание речи, анализ аудио, поиск похожих треков - выполняется на отдельном сервере с видеокартой. Сервер сам запрашивает задачи и не торчит в интернете - это безопаснее. Поддерживает паузу и отмену прямо в процессе.",
-      en: "Everything heavy — speech recognition, audio analysis, finding similar tracks — runs on a separate GPU server. The server pulls its own tasks and doesn't expose ports to the internet, which is safer. Pause and per-job cancel are supported mid-run.",
+      ru: "Всё ресурсоёмкое (распознавание речи, анализ аудио, поиск похожих треков) выполняется на отдельном сервере с видеокартой. Сервер сам запрашивает задачи и не торчит в интернете, так безопаснее. Поддерживает паузу и отмену прямо в процессе.",
+      en: "Everything heavy (speech recognition, audio analysis, finding similar tracks) runs on a separate GPU server. The server pulls its own tasks and doesn't expose ports to the internet, which is safer. Pause and per-job cancel are supported mid-run.",
     },
   },
 ];
@@ -144,8 +139,8 @@ const storage = {
   noteSave: { ru: "сохранён", en: "saved" },
   noteDup: { ru: "уже есть", en: "already exists" },
   dupNote: {
-    ru: "файл уже есть - новый не создаётся",
-    en: "file already exists — no new copy",
+    ru: "файл уже есть, новый не создаётся",
+    en: "file already exists, no new copy",
   },
 };
 
@@ -169,11 +164,11 @@ const pipeline = {
 
 const pipelineHints: Record<string, Bi> = {
   raw: {
-    ru: "Загруженный аудиофайл. Принимаются FLAC, WAV, MP3, AAC, OGG и другие форматы — без ограничений на битрейт.",
-    en: "The uploaded audio file. FLAC, WAV, MP3, AAC, OGG and other formats accepted — no bitrate restrictions.",
+    ru: "Загруженный аудиофайл. Принимаются FLAC, WAV, MP3, AAC, OGG и другие форматы, без ограничений на битрейт.",
+    en: "The uploaded audio file. FLAC, WAV, MP3, AAC, OGG and other formats accepted, no bitrate restrictions.",
   },
   dedup: {
-    ru: "Акустический отпечаток файла сравнивается с базой. Если трек уже есть — повторная обработка не запускается, возвращается ссылка на существующий.",
+    ru: "Акустический отпечаток файла сравнивается с базой. Если трек уже есть, повторная обработка не запускается, возвращается ссылка на существующий.",
     en: "The file's acoustic fingerprint is compared against the database. If the track already exists, processing is skipped and a link to the existing one is returned.",
   },
   ffmpeg: {
@@ -189,15 +184,15 @@ const pipelineHints: Record<string, Bi> = {
     en: "Adaptive stream: two quality tiers, switching automatically based on connection speed without interrupting playback.",
   },
   wave: {
-    ru: "Форма волны для скруббера — строится один раз при загрузке, хранится в S3.",
-    en: "Waveform for the scrubber — generated once on upload, stored in S3.",
+    ru: "Форма волны для скруббера: строится один раз при загрузке, хранится в S3.",
+    en: "Waveform for the scrubber: generated once on upload, stored in S3.",
   },
   snippet: {
     ru: "30-секундное превью для быстрого прослушивания без загрузки полного трека.",
     en: "30-second preview for quick listening without loading the full track.",
   },
   cover: {
-    ru: "Обложка нормализуется по размеру и формату. Если нет — генерируется цветная заглушка по названию.",
+    ru: "Обложка нормализуется по размеру и формату. Если нет, генерируется цветная заглушка по названию.",
     en: "Cover art is normalized to size and format. If missing, a colored placeholder is generated from the title.",
   },
   lyrics: {
@@ -206,7 +201,7 @@ const pipelineHints: Record<string, Bi> = {
   },
 };
 
-// (3) Стриминг — реальный трек из каталога сцены
+// (3) Стриминг: реальный трек из каталога сцены
 const listen = {
   title: "welcome to forever",
   artist: "Kai Angel · damage · 2025",
@@ -218,8 +213,8 @@ const listen = {
   hls: { ru: "авто-качество", en: "adaptive" },
   lyrCap: { ru: "тексты появляются в нужный момент", en: "lyrics appear on cue" },
 };
-// Реальные строки трека (в оригинале двуязычные). tc — демо-тайм-код от прогресса,
-// at — порог прогресса 0..1, на котором строка становится активной.
+// Реальные строки трека (в оригинале двуязычные). tc - демо-тайм-код от прогресса,
+// at - порог прогресса 0..1, на котором строка становится активной.
 const lyrics: { at: number; tc: string; text: string }[] = [
   { at: 0.08, tc: "0:13", text: "Velvet fog in my lungs, I breathe slow" },
   { at: 0.26, tc: "0:43", text: 'You said I\'m too cold, I said "Yeah, I know"' },
@@ -321,7 +316,7 @@ const importT = {
     en: "importing straight from the profile, no link needed",
   },
   go: { ru: "Импортировать", en: "Import" },
-  pulling: { ru: "загружаем…", en: "fetching…" },
+  pulling: { ru: "загружаем...", en: "fetching..." },
   done: { ru: "добавлено в каталог", en: "added to the catalog" },
 };
 
@@ -347,8 +342,8 @@ const discover = {
   step3label: { ru: "Лента", en: "Feed" },
   step1cap: { ru: "выберите любимые жанры", en: "pick your favorite genres" },
   step2cap: {
-    ru: "оцените несколько треков - нравится или нет",
-    en: "rate a few tracks — like or not",
+    ru: "оцените несколько треков: нравится или нет",
+    en: "rate a few tracks: like or not",
   },
   step3cap: { ru: "лента собрана", en: "feed is ready" },
   next: { ru: "Далее →", en: "Next →" },
@@ -400,7 +395,7 @@ const feedSections: { id: string; label: Bi; note: Bi }[] = [
 // (6) Поиск
 const searchT = {
   cap: { ru: "поиск с первой буквы", en: "search as you type" },
-  placeholder: { ru: "онда…", en: "onda…" },
+  placeholder: { ru: "онда...", en: "onda..." },
   translit: { ru: "искать", en: "search" },
   fuzzy: { ru: "с опечатками · популярные выше", en: "fuzzy · popular first" },
 };
@@ -428,8 +423,8 @@ const jobs: Job[] = [
   {
     key: "audio_embedding",
     desc: {
-      ru: "создаёт цифровой профиль трека - нужен для поиска похожей музыки.",
-      en: "creates a digital profile of the track — used to find similar music.",
+      ru: "создаёт цифровой профиль трека: нужен для поиска похожей музыки.",
+      en: "creates a digital profile of the track: used to find similar music.",
     },
   },
   {
@@ -545,8 +540,8 @@ const worker = {
   more: { ru: "Показать все", en: "Show all" },
   hide: { ru: "Свернуть", en: "Collapse" },
   pick: {
-    ru: "нажмите на задачу - покажу что она делает",
-    en: "tap a job - I'll show what it does",
+    ru: "нажмите на задачу, покажу что она делает",
+    en: "tap a job, I'll show what it does",
   },
   asr: {
     ru: "+ распознавание речи: разделение голоса → расшифровка → выравнивание по времени",
@@ -565,8 +560,6 @@ const nav = {
   data-sf
   aria-label={t({ ru: "Возможности платформы .звук", en: "DotSound platform capabilities" })}
 >
-  <p class="sf__intro">{t(intro)}</p>
-
   <div class="sf__statbar">
     <button
       class="sf__stats-toggle"
@@ -1046,13 +1039,6 @@ const nav = {
     display: flex;
     flex-direction: column;
     gap: var(--sp-5);
-  }
-
-  .sf__intro {
-    font-size: var(--fs-16);
-    line-height: var(--lh-normal);
-    color: var(--text-secondary);
-    max-width: 68ch;
   }
 
   .sf__statline {
@@ -1897,7 +1883,7 @@ const nav = {
     opacity: 1;
   }
 
-  /* (5) Рекомендации — 3-step onboarding */
+  /* (5) Рекомендации: 3-step onboarding */
   .sf__dc-steps {
     display: flex;
     align-items: center;
@@ -2487,7 +2473,7 @@ const nav = {
       display: none;
     }
 
-    /* каждый таб — компактная карточка фиксированной ширины, не сжимается */
+    /* каждый таб: компактная карточка фиксированной ширины, не сжимается */
     .sf__tab {
       flex: 0 0 auto;
       width: 120px;
@@ -2495,7 +2481,7 @@ const nav = {
       padding: var(--sp-2) var(--sp-3);
     }
 
-    /* тег под лейблом — всегда виден на мобиле, без hover */
+    /* тег под лейблом: всегда виден на мобиле, без hover */
     .sf__tab-tag {
       max-height: 3em;
       opacity: 1;
@@ -2527,7 +2513,7 @@ const nav = {
       min-width: 0;
       width: 100%;
     }
-    /* стрелки в потоке транскода — поворот на вертикаль */
+    /* стрелки в потоке транскода: поворот на вертикаль */
     .sf__pl-flow > .sf__arrow {
       transform: rotate(90deg);
       align-self: center;
@@ -2639,10 +2625,7 @@ const nav = {
       font-size: var(--fs-11);
     }
 
-    /* --- intro и pitch не мельче 13px --- */
-    .sf__intro {
-      font-size: var(--fs-14);
-    }
+    /* --- pitch не мельче 13px --- */
     .sf__pitch {
       font-size: var(--fs-15);
     }
@@ -2772,7 +2755,7 @@ const nav = {
       stStepEls.forEach((s) => s.classList.remove("is-on", "is-dup"));
       if (stGo) {
         stGo.disabled = true;
-        stGo.textContent = tr("загружаем…", "uploading…");
+        stGo.textContent = tr("загружаем...", "uploading...");
       }
       if (stNote) stNote.textContent = "";
       stStepEls.forEach((s, i) => {
@@ -2813,8 +2796,8 @@ const nav = {
           if (stRef) stRef.textContent = String(stRc);
           if (stNote)
             stNote.textContent = tr(
-              "файл уже есть - новый не создаётся",
-              "file already exists — no new copy",
+              "файл уже есть, новый не создаётся",
+              "file already exists, no new copy",
             );
         },
         D(300) * (stStepEls.length + 1),
@@ -2870,7 +2853,7 @@ const nav = {
       plOuts.forEach((o) => o.classList.remove("is-on"));
       if (plGo) {
         plGo.disabled = true;
-        plGo.textContent = tr("обрабатываем…", "processing…");
+        plGo.textContent = tr("обрабатываем...", "processing...");
       }
       if (plNote) plNote.textContent = "";
       const seq = [...plNodes, ...plOuts];
@@ -2963,7 +2946,7 @@ const nav = {
       imRows.forEach((r) => r.classList.remove("is-in"));
       if (imGo) {
         imGo.disabled = true;
-        imGo.textContent = tr("загружаем…", "fetching…");
+        imGo.textContent = tr("загружаем...", "fetching...");
       }
       if (imNote) imNote.textContent = "";
       imRows.forEach((r, i) => {
@@ -2986,7 +2969,7 @@ const nav = {
     // ============ (4) СЛУШАТЬ ============
     // Мини-плеер: waveform-скраббер (seek), эквалайзер и караоке-подсветка строк.
     // Один rAF только во время воспроизведения; останавливается на паузе/конце/
-    // offscreen. Под reduced-motion — статичный кадр без rAF.
+    // offscreen. Под reduced-motion - статичный кадр без rAF.
     const lsViz = root.querySelector<HTMLElement>("[data-sf-viz='listen']");
     const lsWave = root.querySelector<HTMLElement>("[data-ls-wave]");
     const lsSeek = root.querySelector<HTMLInputElement>("[data-ls-seek]");
@@ -2994,7 +2977,7 @@ const nav = {
     const lsLines = Array.from(root.querySelectorAll<HTMLElement>("[data-ls-line]"));
     const lsPlay = root.querySelector<HTMLButtonElement>("[data-ls-play]");
     const lsEqBars = Array.from(root.querySelectorAll<HTMLElement>("[data-ls-eq] span"));
-    const TRACK_LEN = 168; // 2:48 — для подписи текущего времени
+    const TRACK_LEN = 168; // 2:48 - для подписи текущего времени
     const PLAY_DUR = 13; // секунд на полный проход в демо
     let lsRaf = 0;
     let lsTs = 0;
@@ -3002,7 +2985,7 @@ const nav = {
     let lsP = 0;
     let lsPlaying = false;
 
-    // [f1, f2, f3, a1, a2, a3] — суперпозиция 3 синусоид на бар; иррациональные
+    // [f1, f2, f3, a1, a2, a3] - суперпозиция 3 синусоид на бар; иррациональные
     // соотношения частот исключают зримое повторение паттерна
     const EQ_CFG = [
       [1.3, 2.9, 0.71, 0.42, 0.33, 0.25], // bass: медленно, высоко
@@ -3107,7 +3090,7 @@ const nav = {
       lsApply(p);
     });
 
-    // ============ (5) РЕКОМЕНДАЦИИ — 3-step onboarding ============
+    // ============ (5) РЕКОМЕНДАЦИИ: 3-step onboarding ============
     const dcChips = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-dc-chip]"));
     const dcNext1 = root.querySelector<HTMLButtonElement>("[data-dc-next1]");
     const dcNote1 = root.querySelector<HTMLElement>("[data-dc-note1]");
@@ -3178,8 +3161,8 @@ const nav = {
           dcNote1.textContent =
             dcGenreSel >= 2
               ? tr(
-                  `${dcGenreSel} жанра — можно идти дальше`,
-                  `${dcGenreSel} genres — ready to continue`,
+                  `${dcGenreSel} жанра: можно идти дальше`,
+                  `${dcGenreSel} genres: ready to continue`,
                 )
               : tr("выберите хотя бы 2 жанра", "pick at least 2 genres");
         }
@@ -3207,7 +3190,7 @@ const nav = {
       if (dcNote2) {
         dcNote2.textContent =
           dcRated >= 2
-            ? tr("вкус собран — смотрите что получилось", "taste collected — see the result")
+            ? tr("вкус собран: смотрите что получилось", "taste collected: see the result")
             : tr("оцените хотя бы 2 трека", "rate at least 2 tracks");
       }
     };

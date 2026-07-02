@@ -1,9 +1,9 @@
 /* =============================================================================
- * glass.css — Liquid Glass / Frutiger-Aero классы
+ * glass.css: Liquid Glass / Frutiger-Aero классы
  *
  * Универсальный треатмент стеклянных поверхностей: blur + saturate + тонкая
  * белая обводка + вертикальный «верхний блик». Использовать на card, sheet,
- * nav, player bar и т.п. Поверх — обычный контент.
+ * nav, player bar и т.п. Поверх обычный контент.
  *
  * NB: backdrop-filter не работает на полностью прозрачных контейнерах в
  * некоторых браузерах; всегда задаём небольшую tint-заливку.
@@ -11,13 +11,13 @@
 
 .glass {
   position: relative;
-  /* PERF: backdrop-filter was removed from the generic .glass surface — it was
+  /* PERF: backdrop-filter was removed from the generic .glass surface: it was
      the #1 GPU cost. Re-blurring the animated aurora behind dozens of stacked
      surfaces on every scroll frame is what made the page stutter. On the
      near-black palette a slightly denser *opaque-ish* tint + the top-shine
      reads as frosted glass without any per-frame GPU blur pass.
      Real backdrop-filter now lives ONLY on the sticky header (see `.header
-     .glass` below) — it sits over a small, fixed region, so one blur pass is
+     .glass` below): it sits over a small, fixed region, so one blur pass is
      cheap and stays sharp while everything scrolls under it. */
   background-color: var(--glass-tint-frost);
   border: var(--bw-thin) solid var(--glass-edge);
@@ -46,7 +46,7 @@
 }
 
 /* Once scrolled, the header pill sits over content with a dense tint that
-   already hides what's behind it — drop the live blur so it stops re-sampling
+   already hides what's behind it, drop the live blur so it stops re-sampling
    the scrolling page every frame (a real scroll-jank source). Blur stays only
    at the very top, over the hero. */
 .header.is-scrolled .glass {
@@ -70,7 +70,7 @@
 }
 
 /* ---------- Варианты по плотности ----------
- * Density variants are now pure tint swaps — none of them carry backdrop-filter
+ * Density variants are now pure tint swaps; none of them carry backdrop-filter
  * (see the perf note on .glass). On near-black the denser tint + top-shine keeps
  * the frosted read without a GPU blur pass. .glass--solid uses the densest,
  * near-opaque tint so it stays the most "material" surface. */
@@ -88,7 +88,7 @@
 
 /* ---------- Hover-edge: при наведении подсвечивается верхний блик и обводка ---------- */
 .glass--hover {
-  /* box-shadow убран из перехода — тень не композируется, её анимация
+  /* box-shadow убран из перехода: тень не композируется, её анимация
      перерисовывала размытый регион карточки на каждом кадре hover. */
   transition:
     border-color var(--dur-med) var(--ease-standard),
@@ -158,11 +158,11 @@
  * Тач-эквивалент hover (ОТДЕЛЬНАЯ мобильная реализация).
  *
  * На desktop обратную связь даёт курсор: frame-warp подсвечивает обводку,
- * .glass--hover:hover поднимает карточку. На тач курсора нет — взамен:
- *   • .is-touch-active — карточка в центре вьюпорта (scroll-driven, JS в
+ * .glass--hover:hover поднимает карточку. На тач курсора нет, взамен:
+ *   • .is-touch-active: карточка в центре вьюпорта (scroll-driven, JS в
  *     BaseLayout): проявляем обводку и верхний блик, как при наведении. Без
- *     подъёма/тени — на скролле они дороги и «прыгают».
- *   • :active / .is-tapped — мгновенная вспышка при касании.
+ *     подъёма/тени, на скролле они дороги и «прыгают».
+ *   • :active / .is-tapped: мгновенная вспышка при касании.
  * Только (hover: none): desktop (hover: hover) этого не видит и работает по-старому.
  * ============================================================================= */
 @media (hover: none) {

@@ -78,7 +78,7 @@ const years = visible.map((p) => p.year).filter((y): y is number => typeof y ===
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!fine || reduced) return;
 
-    // rect карт устаревает при скролле — общий флаг ставим в scroll-хендлере без
+    // rect карт устаревает при скролле, общий флаг ставим в scroll-хендлере без
     // чтения layout (без forced reflow); rect пересчитается на следующем move.
     let dirty = false;
     window.addEventListener(
@@ -190,7 +190,7 @@ const years = visible.map((p) => p.year).filter((y): y is number => typeof y ===
     });
 
     rows.forEach((rowCards) => {
-      if (rowCards.length < 2) return; // alone in its row (mobile stack, or an odd one out) — nothing to match
+      if (rowCards.length < 2) return; // alone in its row (mobile stack, or an odd one out): nothing to match
       const entries = rowCards
         .map((card) => {
           const highlights = card.querySelector<HTMLElement>(".project-card__highlights");
@@ -282,7 +282,7 @@ const years = visible.map((p) => p.year).filter((y): y is number => typeof y ===
     gap: var(--sp-2);
   }
 
-  /* Тонкий разделитель — отделяет вторичный тир от продуктовой сетки. */
+  /* Тонкий разделитель отделяет вторичный тир от продуктовой сетки. */
   .projects__ecosystem-line {
     height: 1px;
     width: 100%;
