@@ -16,7 +16,6 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 DIST_DIR="$REPO_DIR/dist"
-DOTSOUND_NETWORK="${DOTSOUND_NETWORK:-dotsoundbackend_dotsound}"
 
 cd "$REPO_DIR"
 
@@ -39,9 +38,9 @@ if [ ! -d "$DIST_DIR" ] || [ -z "$(ls -A "$DIST_DIR" 2>/dev/null)" ]; then
 fi
 chmod -R a+rX "$DIST_DIR"
 
-# Убеждаемся, что контейнер поднят (idempotent). Свежий dist уже примонтирован.
-echo "==> Проверяю контейнер portfolio..."
-export DOTSOUND_NETWORK
-docker compose -f "$SCRIPT_DIR/docker-compose.yml" --project-directory "$REPO_DIR" up -d
-
+# Контейнер portfolio (restart: unless-stopped) читает dist/ через bind-mount,
+# поэтому свежие файлы отдаются сразу - пересоздавать или перезапускать его не
+# нужно, и обновление не зависит от docker/имени сети (важно для автодеплоя по
+# SSH). Если контейнер вдруг не запущен (docker ps | grep portfolio), подними
+# его один раз: sudo bash deploy/setup.sh <поддомен>.
 echo "Готово. dist/: $(du -sh "$DIST_DIR" 2>/dev/null | cut -f1), свободно: $(df -h / | awk 'NR==2{print $4}')"
