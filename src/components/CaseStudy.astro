@@ -202,6 +202,19 @@ const signatureLede = (signatureLedes[p.slug] ?? {
               </a>
             )
           }
+          {
+            telegramUrl && (
+              <a
+                href={telegramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="cta cta--ghost magnetic"
+              >
+                <Icon name="telegram" size={16} />
+                <span>{t("projects.openBot")}</span>
+              </a>
+            )
+          }
         </div>
       </div>
 

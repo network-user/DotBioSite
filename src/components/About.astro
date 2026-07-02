@@ -20,6 +20,9 @@ const ledeLines = ledeRaw.split("\n").filter(Boolean);
 
 const github = socials.find((s) => s.id === "github");
 const telegram = socials.find((s) => s.id === "telegram");
+// GitHub/Telegram уже показаны в компактной визитке под фото - в полном ряду
+// пилюль ниже био их не дублируем.
+const socialPills = socials.filter((s) => s.id !== "github" && s.id !== "telegram");
 const portraitContacts: {
   id: "github" | "mail" | "telegram";
   href: string | null;
@@ -83,9 +86,9 @@ const portraitContacts: {
         </div>
 
         {
-          socials.length > 0 && (
+          socialPills.length > 0 && (
             <ul class="about__socials" aria-label={t("contact.title")}>
-              {socials.map((s, i) => (
+              {socialPills.map((s, i) => (
                 <li class="about__social-item" style={`--pill-i: ${i};`}>
                   <a
                     href={s.url}

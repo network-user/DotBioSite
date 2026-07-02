@@ -7,6 +7,7 @@ import {
   projectTagline,
   projectDescription,
   projectDomainUrl,
+  projectTelegramUrl,
   repoUrl,
 } from "../lib/projects";
 import Icon from "./Icon/Icon.astro";
@@ -30,6 +31,7 @@ const desc = projectDescription(p, locale);
 const caseHref = `${prefix}/projects/${p.slug}`;
 const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
 const domainUrl = projectDomainUrl(p);
+const telegramUrl = projectTelegramUrl(p);
 const accent = p.accent ?? "var(--accent)";
 const highlights = p.highlights?.slice(0, 3) ?? [];
 const isFeatured = index === 0;
@@ -173,6 +175,19 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
         >
           <Icon name="globe" size={16} />
           <span>{t("projects.openSite")}</span>
+        </a>
+      )
+    }
+    {
+      telegramUrl && (
+        <a
+          href={telegramUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="project-card__cta cta cta--ghost"
+        >
+          <Icon name="telegram" size={16} />
+          <span>{t("projects.openBot")}</span>
         </a>
       )
     }

@@ -31,29 +31,6 @@ const CHANNEL_SWAY_STEP = 0.5;
 // В блоке контактов сознательно показываем только email, GitHub и Telegram -
 // LinkedIn/X/VK остаются в config для About.astro и JSON-LD, но не в этом списке.
 const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "telegram");
-
-const briefOptions = hasEmail
-  ? [
-      {
-        id: "project",
-        icon: "rocket" as const,
-        label: t("contact.briefProject"),
-        subject: t("contact.subjectProject"),
-      },
-      {
-        id: "hire",
-        icon: "user" as const,
-        label: t("contact.briefHire"),
-        subject: t("contact.subjectHire"),
-      },
-      {
-        id: "question",
-        icon: "spark" as const,
-        label: t("contact.briefQuestion"),
-        subject: t("contact.subjectQuestion"),
-      },
-    ]
-  : [];
 ---
 
 <section class="section contact" id="contact" aria-labelledby="contact-title">
@@ -78,34 +55,6 @@ const briefOptions = hasEmail
         }
       </span>
     </SectionHeader>
-
-    {
-      briefOptions.length > 0 && (
-        <div class="contact__brief glass glass--bordered" data-reveal data-warp>
-          <div class="contact__brief-copy">
-            <p class="caption">{t("contact.briefTitle")}</p>
-            <p class="contact__brief-lede body-sm">{t("contact.briefLede")}</p>
-          </div>
-          <div class="contact__brief-actions" aria-label={t("contact.briefTitle")}>
-            {briefOptions.map((option, i) => (
-              <button
-                type="button"
-                class={`contact__brief-action contact__brief-action--${option.id} contact-email`}
-                data-e={emailB64}
-                data-subject={option.subject}
-                data-body={t("contact.emailBody")}
-                data-reveal
-                data-reveal-delay={i * 60}
-              >
-                <Icon name={option.icon} size={18} />
-                <span>{option.label}</span>
-                <Icon name="arrow-right" size={15} />
-              </button>
-            ))}
-          </div>
-        </div>
-      )
-    }
 
     <div class="contact__channels">
       {
@@ -333,61 +282,6 @@ const briefOptions = hasEmail
 </script>
 
 <style>
-  .contact__brief {
-    max-width: 900px;
-    margin-inline: auto;
-    margin-block-end: var(--sp-5);
-    padding: var(--sp-4);
-    border-radius: var(--r-xl);
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--sp-4);
-  }
-
-  .contact__brief-copy {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-2);
-  }
-
-  .contact__brief-lede {
-    color: var(--text-secondary);
-    max-width: 56ch;
-  }
-
-  .contact__brief-actions {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--sp-2);
-  }
-
-  .contact__brief-action {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    gap: var(--sp-3);
-    min-height: var(--tap-min);
-    padding: var(--sp-3) var(--sp-4);
-    border-radius: var(--r-md);
-    border: var(--bw-thin) solid var(--border);
-    color: var(--text-secondary);
-    background: var(--surface);
-    text-align: left;
-    min-width: 0;
-    transition:
-      color var(--dur-fast) var(--ease-standard),
-      border-color var(--dur-fast) var(--ease-standard),
-      background-color var(--dur-fast) var(--ease-standard),
-      transform var(--dur-fast) var(--ease-soft);
-  }
-
-  .contact__brief-action:hover {
-    color: var(--text);
-    border-color: var(--border-hover);
-    background: var(--surface-2);
-    transform: translateY(-1px);
-  }
-
   .contact__channels {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -616,42 +510,15 @@ const briefOptions = hasEmail
 
   /* Тач-эквивалент hover (ОТДЕЛЬНАЯ мобильная реализация). Обводку каналов даёт
      общий хук .glass--hover.is-touch-active/:active (glass.css); здесь запуск
-     sweep-полосы email-кнопки при попадании в центр вьюпорта и tap-отклик
-     brief-кнопок (на desktop их ведёт :hover). desktop (hover: hover) не видит. */
+     sweep-полосы email-кнопки при попадании в центр вьюпорта.
+     desktop (hover: hover) не видит. */
   @media (hover: none) {
     .contact__channel--email.is-touch-active .contact__channel-ring {
       transform: translateX(100%);
     }
-
-    .contact__brief-action:active,
-    .contact__brief-action.is-tapped {
-      color: var(--text);
-      border-color: var(--border-hover);
-      background: var(--surface-2);
-    }
   }
 
   @media (min-width: 720px) {
-    .contact__brief {
-      grid-template-columns: minmax(0, 0.8fr) minmax(360px, 1fr);
-      align-items: center;
-      padding: var(--sp-5);
-    }
-
-    .contact__brief-actions {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .contact__brief-action {
-      grid-template-columns: 1fr auto;
-      align-content: space-between;
-      min-height: 112px;
-    }
-
-    .contact__brief-action > svg:first-child {
-      grid-column: 1 / -1;
-    }
-
     .contact__channels {
       gap: var(--sp-3);
     }

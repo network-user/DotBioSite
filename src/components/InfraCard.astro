@@ -16,6 +16,7 @@ import {
   projectTagline,
   projectDescription,
   projectDomainUrl,
+  projectTelegramUrl,
   repoUrl,
 } from "../lib/projects";
 import Icon from "./Icon/Icon.astro";
@@ -39,6 +40,7 @@ const accent = p.accent ?? "var(--accent-core)";
 const highlights = p.highlights?.slice(0, 3) ?? [];
 const primaryRepoUrl = p.repos[0] ? repoUrl(p.repos[0]) : "";
 const domainUrl = projectDomainUrl(p);
+const telegramUrl = projectTelegramUrl(p);
 ---
 
 <article
@@ -90,7 +92,7 @@ const domainUrl = projectDomainUrl(p);
     </ul>
 
     {
-      (primaryRepoUrl || domainUrl) && (
+      (primaryRepoUrl || domainUrl || telegramUrl) && (
         <footer class="infra-card__actions">
           {primaryRepoUrl && (
             <a
@@ -112,6 +114,17 @@ const domainUrl = projectDomainUrl(p);
             >
               <Icon name="globe" size={16} />
               <span>{t("projects.openSite")}</span>
+            </a>
+          )}
+          {telegramUrl && (
+            <a
+              href={telegramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="infra-card__cta cta cta--ghost"
+            >
+              <Icon name="telegram" size={16} />
+              <span>{t("projects.openBot")}</span>
             </a>
           )}
         </footer>
