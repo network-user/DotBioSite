@@ -1,0 +1,40 @@
+# Внутренний конфиг Caddy для контейнера portfolio (см. deploy/docker-compose.yml).
+# Слушает :80 ТОЛЬКО внутри сети dotsound. Публичный HTTPS и маршрутизацию
+# доменов делает фронт-Caddy DotSound, который проксирует сюда. Поэтому здесь
+# нет домена и ACME - только отдача статики с security-заголовками.
+
+:80 {
+	root * /srv
+
+	encode zstd gzip
+
+	# ── Security-заголовки (доходят до браузера через фронт-Caddy) ───────────
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
+		Permissions-Policy "accelerometer=(), autoplay=(), camera=(), display-capture=(), encrypted-media=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), publickey-credentials-get=(), usb=(), xr-spatial-tracking=()"
+		Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data: https:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; form-action 'self'; upgrade-insecure-requests"
+		-Server
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+
+	# ── Cache-Control ───────────────────────────────────────────────────────
+	@assets path /_assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+
+	@week path /projects/* /favicon.svg /icon-192.svg /icon-512.svg
+	header @week Cache-Control "public, max-age=604800"
+
+	@shortcache path /manifest.webmanifest /sitemap.xml /robots.txt
+	header @shortcache Cache-Control "public, max-age=3600"
+
+	handle_errors {
+		rewrite * /404.html
+		file_server
+	}
+
+	file_server
+}

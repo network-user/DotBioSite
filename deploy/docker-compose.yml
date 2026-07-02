@@ -1,0 +1,38 @@
+# Портфолио за общим фронт-Caddy (Docker-стек DotSound).
+#
+# Контейнер отдаёт готовый dist/ по HTTP ВНУТРИ общей docker-сети dotsound.
+# Наружу порты НЕ публикуются: TLS и маршрутизацию доменов делает фронт-Caddy
+# DotSound, который проксирует сюда по имени контейнера (portfolio:80). Так
+# 80/443 хоста остаются целиком за DotSound, а этот сервис ни с чем не
+# конфликтует. Образ caddy:2-alpine тот же, что у DotSound, - доп. места на
+# диске под образ не тратится.
+#
+# Внешняя сеть dotsound создаётся стеком DotSound. Её реальное имя проверь:
+#   docker network ls | grep dotsound
+# и при отличии передай через переменную окружения DOTSOUND_NETWORK
+# (см. deploy/setup.sh, deploy/README.md).
+
+services:
+  portfolio:
+    image: caddy:2-alpine
+    container_name: portfolio
+    restart: unless-stopped
+    volumes:
+      # Готовая статика (bind-mount): пересобрал dist/ на хосте - контейнер
+      # сразу отдаёт свежие файлы, пересоздавать его не нужно.
+      - ./dist:/srv:ro
+      # Внутренний конфиг Caddy контейнера (loopback-фронт не нужен, слушает :80
+      # только внутри сети dotsound).
+      - ./deploy/Caddyfile.container:/etc/caddy/Caddyfile:ro
+    networks:
+      - dotsound
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  dotsound:
+    external: true
+    name: ${DOTSOUND_NETWORK:-dotsoundbackend_dotsound}

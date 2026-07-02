@@ -1,183 +1,176 @@
-# Деплой портфолио за Cloudflare Tunnel
+# Деплой портфолио за общим фронт-Caddy (co-hosting с DotSound)
 
-Сайт - статика (Astro SSG). На сервере он собирается в `dist/` и отдаётся
-лёгким Caddy, который слушает **только `127.0.0.1`** и наружу не смотрит.
-Публичный HTTPS на поддомене даёт **Cloudflare**, а `cloudflared` держит
-исходящий туннель от сервера к Cloudflare и проксирует поддомен на локальный
-Caddy.
-
-Зачем так: на сервере уже есть другой сервис, который держит порты **80/443**
-(например, Docker-стек соседнего проекта). Два процесса не могут слушать 443 на
-одном IP. Cloudflare Tunnel решает это без единого открытого порта - портфолио
-не трогает 80/443 и не пересекается с соседним сервисом ничем: ни портами, ни
-файлами, ни конфигами.
+На сервере уже работает Docker-стек **DotSound**, чей Caddy держит порты
+**80/443** и терминирует TLS. Портфолио (и DotLearn) не могут занять те же
+порты, поэтому они деплоятся как лёгкие контейнеры в **той же docker-сети
+`dotsound`**, а Caddy DotSound проксирует на них по имени контейнера. Это
+временное решение (общий фронт), пока проекты живут на одном IP без Cloudflare
+и без второго IP.
 
 ```
-браузер ──HTTPS──> Cloudflare ──(исходящий туннель)──> cloudflared ─HTTP─> Caddy(127.0.0.1:8787) ─> dist/
-                                                          сосед: Docker-стек остаётся на :80/:443, не тронут
+                              ┌─ {$DOMAIN}       → frontend:80        (DotSound)
+браузер ─HTTPS→ Caddy DotSound ┼─ portfolio-домен → portfolio:80      (этот проект, статика)
+        (порты 80/443, TLS)   └─ learn-домен     → dotlearn-web:8080 (DotLearn, свой nginx→api:3000)
+                                 все контейнеры в сети dotsound; лишние порты наружу не публикуются
 ```
 
-## Что окажется на диске после деплоя
-
-| Что                                | Примерно                            |
-| ---------------------------------- | ----------------------------------- |
-| Бинарь Caddy                       | ~40 МБ                              |
-| Бинарь cloudflared                 | ~25 МБ                             |
-| Node 20 (для будущих пересборок)   | ~120 МБ                            |
-| Исходники репозитория              | несколько МБ                        |
-| Готовый `dist/` (то, что отдаётся) | несколько МБ                        |
-| `node_modules`, npm/apt-кэш        | **0** - чистится сразу после сборки |
-
-Пиковый расход диска - только во время `npm ci` (на время сборки появляется
-`node_modules` ~300-500 МБ, потом удаляется).
+Портфолио - статика (Astro SSG). Собираем `dist/` на хосте, отдаём контейнером
+`caddy:2-alpine` (тот же образ, что у DotSound - доп. места под образ нет).
 
 ## Предусловия
 
-1. Сервер на **Ubuntu/Debian**, доступ по SSH с `sudo`/root.
-2. Домен добавлен в **Cloudflare** (NS переключены на Cloudflare). Бесплатного
-   тарифа достаточно.
-3. Порты открывать **не нужно** - туннель исходящий. Даже 80/443 не требуются.
+1. Стек DotSound развёрнут и запущен (существует сеть `dotsound`).
+2. Docker + docker compose установлены (их ставит DotSound).
+3. **DNS:** A-запись поддомена портфолио (и поддомена DotLearn) указывает на IP
+   сервера. TLS для них Caddy DotSound выпустит автоматически (порты у него
+   открыты).
+4. Порты дополнительно открывать **не нужно**.
 
-## Шаг 1. Создать туннель в Cloudflare (один раз)
+## Важно про имя сети
 
-1. Cloudflare Zero Trust (dash.cloudflare.com → Zero Trust) → **Networks →
-   Tunnels → Create a tunnel** → тип **Cloudflared**, дай имя (например
-   `dotbio`).
-2. На шаге **Install connector** скопируй **токен** туннеля (длинная строка
-   `eyJ...`). Он понадобится в шаге 2. Токен секретный, в git не клади.
-3. Вкладка **Public Hostname → Add a public hostname**:
-   - **Subdomain/Domain**: твой поддомен (например `me` + `example.com`).
-   - **Service**: **HTTP** → `localhost:8787`.
-   - Сохрани. Cloudflare сам создаст нужную DNS-запись поддомена (CNAME на
-     туннель, Proxied) и выпустит TLS.
-
-## Шаг 2. Развернуть на сервере - одна команда
+Внешняя сеть в `deploy/docker-compose.yml` по умолчанию - `dotsoundbackend_dotsound`
+(имя = каталог compose-проекта DotSound + сеть). Проверь реальное:
 
 ```bash
-# git, если его нет
-sudo apt-get update && sudo apt-get install -y git
+docker network ls | grep dotsound
+```
 
-# склонировать репозиторий (рекомендуемый путь - /srv)
+Если отличается - передавай его всем командам через `DOTSOUND_NETWORK=<имя>`.
+
+## Шаг 1. Развернуть портфолио
+
+```bash
+# склонировать (пример пути)
 sudo git clone <URL_РЕПОЗИТОРИЯ> /srv/dotcore
 cd /srv/dotcore
 
-# установка + сборка + туннель (токен из шага 1)
-sudo TUNNEL_TOKEN='eyJ...' bash deploy/setup.sh me.example.com
+# собрать статику и поднять контейнер в сети dotsound
+sudo bash deploy/setup.sh me.example.com
+# при нестандартном имени сети:
+# sudo DOTSOUND_NETWORK=<имя> bash deploy/setup.sh me.example.com
 ```
 
-Скрипт поставит Node, Caddy и cloudflared, соберёт статику, почистит за собой,
-поднимет Caddy на `127.0.0.1:8787` и подключит `cloudflared` к твоему туннелю.
-Через несколько секунд - `https://me.example.com`.
+`setup.sh` поставит Node (только для сборки), соберёт `dist/`, почистит
+`node_modules` и поднимет контейнер `portfolio`. Наружу он не смотрит - ждёт
+проксирования от Caddy DotSound (шаг 3).
 
-> Поддомен можно не передавать аргументом (скрипт спросит). Токен можно не
-> задавать переменной - тогда скрипт спросит его интерактивно; пусто =
-> установить cloudflared, но туннель подключить позже
-> (`sudo cloudflared service install <TOKEN>`).
->
-> Порт Caddy по умолчанию `8787`. Если он локально занят - задай свой и укажи
-> тот же в public hostname туннеля: `PORT=8790 sudo TUNNEL_TOKEN=... bash
-> deploy/setup.sh me.example.com`.
+## Шаг 2. Развернуть DotLearn
 
-## Обновить сайт
+DotLearn - монорепо (статический web + опциональный API). Его штатный
+`scripts/deploy.sh` ставит СВОЙ Caddy на 80/443 - его **не используем** (конфликт
+с DotSound). Поднимаем контейнерами; правки для сети уже внесены в его
+`docker-compose.yml` (сервис `web` = контейнер `dotlearn-web`, подключён к
+`dotsound`).
 
-После изменений в репозитории:
+```bash
+sudo git clone <URL_DOTLEARN> /srv/dotlearn
+cd /srv/dotlearn
 
+# web собирается с зашитым адресом API (нужно для формы /submit и админки).
+# Если форма/админка не нужны - можно оставить пустым, SPA работает автономно.
+echo "VITE_API_BASE=https://learn.example.com" | sudo tee -a .env
+
+sudo docker compose up -d --build
+# при нестандартном имени сети: sudo DOTSOUND_NETWORK=<имя> docker compose up -d --build
+```
+
+Поднимутся `dotlearn-web` (nginx :8080, сам проксирует `/api` на `api:3000`) и
+`api` (NestJS :3000, loopback). Elasticsearch по умолчанию выключен.
+
+## Шаг 3. Подключить к фронт-Caddy DotSound (один раз)
+
+В репозитории DotSound уже добавлены два site-блока в `Caddyfile` (секция
+"Co-hosted sites"). Осталось:
+
+1. **Заменить домены-плейсхолдеры** `portfolio.example.com` и `learn.example.com`
+   на свои реальные поддомены.
+2. **Закоммитить в git DotSound (origin/main).** Это обязательно: `deploy.sh`
+   DotSound делает `git reset --hard origin/main`, и только-локальные правки
+   Caddyfile сотрутся при следующем его деплое.
+3. Перезагрузить фронт-Caddy без даунтайма:
+
+```bash
+cd /opt/dotsound/DotSoundBackend
+docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+  exec caddy caddy reload --config /etc/caddy/Caddyfile
+```
+
+Через несколько секунд оба поддомена отвечают по HTTPS (Caddy выпустит для них
+сертификаты). Существующий сайт DotSound при `reload` не прерывается.
+
+## Обновить сайты
+
+**Портфолио:**
 ```bash
 cd /srv/dotcore
 sudo bash deploy/update.sh
 ```
+`git pull` → пересборка → контейнер сразу отдаёт свежий `dist/` (bind-mount).
 
-`git pull` → пересборка статики → чистка `node_modules` → reload Caddy. Node,
-Caddy, cloudflared и туннель не трогаются. Новые файлы `dist/` Caddy начинает
-отдавать сразу.
+**DotLearn:**
+```bash
+cd /srv/dotlearn
+sudo git pull
+sudo docker compose up -d --build
+```
 
-## Настроить контент (имя, соцсети, фото, email)
+Фронт-Caddy DotSound при обновлении сайтов трогать не нужно - он проксирует по
+имени контейнера.
 
-По умолчанию сайт собирается на дефолтах. Чтобы появились ссылки на репозитории,
-соцсети, фото и кнопка email, отредактируй `.env` в корне репозитория и
-пересобери:
+## Настроить контент портфолио (.env)
 
 ```bash
 cd /srv/dotcore
-sudo nano .env          # заполни PUBLIC_GITHUB_USER, соцсети, AUTHOR_EMAIL и т.д.
+sudo nano .env          # PUBLIC_GITHUB_USER, PUBLIC_SOCIAL_*, AUTHOR_EMAIL и т.д.
 sudo bash deploy/update.sh
 ```
+Список переменных - в `AGENTS.md` (раздел "Переменные окружения"). Поля
+`PUBLIC_AUTHOR_NAME_RU/EN` оставляй непустыми или убери из `.env`.
 
-Список и назначение переменных - в `AGENTS.md` (раздел «Переменные окружения»).
-Поля `PUBLIC_AUTHOR_NAME_RU/EN` оставляй либо непустыми, либо вовсе убери из
-`.env` (пустая строка уронит сборку - сработает дефолт `.ядро`/`.core`).
+## Автодеплой портфолио из GitHub (CI, опционально)
 
-## Автодеплой из GitHub (CI)
-
-`update.sh` можно дёргать автоматически при каждом push в main - GitHub Actions
-(`.github/workflows/deploy.yml`) сначала гоняет lint/type-check/build как gate
-(без реального `.env`), а затем по SSH выполняет на сервере тот же
-`sudo bash deploy/update.sh`. Pull request'ы деплой не триггерят, только gate.
-
-Настройка (один раз, после `deploy/setup.sh`):
+`.github/workflows/deploy.yml` при push в main гоняет lint/type-check/build и по
+SSH выполняет на сервере `sudo bash deploy/update.sh`. Настройка:
 
 ```bash
 cd /srv/dotcore
-sudo bash deploy/ci-setup.sh
+sudo bash deploy/ci-setup.sh   # пользователь ci-deploy + узкий sudo на update.sh
 ```
 
-Скрипт создаёт отдельного пользователя `ci-deploy` с узкой sudo-привилегией -
-ему разрешено запускать без пароля только `deploy/update.sh`, ничего больше.
-В конце выводит, какой SSH-ключ сгенерировать и какие секреты добавить в GitHub:
-
-| Секрет             | Значение                                            |
-| ------------------ | --------------------------------------------------- |
-| `DEPLOY_SSH_KEY`   | приватный ключ CI целиком                            |
-| `DEPLOY_HOST`      | IP или hostname сервера для SSH                      |
-| `DEPLOY_USER`      | `ci-deploy`                                          |
-| `DEPLOY_REPO_PATH` | `/srv/dotcore` (точно, без слэша на конце)           |
-| `PUBLIC_DOMAIN`    | `https://me.example.com` (для health-check в конце)  |
-
-`PUBLIC_DOMAIN` в выводе `ci-setup.sh` не упоминается - добавь его вручную,
-иначе финальный health-check в workflow упадёт.
-
-Ручной запуск `sudo bash deploy/update.sh` работает и после настройки CI - оба
-пути используют один и тот же скрипт.
+Секреты в GitHub: `DEPLOY_SSH_KEY`, `DEPLOY_HOST`, `DEPLOY_USER` (`ci-deploy`),
+`DEPLOY_REPO_PATH` (`/srv/dotcore`), `PUBLIC_DOMAIN` (`https://me.example.com`,
+для health-check).
 
 ## Про защиту от флуда
 
-За Cloudflare Tunnel сервер **не имеет открытых веб-портов** - напрямую по IP
-сайт не достать, весь трафик идёт через сеть Cloudflare, которая и режет флуд.
-Это сильнее, чем что-либо на одиночном сервере.
-
-`deploy/harden.sh` (nftables per-IP лимит) в этой конфигурации **не нужен и не
-запускается по умолчанию**: его правила висят на портах 80/443 всего хоста, а их
-держит соседний сервис - harden заденет чужой трафик. Скрипт сам откажется
-стартовать, если увидит на 80/443 стороннего слушателя.
+Порты наружу не открываются, весь внешний трафик проходит через фронт-Caddy
+DotSound. `deploy/harden.sh` в этой схеме **не нужен и не запускается** (его
+nftables-правила на 80/443 задели бы DotSound; скрипт сам откажется стартовать,
+если увидит там стороннего слушателя).
 
 ## Если что-то не так
 
-- **Сайт не открывается / 502 от Cloudflare.** Проверь туннель и Caddy:
-  `systemctl status cloudflared caddy`, логи `journalctl -u cloudflared -f`.
-  Убедись, что public hostname туннеля указывает на `localhost:8787` (тот же
-  порт, что слушает Caddy: `ss -tlnp | grep 8787`).
-- **Caddy не стартует.** Проверь конфиг: `caddy validate --config
-  /etc/caddy/Caddyfile`. Порт занят локально - смени `PORT` (см. выше) и
-  обнови public hostname в дашборде.
-- **403 / Forbidden.** Caddy (пользователь `caddy`) не может прочитать `dist/`.
-  `setup.sh` делает `chmod -R a+rX dist`, но если репозиторий под `/root`
-  (права `700`), Caddy не пройдёт по пути. Держи репозиторий в `/srv`.
-- **Сборка падает по нехватке диска.** Освободи место (`df -h /`), удали старый
-  `node_modules`/кэш: `rm -rf node_modules .astro && npm cache clean --force`.
-- **Перезапустить:** `sudo systemctl restart caddy` / `sudo systemctl restart
-  cloudflared`.
+- **502 от Caddy DotSound на поддомене.** Контейнер не поднят или не в сети:
+  `docker ps | grep -E 'portfolio|dotlearn'`, `docker network inspect <имя_сети>`.
+  Проверь, что имена в Caddyfile (`portfolio:80`, `dotlearn-web:8080`) совпадают
+  с `container_name`.
+- **Сеть не найдена при `up`.** Неверное `DOTSOUND_NETWORK` - сверь
+  `docker network ls | grep dotsound`.
+- **Сертификат не выпускается.** Поддомен не указывает на сервер (`dig +short
+  поддомен`) или не закоммичен site-блок. Логи: `docker logs <caddy DotSound>`.
+- **Поддомен пропал после деплоя DotSound.** Site-блок не в git DotSound -
+  `git reset --hard` его стёр. Закоммить в origin/main.
 
 ## Как это устроено
 
-| Файл                    | Назначение                                                                              |
-| ----------------------- | --------------------------------------------------------------------------------------- |
-| `deploy/setup.sh`       | Первичная установка + первый деплой (Node/Caddy/cloudflared, туннель по токену)          |
-| `deploy/update.sh`      | Пересборка и редеплой уже развёрнутого сайта (reload loopback-Caddy)                     |
-| `deploy/ci-setup.sh`    | Доступ для GitHub Actions - пользователь `ci-deploy` + узкий sudo только на `update.sh`  |
-| `deploy/harden.sh`      | Анти-флуд на 80/443 (в конфигурации с Tunnel НЕ используется, под gate)                  |
-| `deploy/Caddyfile.tmpl` | Шаблон конфига Caddy: loopback-only, security-заголовки, кэш, без домена и ACME          |
+| Файл                         | Назначение                                                        |
+| ---------------------------- | ----------------------------------------------------------------- |
+| `deploy/docker-compose.yml`  | Контейнер portfolio (caddy:2-alpine) в внешней сети dotsound       |
+| `deploy/Caddyfile.container` | Внутренний конфиг Caddy контейнера: :80, file_server, заголовки    |
+| `deploy/setup.sh`            | Сборка статики на хосте + подъём контейнера                        |
+| `deploy/update.sh`           | Пересборка и обновление (bind-mount, без пересоздания контейнера)  |
+| `deploy/ci-setup.sh`         | Доступ для GitHub Actions (ci-deploy + узкий sudo на update.sh)    |
+| `deploy/harden.sh`           | Анти-флуд на 80/443 - в этой схеме НЕ используется (под gate)      |
 
-Security-заголовки и правила кэширования перенесены из `public/_headers`
-(синтаксис Cloudflare Pages, который обычный веб-сервер игнорирует) в
-`Caddyfile.tmpl`. Меняешь политику заголовков - правь шаблон и перезапусти
-`setup.sh`.
+`deploy/Caddyfile.tmpl` от прежней схемы (свой Caddy на хосте) больше не
+используется - его можно удалить.
