@@ -1,6 +1,6 @@
 ---
 import { useTranslations, type Locale, localePrefix } from "../lib/i18n";
-import { authorName } from "../lib/config";
+import { siteBrand } from "../lib/config";
 import Icon from "./Icon/Icon.astro";
 
 interface Props {
@@ -10,7 +10,7 @@ const { locale } = Astro.props;
 const t = useTranslations(locale);
 const prefix = localePrefix(locale);
 
-const brand = authorName(locale);
+const brand = siteBrand(locale);
 const eyebrow = t("hero.eyebrow");
 const tagline = t("hero.tagline");
 const subtitle = t("hero.subtitle");

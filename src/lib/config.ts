@@ -147,6 +147,15 @@ export function authorName(locale: "ru" | "en"): string {
   return locale === "ru" ? config.PUBLIC_AUTHOR_NAME_RU : config.PUBLIC_AUTHOR_NAME_EN;
 }
 
+/**
+ * Вордмарк сайта (".ядро" / ".core") для Hero. Не читает PUBLIC_AUTHOR_NAME_*,
+ * поэтому не переопределяется env-значениями, заданными для имени автора
+ * (About/JSON-LD) - на главной всегда одно и то же слово.
+ */
+export function siteBrand(locale: "ru" | "en"): string {
+  return locale === "ru" ? ".ядро" : ".core";
+}
+
 /** Био по локали (может быть пустым). */
 export function authorBio(locale: "ru" | "en"): string {
   return locale === "ru" ? config.PUBLIC_AUTHOR_BIO_RU : config.PUBLIC_AUTHOR_BIO_EN;
