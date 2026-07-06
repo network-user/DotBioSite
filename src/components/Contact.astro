@@ -22,7 +22,7 @@ const ledePhrases = t<string[]>("contact.ledePhrases");
 const LEDE_STEP = 2.4;
 const CHAR_STEP = 0.02;
 
-// Каждая кнопка-канал (email/копия/github/telegram) покачивается на своей
+// Каждая кнопка-канал (email/github/telegram) покачивается на своей
 // внутренней обёртке (.contact__channel-sway), а не на самой кнопке, иначе
 // анимация конфликтовала бы с translateY(-2px) из .glass--hover:hover.
 // Сдвиг фазы на кнопку, чтобы «буйки» покачивались не синхронно.
@@ -59,49 +59,27 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
     <div class="contact__channels">
       {
         hasEmail ? (
-          <>
-            <button
-              type="button"
-              class="contact__channel contact__channel--email contact-email glass glass--hover contact__channel--sway"
-              data-channel
-              data-touch-live
-              data-e={emailB64}
-              data-subject={t("contact.subjectGeneral")}
-              data-body={t("contact.emailBody")}
-              aria-label={t("contact.email")}
-              data-reveal
-              style={`animation-delay: ${(0 * CHANNEL_SWAY_STEP).toFixed(2)}s`}
-            >
-              <span class="contact__channel-glow" aria-hidden="true" />
-              <span class="contact__channel-pulse" aria-hidden="true" />
-              <Icon name="mail" size={20} />
-              <span class="contact__channel-label" data-contact-label>
-                {t("contact.email")}
-              </span>
-              <Icon name="arrow-right" size={15} class="contact__channel-trailing" />
-              <span class="contact__channel-ring" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              class="contact__channel contact__channel--copy contact-email glass glass--hover contact__channel--sway"
-              data-channel
-              data-touch-live
-              data-e={emailB64}
-              data-mode="copy"
-              data-copied-label={t("contact.copied")}
-              aria-label={t("contact.copyEmail")}
-              data-reveal
-              data-reveal-delay="80"
-              style={`animation-delay: ${(1 * CHANNEL_SWAY_STEP).toFixed(2)}s`}
-            >
-              <span class="contact__channel-glow" aria-hidden="true" />
-              <Icon name="copy" size={20} />
-              <span class="contact__channel-label" data-contact-label>
-                {t("contact.copyEmail")}
-              </span>
-              <Icon name="check" size={15} class="contact__copy-check" />
-            </button>
-          </>
+          <button
+            type="button"
+            class="contact__channel contact__channel--email contact-email glass glass--hover contact__channel--sway"
+            data-channel
+            data-touch-live
+            data-e={emailB64}
+            data-subject={t("contact.subjectGeneral")}
+            data-body={t("contact.emailBody")}
+            aria-label={t("contact.email")}
+            data-reveal
+            style={`animation-delay: ${(0 * CHANNEL_SWAY_STEP).toFixed(2)}s`}
+          >
+            <span class="contact__channel-glow" aria-hidden="true" />
+            <span class="contact__channel-pulse" aria-hidden="true" />
+            <Icon name="mail" size={20} />
+            <span class="contact__channel-label" data-contact-label>
+              {t("contact.email")}
+            </span>
+            <Icon name="arrow-right" size={15} class="contact__channel-trailing" />
+            <span class="contact__channel-ring" aria-hidden="true" />
+          </button>
         ) : (
           <span
             class="contact__channel contact__channel--disabled glass contact__channel--sway"
@@ -127,7 +105,7 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
               aria-label={t(`contact.${s.id}`)}
               data-reveal
               data-reveal-delay={(i + 1) * 80}
-              style={`animation-delay: ${((i + 2) * CHANNEL_SWAY_STEP).toFixed(2)}s`}
+              style={`animation-delay: ${((i + 1) * CHANNEL_SWAY_STEP).toFixed(2)}s`}
             >
               <span class="contact__channel-glow" aria-hidden="true" />
               <Icon name={s.id} size={20} />
@@ -140,7 +118,7 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
               aria-disabled="true"
               data-reveal
               data-reveal-delay={(i + 1) * 80}
-              style={`animation-delay: ${((i + 2) * CHANNEL_SWAY_STEP).toFixed(2)}s`}
+              style={`animation-delay: ${((i + 1) * CHANNEL_SWAY_STEP).toFixed(2)}s`}
             >
               <Icon name={s.id} size={20} />
               <span class="contact__channel-label">{t(`contact.${s.id}`)}</span>
@@ -205,7 +183,7 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
 
 <script>
   /* Email decoder: распаковывает обфусцированный адрес (base64 от перевёрнутой
-     строки) из data-e и по клику открывает mailto или копирует. Вынесен из
+     строки) из data-e и по клику открывает mailto. Вынесен из
      is:inline в обычный <script>, поэтому Astro хостит его во внешний бандл:
      CSP может быть script-src 'self' без 'unsafe-inline'. No-op без кнопок. */
   const decodeEmail = (b64: string): string => {
@@ -229,54 +207,12 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
     return "mailto:" + addr + (qs ? "?" + qs : "");
   };
 
-  const setCopied = (btn: HTMLElement): void => {
-    const label = btn.querySelector<HTMLElement>("[data-contact-label]");
-    if (!label) return;
-    if (!btn.dataset.defaultLabel) btn.dataset.defaultLabel = label.textContent || "";
-    label.textContent = btn.getAttribute("data-copied-label") || btn.dataset.defaultLabel || "";
-    btn.classList.add("is-copied");
-    window.setTimeout(() => {
-      label.textContent = btn.dataset.defaultLabel || label.textContent;
-      btn.classList.remove("is-copied");
-    }, 1800);
-  };
-
-  const copyText = (text: string, done: () => void): void => {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard
-        .writeText(text)
-        .then(done)
-        .catch(() => {
-          /* clipboard write rejected; silently ignore */
-        });
-      return;
-    }
-    const textarea = document.createElement("textarea");
-    textarea.value = text;
-    textarea.setAttribute("readonly", "");
-    textarea.style.position = "fixed";
-    textarea.style.opacity = "0";
-    document.body.appendChild(textarea);
-    textarea.select();
-    try {
-      document.execCommand("copy");
-      done();
-    } catch {
-      /* execCommand fallback failed; ignore */
-    }
-    document.body.removeChild(textarea);
-  };
-
   document.querySelectorAll<HTMLElement>(".contact-email[data-e]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       const addr = decodeEmail(btn.getAttribute("data-e") || "");
       if (!addr) return;
-      if (btn.getAttribute("data-mode") === "copy") {
-        copyText(addr, () => setCopied(btn));
-      } else {
-        window.location.href = buildMailto(addr, btn);
-      }
+      window.location.href = buildMailto(addr, btn);
     });
   });
 </script>
@@ -425,25 +361,6 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
     }
   }
 
-  .contact__channel--copy.is-copied {
-    color: var(--state-ok);
-    border-color: color-mix(in srgb, var(--state-ok) 42%, var(--border-hover));
-  }
-
-  .contact__copy-check {
-    color: var(--state-ok);
-    opacity: 0;
-    transform: scale(0.8);
-    transition:
-      opacity var(--dur-fast) var(--ease-standard),
-      transform var(--dur-fast) var(--ease-spring);
-  }
-
-  .contact__channel--copy.is-copied .contact__copy-check {
-    opacity: 1;
-    transform: scale(1);
-  }
-
   /**
    * Sweeping highlight: a bright line slides across the top edge of the button.
    * Reuses the same 1px gradient pattern as Stack cards so the motion feels
@@ -532,8 +449,7 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
 
   /* Узкие экраны: декоративная trailing-иконка (стрелка/external) съедает
      место, которого и так мало в ряду из трёх колонок - убираем её, метка
-     остаётся и получает всю ширину. Чек-марк копирования не трогаем - это
-     единственный визуальный сигнал успешного копирования на тач-устройствах. */
+     остаётся и получает всю ширину. */
   @media (max-width: 420px) {
     .contact__channel {
       font-size: var(--fs-12);
