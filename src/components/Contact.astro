@@ -22,12 +22,6 @@ const ledePhrases = t<string[]>("contact.ledePhrases");
 const LEDE_STEP = 2.4;
 const CHAR_STEP = 0.02;
 
-// Каждая кнопка-канал (email/github/telegram) покачивается на своей
-// внутренней обёртке (.contact__channel-sway), а не на самой кнопке, иначе
-// анимация конфликтовала бы с translateY(-2px) из .glass--hover:hover.
-// Сдвиг фазы на кнопку, чтобы «буйки» покачивались не синхронно.
-const CHANNEL_SWAY_STEP = 0.5;
-
 // В блоке контактов сознательно показываем только email, GitHub и Telegram -
 // LinkedIn/X/VK остаются в config для About.astro и JSON-LD, но не в этом списке.
 const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "telegram");
@@ -61,7 +55,7 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
         hasEmail ? (
           <button
             type="button"
-            class="contact__channel contact__channel--email contact-email glass glass--hover contact__channel--sway"
+            class="contact__channel contact__channel--email contact-email glass glass--hover"
             data-channel
             data-touch-live
             data-e={emailB64}
@@ -69,10 +63,8 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
             data-body={t("contact.emailBody")}
             aria-label={t("contact.email")}
             data-reveal
-            style={`animation-delay: ${(0 * CHANNEL_SWAY_STEP).toFixed(2)}s`}
           >
             <span class="contact__channel-glow" aria-hidden="true" />
-            <span class="contact__channel-pulse" aria-hidden="true" />
             <Icon name="mail" size={20} />
             <span class="contact__channel-label" data-contact-label>
               {t("contact.email")}
@@ -81,11 +73,7 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
             <span class="contact__channel-ring" aria-hidden="true" />
           </button>
         ) : (
-          <span
-            class="contact__channel contact__channel--disabled glass contact__channel--sway"
-            aria-disabled="true"
-            style={`animation-delay: ${(0 * CHANNEL_SWAY_STEP).toFixed(2)}s`}
-          >
+          <span class="contact__channel contact__channel--disabled glass" aria-disabled="true">
             <Icon name="mail" size={20} />
             <span class="contact__channel-label">{t("contact.emailUnavailable")}</span>
           </span>
@@ -99,13 +87,12 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
               href={s.url}
               target="_blank"
               rel="noopener noreferrer me"
-              class="contact__channel glass glass--hover contact__channel--sway"
+              class="contact__channel glass glass--hover"
               data-channel
               data-touch-live
               aria-label={t(`contact.${s.id}`)}
               data-reveal
               data-reveal-delay={(i + 1) * 80}
-              style={`animation-delay: ${((i + 1) * CHANNEL_SWAY_STEP).toFixed(2)}s`}
             >
               <span class="contact__channel-glow" aria-hidden="true" />
               <Icon name={s.id} size={20} />
@@ -114,11 +101,10 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
             </a>
           ) : (
             <span
-              class="contact__channel contact__channel--disabled glass contact__channel--sway"
+              class="contact__channel contact__channel--disabled glass"
               aria-disabled="true"
               data-reveal
               data-reveal-delay={(i + 1) * 80}
-              style={`animation-delay: ${((i + 1) * CHANNEL_SWAY_STEP).toFixed(2)}s`}
             >
               <Icon name={s.id} size={20} />
               <span class="contact__channel-label">{t(`contact.${s.id}`)}</span>
@@ -247,28 +233,6 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
     flex-shrink: 0;
   }
 
-  /* Кнопка-канал покачивается как буёк на воде. Анимация задаёт отдельные
-     translate/rotate (НЕ transform) - это независимые CSS-свойства, которые
-     композируются с transform автоматически, поэтому не конкурируют с
-     translateY(-2px) из .glass--hover:hover (тот остаётся на transform). */
-  @media (prefers-reduced-motion: no-preference) {
-    .contact__channel--sway {
-      animation: contact-channel-sway 4s steps(20) infinite;
-    }
-  }
-
-  @keyframes contact-channel-sway {
-    0%,
-    100% {
-      translate: 0 0;
-      rotate: 0deg;
-    }
-    50% {
-      translate: 0 -7px;
-      rotate: -2.5deg;
-    }
-  }
-
   .contact__channel-label {
     flex: 1;
     min-width: 0;
@@ -311,54 +275,6 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
 
   .contact__channel--email {
     overflow: hidden;
-  }
-
-  /* Breathing pulse on the primary CTA: a soft accent wash that fades in and
-     out on a long, lazy loop. Animates opacity + transform: scale only, so it
-     stays on the compositor and never touches the glass backdrop-filter. */
-  .contact__channel-pulse {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    border-radius: inherit;
-    opacity: 0;
-    background: radial-gradient(
-      120% 160% at 18% 50%,
-      color-mix(in srgb, var(--project-accent) 16%, transparent) 0%,
-      transparent 60%
-    );
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-    .contact__channel-pulse {
-      transform-origin: 18% 50%;
-      /* Long, lazy breath: 9s so the wash drifts in and out calmly.
-         transform/opacity only; stays on the compositor. will-change снят:
-         persistent-слой памяти не оправдан для столь медленной анимации. */
-      animation: contact-breathe 9s steps(45) infinite;
-    }
-  }
-
-  /* On hover the pointer glow takes over; calm the ambient pulse so the two
-     light sources don't fight. */
-  .contact__channel--email:hover .contact__channel-pulse {
-    animation-play-state: paused;
-    opacity: 0;
-  }
-
-  @keyframes contact-breathe {
-    0%,
-    100% {
-      opacity: 0.14;
-      transform: scale(0.98);
-    }
-    50% {
-      /* Gentler peak (0.42 -> 0.34) and smaller scale swing so the breath is
-         soft and slow rather than a visible throb. */
-      opacity: 0.34;
-      transform: scale(1.015);
-    }
   }
 
   /**
@@ -404,21 +320,17 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .contact__channel-ring,
-    .contact__channel-pulse {
-      animation: none;
+    .contact__channel-ring {
       transition: none;
     }
 
-    /* No ambient breath, no pointer glow when motion is reduced. */
-    .contact__channel-pulse,
+    /* No pointer glow when motion is reduced. */
     .contact__channel-glow {
       display: none;
     }
   }
 
-  /* Touch: the cursor-follow glow has no meaning; hide it. The breathing pulse
-     on the primary CTA stays (it's ambient, not pointer-driven). */
+  /* Touch: the cursor-follow glow has no meaning; hide it. */
   @media (pointer: coarse) {
     .contact__channel-glow {
       display: none;
