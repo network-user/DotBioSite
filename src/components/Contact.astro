@@ -317,7 +317,7 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
      translateY(-2px) из .glass--hover:hover (тот остаётся на transform). */
   @media (prefers-reduced-motion: no-preference) {
     .contact__channel--sway {
-      animation: contact-channel-sway 4s var(--ease-drift) infinite;
+      animation: contact-channel-sway 4s steps(20) infinite;
     }
   }
 
@@ -400,7 +400,7 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
       /* Long, lazy breath: 9s so the wash drifts in and out calmly.
          transform/opacity only; stays on the compositor. will-change снят:
          persistent-слой памяти не оправдан для столь медленной анимации. */
-      animation: contact-breathe 9s var(--ease-drift) infinite;
+      animation: contact-breathe 9s steps(45) infinite;
     }
   }
 
@@ -556,7 +556,7 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
 
   @media (prefers-reduced-motion: no-preference) {
     .contact__kicker-text {
-      animation: contact-kicker-float 4.8s var(--ease-drift) infinite;
+      animation: contact-kicker-float 4.8s steps(24) infinite;
     }
   }
 
@@ -603,7 +603,7 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
       letter-spacing: -0.12em;
       opacity: 0;
       transform: translateY(10px);
-      animation: contact-headline-char 7.2s infinite;
+      animation: contact-headline-char 7.2s steps(12) infinite;
     }
 
     @keyframes contact-headline-char {

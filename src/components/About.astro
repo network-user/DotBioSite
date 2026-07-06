@@ -183,7 +183,8 @@ const portraitContacts: {
      Период удлинён (9s → 14s), пик яркости снижен (0.5 → 0.32). */
   @media (prefers-reduced-motion: no-preference) {
     .about__portrait.is-inview .about__sheen {
-      animation: about-sheen 14s var(--ease-drift) 600ms infinite;
+      /* steps(): кадр раз в ~220мс вместо каждого vsync, GPU-бюджет */
+      animation: about-sheen 14s steps(64) 600ms infinite;
     }
   }
 

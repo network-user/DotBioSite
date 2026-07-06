@@ -331,7 +331,8 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
 
   @media (prefers-reduced-motion: no-preference) {
     .project-card__glyph {
-      animation: glyph-float 5s ease-in-out infinite;
+      /* steps(): кадр раз в ~250мс вместо каждого vsync, GPU-бюджет */
+      animation: glyph-float 5s steps(20) infinite;
       animation-delay: var(--anim-delay, 0s);
     }
   }
@@ -359,7 +360,7 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
 
   @media (prefers-reduced-motion: no-preference) {
     .project-card__logo-brand {
-      animation: logo-brand-breathe 5.5s ease-in-out infinite;
+      animation: logo-brand-breathe 5.5s steps(20) infinite;
       animation-delay: calc(var(--anim-delay, 0s) + 0.6s);
     }
   }
@@ -402,7 +403,7 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
 
   @media (prefers-reduced-motion: no-preference) {
     .project-card__media-glow {
-      animation: glow-pulse 5s ease-in-out infinite;
+      animation: glow-pulse 5s steps(20) infinite;
       animation-delay: calc(var(--anim-delay, 0s) + 1.2s);
     }
   }
@@ -518,7 +519,7 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
 
   @media (prefers-reduced-motion: no-preference) {
     .project-card__brand {
-      animation: brand-breathe 6s ease-in-out infinite;
+      animation: brand-breathe 6s steps(20) infinite;
       animation-delay: calc(var(--anim-delay, 0s) + 2s);
     }
   }

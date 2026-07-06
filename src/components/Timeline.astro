@@ -185,7 +185,7 @@ const milestones = projects
 
   @media (prefers-reduced-motion: no-preference) {
     .timeline.is-inview :global(.tl-dot .tl-dot__pulse) {
-      animation: tl-dot-pulse 6s var(--ease-drift) infinite;
+      animation: tl-dot-pulse 6s steps(30) infinite;
       animation-delay: calc(var(--item-i, 0) * 140ms + 1100ms);
     }
   }
@@ -263,7 +263,7 @@ const milestones = projects
 
   @media (prefers-reduced-motion: no-preference) {
     .timeline.is-inview .timeline__item.is-visible .timeline__bullet {
-      animation: timeline-pulse 6s var(--ease-drift) infinite;
+      animation: timeline-pulse 6s steps(30) infinite;
       animation-delay: calc(var(--item-i, 0) * 140ms + 1100ms);
     }
   }

@@ -632,7 +632,8 @@ const signatureLede = (signatureLedes[p.slug] ?? {
 
   @media (prefers-reduced-motion: no-preference) {
     .case__brand {
-      animation: case-brand-breathe 7s var(--ease-drift) infinite;
+      /* steps(): кадр раз в ~280мс вместо каждого vsync, GPU-бюджет */
+      animation: case-brand-breathe 7s steps(25) infinite;
       animation-delay: 1.1s;
     }
   }

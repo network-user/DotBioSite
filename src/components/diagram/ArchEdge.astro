@@ -336,7 +336,7 @@ const bsy = backS.y + Math.cos(angleS) * wing;
     }
     .arch-edge__process {
       display: block;
-      animation: arch-pulse-proc var(--pulse-dur, 4.4s) linear var(--pulse-shift, 0s) infinite;
+      animation: arch-pulse-proc var(--pulse-dur, 4.4s) steps(64) var(--pulse-shift, 0s) infinite;
     }
   }
 
