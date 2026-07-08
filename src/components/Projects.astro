@@ -92,6 +92,7 @@ const years = visible.map((p) => p.year).filter((y): y is number => typeof y ===
     document.querySelectorAll<HTMLElement>("[data-tilt]").forEach((card) => {
       let rect: DOMRect | null = null;
       let raf: number | null = null;
+      let hovering = false; // курсор внутри карты: не снимаем .is-tilting, пока не отпустит
       let tx = 0; // target rotateY
       let ty = 0; // target rotateX
       let cx = 0; // current rotateY (лерп)
@@ -110,6 +111,10 @@ const years = visible.map((p) => p.year).filter((y): y is number => typeof y ===
           raf = requestAnimationFrame(tick);
         } else {
           raf = null;
+          // лерп осел на ~0: если курсор уже ушёл, снимаем perspective-слой
+          // (.is-tilting в ProjectCard.astro), чтобы карта не держала отдельный
+          // GPU-слой в покое.
+          if (!hovering) card.classList.remove("is-tilting");
         }
       };
       const ensure = () => {
@@ -118,7 +123,12 @@ const years = visible.map((p) => p.year).filter((y): y is number => typeof y ===
 
       // rect кешируется на вход в карту, а НЕ читается на каждое движение мыши
       // (раньше это был forced synchronous layout в горячем пути → дёрганый отклик).
+      // .is-tilting включается здесь же, до первого кадра лерпа (tick), чтобы
+      // transform: none → perspective(...) переключился раньше первой записи
+      // --tilt-x/--tilt-y.
       card.addEventListener("pointerenter", () => {
+        hovering = true;
+        card.classList.add("is-tilting");
         rect = card.getBoundingClientRect();
       });
 
@@ -141,6 +151,7 @@ const years = visible.map((p) => p.year).filter((y): y is number => typeof y ===
       );
 
       card.addEventListener("pointerleave", () => {
+        hovering = false;
         tx = 0;
         ty = 0;
         mx = 50;

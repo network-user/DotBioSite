@@ -288,8 +288,21 @@ const hiddenCount = layout.reduce(
     const cards = Array.from(document.querySelectorAll<HTMLElement>("[data-stack-card]"));
     const cleanups: Array<() => void> = [];
 
+    // rect карт устаревает при скролле, resize и при раскрытии доп. карточек
+    // (чекбокс stack__expand сдвигает layout секции); общий флаг ставим без
+    // чтения layout (без forced reflow), rect пересчитается на следующем move.
+    let dirty = false;
+    const markDirty = () => {
+      dirty = true;
+    };
+    const expandInput = document.getElementById("stack-expand");
+    window.addEventListener("scroll", markDirty, { passive: true });
+    window.addEventListener("resize", markDirty, { passive: true });
+    expandInput?.addEventListener("change", markDirty);
+
     cards.forEach((card) => {
       let rafId: number | null = null;
+      let rect: DOMRect | null = null;
       let px = 0;
       let py = 0;
 
@@ -299,10 +312,19 @@ const hiddenCount = layout.reduce(
         card.style.setProperty("--my", `${py}px`);
       };
 
+      // rect кешируется на вход в карту, а НЕ читается на каждое движение мыши
+      // (раньше это был forced synchronous layout в горячем пути).
+      const onEnter = () => {
+        rect = card.getBoundingClientRect();
+      };
+
       const onMove = (e: PointerEvent) => {
-        const r = card.getBoundingClientRect();
-        px = e.clientX - r.left;
-        py = e.clientY - r.top;
+        if (!rect || dirty) {
+          rect = card.getBoundingClientRect();
+          dirty = false;
+        }
+        px = e.clientX - rect.left;
+        py = e.clientY - rect.top;
         if (rafId === null) rafId = requestAnimationFrame(apply);
       };
 
@@ -313,17 +335,28 @@ const hiddenCount = layout.reduce(
         }
       };
 
+      card.addEventListener("pointerenter", onEnter, { passive: true });
       card.addEventListener("pointermove", onMove, { passive: true });
       card.addEventListener("pointerleave", onLeave, { passive: true });
 
       cleanups.push(() => {
         if (rafId !== null) cancelAnimationFrame(rafId);
+        card.removeEventListener("pointerenter", onEnter);
         card.removeEventListener("pointermove", onMove);
         card.removeEventListener("pointerleave", onLeave);
       });
     });
 
-    window.addEventListener("pagehide", () => cleanups.forEach((fn) => fn()), { once: true });
+    window.addEventListener(
+      "pagehide",
+      () => {
+        cleanups.forEach((fn) => fn());
+        window.removeEventListener("scroll", markDirty);
+        window.removeEventListener("resize", markDirty);
+        expandInput?.removeEventListener("change", markDirty);
+      },
+      { once: true },
+    );
   }
 </script>
 
@@ -370,7 +403,12 @@ const hiddenCount = layout.reduce(
       color-mix(in srgb, var(--project-accent) 22%, transparent) 0%,
       transparent 68%
     );
-    transform: translate3d(var(--mx, 140px), var(--my, 80px), 0);
+    /* 2D translate (без translate3d): в покое sheen невидим (opacity:0), слой не
+       нужен. translate3d держал по композит-слою на каждой карте постоянно, и
+       контент над ним (заголовок карты) промоутился overlap-ом в лишние слои
+       (в т.ч. squash-слой заголовка на всю высоту секции). Промоушен возвращаем
+       только на hover, когда sheen реально едет за курсором (ниже). */
+    transform: translate(var(--mx, 140px), var(--my, 80px));
     /* Softer, slower fade-in so the light "arrives" on the card rather than
        snapping on. Dimmer peak (0.55 -> 0.4) keeps it ambient. */
     transition: opacity var(--dur-slow) var(--ease-soft);
@@ -378,6 +416,9 @@ const hiddenCount = layout.reduce(
 
   .stack__group:hover .stack__sheen {
     opacity: 0.4;
+    /* Слой только на время hover: JS двигает --mx/--my покадрово, промоушен
+       делает это композитным; в покое слой снимается (текстура освобождается). */
+    will-change: transform;
   }
 
   .stack__bar {

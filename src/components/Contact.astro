@@ -128,8 +128,18 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
     const channels = Array.from(document.querySelectorAll<HTMLElement>("[data-channel]"));
     const cleanups: Array<() => void> = [];
 
+    // rect устаревает при скролле и resize; общий флаг ставим без чтения layout
+    // (без forced reflow), rect пересчитается на следующем move.
+    let dirty = false;
+    const markDirty = () => {
+      dirty = true;
+    };
+    window.addEventListener("scroll", markDirty, { passive: true });
+    window.addEventListener("resize", markDirty, { passive: true });
+
     channels.forEach((el) => {
       let rafId: number | null = null;
+      let rect: DOMRect | null = null;
       let px = 0;
       let py = 0;
 
@@ -139,10 +149,19 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
         el.style.setProperty("--my", `${py}px`);
       };
 
+      // rect кешируется на вход в кнопку, а НЕ читается на каждое движение мыши
+      // (раньше это был forced synchronous layout в горячем пути).
+      const onEnter = () => {
+        rect = el.getBoundingClientRect();
+      };
+
       const onMove = (e: PointerEvent) => {
-        const r = el.getBoundingClientRect();
-        px = e.clientX - r.left;
-        py = e.clientY - r.top;
+        if (!rect || dirty) {
+          rect = el.getBoundingClientRect();
+          dirty = false;
+        }
+        px = e.clientX - rect.left;
+        py = e.clientY - rect.top;
         if (rafId === null) rafId = requestAnimationFrame(apply);
       };
 
@@ -153,17 +172,27 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
         }
       };
 
+      el.addEventListener("pointerenter", onEnter, { passive: true });
       el.addEventListener("pointermove", onMove, { passive: true });
       el.addEventListener("pointerleave", onLeave, { passive: true });
 
       cleanups.push(() => {
         if (rafId !== null) cancelAnimationFrame(rafId);
+        el.removeEventListener("pointerenter", onEnter);
         el.removeEventListener("pointermove", onMove);
         el.removeEventListener("pointerleave", onLeave);
       });
     });
 
-    window.addEventListener("pagehide", () => cleanups.forEach((fn) => fn()), { once: true });
+    window.addEventListener(
+      "pagehide",
+      () => {
+        cleanups.forEach((fn) => fn());
+        window.removeEventListener("scroll", markDirty);
+        window.removeEventListener("resize", markDirty);
+      },
+      { once: true },
+    );
   }
 </script>
 
@@ -261,7 +290,10 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
       color-mix(in srgb, var(--project-accent) 26%, transparent) 0%,
       transparent 66%
     );
-    transform: translate3d(var(--mx, 130px), var(--my, 28px), 0);
+    /* 2D translate (без translate3d): в покое glow невидим (opacity:0), слой не
+       нужен - translate3d держал по слою на каждый канал постоянно. Промоушен
+       только на hover, когда glow едет за курсором. */
+    transform: translate(var(--mx, 130px), var(--my, 28px));
     /* Softer, slower fade so the glow eases in under the cursor instead of
        popping. Dimmer peak (0.6 -> 0.45) keeps it ambient, not glaring. */
     transition: opacity var(--dur-slow) var(--ease-soft);
@@ -270,6 +302,8 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
   @media (pointer: fine) {
     .contact__channel:hover .contact__channel-glow {
       opacity: 0.45;
+      /* Слой только на hover (JS двигает --mx/--my покадрово); в покое снят. */
+      will-change: transform;
     }
   }
 

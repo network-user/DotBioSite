@@ -92,10 +92,17 @@ const milestones = projects
 
   .timeline.tl-warp-on .timeline__ink {
     display: block;
-    /* Собственный композит-слой: переписывание `d` путей на каждый кадр прогиба
-       перерисовывает ТОЛЬКО этот слой, не задевая карточки/текст под ним. */
+  }
+  /* Промоушен в собственный композит-слой гейтится по жизненному циклу прогиба:
+     скрипт вешает .tl-ink--live при пробуждении rAF-цикла и снимает, когда
+     влияние осело к нулю. В покое слой не промоучен (текстура освобождается); во
+     время прогиба слой отдельный, поэтому переписывание `d` перерисовывает
+     только его, не задевая карточки/текст под ним. Снятие при нулевой деформации
+     - те же пиксели, без глитча. */
+  .timeline.tl-warp-on .timeline__ink.tl-ink--live {
     transform: translateZ(0);
     backface-visibility: hidden;
+    will-change: transform;
   }
 
   /* В режиме прогиба линию/рамки/точки рисует SVG, поэтому гасим CSS-резерв. */
@@ -377,12 +384,63 @@ const milestones = projects
     const STRENGTH = 15; // макс. прогиб, px
     const FRAME_RADIUS = 18; // скругление рамки (≈ --r-lg)
     const FRAME_STEP = 26; // шаг семплинга рёбер рамки
+    const BOX_PAD = STRENGTH + 2; // запас AABB на прогиб точек наружу
+
+    type Box = { minX: number; minY: number; maxX: number; maxY: number };
+
+    // AABB точек с запасом; для «пропустить дальнее» в render().
+    function boxOf(pts: [number, number][]): Box {
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      for (const p of pts) {
+        if (p[0] < minX) minX = p[0];
+        if (p[0] > maxX) maxX = p[0];
+        if (p[1] < minY) minY = p[1];
+        if (p[1] > maxY) maxY = p[1];
+      }
+      return {
+        minX: minX - BOX_PAD,
+        minY: minY - BOX_PAD,
+        maxX: maxX + BOX_PAD,
+        maxY: maxY + BOX_PAD,
+      };
+    }
+
+    // Строка пути из точек (без Z; для рамок Z добавляем отдельно).
+    function pathOf(pts: [number, number][]): string {
+      let d = "";
+      for (let i = 0; i < pts.length; i++) {
+        const b = pts[i]!;
+        d += (i ? " L " : "M ") + b[0].toFixed(1) + " " + b[1].toFixed(1);
+      }
+      return d;
+    }
+
+    // Круг (курсор, rad) пересекает AABB? Ближайшая точка бокса + квадрат дистанции.
+    function circleHitsBox(cx: number, cy: number, rad: number, b: Box): boolean {
+      const nx = cx < b.minX ? b.minX : cx > b.maxX ? b.maxX : cx;
+      const ny = cy < b.minY ? b.minY : cy > b.maxY ? b.maxY : cy;
+      const dx = cx - nx;
+      const dy = cy - ny;
+      return dx * dx + dy * dy <= rad * rad;
+    }
 
     let frameEls: SVGPathElement[] = [];
     let dotEls: SVGGElement[] = [];
     let baseLine: [number, number][] = [];
     let baseFrames: [number, number][][] = [];
     let baseDots: [number, number][] = [];
+    // Кэш базовых строк + последних записанных + AABB (skip-far + skip-setAttr).
+    let baseLineD = "";
+    let lastLineD = "";
+    let lineBox: Box = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+    let baseFrameD: string[] = [];
+    let lastFrameD: string[] = [];
+    let frameBox: Box[] = [];
+    let baseDotT: string[] = [];
+    let lastDotT: string[] = [];
 
     let curX = 0;
     let curY = 0;
@@ -480,6 +538,17 @@ const milestones = projects
       );
       baseDots = cards.map((c) => [lineX, c.bulletY]);
 
+      // Прекомпьютим базовые строки/трансформы + AABB. lastX сбрасываем в "",
+      // чтобы render() после measure() гарантированно записал свежую геометрию.
+      baseLineD = pathOf(baseLine);
+      lineBox = boxOf(baseLine);
+      lastLineD = "";
+      baseFrameD = baseFrames.map((pts) => pathOf(pts) + " Z");
+      frameBox = baseFrames.map((pts) => boxOf(pts));
+      lastFrameD = baseFrames.map(() => "");
+      baseDotT = baseDots.map((b) => `translate(${b[0].toFixed(1)} ${b[1].toFixed(1)})`);
+      lastDotT = baseDots.map(() => "");
+
       buildGradient();
 
       // DOM создаём/пересоздаём, если число элементов изменилось.
@@ -536,29 +605,67 @@ const milestones = projects
 
     function render() {
       if (!lineEl) return;
-      let dl = "";
-      for (let i = 0; i < baseLine.length; i++) {
-        const b = baseLine[i]!;
-        const p = warp(b[0], b[1]);
-        dl += (i ? " L " : "M ") + p[0].toFixed(1) + " " + p[1].toFixed(1);
-      }
-      lineEl.setAttribute("d", dl);
+      const active = infl > 0.001;
 
-      for (let fI = 0; fI < frameEls.length; fI++) {
-        const pts = baseFrames[fI]!;
-        let d = "";
-        for (let i = 0; i < pts.length; i++) {
-          const pt = pts[i]!;
-          const p = warp(pt[0], pt[1]);
-          d += (i ? " L " : "M ") + p[0].toFixed(1) + " " + p[1].toFixed(1);
+      // Линия: перестраиваем, только если курсор дотягивается хотя бы до одной её
+      // точки; иначе один раз возвращаем базовую строку.
+      let dl: string;
+      if (active && circleHitsBox(curX, curY, R, lineBox)) {
+        dl = "";
+        for (let i = 0; i < baseLine.length; i++) {
+          const b = baseLine[i]!;
+          const p = warp(b[0], b[1]);
+          dl += (i ? " L " : "M ") + p[0].toFixed(1) + " " + p[1].toFixed(1);
         }
-        frameEls[fI]!.setAttribute("d", d + " Z");
+      } else {
+        dl = baseLineD;
+      }
+      if (dl !== lastLineD) {
+        lineEl.setAttribute("d", dl);
+        lastLineD = dl;
       }
 
+      // Рамки: перестраиваем только те, чей AABB задевает круг влияния.
+      for (let fI = 0; fI < frameEls.length; fI++) {
+        let d: string;
+        if (active && circleHitsBox(curX, curY, R, frameBox[fI]!)) {
+          const pts = baseFrames[fI]!;
+          d = "";
+          for (let i = 0; i < pts.length; i++) {
+            const pt = pts[i]!;
+            const p = warp(pt[0], pt[1]);
+            d += (i ? " L " : "M ") + p[0].toFixed(1) + " " + p[1].toFixed(1);
+          }
+          d += " Z";
+        } else {
+          d = baseFrameD[fI]!;
+        }
+        if (d !== lastFrameD[fI]) {
+          frameEls[fI]!.setAttribute("d", d);
+          lastFrameD[fI] = d;
+        }
+      }
+
+      // Точки: одиночная точка, прогиб только в пределах R от курсора.
       for (let i = 0; i < dotEls.length; i++) {
         const b = baseDots[i]!;
-        const p = warp(b[0], b[1]);
-        dotEls[i]!.setAttribute("transform", `translate(${p[0].toFixed(1)} ${p[1].toFixed(1)})`);
+        let t: string;
+        if (active) {
+          const dx = b[0] - curX;
+          const dy = b[1] - curY;
+          if (dx * dx + dy * dy < R2) {
+            const p = warp(b[0], b[1]);
+            t = `translate(${p[0].toFixed(1)} ${p[1].toFixed(1)})`;
+          } else {
+            t = baseDotT[i]!;
+          }
+        } else {
+          t = baseDotT[i]!;
+        }
+        if (t !== lastDotT[i]) {
+          dotEls[i]!.setAttribute("transform", t);
+          lastDotT[i] = t;
+        }
       }
     }
 
@@ -575,15 +682,25 @@ const milestones = projects
         raf = requestAnimationFrame(tick);
       } else {
         raf = null;
-        if (tgtInfl === 0 && infl !== 0) {
-          infl = 0;
-          render(); // прибраться в базовое состояние одним кадром
+        // Снимаем промоушен слоя только когда курсор ушёл и прогиб осел
+        // (tgtInfl 0). Удержанный прогиб при курсоре внутри (tgtInfl 1) слой
+        // сохраняет: он показывает реальную деформацию.
+        if (tgtInfl === 0) {
+          if (infl !== 0) {
+            infl = 0;
+            render(); // прибраться в базовое состояние одним кадром
+          }
+          ink?.classList.remove("tl-ink--live");
         }
       }
     }
 
     function ensure() {
-      if (raf === null) raf = requestAnimationFrame(tick);
+      if (raf === null) {
+        // Промоутим слой на пробуждении цикла (см. tick() для снятия).
+        ink?.classList.add("tl-ink--live");
+        raf = requestAnimationFrame(tick);
+      }
     }
 
     function enableWarp() {

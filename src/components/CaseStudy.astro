@@ -126,14 +126,16 @@ const signatureLede = (signatureLedes[p.slug] ?? {
         <div class="case__glyph" data-reveal aria-hidden="true">
           <ProjectGlyph slug={p.slug} breathe />
         </div>
-        <h1
-          class="case__brand display-xl"
-          data-reveal
-          data-reveal-delay="60"
-          style={`view-transition-name: project-${p.slug}-brand;`}
-        >
-          {brand}
-        </h1>
+        <div class="case__brand-breathe">
+          <h1
+            class="case__brand display-xl"
+            data-reveal
+            data-reveal-delay="60"
+            style={`view-transition-name: project-${p.slug}-brand;`}
+          >
+            {brand}
+          </h1>
+        </div>
         <p class="case__name caption" data-reveal data-reveal-delay="120">{name}</p>
         <p class="case__tagline title" data-reveal data-reveal-delay="180">{tagline}</p>
 
@@ -631,8 +633,11 @@ const signatureLede = (signatureLedes[p.slug] ?? {
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    .case__brand {
-      /* steps(): кадр раз в ~280мс вместо каждого vsync, GPU-бюджет */
+    /* Дышит ОБЁРТКА, а не сам h1: у h1 background-clip:text, и opacity-анимация
+       на таком элементе не композитится - Blink тикает её на main thread каждый
+       кадр (замер: 144 recalc/с в покое), steps() не спасает. На простом блоке
+       та же анимация уходит в компоситор. steps(): кадр раз в ~280мс. */
+    .case__brand-breathe {
       animation: case-brand-breathe 7s steps(25) infinite;
       animation-delay: 1.1s;
     }
@@ -835,6 +840,14 @@ const signatureLede = (signatureLedes[p.slug] ?? {
     pointer-events: auto;
   }
 
+  /* .case-lightbox с display:grid перебивает UA-правило [hidden]{display:none}
+     (тот же случай, что в CaseTimeline.astro), поэтому закрытый лайтбокс всё
+     равно оставался бы в дереве слоёв. Возвращаем display:none явно: JS уже
+     ставит/снимает hidden в openLightbox/closeLightbox. */
+  .case-lightbox[hidden] {
+    display: none;
+  }
+
   .case-lightbox__backdrop {
     position: absolute;
     inset: 0;
@@ -870,8 +883,8 @@ const signatureLede = (signatureLedes[p.slug] ?? {
     height: 100%;
     object-fit: contain;
     transform-origin: center center;
-    /* плавность только для сброса, не для каждого wheel-шага */
-    will-change: transform;
+    /* will-change не постоянный: висел бы в памяти и закрытым (см. .case-lightbox__stage,
+       11 МБ dpr1). Ставится/снимается в JS в openLightbox/closeLightbox. */
     pointer-events: none;
   }
 
@@ -1300,6 +1313,7 @@ const signatureLede = (signatureLedes[p.slug] ?? {
       img!.src = src;
       img!.alt = title;
       reset(false);
+      img!.style.willChange = "transform";
       lb!.removeAttribute("hidden");
       requestAnimationFrame(() => lb!.setAttribute("data-open", ""));
       document.body.style.overflow = "hidden";
@@ -1309,7 +1323,10 @@ const signatureLede = (signatureLedes[p.slug] ?? {
     function closeLightbox() {
       lb!.removeAttribute("data-open");
       document.body.style.overflow = "";
-      setTimeout(() => lb!.setAttribute("hidden", ""), 240);
+      setTimeout(() => {
+        lb!.setAttribute("hidden", "");
+        img!.style.willChange = "auto";
+      }, 240);
     }
 
     /* Триггеры открытия */

@@ -328,6 +328,36 @@ ol {
   animation-play-state: paused !important;
 }
 
+/* ---------- Демоушен слоёв за экраном ----------
+ * .anim-paused (выше) лишь ставит animation-play-state:paused - анимация
+ * замирает, НО у элемента с активной (пусть паузнутой) transform/opacity
+ * анимацией композит-слой остаётся: текстура висит в видеопамяти даже для секции
+ * далеко за экраном. Для конкретного списка бесконечных ДЕКОРАТИВНЫХ анимаций
+ * гасим саму animation (animation:none): у элемента исчезает причина
+ * композитинга и слой освобождается. Список - только infinite-декор
+ * (дрейф/дыхание/пульс/орбиты). НЕ входят: one-shot entrance с forwards/both
+ * (animation:none снёс бы удержанное конечное состояние) и self-gated по
+ * .is-inview (about-sheen, timeline-pulse - у них animation вне вьюпорта и так
+ * не назначен). Правило специфичнее, чем `.anim-paused *`, поэтому перебивает
+ * play-state:paused. Фаза лупа при возврате рестартует за 200px до экрана -
+ * невидимо (принято). */
+.anim-paused .hero__core-spin,
+.anim-paused .hero__link,
+.anim-paused .hero__node,
+.anim-paused .hero__brand-aura,
+.anim-paused .project-card__glyph,
+.anim-paused .project-card__logo-brand,
+.anim-paused .project-card__media-glow,
+.anim-paused .project-card__brand,
+.anim-paused .contact__kicker-text,
+.anim-paused .contact__headline-char,
+.anim-paused .case__brand-breathe,
+.anim-paused .case__cover-sheen,
+.anim-paused .arch-edge__pulse,
+.anim-paused .arch-edge__process {
+  animation: none !important;
+}
+
 /* ---------- Пауза анимаций на скрытой вкладке ----------
  * Фоновый арт (.backdrop-art) висит на фиксированном .bg-layer ВНЕ секций, поэтому
  * секционный .anim-paused его не глушит: орбиты/электроны/пульс ядра идут всегда.
@@ -348,7 +378,10 @@ html.is-hidden *::after {
 .grain {
   position: fixed;
   inset: 0;
-  z-index: 1;
+  /* z опущен 1 -> -1: зерно остаётся между фоном (.bg-layer -2) и контентом, но
+     уже НЕ вынуждает .main промоутиться, чтобы лечь поверх композит-зерна.
+     Порядок наложения визуально прежний (фон < зерно < контент). */
+  z-index: -1;
   pointer-events: none;
   opacity: var(--grain-opacity);
   /* mix-blend-mode: overlay убран: это fullscreen-blend на каждый кадр скролла;
@@ -388,6 +421,16 @@ html.is-hidden *::after {
   pointer-events: none;
   overflow: visible;
   z-index: 4;
+}
+
+/* Промоушен слоя гейтится по жизненному циклу прогиба: контроллер вешает
+   .warp-ink--live при пробуждении rAF-цикла и снимает, когда влияние осело к
+   нулю и цикл заснул. В покое текстура слоя (размером с секцию) освобождается;
+   во время прогиба слой отдельный, поэтому переписывание `d` перерисовывает
+   только его, не задевая контент под ним. Снятие идёт при нулевой деформации -
+   демоушен рисует те же пиксели, без глитча. */
+.warp-ink--live {
+  will-change: transform;
   transform: translateZ(0);
   backface-visibility: hidden;
 }

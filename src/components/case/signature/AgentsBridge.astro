@@ -2552,6 +2552,7 @@ const ui = {
             maybeStart();
           } else {
             clearTimers();
+            root.classList.remove("is-inview");
           }
         },
         { threshold: 0.15 },

@@ -349,13 +349,31 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
           groups.set(root, arr);
         }
 
+        type Box = { minX: number; minY: number; maxX: number; maxY: number };
+
         type Entry = {
           card: HTMLElement;
           frame: SVGPathElement;
           base: [number, number][];
+          // Прекомпьютнутая базовая строка пути + последняя записанная (пропуск
+          // лишнего setAttribute) + AABB базовых точек с запасом (пропуск дальних).
+          baseD: string;
+          lastD: string;
+          bbox: Box;
           rest: string;
           sw: number;
         };
+
+        // Круг (курсор, rad) пересекает AABB? Ближайшая к центру точка бокса +
+        // сравнение квадрата дистанции. Так отсекаем рамки, до которых курсор не
+        // дотягивается, чтобы не перестраивать их путь.
+        function circleHitsBox(cx: number, cy: number, rad: number, b: Box): boolean {
+          const nx = cx < b.minX ? b.minX : cx > b.maxX ? b.maxX : cx;
+          const ny = cy < b.minY ? b.minY : cy > b.maxY ? b.maxY : cy;
+          const dx = cx - nx;
+          const dy = cy - ny;
+          return dx * dx + dy * dy <= rad * rad;
+        }
 
         function setupRoot(root: HTMLElement, cards: HTMLElement[]) {
           if (getComputedStyle(root).position === "static") root.style.position = "relative";
@@ -370,7 +388,16 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
             const frame = document.createElementNS(SVGNS, "path");
             frame.setAttribute("class", "warp-frame");
             ink.appendChild(frame);
-            return { card, frame, base: [], rest: "", sw: 1 };
+            return {
+              card,
+              frame,
+              base: [],
+              baseD: "",
+              lastD: "",
+              bbox: { minX: 0, minY: 0, maxX: 0, maxY: 0 },
+              rest: "",
+              sw: 1,
+            };
           });
 
           let curX = 0;
@@ -397,14 +424,30 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
           }
 
           function render() {
+            const active = infl > 0.001;
             for (const e of entries) {
-              let d = "";
-              for (let i = 0; i < e.base.length; i++) {
-                const b = e.base[i]!;
-                const p = warp(b[0], b[1]);
-                d += (i ? " L " : "M ") + p[0].toFixed(1) + " " + p[1].toFixed(1);
+              let d: string;
+              // Перестраиваем только рамки, которые курсор реально деформирует;
+              // остальные держат прекомпьютнутый базовый путь. warp() за R
+              // возвращает точку без изменений, поэтому пропущенная рамка
+              // пиксель-в-пиксель совпадает с перестроенной.
+              if (active && circleHitsBox(curX, curY, R, e.bbox)) {
+                d = "";
+                for (let i = 0; i < e.base.length; i++) {
+                  const b = e.base[i]!;
+                  const p = warp(b[0], b[1]);
+                  d += (i ? " L " : "M ") + p[0].toFixed(1) + " " + p[1].toFixed(1);
+                }
+                d += " Z";
+              } else {
+                d = e.baseD;
               }
-              e.frame.setAttribute("d", d + " Z");
+              // Пропускаем setAttribute (ре-парс пути + repaint слоя), если строка
+              // байт-в-байт та же, что записали в прошлый раз.
+              if (d !== e.lastD) {
+                e.frame.setAttribute("d", d);
+                e.lastD = d;
+              }
             }
           }
 
@@ -423,6 +466,27 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
               const w = e.card.offsetWidth;
               const h = e.card.offsetHeight;
               e.base = roundRectPts(o.x + e.sw / 2, o.y + e.sw / 2, w - e.sw, h - e.sw, rad);
+
+              // Базовая строка пути + AABB с запасом на прогиб, чтобы render()
+              // мог пропускать дальние рамки и не пересобирать неизменную строку.
+              let bd = "";
+              let minX = Infinity;
+              let minY = Infinity;
+              let maxX = -Infinity;
+              let maxY = -Infinity;
+              for (let i = 0; i < e.base.length; i++) {
+                const b = e.base[i]!;
+                bd += (i ? " L " : "M ") + b[0].toFixed(1) + " " + b[1].toFixed(1);
+                if (b[0] < minX) minX = b[0];
+                if (b[0] > maxX) maxX = b[0];
+                if (b[1] < minY) minY = b[1];
+                if (b[1] > maxY) maxY = b[1];
+              }
+              e.baseD = bd + " Z";
+              const pad = STRENGTH + 2;
+              e.bbox = { minX: minX - pad, minY: minY - pad, maxX: maxX + pad, maxY: maxY + pad };
+              // Геометрия могла измениться (resize) - форсим перезапись на render().
+              e.lastD = "";
             }
             render();
           }
@@ -440,14 +504,25 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
               raf = requestAnimationFrame(tick);
             } else {
               raf = null;
-              if (tgtInfl === 0 && infl !== 0) {
-                infl = 0;
-                render();
+              // Снимаем промоушен слоя только когда курсор ушёл и прогиб полностью
+              // осел (tgtInfl 0). Удержанный прогиб при курсоре внутри (tgtInfl 1)
+              // - слой оставляем, он показывает реальную деформацию.
+              if (tgtInfl === 0) {
+                if (infl !== 0) {
+                  infl = 0;
+                  render();
+                }
+                ink.classList.remove("warp-ink--live");
               }
             }
           }
           function ensure() {
-            if (raf === null) raf = requestAnimationFrame(tick);
+            if (raf === null) {
+              // Промоутим слой на пробуждении цикла (до первого прогнутого кадра);
+              // снимается при оседании (см. tick()).
+              ink.classList.add("warp-ink--live");
+              raf = requestAnimationFrame(tick);
+            }
           }
 
           measure();
@@ -595,7 +670,12 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
   .bg-layer {
     position: fixed;
     inset: 0;
-    z-index: 0;
+    /* Отрицательный z уводит фон ЗА корневой слой прокрутки. Иначе .main
+       (стек-контекст) рисуется поверх фикс-композит-фона и промоутится в
+       собственный ~67МБ-слой поверх #document (дубль всего дерева). С фоном
+       позади root-контента main сливается обратно в #document. Пара: у .main
+       снят z-index, у .grain опущен до -1 (см. global.css). */
+    z-index: -2;
     pointer-events: none;
     opacity: 0.92;
     /* Промоутим фиксированный фон в собственный композит-слой. Иначе при скролле
@@ -723,7 +803,12 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
 
   .main {
     position: relative;
-    z-index: 1;
+    /* z-index:1 снят намеренно: он делал .main стек-контекстом, который
+       перекрывал фикс-композит-фон и потому промоутился в отдельный ~67МБ-слой
+       поверх #document (дубль всего дерева). Без z-index main НЕ стек-контекст и
+       сливается в корневой слой прокрутки. Фон уведён за контент отрицательным z
+       (.bg-layer -2 / .grain -1), поэтому контент по-прежнему поверх фона.
+       position:relative сохранён (остаётся containing block для abs-потомков). */
     min-height: 60vh;
   }
 

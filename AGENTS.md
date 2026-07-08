@@ -48,7 +48,7 @@ src/
 └── lib/          # config (Zod), i18n, projects, contacts
 public/           # favicon, OG, manifest, _headers, public/projects/<slug>/
 scripts/          # parse-lh.cjs (разбор Lighthouse JSON)
-deploy/           # setup.sh/update.sh/ci-setup.sh/harden.sh, Caddyfile.tmpl (self-hosted, Caddy)
+deploy/           # docker-compose.yml + Caddyfile.container (co-hosted за Caddy DotSound), setup.sh/update.sh/ci-setup.sh
 .github/workflows/deploy.yml   # gate (lint/type-check/build) + SSH-триггер deploy/update.sh
 astro.config.mjs
 ```

@@ -322,17 +322,22 @@ const bsy = backS.y + Math.cos(angleS) * wing;
       offset-rotate: 0deg;
       animation-duration: var(--pulse-dur, 4.4s);
       animation-delay: var(--pulse-shift, 0s);
-      animation-timing-function: linear;
       animation-iteration-count: infinite;
     }
+    /* Квантовано на сетку 12.5 Гц (шаг 0.08s): steps(round(длительность * 12.5)),
+       консистентно с .arch-edge__process ниже. one-way (--out) идёт 3.2s → 40
+       шагов; round-trip (--req/--res) 4.4s → 55 шагов - оба кратны сетке точно. */
     .arch-edge__pulse--out {
       animation-name: arch-pulse-out;
+      animation-timing-function: steps(40);
     }
     .arch-edge__pulse--req {
       animation-name: arch-pulse-req;
+      animation-timing-function: steps(55);
     }
     .arch-edge__pulse--res {
       animation-name: arch-pulse-res;
+      animation-timing-function: steps(55);
     }
     .arch-edge__process {
       display: block;

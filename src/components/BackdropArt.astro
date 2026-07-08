@@ -66,7 +66,7 @@ function ringPath(
   rot: number,
   seed: number,
   wob = 0.045,
-): string {
+): { d: string; pts: [number, number][] } {
   const rnd = mulberry32(seed);
   const N = 88;
   const ph1 = rnd() * Math.PI * 2;
@@ -83,7 +83,7 @@ function ringPath(
     const y = Math.sin(a) * ry * m;
     pts.push([cx + x * cos - y * sin, cy + x * sin + y * cos]);
   }
-  return smoothClosed(pts);
+  return { d: smoothClosed(pts), pts };
 }
 
 // Ядро смещено вправо-вверх: орбиты гуляют по верхней части, низ-центр спокойнее.
@@ -97,7 +97,10 @@ const ringDefs = [
   { rx: 450, ry: 360, rot: -0.15, seed: 61, w: 0.95 },
   { rx: 600, ry: 470, rot: 0.25, seed: 83, w: 0.9 },
 ];
-const rings = ringDefs.map((r) => ({ ...r, d: ringPath(CX, CY, r.rx, r.ry, r.rot, r.seed) }));
+const rings = ringDefs.map((r) => {
+  const rp = ringPath(CX, CY, r.rx, r.ry, r.rot, r.seed);
+  return { ...r, d: rp.d, pts: rp.pts };
+});
 
 // Частота обновления квантованных анимаций: шаг 80 мс. Длительности электронов
 // и их delay кратны 0.08s, поэтому steps(dur * STEP_HZ) дают целые числа и
@@ -113,8 +116,33 @@ const electrons = [
   { ring: 3, dur: 120, dir: "reverse", start: -70, r: 2.4 },
 ];
 
+// Движение электронов запечено в transform:translate keyframes по узлам кольца.
+// Почему не offset-distance: она НЕ композитится и сэмплируется на main-thread
+// КАЖДЫЙ кадр (лэйаут SVG на каждый vsync), даже под steps(). transform:translate
+// со steps() обновляется только на границе шага. Узлы кольца лежат точно на
+// видимой линии (Catmull-Rom проходит через контрольные точки), хорда между
+// соседними узлами отклоняется от кривой на доли px даже на внешнем электронном
+// кольце. steps(dur * STEP_HZ) сохраняет ту же сетку 80мс и тот же шаговый
+// характер, что и раньше (525..1500 позиций на цикл вдоль запечённого пути).
+function travelKeyframes(pts: [number, number][], name: string): string {
+  const n = pts.length;
+  let css = `@keyframes ${name}{`;
+  for (let i = 0; i <= n; i++) {
+    const p = pts[i % n]!;
+    const pct = i === n ? 100 : Math.round((i / n) * 10000) / 100;
+    css += `${pct}%{transform:translate(${f(p[0])}px,${f(p[1])}px)}`;
+  }
+  return css + "}";
+}
+const electronKeyframes = electrons
+  .map((e, i) => travelKeyframes(rings[e.ring]!.pts, `bd-e-${i}`))
+  .join("");
+
 // Мелкие «нуклеус»-кольца у ядра.
-const coreRings = [ringPath(CX, CY, 24, 20, 0.6, 7, 0.09), ringPath(CX, CY, 42, 34, -0.5, 9, 0.07)];
+const coreRings = [
+  ringPath(CX, CY, 24, 20, 0.6, 7, 0.09).d,
+  ringPath(CX, CY, 42, 34, -0.5, 9, 0.07).d,
+];
 ---
 
 <svg
@@ -134,14 +162,15 @@ const coreRings = [ringPath(CX, CY, 24, 20, 0.6, 7, 0.09), ringPath(CX, CY, 42, 
     <circle class="bd-core__dot" cx={CX} cy={CY} r="5.5" fill="currentColor" stroke="none"></circle>
   </g>
 
-  <!-- Электроны: едут по своим орбитам (offset-path) и со-вращаются с кольцами. -->
+  <!-- Электроны: едут по своим орбитам (transform:translate, композитится и
+       квантуется по шагам) и со-вращаются с кольцами всей группой. -->
   <g class="bd-orbiters" fill="currentColor" stroke="none">
     {
-      electrons.map((e) => (
+      electrons.map((e, i) => (
         <circle
           class="bd-e"
           r={e.r}
-          style={`offset-path: path('${rings[e.ring]!.d}'); animation-duration: ${e.dur}s; animation-direction: ${e.dir}; animation-delay: ${e.start}s; animation-timing-function: steps(${Math.round(e.dur * STEP_HZ)});`}
+          style={`animation: bd-e-${i} ${e.dur}s steps(${Math.round(e.dur * STEP_HZ)}) ${e.start}s infinite; animation-direction: ${e.dir};`}
         />
       ))
     }
@@ -186,26 +215,17 @@ const coreRings = [ringPath(CX, CY, 24, 20, 0.6, 7, 0.09), ringPath(CX, CY, 42, 
     }
   }
 
-  /* Электроны едут по орбите. offset-path задан инлайном; видимы только там, где
-     движок это поддерживает (иначе скрыты, кольца остаются). */
+  /* Электроны: маленькие точки на currentColor. Движение задаёт инлайновая
+     transform:translate-анимация (keyframes bd-e-* печатаются глобально ниже,
+     путь запечён по узлам кольца в билд-тайме). Композитится и квантуется по
+     шагам, без main-thread-сэмплинга offset-distance на каждый кадр. */
   .bd-e {
-    opacity: 0;
-    offset-rotate: 0deg;
-  }
-
-  @supports (offset-path: path("M 0 0")) {
-    .bd-e {
-      opacity: 0.85;
-      animation-name: bd-travel;
-      animation-timing-function: linear;
-      animation-iteration-count: infinite;
-    }
-  }
-
-  @keyframes bd-travel {
-    to {
-      offset-distance: 100%;
-    }
+    opacity: 0.85;
+    /* Крошечный слой на точку: без него transform-анимация SVG-элемента тикает
+       на main thread и дёргает SVG-layout на каждом style-recalc проходе
+       (замер: 144 layout/с на кейсе -> 57 с will-change). С ним анимация уходит
+       в компоситор, как у .bd-rings. */
+    will-change: transform;
   }
 
   /* Ядро едва дышит: чистая opacity, без фильтра. 9.6s кратно шагу 160 мс
@@ -243,3 +263,8 @@ const coreRings = [ringPath(CX, CY, 24, 20, 0.6, 7, 0.09), ringPath(CX, CY, 42, 
     }
   }
 </style>
+
+<!-- Keyframes траекторий электронов (пути запечены по узлам кольца в билд-тайме).
+     Глобально: animation-name задан инлайном на .bd-e, и Astro не переписал бы
+     scoped-имя keyframes для инлайнового стиля. -->
+<style is:global set:html={electronKeyframes}></style>
