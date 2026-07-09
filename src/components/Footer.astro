@@ -1,6 +1,6 @@
 ---
 import { useTranslations, type Locale } from "../lib/i18n";
-import { config, authorName, socials } from "../lib/config";
+import { authorName, socials } from "../lib/config";
 import Icon from "./Icon/Icon.astro";
 
 interface Props {
@@ -10,9 +10,6 @@ const { locale } = Astro.props;
 const t = useTranslations(locale);
 
 const year = new Date().getFullYear();
-const ghUser = config.PUBLIC_GITHUB_USER;
-const ghRepo = config.PUBLIC_GITHUB_REPO;
-const repoUrl = ghUser && ghRepo ? `https://github.com/${ghUser}/${ghRepo}` : "";
 const brand = authorName(locale);
 ---
 
@@ -39,15 +36,6 @@ const brand = authorName(locale);
               <Icon name={s.id} size={16} />
             </a>
           ))
-        }
-
-        {
-          repoUrl && (
-            <a href={repoUrl} target="_blank" rel="noopener noreferrer" class="footer__link">
-              <Icon name="github" size={14} />
-              <span>{t("footer.sourceCode")}</span>
-            </a>
-          )
         }
       </div>
     </div>
@@ -110,18 +98,6 @@ const brand = authorName(locale);
     font-size: var(--fs-13);
   }
 
-  .footer__link {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--sp-2);
-    color: var(--text-secondary);
-  }
-
-  .footer__link:hover {
-    color: var(--text);
-    opacity: 1;
-  }
-
   .footer__icon-link {
     display: inline-grid;
     place-items: center;
@@ -143,13 +119,6 @@ const brand = authorName(locale);
 
   /* Тач: доводим hit-area до 44px и даём мгновенный отклик на палец (:hover нет). */
   @media (hover: none) {
-    .footer__link {
-      min-height: var(--tap-min);
-    }
-    .footer__link:active {
-      color: var(--text);
-      opacity: 1;
-    }
     .footer__icon-link {
       width: var(--tap-min);
       height: var(--tap-min);
