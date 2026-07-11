@@ -43,7 +43,8 @@ html {
 }
 
 body {
-  background-color: var(--bg);
+  /* Фон задаётся на html (BaseLayout.astro), не здесь: см. комментарий там же
+     про то, почему непрозрачный фон на body перекрывает .bg-layer/.grain. */
   color: var(--text);
   font-family: var(--font-stack-body);
   font-size: var(--fs-16);

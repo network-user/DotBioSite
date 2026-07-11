@@ -715,9 +715,17 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
 
 <style is:global>
   /* ---------- Layout primitives ---------- */
-  html,
-  body {
+  /* Фон - ТОЛЬКО на html (нижний canvas-слой, ничего не может лечь глубже).
+     body непозиционирован, поэтому его собственный фон красится как обычный
+     in-flow контент - ВЫШЕ отрицательных z-index соседей (.bg-layer -2,
+     .grain -1) и полностью их перекрывает. Раньше это было не видно, пока
+     .bg-layer сидел на z-index:0 (это уровень main). См. .grain (global.css)
+     про исходный замысел порядка наложения. */
+  html {
     background: var(--bg);
+  }
+
+  body {
     color: var(--text);
   }
 
