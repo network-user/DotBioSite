@@ -21,16 +21,17 @@ npm run dev        # http://localhost:4321
 
 ## Сборка и проверки
 
-| Действие  | Команда                                               |
-| --------- | ----------------------------------------------------- |
-| Установка | `npm install` (CI: `npm ci`)                          |
-| Dev       | `npm run dev` (`:4321`)                               |
-| Тесты     | нет тестов в репо                                     |
-| Lint      | `npm run lint` (ESLint, fail на warning)              |
-| Typecheck | `npm run type-check` (`astro check` + `tsc --noEmit`) |
-| Format    | `npm run format` / `npm run format:check` (Prettier)  |
-| Build     | `npm run build` → `dist/`                             |
-| Preview   | `npm run preview`                                     |
+| Действие  | Команда                                                  |
+| --------- | -------------------------------------------------------- |
+| Установка | `npm install` (CI: `npm ci`)                             |
+| Dev       | `npm run dev` (`:4321`)                                  |
+| Тесты     | нет тестов в репо                                        |
+| Lint      | `npm run lint` (ESLint, fail на warning)                 |
+| Typecheck | `npm run type-check` (`astro check` + `tsc --noEmit`)    |
+| Format    | `npm run format` / `npm run format:check` (Prettier)     |
+| OG-превью | `npm run og:render` (PNG из SVG через `@resvg/resvg-js`) |
+| Build     | `npm run build` → `dist/`                                |
+| Preview   | `npm run preview`                                        |
 
 Команды - только из `package.json`. Тестового раннера в проекте нет; quality-gate - `lint` + `type-check` (так же гоняет CI перед билдом).
 
@@ -38,16 +39,16 @@ npm run dev        # http://localhost:4321
 
 ```
 src/
-├── pages/        # роутинг: index, /en, /projects/[slug], robots.txt.ts, sitemap.xml.ts
+├── pages/        # роутинг: index, /en, /projects/[slug], 404, robots.txt.ts, sitemap.xml.ts, llms.txt.ts, llms-full.txt.ts
 ├── layouts/      # BaseLayout.astro
 ├── components/   # .astro: hero/projects/about + case/*, diagram/*, illustration/*
 ├── content/
-│   ├── projects/ # 5 JSON-описаний проектов
+│   ├── projects/ # 7 JSON-описаний проектов (6 product + 1 infra)
 │   └── i18n/     # ru.json / en.json
 ├── styles/       # tokens.css, global.css, glass.css
 └── lib/          # config (Zod), i18n, projects, contacts
-public/           # favicon, OG, manifest, _headers, public/projects/<slug>/
-scripts/          # parse-lh.cjs (разбор Lighthouse JSON)
+public/           # favicon, OG (SVG-исходники + PNG), manifest, _headers, public/projects/<slug>/
+scripts/          # parse-lh.cjs (разбор Lighthouse JSON), render-og.mjs (SVG -> PNG)
 deploy/           # docker-compose.yml + Caddyfile.container (co-hosted за Caddy DotSound), setup.sh/update.sh/ci-setup.sh
 .github/workflows/deploy.yml   # gate (lint/type-check/build) + SSH-триггер deploy/update.sh
 astro.config.mjs
@@ -61,6 +62,8 @@ astro.config.mjs
 - **Стили:** чистый CSS + custom properties в `src/styles/tokens.css`. Без Tailwind. Монохром.
 - **Static-first:** `integrations: []` - не добавляй UI-фреймворк в рантайм без запроса. Интерактив - точечный vanilla-JS, обязательно под `prefers-reduced-motion`.
 - **Контент:** новый проект - JSON в `src/content/projects/<slug>.json` (тип `Project` в `src/lib/projects.ts`) + обложка `public/projects/<slug>/`; порядок витрины - `FEATURED_ORDER`.
+- **OG-превью:** источник правды - SVG (`public/og-image.svg`, `public/projects/<slug>/og.svg`); в мета-теги и `ogImage` идут PNG. После правки любого og.svg или иконок запусти `npm run og:render` и закоммить перегенерированные PNG.
+- **SEO-слой:** canonical/hreflang и JSON-LD Person+WebSite собираются в `BaseLayout.astro`; страничные схемы (ProfilePage, SoftwareSourceCode, BreadcrumbList) передаются пропом `structuredData`. `llms.txt` / `llms-full.txt` генерируются из данных проектов; новые поля контента появляются там автоматически, эндпоинты руками не синхронизировать.
 - **i18n:** строки - в `src/content/i18n/{ru,en}.json`; добавляешь в один - добавь в оба.
 - **Копирайт:** в тексте (`description`/`detail`/`tagline`/`caseDescription`/`overview`/`label` и т.п. в `src/content/projects/*.json`, `src/content/i18n/*.json`) не используй `" - "` (пробел-дефис-пробел) как паузу вместо тире - перестраивай на запятую, двоеточие, точку с запятой, союз или отдельное предложение. Дефис без пробелов в составных словах (SHA-256, non-root, lesson-forge) - не трогать, под правило не попадает.
 

@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/badge/Node.js-20%2B-339933?style=flat" alt="Node.js" />
   <img src="https://img.shields.io/badge/Platform-Web-555?style=flat" alt="Platform" />
   <img src="https://img.shields.io/badge/Category-Portfolio-orange?style=flat" alt="Category" />
-  <!-- loc:start --><img src="https://img.shields.io/badge/lines_of_code-33k%2B-lightgrey?style=flat" alt="33k+ lines of code" /><!-- loc:end -->
+  <!-- loc:start --><img src="https://img.shields.io/badge/lines_of_code-35k%2B-lightgrey?style=flat" alt="35k+ lines of code" /><!-- loc:end -->
 </p>
 
 <img src="docs/cover.svg" width="720" alt=".ядро" />
@@ -27,6 +27,7 @@
 - **Две локали**: русский (дефолт, без префикса) и английский (`/en`), зеркальные маршруты, авто-детект `navigator.language` → `localStorage` → toggle.
 - **Монохромная система**: токены в `src/styles/tokens.css`, near-black + лента серых + off-white, единственный «акцент» - белый свет.
 - **Конфиг как контракт**: Zod-схема в `src/lib/config.ts` валидирует env на билде; отсутствие обязательной переменной валит сборку, опциональные деградируют в UI (нет фото - монограмма, пустая соцсеть - ссылка не рендерится).
+- **SEO и видимость для ИИ**: canonical + полный hreflang (ru/en/x-default) на каждой странице, JSON-LD-граф (Person, WebSite, ProfilePage, SoftwareSourceCode, BreadcrumbList), sitemap с `lastmod` из git-дат, `llms.txt` + `llms-full.txt` (машиночитаемый индекс и досье проектов для AI-агентов), явные allow-группы AI-краулеров в robots.txt, PNG OG-превью 1200x630, кастомная 404.
 
 ## Запуск
 
@@ -42,16 +43,17 @@ npm run dev        # http://localhost:4321
 
 ## Команды
 
-| Команда                | Назначение                                   |
-| ---------------------- | -------------------------------------------- |
-| `npm run dev`          | dev-сервер Astro с HMR (`:4321`)             |
-| `npm run build`        | production-билд в `dist/`                    |
-| `npm run preview`      | локальный preview собранного `dist/`         |
-| `npm run type-check`   | `astro check` + `tsc --noEmit`               |
-| `npm run lint`         | ESLint, падает на любом warning              |
-| `npm run lint:fix`     | ESLint с авто-фиксом                         |
-| `npm run format`       | Prettier write по `ts/tsx/astro/css/json/md` |
-| `npm run format:check` | Prettier check без записи                    |
+| Команда                | Назначение                                          |
+| ---------------------- | --------------------------------------------------- |
+| `npm run dev`          | dev-сервер Astro с HMR (`:4321`)                    |
+| `npm run build`        | production-билд в `dist/`                           |
+| `npm run preview`      | локальный preview собранного `dist/`                |
+| `npm run type-check`   | `astro check` + `tsc --noEmit`                      |
+| `npm run lint`         | ESLint, падает на любом warning                     |
+| `npm run lint:fix`     | ESLint с авто-фиксом                                |
+| `npm run format`       | Prettier write по `ts/tsx/astro/css/json/md`        |
+| `npm run format:check` | Prettier check без записи                           |
+| `npm run og:render`    | PNG из SVG-исходников OG/иконок (`@resvg/resvg-js`) |
 
 ## Стек
 
@@ -88,7 +90,7 @@ Co-hosted за общим фронт-Caddy: сервер уже держит Doc
 ```
 DotBioSite/
 ├── src/
-│   ├── pages/              # роутинг: index + /en + /projects/[slug] + robots/sitemap
+│   ├── pages/              # роутинг: index + /en + /projects/[slug] + 404 + robots/sitemap/llms.txt
 │   ├── layouts/            # BaseLayout
 │   ├── components/         # .astro: hero, projects, case/*, diagram/*, illustration/*
 │   ├── content/
@@ -96,8 +98,8 @@ DotBioSite/
 │   │   └── i18n/           # ru.json / en.json
 │   ├── styles/             # tokens.css, global.css, glass.css
 │   └── lib/                # config (Zod), i18n, projects, contacts
-├── public/                 # favicon, OG, manifest, _headers, обложки проектов
-├── scripts/                # parse-lh.cjs (разбор Lighthouse-отчёта)
+├── public/                 # favicon, OG (SVG-исходники + PNG), manifest, _headers, обложки проектов
+├── scripts/                # parse-lh.cjs (Lighthouse), render-og.mjs (SVG -> PNG для OG/иконок)
 ├── deploy/                 # docker-compose.yml + Caddyfile.container (co-hosted), setup.sh/update.sh/ci-setup.sh
 ├── .github/workflows/      # deploy.yml (gate + SSH-триггер update.sh) + security.yml
 └── astro.config.mjs
