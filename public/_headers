@@ -23,6 +23,18 @@
 /icon-512.svg
   Cache-Control: public, max-age=604800
 
+/icon-192.png
+  Cache-Control: public, max-age=604800
+
+/icon-512.png
+  Cache-Control: public, max-age=604800
+
+/apple-touch-icon.png
+  Cache-Control: public, max-age=604800
+
+/og-image.png
+  Cache-Control: public, max-age=604800
+
 /manifest.webmanifest
   Cache-Control: public, max-age=3600
 

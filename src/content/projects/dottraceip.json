@@ -43,7 +43,7 @@
   "year": 2026,
   "accent": "var(--accent-trace)",
   "cover": "/projects/dottraceip/cover.svg",
-  "ogImage": "/projects/dottraceip/og.svg",
+  "ogImage": "/projects/dottraceip/og.png",
   "repos": [
     {
       "name": "DotTraceIP",

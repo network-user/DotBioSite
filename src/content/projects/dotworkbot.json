@@ -48,7 +48,7 @@
     }
   ],
   "cover": "/projects/dotworkbot/cover.svg",
-  "ogImage": "/projects/dotworkbot/og.svg",
+  "ogImage": "/projects/dotworkbot/og.png",
   "accent": "var(--accent-work)",
   "highlights": [
     {

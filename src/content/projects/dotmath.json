@@ -46,7 +46,7 @@
     }
   ],
   "cover": "/projects/dotmath/cover.svg",
-  "ogImage": "/projects/dotmath/og.svg",
+  "ogImage": "/projects/dotmath/og.png",
   "accent": "var(--accent-schet)",
   "highlights": [
     {

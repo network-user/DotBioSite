@@ -73,7 +73,7 @@ export default [
     },
   },
   {
-    files: ["scripts/**/*.cjs"],
+    files: ["scripts/**/*.cjs", "scripts/**/*.mjs"],
     languageOptions: {
       globals: {
         console: "readonly",

@@ -75,7 +75,7 @@
     }
   ],
   "cover": "/projects/dotsound/cover.svg",
-  "ogImage": "/projects/dotsound/og.svg",
+  "ogImage": "/projects/dotsound/og.png",
   "accent": "var(--accent-sound)",
   "highlights": [
     {

@@ -52,7 +52,7 @@
     }
   ],
   "cover": "/projects/dotlearn/cover.svg",
-  "ogImage": "/projects/dotlearn/og.svg",
+  "ogImage": "/projects/dotlearn/og.png",
   "accent": "var(--accent-learn)",
   "highlights": [
     {

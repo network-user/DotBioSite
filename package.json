@@ -18,7 +18,8 @@
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,tsx,astro,css,json,md}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,astro,css,json,md}\""
+    "format:check": "prettier --check \"**/*.{ts,tsx,astro,css,json,md}\"",
+    "og:render": "node scripts/render-og.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
@@ -28,6 +29,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@typescript-eslint/eslint-plugin": "^8.21.0",
     "@typescript-eslint/parser": "^8.21.0",
     "eslint": "^9.18.0",

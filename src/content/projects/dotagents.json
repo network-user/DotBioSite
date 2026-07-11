@@ -49,7 +49,7 @@
     }
   ],
   "cover": "/projects/dotagents/cover.svg",
-  "ogImage": "/projects/dotagents/og.svg",
+  "ogImage": "/projects/dotagents/og.png",
   "accent": "var(--accent-agents)",
   "highlights": [
     {
