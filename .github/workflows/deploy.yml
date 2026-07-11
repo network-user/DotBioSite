@@ -49,6 +49,9 @@ jobs:
         env:
           NODE_ENV: production
 
+      - name: SEO check
+        run: npm run seo:check
+
       # ---------------------------------------------------------------------
       # Триггер уже готового deploy/update.sh на сервере (git pull → build →
       # reload caddy, см. deploy/). Только push в main / ручной запуск - PR

@@ -21,19 +21,20 @@ npm run dev        # http://localhost:4321
 
 ## Сборка и проверки
 
-| Действие  | Команда                                                  |
-| --------- | -------------------------------------------------------- |
-| Установка | `npm install` (CI: `npm ci`)                             |
-| Dev       | `npm run dev` (`:4321`)                                  |
-| Тесты     | нет тестов в репо                                        |
-| Lint      | `npm run lint` (ESLint, fail на warning)                 |
-| Typecheck | `npm run type-check` (`astro check` + `tsc --noEmit`)    |
-| Format    | `npm run format` / `npm run format:check` (Prettier)     |
-| OG-превью | `npm run og:render` (PNG из SVG через `@resvg/resvg-js`) |
-| Build     | `npm run build` → `dist/`                                |
-| Preview   | `npm run preview`                                        |
+| Действие  | Команда                                                                     |
+| --------- | --------------------------------------------------------------------------- |
+| Установка | `npm install` (CI: `npm ci`)                                                |
+| Dev       | `npm run dev` (`:4321`)                                                     |
+| Тесты     | нет тестов в репо                                                           |
+| Lint      | `npm run lint` (ESLint, fail на warning)                                    |
+| Typecheck | `npm run type-check` (`astro check` + `tsc --noEmit`)                       |
+| Format    | `npm run format` / `npm run format:check` (Prettier)                        |
+| OG-превью | `npm run og:render` (PNG из SVG через `@resvg/resvg-js`)                    |
+| SEO-чек   | `npm run seo:check` (og-манифест + смок по `dist/`, требует свежий `build`) |
+| Build     | `npm run build` → `dist/`                                                   |
+| Preview   | `npm run preview`                                                           |
 
-Команды - только из `package.json`. Тестового раннера в проекте нет; quality-gate - `lint` + `type-check` (так же гоняет CI перед билдом).
+Команды - только из `package.json`. Тестового раннера в проекте нет; quality-gate - `lint` + `type-check`, а CI дополнительно гоняет `build` + `seo:check` (см. `.github/workflows/deploy.yml`).
 
 ## Структура репозитория
 
@@ -50,7 +51,7 @@ src/
 public/           # favicon, OG (SVG-исходники + PNG), manifest, _headers, public/projects/<slug>/
 scripts/          # parse-lh.cjs (разбор Lighthouse JSON), render-og.mjs (SVG -> PNG)
 deploy/           # docker-compose.yml + Caddyfile.container (co-hosted за Caddy DotSound), setup.sh/update.sh/ci-setup.sh
-.github/workflows/deploy.yml   # gate (lint/type-check/build) + SSH-триггер deploy/update.sh
+.github/workflows/deploy.yml   # gate (lint/type-check/build/seo:check) + SSH-триггер deploy/update.sh
 astro.config.mjs
 ```
 
@@ -85,7 +86,7 @@ astro.config.mjs
 ## Что делать агенту
 
 - Перед правками прочитай затронутые файлы и соседний код.
-- После изменений запусти `npm run lint` и `npm run type-check`.
+- После изменений запусти `npm run lint` и `npm run type-check`. Если правил SEO-слой, мета-теги, OG-изображения или эндпоинты (robots/sitemap/llms), дополнительно `npm run build && npm run seo:check`.
 - **README-sync:** при глобальных изменениях (новые/удалённые команды или скрипты, новый/убранный модуль или проект-кейс, смена зависимостей/стека, архитектуры или runtime) обнови `README.md` и `AGENTS.md` через скилл `generate-readme`, включая пересчёт LoC. Мелкие правки (опечатки, внутренний рефактор, багфикс без смены API/команд) README не трогают.
 - Не латай разметку README вручную - перегенерируй скиллом.
 - Минимальный diff: не рефактори несвязанный код.

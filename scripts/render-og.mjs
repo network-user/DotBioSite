@@ -6,26 +6,25 @@
  * counterpart. This script uses @resvg/resvg-js (no headless browser needed)
  * and is idempotent: it overwrites existing PNGs on every run.
  *
+ * After a successful render it writes scripts/og-sources.json, a manifest of
+ * each source SVG's sha256 + the PNG(s) it produced. `npm run seo:check`
+ * (via check-og-fresh.mjs) uses that manifest to fail CI if an SVG was
+ * edited without re-running this script.
+ *
  * Run via `npm run og:render`.
  */
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { Resvg } from "@resvg/resvg-js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(__dirname, "..");
-const publicDir = path.join(rootDir, "public");
-const projectsDir = path.join(publicDir, "projects");
+import { listOgJobs, rootDir, toRelPath } from "./og-jobs.mjs";
 
 const FONT_OPTIONS = {
   loadSystemFonts: true,
   defaultFontFamily: "Arial",
 };
 
-// A 1200x630 og image with real rendered text is well above this size.
-// A near-empty canvas (text failed to render) stays well below it.
-const MIN_OG_BYTES = 10 * 1024;
+const manifestPath = path.join(rootDir, "scripts", "og-sources.json");
 
 /**
  * @param {string} svgPath absolute path to the source SVG
@@ -66,72 +65,44 @@ function assertMinSize(label, bytes, min) {
   }
 }
 
-function listProjectSlugs() {
-  return readdirSync(projectsDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .filter((slug) => existsSync(path.join(projectsDir, slug, "og.svg")))
-    .sort();
+function sha256File(absPath) {
+  return createHash("sha256").update(readFileSync(absPath)).digest("hex");
 }
 
-function buildJobs() {
-  const jobs = [
-    {
-      label: "og-image.png",
-      src: path.join(publicDir, "og-image.svg"),
-      out: path.join(publicDir, "og-image.png"),
-      width: 1200,
-      checkMinBytes: MIN_OG_BYTES,
-    },
-  ];
+/**
+ * Builds scripts/og-sources.json: one entry per source SVG, keyed by its
+ * repo-relative path. A single SVG can render into more than one PNG (the
+ * two PWA icon sizes both come from icon-192.svg), so `png` is a sorted list
+ * rather than a single path.
+ */
+function writeManifest(jobs) {
+  const manifest = {};
 
-  for (const slug of listProjectSlugs()) {
-    jobs.push({
-      label: `projects/${slug}/og.png`,
-      src: path.join(projectsDir, slug, "og.svg"),
-      out: path.join(projectsDir, slug, "og.png"),
-      width: 1200,
-      checkMinBytes: MIN_OG_BYTES,
-    });
+  for (const job of jobs) {
+    const relSvg = toRelPath(job.svg);
+    const relPng = toRelPath(job.png);
+    const entry = manifest[relSvg] ?? { sha256: sha256File(job.svg), png: [] };
+    if (!entry.png.includes(relPng)) entry.png.push(relPng);
+    manifest[relSvg] = entry;
   }
 
-  // Opaque background fallback in case a source icon SVG has transparent
-  // areas outside its drawn shape (touch icons must not show a checkerboard).
-  const iconBackground = "#0c0d0f";
+  const sortedKeys = Object.keys(manifest).sort();
+  const sorted = {};
+  for (const key of sortedKeys) {
+    manifest[key].png.sort();
+    sorted[key] = manifest[key];
+  }
 
-  jobs.push(
-    {
-      label: "apple-touch-icon.png",
-      src: path.join(publicDir, "icon-192.svg"),
-      out: path.join(publicDir, "apple-touch-icon.png"),
-      width: 180,
-      background: iconBackground,
-    },
-    {
-      label: "icon-192.png",
-      src: path.join(publicDir, "icon-192.svg"),
-      out: path.join(publicDir, "icon-192.png"),
-      width: 192,
-      background: iconBackground,
-    },
-    {
-      label: "icon-512.png",
-      src: path.join(publicDir, "icon-512.svg"),
-      out: path.join(publicDir, "icon-512.png"),
-      width: 512,
-      background: iconBackground,
-    },
-  );
-
-  return jobs;
+  writeFileSync(manifestPath, `${JSON.stringify(sorted, null, 2)}\n`);
+  console.log(`  wrote ${toRelPath(manifestPath)}`);
 }
 
 function main() {
-  const jobs = buildJobs();
+  const jobs = listOgJobs();
   console.log(`Rendering ${jobs.length} PNG(s) via resvg...`);
 
   for (const job of jobs) {
-    const bytes = renderToPng(job.src, job.out, {
+    const bytes = renderToPng(job.svg, job.png, {
       width: job.width,
       background: job.background,
     });
@@ -140,6 +111,8 @@ function main() {
     }
     console.log(`  ${job.label} -> ${formatKb(bytes)}`);
   }
+
+  writeManifest(jobs);
 
   console.log("Done.");
 }

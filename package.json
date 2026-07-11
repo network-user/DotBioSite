@@ -19,7 +19,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,tsx,astro,css,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,astro,css,json,md}\"",
-    "og:render": "node scripts/render-og.mjs"
+    "og:render": "node scripts/render-og.mjs",
+    "seo:check": "node scripts/check-og-fresh.mjs && node scripts/seo-smoke.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",

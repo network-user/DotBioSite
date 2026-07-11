@@ -1,0 +1,38 @@
+{
+  "public/icon-192.svg": {
+    "sha256": "a364a221e902096115903c046ad96187dd2b1b9f3b25d3dfe51442ecb9e7f0d4",
+    "png": ["public/apple-touch-icon.png", "public/icon-192.png"]
+  },
+  "public/icon-512.svg": {
+    "sha256": "9980d51472a951f684f16770978257cd6a93120974bf305f914b627044e936c5",
+    "png": ["public/icon-512.png"]
+  },
+  "public/og-image.svg": {
+    "sha256": "b8248df6cd38806d705513f15523f91ff30acb3b2515e9eadce3cf85be8c57f0",
+    "png": ["public/og-image.png"]
+  },
+  "public/projects/dotagents/og.svg": {
+    "sha256": "71030bf214a84c27bc11c2d6d18dbb5d7f7e8a229f91c67f76416b1293ba5ba9",
+    "png": ["public/projects/dotagents/og.png"]
+  },
+  "public/projects/dotlearn/og.svg": {
+    "sha256": "06f2d6eb60d95154e765e7e6a71225ffdafeb13ae39d087986be65c3bd07c712",
+    "png": ["public/projects/dotlearn/og.png"]
+  },
+  "public/projects/dotmath/og.svg": {
+    "sha256": "d6eaa159881b913e082a0d3df0b6fe975b0a6a2ff86124c7951988eba9e71fca",
+    "png": ["public/projects/dotmath/og.png"]
+  },
+  "public/projects/dotsound/og.svg": {
+    "sha256": "deb754f7419a6b3e66bfd4d5491a09299d9f7ae719f730bdee75f14ade857c8f",
+    "png": ["public/projects/dotsound/og.png"]
+  },
+  "public/projects/dottraceip/og.svg": {
+    "sha256": "34df52024524c34aecca819f54f2d1798622d4e26533fe6f285faed4dcfbc7e5",
+    "png": ["public/projects/dottraceip/og.png"]
+  },
+  "public/projects/dotworkbot/og.svg": {
+    "sha256": "769416e3cb57b2effc70fd97c639dfa357b39a4d2161acd2ff3a321e98ca4b01",
+    "png": ["public/projects/dotworkbot/og.png"]
+  }
+}

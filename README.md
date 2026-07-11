@@ -43,17 +43,18 @@ npm run dev        # http://localhost:4321
 
 ## Команды
 
-| Команда                | Назначение                                          |
-| ---------------------- | --------------------------------------------------- |
-| `npm run dev`          | dev-сервер Astro с HMR (`:4321`)                    |
-| `npm run build`        | production-билд в `dist/`                           |
-| `npm run preview`      | локальный preview собранного `dist/`                |
-| `npm run type-check`   | `astro check` + `tsc --noEmit`                      |
-| `npm run lint`         | ESLint, падает на любом warning                     |
-| `npm run lint:fix`     | ESLint с авто-фиксом                                |
-| `npm run format`       | Prettier write по `ts/tsx/astro/css/json/md`        |
-| `npm run format:check` | Prettier check без записи                           |
-| `npm run og:render`    | PNG из SVG-исходников OG/иконок (`@resvg/resvg-js`) |
+| Команда                | Назначение                                                        |
+| ---------------------- | ----------------------------------------------------------------- |
+| `npm run dev`          | dev-сервер Astro с HMR (`:4321`)                                  |
+| `npm run build`        | production-билд в `dist/`                                         |
+| `npm run preview`      | локальный preview собранного `dist/`                              |
+| `npm run type-check`   | `astro check` + `tsc --noEmit`                                    |
+| `npm run lint`         | ESLint, падает на любом warning                                   |
+| `npm run lint:fix`     | ESLint с авто-фиксом                                              |
+| `npm run format`       | Prettier write по `ts/tsx/astro/css/json/md`                      |
+| `npm run format:check` | Prettier check без записи                                         |
+| `npm run og:render`    | PNG из SVG-исходников OG/иконок (`@resvg/resvg-js`)               |
+| `npm run seo:check`    | og-freshness (хэш-манифест) + SEO-смок по `dist/` (после `build`) |
 
 ## Стек
 
@@ -81,7 +82,7 @@ npm run dev        # http://localhost:4321
 
 ## Деплой
 
-Co-hosted за общим фронт-Caddy: сервер уже держит Docker-стек **DotSound**, чей Caddy занимает порты 80/443. Портфолио развёрнуто как контейнер `caddy:2-alpine` во внешней docker-сети `dotsound` (`deploy/docker-compose.yml` + `deploy/Caddyfile.container`) и наружу порты не публикует - фронт-Caddy DotSound проксирует на него по имени контейнера (`portfolio:80`). Подробности и шаги подключения - `deploy/README.md`. `deploy/setup.sh` - разовая сборка `dist/` на хосте и подъём контейнера, `deploy/update.sh` - `git pull` → пересборка → контейнер сразу отдаёт свежий `dist/` (bind-mount, без пересоздания). GitHub Actions (`.github/workflows/deploy.yml`) на `push` в `main`: gate (`lint` → `type-check` → `build`), затем по SSH запускает `deploy/update.sh` (доступ настраивается один раз через `deploy/ci-setup.sh`). `pull_request` - только gate, без деплоя. `deploy/harden.sh` в этой схеме не используется (анти-флуд правила задели бы порты DotSound); `deploy/Caddyfile.tmpl` - легаси прежней self-hosted схемы (свой Caddy на хосте).
+Co-hosted за общим фронт-Caddy: сервер уже держит Docker-стек **DotSound**, чей Caddy занимает порты 80/443. Портфолио развёрнуто как контейнер `caddy:2-alpine` во внешней docker-сети `dotsound` (`deploy/docker-compose.yml` + `deploy/Caddyfile.container`) и наружу порты не публикует - фронт-Caddy DotSound проксирует на него по имени контейнера (`portfolio:80`). Подробности и шаги подключения - `deploy/README.md`. `deploy/setup.sh` - разовая сборка `dist/` на хосте и подъём контейнера, `deploy/update.sh` - `git pull` → пересборка → контейнер сразу отдаёт свежий `dist/` (bind-mount, без пересоздания). GitHub Actions (`.github/workflows/deploy.yml`) на `push` в `main`: gate (`lint` → `type-check` → `build` → `seo:check`), затем по SSH запускает `deploy/update.sh` (доступ настраивается один раз через `deploy/ci-setup.sh`). `pull_request` - только gate, без деплоя. `deploy/harden.sh` в этой схеме не используется (анти-флуд правила задели бы порты DotSound); `deploy/Caddyfile.tmpl` - легаси прежней self-hosted схемы (свой Caddy на хосте).
 
 ## Архитектура
 
@@ -99,7 +100,7 @@ DotBioSite/
 │   ├── styles/             # tokens.css, global.css, glass.css
 │   └── lib/                # config (Zod), i18n, projects, contacts
 ├── public/                 # favicon, OG (SVG-исходники + PNG), manifest, _headers, обложки проектов
-├── scripts/                # parse-lh.cjs (Lighthouse), render-og.mjs (SVG -> PNG для OG/иконок)
+├── scripts/                # parse-lh.cjs, render-og.mjs (SVG -> PNG), seo-smoke.mjs + check-og-fresh.mjs (CI)
 ├── deploy/                 # docker-compose.yml + Caddyfile.container (co-hosted), setup.sh/update.sh/ci-setup.sh
 ├── .github/workflows/      # deploy.yml (gate + SSH-триггер update.sh) + security.yml
 └── astro.config.mjs
