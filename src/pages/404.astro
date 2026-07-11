@@ -12,11 +12,7 @@ const title = `404: ${authorName(locale)}`;
 const description = "Такой страницы не существует. Page not found.";
 ---
 
-<BaseLayout locale={locale} title={title} description={description}>
-  <Fragment slot="head">
-    <meta name="robots" content="noindex" />
-  </Fragment>
-
+<BaseLayout locale={locale} title={title} description={description} noindex>
   <section class="not-found section">
     <div class="container container-narrow not-found__inner">
       <h1 class="not-found__code display-xl">404</h1>

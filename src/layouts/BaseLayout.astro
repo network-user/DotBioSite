@@ -2,8 +2,9 @@
 import "../styles/global.css";
 import "../styles/glass.css";
 
-import { config, authorName, socials } from "../lib/config";
+import { config, authorName, authorBio, socials } from "../lib/config";
 import { useTranslations, alternateUrl, type Locale } from "../lib/i18n";
+import { allStackTags } from "../lib/projects";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import ZineEasterEgg from "../components/ZineEasterEgg.astro";
@@ -26,6 +27,8 @@ interface Props {
   imageAlt?: string;
   /** Additional page-specific JSON-LD objects. Base Person/WebSite graph is always included. */
   structuredData?: JsonLd | JsonLd[];
+  /** Запретить индексацию страницы (404 и т.п.): meta robots становится noindex. */
+  noindex?: boolean;
 }
 
 const {
@@ -37,6 +40,7 @@ const {
   image,
   imageAlt,
   structuredData,
+  noindex = false,
 } = Astro.props;
 
 const t = useTranslations(locale);
@@ -44,31 +48,67 @@ const t = useTranslations(locale);
 // while the i18n string stays for the human-readable tagline.
 const pageTitle = title ?? `${authorName(locale)}: ${t("meta.tagline")}`;
 const pageDescription = description ?? t("meta.description");
-const canonical = new URL(Astro.url.pathname, config.PUBLIC_DOMAIN).toString();
+
+/** Убирает завершающий "/" (кроме корня), чтобы canonical/hreflang были стабильны
+ *  при `trailingSlash: "ignore"` (Astro иначе отдаёт оба варианта как валидные). */
+function normalizePath(path: string): string {
+  return path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
+}
+
+const canonicalPath = normalizePath(Astro.url.pathname);
+const canonical = new URL(canonicalPath, config.PUBLIC_DOMAIN).toString();
 const altLocale: Locale = locale === "ru" ? "en" : "ru";
-const altHref = new URL(alternateUrl(Astro.url, altLocale), config.PUBLIC_DOMAIN).toString();
-const ogImage = new URL(image ?? "/og-image.svg", config.PUBLIC_DOMAIN).toString();
+const altPath = normalizePath(alternateUrl(Astro.url, altLocale));
+const altHref = new URL(altPath, config.PUBLIC_DOMAIN).toString();
+// hreflang для текущей страницы в обеих локалях: x-default указывает на ru-версию
+// именно этой страницы, не на корень сайта.
+const ruUrl = locale === "ru" ? canonical : altHref;
+const enUrl = locale === "ru" ? altHref : canonical;
+const ogImage = new URL(image ?? "/og-image.png", config.PUBLIC_DOMAIN).toString();
+const ogImageExt = ogImage.split(".").pop()?.toLowerCase() ?? "";
+const ogImageType =
+  ogImageExt === "png"
+    ? "image/png"
+    : ogImageExt === "jpg" || ogImageExt === "jpeg"
+      ? "image/jpeg"
+      : ogImageExt === "webp"
+        ? "image/webp"
+        : "image/svg+xml";
 const htmlLang = locale === "ru" ? "ru-RU" : "en-US";
 const personId = new URL("/#person", config.PUBLIC_DOMAIN).toString();
 const websiteId = new URL("/#website", config.PUBLIC_DOMAIN).toString();
+const authorPhoto = config.PUBLIC_AUTHOR_PHOTO;
+const personImage = authorPhoto ? new URL(authorPhoto, config.PUBLIC_DOMAIN).toString() : undefined;
+// Person/WebSite описывают сущности всего сайта, поэтому фолбэк всегда сайтовый
+// meta.description, а не описание текущей страницы (на кейсах оно про проект).
+const siteDescription = t("meta.description");
+const personDescription = authorBio(locale) || siteDescription;
+const socialUrls = socials.map((s) => s.url);
 const baseStructuredData: JsonLd[] = [
   {
     "@context": "https://schema.org",
     "@type": "Person",
     "@id": personId,
     name: authorName(locale),
+    alternateName: "DotCore",
     url: new URL("/", config.PUBLIC_DOMAIN).toString(),
-    sameAs: socials.map((s) => s.url),
+    image: personImage,
+    jobTitle: locale === "ru" ? "Инженер полного цикла" : "Full-cycle engineer",
+    description: personDescription,
+    knowsAbout: allStackTags,
+    ...(socialUrls.length > 0 ? { sameAs: socialUrls } : {}),
   },
   {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "@id": websiteId,
     name: authorName(locale),
+    alternateName: "DotCore",
     url: new URL("/", config.PUBLIC_DOMAIN).toString(),
-    description: pageDescription,
+    description: siteDescription,
     inLanguage: htmlLang,
     publisher: { "@id": personId },
+    creator: { "@id": personId },
   },
 ];
 const extraStructuredData = structuredData
@@ -95,17 +135,14 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
     <title>{pageTitle}</title>
 
     <link rel="canonical" href={canonical} />
-    <link rel="alternate" hreflang={altLocale} href={altHref} />
-    <link
-      rel="alternate"
-      hreflang="x-default"
-      href={new URL("/", config.PUBLIC_DOMAIN).toString()}
-    />
+    <link rel="alternate" hreflang="ru" href={ruUrl} />
+    <link rel="alternate" hreflang="en" href={enUrl} />
+    <link rel="alternate" hreflang="x-default" href={ruUrl} />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/svg+xml" sizes="192x192" href="/icon-192.svg" />
     <link rel="icon" type="image/svg+xml" sizes="512x512" href="/icon-512.svg" />
-    <link rel="apple-touch-icon" href="/icon-192.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
 
     <meta property="og:type" content="website" />
@@ -122,6 +159,23 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
     <meta name="twitter:description" content={pageDescription} />
     <meta name="twitter:image" content={ogImage} />
     {imageAlt && <meta name="twitter:image:alt" content={imageAlt} />}
+
+    <meta name="author" content={authorName(locale)} />
+    <meta
+      name="robots"
+      content={noindex ? "noindex" : "index, follow, max-image-preview:large, max-snippet:-1"}
+    />
+    <meta property="og:site_name" content="DotCore" />
+    <meta property="og:image:type" content={ogImageType} />
+    {
+      ogImage.endsWith(".png") && (
+        <>
+          <meta property="og:image:width" content="1200" />
+          <meta property="og:image:height" content="630" />
+        </>
+      )
+    }
+    <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt" />
 
     <script is:inline type="application/ld+json" set:html={jsonLd} />
 

@@ -236,6 +236,23 @@ export const projects: ReadonlyArray<Project> = allProjects.filter((p) => p.tier
  */
 export const infraProjects: ReadonlyArray<Project> = allProjects.filter((p) => p.tier === "infra");
 
+/**
+ * Все уникальные технологии стека по всем проектам (продукты + инфра),
+ * отсортированные по алфавиту. Питает `Person.knowsAbout` в JSON-LD.
+ * Версии в тегах ("FastAPI 0.111", "aiogram 3.15") срезаются, чтобы одна
+ * технология не дублировалась записями с разными версиями; дедуп
+ * регистронезависимый ("Taskiq" и "taskiq" считаются одной записью).
+ */
+export const allStackTags: ReadonlyArray<string> = (() => {
+  const byKey = new Map<string, string>();
+  for (const tag of allProjects.flatMap((p) => p.stack)) {
+    const base = tag.replace(/\s+\d+(\.\d+)*$/, "");
+    const key = base.toLowerCase();
+    if (!byKey.has(key)) byKey.set(key, base);
+  }
+  return Array.from(byKey.values()).sort((a, b) => a.localeCompare(b, "en"));
+})();
+
 export function findProject(slug: string): Project | undefined {
   return projects.find((p) => p.slug === slug);
 }
@@ -363,5 +380,28 @@ export function projectStartISO(p: Project): string | undefined {
   if (key === 0) return undefined;
   const year = Math.floor(key / 100);
   const month = key % 100;
+  return month > 0 ? `${year}-${String(month).padStart(2, "0")}` : String(year);
+}
+
+/**
+ * ISO-дата последней вехи timeline проекта («2026-06» или «2026») для
+ * structuredData.dateModified. Переиспользует парсинг `timelineDateSortKey` и
+ * берёт запись с максимальным ключом (не обязательно последний элемент
+ * массива, хотя на практике timeline уже хронологический). Возвращает
+ * undefined, если timeline пуст или ни одна дата не распарсилась.
+ */
+export function projectUpdatedISO(p: Project): string | undefined {
+  const timeline = p.timeline;
+  if (!timeline || timeline.length === 0) return undefined;
+
+  let bestKey = 0;
+  for (const entry of timeline) {
+    const key = timelineDateSortKey(entry.date);
+    if (key > bestKey) bestKey = key;
+  }
+  if (bestKey === 0) return undefined;
+
+  const year = Math.floor(bestKey / 100);
+  const month = bestKey % 100;
   return month > 0 ? `${year}-${String(month).padStart(2, "0")}` : String(year);
 }

@@ -6,11 +6,34 @@ import Stack from "../../components/Stack.astro";
 import Projects from "../../components/Projects.astro";
 import Timeline from "../../components/Timeline.astro";
 import Contact from "../../components/Contact.astro";
+import { config } from "../../lib/config";
+import { projects, projectName } from "../../lib/projects";
 
 const locale = "en" as const;
+const visibleProjects = projects.filter((p) => !p.comingSoon);
+const structuredData = [
+  {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    "@id": new URL("/en#profilepage", config.PUBLIC_DOMAIN).toString(),
+    url: new URL("/en", config.PUBLIC_DOMAIN).toString(),
+    inLanguage: "en-US",
+    mainEntity: { "@id": new URL("/#person", config.PUBLIC_DOMAIN).toString() },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: visibleProjects.map((p, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      url: new URL(`/en/projects/${p.slug}`, config.PUBLIC_DOMAIN).toString(),
+      name: projectName(p, locale),
+    })),
+  },
+];
 ---
 
-<BaseLayout locale={locale}>
+<BaseLayout locale={locale} structuredData={structuredData}>
   <Hero locale={locale} />
   <About locale={locale} />
   <Stack locale={locale} />
