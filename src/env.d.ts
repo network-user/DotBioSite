@@ -33,3 +33,17 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/**
+ * Минимальные ambient-типы для Node builtins, используемых на билде
+ * (sitemap.xml.ts: execSync + fileURLToPath). В проекте нет зависимости
+ * @types/node (сайт статический, Node нужен только конфигу/build-скриптам),
+ * поэтому объявляем только то, что реально используется, а не весь Node API.
+ */
+declare module "node:child_process" {
+  export function execSync(command: string, options?: { cwd?: string; encoding?: string }): string;
+}
+
+declare module "node:url" {
+  export function fileURLToPath(url: string | URL): string;
+}
