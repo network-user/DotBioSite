@@ -342,9 +342,6 @@ ol {
  * не назначен). Правило специфичнее, чем `.anim-paused *`, поэтому перебивает
  * play-state:paused. Фаза лупа при возврате рестартует за 200px до экрана -
  * невидимо (принято). */
-.anim-paused .hero__core-spin,
-.anim-paused .hero__link,
-.anim-paused .hero__node,
 .anim-paused .hero__brand-aura,
 .anim-paused .project-card__glyph,
 .anim-paused .project-card__logo-brand,
