@@ -2,7 +2,7 @@
 import "../styles/global.css";
 import "../styles/glass.css";
 
-import { config, authorName, authorBio, socials } from "../lib/config";
+import { config, authorName, authorBio, socials, umami } from "../lib/config";
 import { useTranslations, alternateUrl, type Locale } from "../lib/i18n";
 import { allStackTags } from "../lib/projects";
 import Header from "../components/Header.astro";
@@ -120,6 +120,9 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
   /</g,
   "\\u003c",
 );
+
+// Трекер Umami: null локально/в preview/CI (id не задан) → скрипт не рендерится.
+const analytics = umami();
 ---
 
 <!doctype html>
@@ -178,6 +181,19 @@ const jsonLd = JSON.stringify([...baseStructuredData, ...extraStructuredData]).r
     <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt" />
 
     <script is:inline type="application/ld+json" set:html={jsonLd} />
+
+    {
+      analytics && (
+        <script
+          is:inline
+          defer
+          src={analytics.src}
+          data-website-id={analytics.websiteId}
+          data-host-url={analytics.hostUrl}
+          data-domains={analytics.domains}
+        />
+      )
+    }
 
     <slot name="head" />
   </head>

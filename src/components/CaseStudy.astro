@@ -160,6 +160,8 @@ const signatureLede = (signatureLedes[p.slug] ?? {
                         rel="noopener noreferrer"
                         class="case__repos-pill-link"
                         aria-label={`${r.name}: ${t("projects.viewSource")}`}
+                        data-umami-event="open-repo"
+                        data-umami-event-project={p.slug}
                       >
                         <Icon name="github" size={12} />
                         <span class="mono">{r.name}</span>
@@ -185,6 +187,8 @@ const signatureLede = (signatureLedes[p.slug] ?? {
                 target="_blank"
                 rel="noopener noreferrer"
                 class="cta cta--primary magnetic"
+                data-umami-event="open-repo"
+                data-umami-event-project={p.slug}
               >
                 <Icon name="github" size={16} />
                 <span>{primaryRepoLabel}</span>
@@ -211,6 +215,8 @@ const signatureLede = (signatureLedes[p.slug] ?? {
                 target="_blank"
                 rel="noopener noreferrer"
                 class="cta cta--ghost magnetic"
+                data-umami-event="open-bot"
+                data-umami-event-project={p.slug}
               >
                 <Icon name="telegram" size={16} />
                 <span>{t("projects.openBot")}</span>
@@ -435,6 +441,8 @@ const signatureLede = (signatureLedes[p.slug] ?? {
                       target="_blank"
                       rel="noopener noreferrer"
                       class="case__repo-link"
+                      data-umami-event="open-repo"
+                      data-umami-event-project={p.slug}
                     >
                       <span class="mono">{rUrl.replace(/^https?:\/\//, "")}</span>
                       <Icon name="external" size={14} />
@@ -473,7 +481,14 @@ const signatureLede = (signatureLedes[p.slug] ?? {
             )}
             {telegramUrl && (
               <li>
-                <a href={telegramUrl} target="_blank" rel="noopener noreferrer" class="case__link">
+                <a
+                  href={telegramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="case__link"
+                  data-umami-event="open-bot"
+                  data-umami-event-project={p.slug}
+                >
                   <Icon name="telegram" size={16} />
                   <span class="mono">{telegramUrl}</span>
                 </a>

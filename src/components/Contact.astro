@@ -63,6 +63,7 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
             data-body={t("contact.emailBody")}
             aria-label={t("contact.email")}
             data-reveal
+            data-umami-event="contact-email"
           >
             <span class="contact__channel-glow" aria-hidden="true" />
             <Icon name="mail" size={20} />

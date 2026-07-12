@@ -65,6 +65,8 @@ const initialHash = Astro.url.hash.replace("#", "");
         data-alternate={altLocale}
         aria-label={`Switch language to ${altLocale.toUpperCase()}`}
         lang={altLocale}
+        data-umami-event="switch-lang"
+        data-umami-event-to={altLocale}
       >
         <span aria-hidden="true">{t("nav.toggleLang")}</span>
       </a>

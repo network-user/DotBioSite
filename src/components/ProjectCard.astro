@@ -51,6 +51,8 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
     href={caseHref}
     class="project-card__media project-card__media--logo"
     aria-label={t("projects.viewProject")}
+    data-umami-event="open-case"
+    data-umami-event-project={p.slug}
   >
     <span class="project-card__logo">
       <span class="project-card__glyph">
@@ -129,6 +131,8 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
                   rel="noopener noreferrer"
                   class="project-card__repo-link"
                   aria-label={`${r.name}: ${t("projects.viewSource")}`}
+                  data-umami-event="open-repo"
+                  data-umami-event-project={p.slug}
                 >
                   <Icon name="github" size={14} />
                   <span class="mono">{r.name}</span>
@@ -148,7 +152,12 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
   }
 
   <footer class="project-card__actions">
-    <a href={caseHref} class="project-card__cta cta cta--primary magnetic">
+    <a
+      href={caseHref}
+      class="project-card__cta cta cta--primary magnetic"
+      data-umami-event="open-case"
+      data-umami-event-project={p.slug}
+    >
       <span>{t("projects.viewProject")}</span>
       <Icon name="arrow-right" size={16} />
     </a>
@@ -159,6 +168,8 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
           target="_blank"
           rel="noopener noreferrer"
           class="project-card__cta cta cta--ghost"
+          data-umami-event="open-repo"
+          data-umami-event-project={p.slug}
         >
           <Icon name="github" size={16} />
           <span>{t("projects.viewSource")}</span>
@@ -185,6 +196,8 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
           target="_blank"
           rel="noopener noreferrer"
           class="project-card__cta cta cta--ghost"
+          data-umami-event="open-bot"
+          data-umami-event-project={p.slug}
         >
           <Icon name="telegram" size={16} />
           <span>{t("projects.openBot")}</span>

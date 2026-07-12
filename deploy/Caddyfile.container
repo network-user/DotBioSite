@@ -21,6 +21,23 @@
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 	}
 
+	# ── Аналитика (Umami): first-party прокси ТОЛЬКО трекера ─────────────────
+	# Трекер-скрипт и приём событий отдаём со своего домена, чтобы не ослаблять
+	# CSP (script-src/connect-src остаются 'self') и реже попадать под ad-block.
+	# Проксируем только две ручки на контейнер umami в общей сети dotsound; сам
+	# дашборд наружу не выставляем (он на поддомене за фронт-Caddy DotSound).
+	# Если стек аналитики (deploy/analytics) не поднят, эти пути отдают 502 - на
+	# остальной сайт это не влияет. reverse_proxy резолвит umami по имени
+	# контейнера; при отсутствии контейнера Caddy стартует штатно.
+	handle /stats/script.js {
+		rewrite * /script.js
+		reverse_proxy umami:3000
+	}
+	handle /stats/api/send {
+		rewrite * /api/send
+		reverse_proxy umami:3000
+	}
+
 	# ── Cache-Control ───────────────────────────────────────────────────────
 	@assets path /_assets/*
 	header @assets Cache-Control "public, max-age=31536000, immutable"
