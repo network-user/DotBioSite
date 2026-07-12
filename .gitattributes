@@ -3,3 +3,7 @@
 # сломается shebang (bash: \r: команда не найдена).
 *.sh text eol=lf
 deploy/Caddyfile.tmpl text eol=lf
+
+# OG/icon SVG: LF only. CRLF checkouts made Windows `og:render` write
+# hashes that fail Linux `seo:check` even when git content matches.
+*.svg text eol=lf

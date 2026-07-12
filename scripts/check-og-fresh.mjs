@@ -6,17 +6,12 @@
  *
  * Part of `npm run seo:check`. No dependencies beyond node:crypto/fs/path.
  */
-import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { listOgJobs, rootDir, toRelPath } from "./og-jobs.mjs";
+import { listOgJobs, rootDir, sha256SourceFile, toRelPath } from "./og-jobs.mjs";
 
 const manifestPath = path.join(rootDir, "scripts", "og-sources.json");
 const manifestRel = toRelPath(manifestPath);
-
-function sha256File(absPath) {
-  return createHash("sha256").update(readFileSync(absPath)).digest("hex");
-}
 
 function loadManifest() {
   if (!existsSync(manifestPath)) {
@@ -67,7 +62,7 @@ function main() {
       continue;
     }
 
-    const actualHash = sha256File(svgAbs);
+    const actualHash = sha256SourceFile(svgAbs);
     if (actualHash !== entry.sha256) {
       problems.push(
         `${relSvg}: hash mismatch (edited without "npm run og:render"). ` +

@@ -13,43 +13,43 @@
     ]
   },
   "public/og-image.svg": {
-    "sha256": "b8248df6cd38806d705513f15523f91ff30acb3b2515e9eadce3cf85be8c57f0",
+    "sha256": "27e23fdb8c4a0874f87ac5ed386dc9c512a8397e00d68bdd7d1d3634cec65baa",
     "png": [
       "public/og-image.png"
     ]
   },
   "public/projects/dotagents/og.svg": {
-    "sha256": "3530e6f1045d0ebedc1db55eaf40a8ccbac22b499409ae82543606873852f804",
+    "sha256": "71030bf214a84c27bc11c2d6d18dbb5d7f7e8a229f91c67f76416b1293ba5ba9",
     "png": [
       "public/projects/dotagents/og.png"
     ]
   },
   "public/projects/dotlearn/og.svg": {
-    "sha256": "be52c8d0c53eda43eea11de9e2878c2072237e3aa3c49dd8dbd3f4dfb94463ce",
+    "sha256": "06f2d6eb60d95154e765e7e6a71225ffdafeb13ae39d087986be65c3bd07c712",
     "png": [
       "public/projects/dotlearn/og.png"
     ]
   },
   "public/projects/dotmath/og.svg": {
-    "sha256": "8fdc51a3ee053e3d96f9a4bfa995f9ee1f9161b2a177416c334332ec64fac8cc",
+    "sha256": "d6eaa159881b913e082a0d3df0b6fe975b0a6a2ff86124c7951988eba9e71fca",
     "png": [
       "public/projects/dotmath/og.png"
     ]
   },
   "public/projects/dotsound/og.svg": {
-    "sha256": "2ee595a19366767779a53aa4d38a57b92cf230b08ac975c4f007e85b5403073a",
+    "sha256": "deb754f7419a6b3e66bfd4d5491a09299d9f7ae719f730bdee75f14ade857c8f",
     "png": [
       "public/projects/dotsound/og.png"
     ]
   },
   "public/projects/dottraceip/og.svg": {
-    "sha256": "6561b3a33b2cf01350f19e6fab5b33623ccd1cbef2220d36bde2f0187c1aaffa",
+    "sha256": "34df52024524c34aecca819f54f2d1798622d4e26533fe6f285faed4dcfbc7e5",
     "png": [
       "public/projects/dottraceip/og.png"
     ]
   },
   "public/projects/dotworkbot/og.svg": {
-    "sha256": "7c7a2d853ab55bb13a4af39ec50a67132fca9edd0c842a93539cf57c512f5998",
+    "sha256": "769416e3cb57b2effc70fd97c639dfa357b39a4d2161acd2ff3a321e98ca4b01",
     "png": [
       "public/projects/dotworkbot/og.png"
     ]

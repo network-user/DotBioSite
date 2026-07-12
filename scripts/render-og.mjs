@@ -13,11 +13,10 @@
  *
  * Run via `npm run og:render`.
  */
-import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { Resvg } from "@resvg/resvg-js";
-import { listOgJobs, rootDir, toRelPath } from "./og-jobs.mjs";
+import { listOgJobs, rootDir, sha256SourceFile, toRelPath } from "./og-jobs.mjs";
 
 const FONT_OPTIONS = {
   loadSystemFonts: true,
@@ -65,10 +64,6 @@ function assertMinSize(label, bytes, min) {
   }
 }
 
-function sha256File(absPath) {
-  return createHash("sha256").update(readFileSync(absPath)).digest("hex");
-}
-
 /**
  * Builds scripts/og-sources.json: one entry per source SVG, keyed by its
  * repo-relative path. A single SVG can render into more than one PNG (the
@@ -81,7 +76,7 @@ function writeManifest(jobs) {
   for (const job of jobs) {
     const relSvg = toRelPath(job.svg);
     const relPng = toRelPath(job.png);
-    const entry = manifest[relSvg] ?? { sha256: sha256File(job.svg), png: [] };
+    const entry = manifest[relSvg] ?? { sha256: sha256SourceFile(job.svg), png: [] };
     if (!entry.png.includes(relPng)) entry.png.push(relPng);
     manifest[relSvg] = entry;
   }

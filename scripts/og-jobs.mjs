@@ -5,7 +5,8 @@
  * Keeping this in one place means both scripts always agree on the same
  * set of source/output pairs.
  */
-import { existsSync, readdirSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -93,4 +94,15 @@ export function listOgJobs() {
 /** Converts an absolute path to a repo-relative, forward-slash path. */
 export function toRelPath(absPath) {
   return path.relative(rootDir, absPath).split(path.sep).join("/");
+}
+
+/**
+ * SHA-256 of a source SVG, normalized to LF line endings.
+ * Windows checkouts often expand to CRLF; CI (Linux) keeps LF. Hashing the
+ * raw working-tree bytes would make `og:render` / `seo:check` disagree
+ * across platforms even when git content is identical.
+ */
+export function sha256SourceFile(absPath) {
+  const normalized = readFileSync(absPath).toString("utf8").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  return createHash("sha256").update(normalized, "utf8").digest("hex");
 }
