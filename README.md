@@ -11,8 +11,8 @@
 
 <!-- audit:start -->
 <p>
-  <a href="docs/audit/latest.md"><img src="https://img.shields.io/badge/security_audit-passed-3fb950?style=flat" alt="security audit passed - full, leaks + code" /></a>
-  <a href="docs/audit/2026-07-02-onyx-sentinel.md"><img src="https://img.shields.io/badge/date-2026--07--02-555?style=flat" alt="audit date" /></a>
+  <a href="docs/audit/latest.md"><img src="https://img.shields.io/badge/security_audit-passed-3fb950?style=flat" alt="security audit passed - medium, leaks + code" /></a>
+  <a href="docs/audit/2026-07-12-slate-warden.md"><img src="https://img.shields.io/badge/date-2026--07--12-555?style=flat" alt="audit date" /></a>
 </p>
 <!-- audit:end -->
 

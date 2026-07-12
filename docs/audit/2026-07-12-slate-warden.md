@@ -1,5 +1,3 @@
-> Последний прогон: slate-warden · 2026-07-12. Снимок: [2026-07-12-slate-warden.md](2026-07-12-slate-warden.md) · история: [docs/audit/](.)
-
 # Security Audit · Slate Warden · 2026-07-12
 
 | Поле    | Значение              |
