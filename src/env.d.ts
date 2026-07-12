@@ -36,12 +36,16 @@ interface ImportMeta {
 
 /**
  * Минимальные ambient-типы для Node builtins, используемых на билде
- * (sitemap.xml.ts: execSync + fileURLToPath). В проекте нет зависимости
+ * (sitemap.xml.ts: execFileSync + fileURLToPath). В проекте нет зависимости
  * @types/node (сайт статический, Node нужен только конфигу/build-скриптам),
  * поэтому объявляем только то, что реально используется, а не весь Node API.
  */
 declare module "node:child_process" {
-  export function execSync(command: string, options?: { cwd?: string; encoding?: string }): string;
+  export function execFileSync(
+    file: string,
+    args?: string[],
+    options?: { cwd?: string; encoding?: string },
+  ): string;
 }
 
 declare module "node:url" {

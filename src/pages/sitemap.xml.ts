@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { config } from "../lib/config";
 import { projects } from "../lib/projects";
@@ -14,9 +14,11 @@ interface UrlEntry {
 const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
 
 /**
- * Дата последнего git-коммита набора путей (кэш по набору, один execSync на
+ * Дата последнего git-коммита набора путей (кэш по набору, один вызов git на
  * уникальный ключ). Выполняется только на билде (SSG), в рантайм не попадает.
  * Fallback на дату билда, если git недоступен или история пуста.
+ * execFileSync с массивом аргументов: пути не проходят через shell, инъекция
+ * через slug исключена даже теоретически.
  */
 const lastmodCache = new Map<string, string>();
 
@@ -27,8 +29,7 @@ function gitLastmod(paths: string[]): string {
 
   let result = "";
   try {
-    const args = paths.map((p) => `"${p}"`).join(" ");
-    const out = execSync(`git log -1 --format=%cI -- ${args}`, {
+    const out = execFileSync("git", ["log", "-1", "--format=%cI", "--", ...paths], {
       cwd: repoRoot,
       encoding: "utf-8",
     }).trim();
