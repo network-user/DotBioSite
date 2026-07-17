@@ -70,7 +70,7 @@
       }
     },
     {
-      "value": "34",
+      "value": "62",
       "label": {
         "ru": "готовых курса",
         "en": "ready-made courses"
@@ -79,11 +79,11 @@
   ],
   "overview": {
     "ru": [
-      "Тему для урока формулируешь сам: произвольным текстовым запросом, хоть под конкретный вопрос с собеседования. После запроса начинается работа агента: lesson-forge проверяет тему на конфликты с каталогом и генерирует пакет, MDX-теорию и YAML-задачи, прошедшие автоматическую валидацию в браузерном рантайме. Всё это коммитится в репо, а не записывается в базу, поэтому тему можно форкнуть, расширить или исправить обычным pull request. Рядом с темами есть готовый банк из 368 вопросов с собеседований на 10 направлений, тоже с разбором «как отвечать», упражнениями и отдельным режимом флэшкарт.",
+      "Тему для урока формулируешь сам: произвольным текстовым запросом, хоть под конкретный вопрос с собеседования. После запроса начинается работа агента: lesson-forge проверяет тему на конфликты с каталогом и генерирует пакет, MDX-теорию и YAML-задачи, прошедшие автоматическую валидацию в браузерном рантайме. Всё это коммитится в репо, а не записывается в базу, поэтому тему можно форкнуть, расширить или исправить обычным pull request. Рядом с темами есть готовый банк из 1449 вопросов с собеседований на 9 направлений, тоже с разбором «как отвечать», упражнениями и отдельным режимом флэшкарт.",
       "Код выполняется в Web Worker, где при старте нейтрализуются 15 сетевых API: fetch, WebSocket, RTCPeerConnection, BroadcastChannel и другие. Написанный код не может ни отправить данные, ни открыть скрытый канал: это не политика, это архитектура. Прогресс, заметки, закладки и FSRS-карточки для интервального повторения живут в IndexedDB; бэкенд опционален, платформа ставится как PWA и работает офлайн. Из настроек: язык контента (RU/EN на лету), сложность упражнений, дневная цель, шрифт, размер текста и параметры Monaco-редактора."
     ],
     "en": [
-      "You put the lesson topic into words yourself, a free-form request, even for one specific interview question. Once you ask, the agent gets to work: lesson-forge checks the topic for conflicts with the existing catalog and generates a package, MDX theory and YAML exercises that are automatically validated in the browser runtime. Everything gets committed to the repo, not written to a database, which means any topic can be forked, extended, or fixed with a normal pull request. Alongside the topics sits a ready-made bank of 368 interview questions across 10 tracks, also with a \"how to answer\" breakdown, exercises, and its own flashcard mode.",
+      "You put the lesson topic into words yourself, a free-form request, even for one specific interview question. Once you ask, the agent gets to work: lesson-forge checks the topic for conflicts with the existing catalog and generates a package, MDX theory and YAML exercises that are automatically validated in the browser runtime. Everything gets committed to the repo, not written to a database, which means any topic can be forked, extended, or fixed with a normal pull request. Alongside the topics sits a ready-made bank of 1449 interview questions across 9 tracks, also with a \"how to answer\" breakdown, exercises, and its own flashcard mode.",
       "Code runs in a Web Worker where 15 network APIs are neutralized at startup: fetch, WebSocket, RTCPeerConnection, BroadcastChannel, and others. What you write cannot send data out or open a hidden channel: that's architecture, not policy. Progress, notes, bookmarks, and FSRS flashcards live in IndexedDB; the backend is optional and the platform installs as a PWA for full offline use. Configurable settings include content language (RU/EN on the fly), exercise difficulty, daily goal, font, text size, and Monaco editor preferences."
     ]
   },
@@ -98,7 +98,7 @@
       }
     },
     {
-      "value": "57",
+      "value": "79",
       "unit": "k+",
       "span": 4,
       "label": {
@@ -107,20 +107,20 @@
       }
     },
     {
-      "value": "140",
+      "value": "267",
       "unit": "k+",
       "span": 3,
       "label": {
-        "ru": "строк контента: 34 темы в MDX и YAML",
-        "en": "lines of content: 34 topics in MDX and YAML"
+        "ru": "строк контента: 62 темы в MDX и YAML",
+        "en": "lines of content: 62 topics in MDX and YAML"
       }
     },
     {
-      "value": "368",
+      "value": "1449",
       "span": 3,
       "label": {
-        "ru": "вопросов для собеседований в 10 категориях",
-        "en": "interview questions across 10 categories"
+        "ru": "вопросов для собеседований в 9 направлениях",
+        "en": "interview questions across 9 tracks"
       }
     },
     {
@@ -399,8 +399,8 @@
         "en": "Interview question bank"
       },
       "description": {
-        "ru": "368 вопросов в 10 категориях, от структур данных до system design, с разбором «как отвечать», плюс режимы флэшкарт и экзамена.",
-        "en": "368 questions across 10 categories, from data structures to system design, each with a \"how to answer\" breakdown, plus flashcard and exam modes."
+        "ru": "1449 вопросов в 9 направлениях, от Python и frontend до DevOps, AQA и 1С, с разбором «как отвечать», плюс режимы флэшкарт и экзамена.",
+        "en": "1449 questions across 9 tracks, from Python and frontend to DevOps, AQA and 1C, each with a \"how to answer\" breakdown, plus flashcard and exam modes."
       },
       "detail": {
         "ru": "Вырос из открытого набора вопросов по Python и полностью переписан: своя структура статей, 988 собственных упражнений и диаграмм.",
@@ -505,8 +505,8 @@
         "en": "Final polish"
       },
       "description": {
-        "ru": "Каталог дорастает до 34 тем (django, DRF, python-testing, S3, Litestar), NestJS обновлён до мажорной 11 версии, ещё один проход харденинга закрывает уязвимости перед показом.",
-        "en": "The catalog reaches its final 34 topics (django, DRF, python-testing, S3, Litestar), NestJS is upgraded to major version 11, and one more hardening pass clears vulnerabilities before launch."
+        "ru": "Каталог дорастает до 34 тем (django, DRF, python-testing, S3, Litestar), NestJS обновлён до мажорной 11 версии, ещё один проход харденинга закрывает уязвимости перед показом. Позже каталог вырастает до 62 тем и 408 концептов, а банк собеседований до 1449 вопросов на 9 направлений.",
+        "en": "The catalog reaches 34 topics (django, DRF, python-testing, S3, Litestar), NestJS is upgraded to major version 11, and one more hardening pass clears vulnerabilities before launch. Later the catalog grows to 62 topics and 408 concepts, and the interview bank to 1449 questions across 9 tracks."
       }
     }
   ]
