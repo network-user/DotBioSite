@@ -242,7 +242,7 @@ const signatureLede = (signatureLedes[p.slug] ?? {
             >
               <img
                 src={p.cover}
-                alt=""
+                alt={locale === "ru" ? `Обложка ${name}` : `${name} cover`}
                 class="case__hero-cover"
                 width="1600"
                 height="900"

@@ -42,10 +42,10 @@
 	@assets path /_assets/*
 	header @assets Cache-Control "public, max-age=31536000, immutable"
 
-	@week path /projects/* /favicon.svg /icon-192.svg /icon-512.svg
+	@week path /projects/* /favicon.svg /icon-192.svg /icon-512.svg /icon-192.png /icon-512.png /apple-touch-icon.png /og-image.png
 	header @week Cache-Control "public, max-age=604800"
 
-	@shortcache path /manifest.webmanifest /sitemap.xml /robots.txt
+	@shortcache path /manifest.webmanifest /sitemap.xml /robots.txt /llms.txt /llms-full.txt
 	header @shortcache Cache-Control "public, max-age=3600"
 
 	handle_errors {

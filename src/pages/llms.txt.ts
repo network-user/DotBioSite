@@ -48,6 +48,8 @@ export const GET: APIRoute = () => {
 
 DotCore is a portfolio of independent products and tools shipped under one brand. Each project below has a full case study: architecture, stack, metrics, and a timeline.
 
+Default human locale is Russian (\`/\`). English mirror lives under \`/en\`. Machine-readable full dossier: \`/llms-full.txt\`.
+
 ## Projects (EN)
 ${enProjects}
 
@@ -62,6 +64,7 @@ ${ecosystem}
 - [English site](${absolute("/en")}): human-facing homepage, English
 - [Russian site](${absolute("/")}): human-facing homepage, Russian (default locale)
 - [XML sitemap](${absolute("/sitemap.xml")}): full URL list for crawlers
+- [robots.txt](${absolute("/robots.txt")}): crawl policy, including explicit AI crawler allow groups
 `;
 
   return new Response(body, {

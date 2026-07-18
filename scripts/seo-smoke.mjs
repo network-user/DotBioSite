@@ -142,6 +142,12 @@ for (const file of htmlFiles) {
     'missing <meta property="og:image:height">',
     /<meta\s+property="og:image:height"\s+content="[^"]+"\s*\/?>/.test(html),
   );
+  const ogAltMatch = html.match(/<meta\s+property="og:image:alt"\s+content="([^"]*)"\s*\/?>/);
+  check(
+    rel,
+    'missing or empty <meta property="og:image:alt">',
+    Boolean(ogAltMatch && ogAltMatch[1].trim().length > 0),
+  );
 
   // description + title
   const descMatch = html.match(/<meta\s+name="description"\s+content="([^"]*)"\s*\/?>/);
@@ -154,20 +160,44 @@ for (const file of htmlFiles) {
   const titleMatch = html.match(/<title>([^<]*)<\/title>/);
   check(rel, "missing or empty <title>", Boolean(titleMatch && titleMatch[1].trim().length > 0));
 
-  // JSON-LD: every application/ld+json script must parse.
+  // JSON-LD: every application/ld+json script must parse; require Person + WebSite base graph.
   const ldScripts = matchAll(
     /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g,
     html,
   );
   check(rel, 'no <script type="application/ld+json"> found', ldScripts.length > 0);
+  const ldTypes = new Set();
   ldScripts.forEach((m, i) => {
     try {
-      JSON.parse(m[1]);
+      const parsed = JSON.parse(m[1]);
       checkCount++;
+      const nodes = Array.isArray(parsed) ? parsed : [parsed];
+      for (const node of nodes) {
+        if (node && typeof node === "object" && typeof node["@type"] === "string") {
+          ldTypes.add(node["@type"]);
+        }
+        // Breadcrumb item URLs must be real paths, not hash fragments.
+        if (node && node["@type"] === "BreadcrumbList" && Array.isArray(node.itemListElement)) {
+          for (const crumb of node.itemListElement) {
+            const item = crumb?.item;
+            if (typeof item === "string") {
+              check(
+                rel,
+                `BreadcrumbList item uses hash URL (not indexable): ${item}`,
+                !item.includes("#"),
+              );
+            }
+          }
+        }
+      }
     } catch (error) {
       fail(rel, `ld+json script #${i + 1} failed to parse: ${error.message}`);
     }
   });
+  if (!isNotFound) {
+    check(rel, "ld+json missing Person type", ldTypes.has("Person"));
+    check(rel, "ld+json missing WebSite type", ldTypes.has("WebSite"));
+  }
 
   // meta robots
   const robotsMatch = html.match(/<meta\s+name="robots"\s+content="([^"]*)"\s*\/?>/);
@@ -188,6 +218,13 @@ for (const file of htmlFiles) {
   // <html lang>
   const langMatch = html.match(/<html[^>]*\slang="([^"]*)"/);
   check(rel, "missing or empty <html lang>", Boolean(langMatch && langMatch[1].trim().length > 0));
+
+  // LLM discovery link on every page (404 included: still useful for agents).
+  check(
+    rel,
+    'missing <link rel="alternate" type="text/plain" href="/llms.txt">',
+    /<link\s+rel="alternate"\s+type="text\/plain"\s+href="\/llms\.txt"/.test(html),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -201,6 +238,12 @@ check("robots.txt", "file is missing", existsSync(robotsPath));
 if (existsSync(robotsPath)) {
   const robotsTxt = readFileSync(robotsPath, "utf-8");
   check("robots.txt", 'missing "User-agent: *"', robotsTxt.includes("User-agent: *"));
+  check("robots.txt", 'missing LLM index comment ("llms.txt")', /llms\.txt/i.test(robotsTxt));
+  check(
+    "robots.txt",
+    "missing explicit AI crawler group (GPTBot)",
+    /User-agent:\s*GPTBot/i.test(robotsTxt),
+  );
 
   const sitemapLine = robotsTxt.match(/^Sitemap:\s*(\S+)$/m);
   check("robots.txt", 'missing "Sitemap: " line', Boolean(sitemapLine));
@@ -312,8 +355,24 @@ if (existsSync(llmsPath)) {
         `section "${heading}" has ${links.length} links, expected at least 6`,
         links.length >= 6,
       );
+      for (const [, url] of links) {
+        let parsed = null;
+        try {
+          parsed = new URL(url);
+        } catch {
+          parsed = null;
+        }
+        check("llms.txt", `project link is not absolute http(s): ${url}`, Boolean(parsed));
+        if (parsed && siteOrigin) {
+          check("llms.txt", `project link origin mismatch (${url})`, parsed.origin === siteOrigin);
+          const target = distFileForPathname(parsed.pathname);
+          check("llms.txt", `project link has no page in dist: ${url}`, Boolean(target));
+        }
+      }
     }
   }
+
+  check("llms.txt", "missing link to llms-full.txt", /llms-full\.txt/.test(llmsTxt));
 }
 
 // ---------------------------------------------------------------------------

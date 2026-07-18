@@ -12,18 +12,20 @@ import {
   repoUrl,
 } from "../../../lib/projects";
 import { authorName, config } from "../../../lib/config";
-import { useTranslations } from "../../../lib/i18n";
 
 export const getStaticPaths = (() => {
-  return projects.map((p) => ({
-    params: { slug: p.slug },
-    props: { project: p },
-  }));
+  // comingSoon не попадает в sitemap/llms/ItemList - и HTML-страницу тоже не
+  // генерируем, иначе seo-smoke и индексация разойдутся с картой сайта.
+  return projects
+    .filter((p) => !p.comingSoon)
+    .map((p) => ({
+      params: { slug: p.slug },
+      props: { project: p },
+    }));
 }) satisfies GetStaticPaths;
 
 const { project } = Astro.props;
 const locale = "en" as const;
-const t = useTranslations(locale);
 const title = `${projectName(project, locale)}: ${authorName(locale)}`;
 const description = projectCaseTagline(project, locale);
 const codeRepositories = project.repos.map((r) => repoUrl(r)).filter(Boolean);
@@ -44,6 +46,8 @@ const structuredData = {
   creator: { "@id": new URL("/#person", config.PUBLIC_DOMAIN).toString() },
   isPartOf: { "@id": new URL("/#website", config.PUBLIC_DOMAIN).toString() },
 };
+// Двухуровневый breadcrumb без hash-URL: отдельной /en/projects нет, а
+// /en/#projects Google не считает индексируемым уровнем.
 const breadcrumb = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
@@ -57,12 +61,6 @@ const breadcrumb = {
     {
       "@type": "ListItem",
       position: 2,
-      name: t("nav.projects"),
-      item: new URL("/en/#projects", config.PUBLIC_DOMAIN).toString(),
-    },
-    {
-      "@type": "ListItem",
-      position: 3,
       name: projectName(project, locale),
       item: caseUrl,
     },
@@ -76,6 +74,7 @@ const breadcrumb = {
   description={description}
   image={project.ogImage ?? project.cover}
   imageAlt={projectName(project, locale)}
+  ogType="article"
   structuredData={[structuredData, breadcrumb]}
 >
   <CaseStudy project={project} locale={locale} />

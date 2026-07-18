@@ -39,8 +39,20 @@ fi
 chmod -R a+rX "$DIST_DIR"
 
 # Контейнер portfolio (restart: unless-stopped) читает dist/ через bind-mount,
-# поэтому свежие файлы отдаются сразу - пересоздавать или перезапускать его не
-# нужно, и обновление не зависит от docker/имени сети (важно для автодеплоя по
-# SSH). Если контейнер вдруг не запущен (docker ps | grep portfolio), подними
-# его один раз: sudo bash deploy/setup.sh <поддомен>.
+# поэтому свежие HTML/assets отдаются сразу. Caddyfile тоже bind-mount, но
+# процесс Caddy не подхватывает правки конфига сам - делаем soft reload
+# (без downtime). Если контейнер не запущен - не падаем: setup.sh один раз.
+if command -v docker >/dev/null 2>&1 && docker ps --format '{{.Names}}' 2>/dev/null | grep -qx portfolio; then
+	echo "==> Reload Caddy (применить Caddyfile.container)..."
+	if docker exec portfolio caddy reload --config /etc/caddy/Caddyfile >/dev/null 2>&1; then
+		echo "  Caddy reload ok"
+	else
+		echo "  (reload не удался, пробую restart контейнера)"
+		docker restart portfolio >/dev/null 2>&1 || echo "  (restart пропущен: контейнер недоступен)"
+	fi
+else
+	echo "  (контейнер portfolio не запущен - только dist/ обновлён;"
+	echo "   первый подъём: sudo bash deploy/setup.sh <поддомен>)"
+fi
+
 echo "Готово. dist/: $(du -sh "$DIST_DIR" 2>/dev/null | cut -f1), свободно: $(df -h / | awk 'NR==2{print $4}')"
