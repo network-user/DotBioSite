@@ -572,6 +572,7 @@ const hiddenCount = layout.reduce(
     justify-content: center;
     gap: var(--sp-2);
     width: fit-content;
+    min-height: var(--tap-min);
     margin: var(--sp-5) auto 0;
     padding: var(--sp-2) var(--sp-5);
     border-radius: var(--r-pill);
@@ -685,6 +686,14 @@ const hiddenCount = layout.reduce(
   @media (hover: none) {
     .stack__group.is-touch-active .stack__bar {
       transform: translateX(100%);
+    }
+  }
+
+  @media (max-width: 719px) {
+    /* В одну колонку ghost-карточки растягивались поверх следующей секции на
+       несколько экранов. На мобильном оставляем их внутри свёрнутого wrapper. */
+    .stack__expand:not(:checked) ~ .stack__extras-wrap {
+      overflow: hidden;
     }
   }
 

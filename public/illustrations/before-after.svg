@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Before and after AI agent development">
+  <title>Before / after agentic IDE</title>
+  <defs>
+    <linearGradient id="ba-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0a0b0d"/>
+      <stop offset="0.5" stop-color="#14161a"/>
+      <stop offset="1" stop-color="#0b0c0e"/>
+    </linearGradient>
+    <radialGradient id="ba-glow" cx="50%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.11"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#ba-bg)"/>
+  <rect width="1600" height="900" fill="url(#ba-glow)"/>
+  <g opacity="0.045" stroke="#ffffff" stroke-width="1">
+    <path d="M0 225 H1600 M0 450 H1600 M0 675 H1600 M400 0 V900 M800 0 V900 M1200 0 V900"/>
+  </g>
+
+  <!-- center divider -->
+  <line x1="800" y1="120" x2="800" y2="720" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5" stroke-dasharray="6 8"/>
+
+  <!-- labels -->
+  <text x="400" y="100" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700" fill="#a6a7ab">до</text>
+  <text x="1200" y="100" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700" fill="#f3f3f1">после</text>
+
+  <!-- ========== BEFORE (left) ========== -->
+  <g opacity="0.72">
+    <!-- chat / browser window (top) -->
+    <rect x="140" y="150" width="420" height="200" rx="10" fill="#0d0e11" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1.8"/>
+    <rect x="140" y="150" width="420" height="32" rx="10" fill="#ffffff" fill-opacity="0.05"/>
+    <rect x="140" y="170" width="420" height="12" fill="#ffffff" fill-opacity="0.05"/>
+    <circle cx="162" cy="166" r="4" fill="#f3f3f1" fill-opacity="0.25"/>
+    <circle cx="178" cy="166" r="4" fill="#f3f3f1" fill-opacity="0.15"/>
+    <circle cx="194" cy="166" r="4" fill="#f3f3f1" fill-opacity="0.1"/>
+    <text x="350" y="171" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="12" fill="#a6a7ab" fill-opacity="0.8">chat · browser</text>
+
+    <!-- prompt bubble -->
+    <rect x="160" y="200" width="200" height="44" rx="6" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.15" stroke-width="1"/>
+    <text x="170" y="218" font-family="Inter, Arial, sans-serif" font-size="11" fill="#f3f3f1" fill-opacity="0.45">how do I fix CORS?</text>
+    <text x="170" y="234" font-family="Inter, Arial, sans-serif" font-size="11" fill="#f3f3f1" fill-opacity="0.25">paste stacktrace...</text>
+
+    <!-- response bubble -->
+    <rect x="320" y="260" width="220" height="56" rx="6" fill="#ffffff" fill-opacity="0.07"/>
+    <text x="330" y="280" font-family="Inter, Arial, sans-serif" font-size="11" fill="#f3f3f1" fill-opacity="0.4">here is some code...</text>
+    <text x="330" y="296" font-family="ui-monospace, Consolas, monospace" font-size="10" fill="#f3f3f1" fill-opacity="0.3">Access-Control-Allow...</text>
+    <text x="330" y="310" font-family="Inter, Arial, sans-serif" font-size="10" fill="#f3f3f1" fill-opacity="0.22">[ Select All ]  [ Copy ]</text>
+
+    <!-- editor window (bottom) -->
+    <rect x="140" y="390" width="420" height="220" rx="10" fill="#0d0e11" stroke="#ffffff" stroke-opacity="0.3" stroke-width="1.8"/>
+    <rect x="140" y="390" width="420" height="32" rx="10" fill="#ffffff" fill-opacity="0.04"/>
+    <rect x="140" y="410" width="420" height="12" fill="#ffffff" fill-opacity="0.04"/>
+    <text x="350" y="411" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="12" fill="#a6a7ab" fill-opacity="0.7">editor</text>
+
+    <g font-family="ui-monospace, Consolas, monospace" font-size="11" fill="#f3f3f1">
+      <text x="168" y="450" fill-opacity="0.25">def handler(req):</text>
+      <text x="168" y="472" fill-opacity="0.2">    # TODO: paste here</text>
+      <text x="168" y="494" fill-opacity="0.18">    pass</text>
+    </g>
+
+    <!-- clipboard path: copy arrow down -->
+    <g fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.35">
+      <path d="M350 350 V380"/>
+      <path d="M342 372 L350 380 L358 372"/>
+    </g>
+    <text x="390" y="372" font-family="Inter, Arial, sans-serif" font-size="11" fill="#a6a7ab" fill-opacity="0.45">copy / paste</text>
+
+    <!-- person small, frustrated / manual -->
+    <g fill="none" stroke="#f3f3f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.55">
+      <circle cx="350" cy="660" r="18"/>
+      <path d="M350 678 V698"/>
+      <path d="M310 720 Q350 700 390 720"/>
+      <path d="M322 690 Q300 700 290 710"/>
+      <path d="M378 690 Q400 700 410 710"/>
+    </g>
+    <text x="350" y="760" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="14" fill="#a6a7ab" fill-opacity="0.55">собрать контекст · вставить · чинить руками</text>
+  </g>
+
+  <!-- ========== AFTER (right) ========== -->
+  <g>
+    <!-- IDE window (full, brighter) -->
+    <rect x="940" y="150" width="520" height="460" rx="12" fill="#0d0e11" stroke="#f3f3f1" stroke-width="2"/>
+    <rect x="940" y="150" width="520" height="36" rx="12" fill="#ffffff" fill-opacity="0.07"/>
+    <rect x="940" y="174" width="520" height="12" fill="#ffffff" fill-opacity="0.07"/>
+    <circle cx="962" cy="168" r="5" fill="#f3f3f1" fill-opacity="0.4"/>
+    <circle cx="980" cy="168" r="5" fill="#f3f3f1" fill-opacity="0.25"/>
+    <circle cx="998" cy="168" r="5" fill="#f3f3f1" fill-opacity="0.15"/>
+    <text x="1200" y="173" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="600" fill="#f3f3f1" fill-opacity="0.75">Cursor · agent</text>
+
+    <!-- sidebar -->
+    <rect x="954" y="200" width="80" height="390" rx="4" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1"/>
+    <g stroke="#ffffff" stroke-opacity="0.22" stroke-width="1.4" stroke-linecap="round">
+      <path d="M968 230 H1010"/>
+      <path d="M968 252 H1000"/>
+      <path d="M968 274 H1014"/>
+      <path d="M968 296 H994"/>
+      <path d="M968 318 H1006"/>
+    </g>
+
+    <!-- code -->
+    <g font-family="ui-monospace, Consolas, monospace" font-size="12" fill="#f3f3f1">
+      <text x="1060" y="230" fill-opacity="0.3">1</text>
+      <text x="1080" y="230" fill-opacity="0.65">@router.post("/jobs/claim")</text>
+      <text x="1060" y="252" fill-opacity="0.25">2</text>
+      <text x="1080" y="252" fill-opacity="0.5">async def claim(job_id: UUID):</text>
+      <text x="1060" y="274" fill-opacity="0.25">3</text>
+      <text x="1080" y="274" fill-opacity="0.45">    await hmac.verify(...)</text>
+      <text x="1060" y="296" fill-opacity="0.25">4</text>
+      <text x="1080" y="296" fill-opacity="0.4">    return await worker.run()</text>
+      <rect x="1080" y="310" width="7" height="13" fill="#f3f3f1" fill-opacity="0.6"/>
+    </g>
+
+    <!-- agent panel -->
+    <rect x="1280" y="200" width="164" height="390" rx="4" fill="#ffffff" fill-opacity="0.045" stroke="#ffffff" stroke-opacity="0.28" stroke-width="1.5"/>
+    <text x="1362" y="228" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700" fill="#f3f3f1" fill-opacity="0.8">agent</text>
+
+    <rect x="1294" y="248" width="136" height="52" rx="6" fill="#ffffff" fill-opacity="0.09"/>
+    <text x="1362" y="270" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="11" fill="#f3f3f1" fill-opacity="0.6">reads the repo</text>
+    <text x="1362" y="288" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="11" fill="#f3f3f1" fill-opacity="0.35">builds context</text>
+
+    <rect x="1294" y="316" width="136" height="52" rx="6" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.18" stroke-width="1"/>
+    <text x="1362" y="338" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="11" fill="#f3f3f1" fill-opacity="0.55">edits files</text>
+    <text x="1362" y="356" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="11" fill="#f3f3f1" fill-opacity="0.3">runs tests</text>
+
+    <rect x="1294" y="384" width="136" height="52" rx="6" fill="#ffffff" fill-opacity="0.08"/>
+    <text x="1362" y="406" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="11" fill="#f3f3f1" fill-opacity="0.55">opens PR</text>
+    <text x="1362" y="424" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="11" fill="#f3f3f1" fill-opacity="0.3">iterates</text>
+
+    <!-- agent pulse -->
+    <circle cx="1362" cy="520" r="12" fill="none" stroke="#f3f3f1" stroke-opacity="0.5" stroke-width="1.6"/>
+    <circle cx="1362" cy="520" r="5" fill="#f3f3f1" fill-opacity="0.75"/>
+    <circle cx="1362" cy="520" r="20" fill="none" stroke="#f3f3f1" stroke-opacity="0.15" stroke-width="1"/>
+
+    <!-- flow arrows inside: agent <-> code -->
+    <g fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" opacity="0.35">
+      <path d="M1268 280 H1280"/>
+      <path d="M1268 350 H1280"/>
+      <path d="M1268 420 H1280"/>
+    </g>
+
+    <!-- person engaged -->
+    <g fill="none" stroke="#f3f3f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="1200" cy="660" r="20"/>
+      <path d="M1200 680 V702"/>
+      <path d="M1155 730 Q1200 705 1245 730"/>
+      <path d="M1170 698 Q1145 710 1130 722"/>
+      <path d="M1230 698 Q1255 710 1270 722"/>
+    </g>
+    <text x="1200" y="770" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="14" fill="#f3f3f1" fill-opacity="0.65">агент в IDE · контекст сам · скорость растёт</text>
+  </g>
+
+  <!-- bottom caption -->
+  <text x="800" y="840" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="600" fill="#a6a7ab">копипаст из чата  →  агентная разработка в Cursor</text>
+  <text x="800" y="875" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="15" fill="#5a5c63">.ядро</text>
+</svg>
