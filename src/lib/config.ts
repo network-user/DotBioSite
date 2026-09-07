@@ -40,6 +40,16 @@ const schema = z.object({
   PUBLIC_SOCIAL_VK: urlOrEmpty.default(""),
 
   AUTHOR_EMAIL: z.string().email().or(emptyUrl).default(""),
+
+  // Аналитика (Umami, self-hosted). Пустой website id → трекер не подключается
+  // (локальная разработка, preview, CI). Значение получаешь в дашборде Umami
+  // (Settings → Websites → Website ID) и кладёшь в .env на проде.
+  PUBLIC_UMAMI_WEBSITE_ID: z.string().default(""),
+  // URL трекер-скрипта. По умолчанию first-party путь через Caddy контейнера
+  // (deploy/Caddyfile.container): /stats/script.js и /stats/api/send идут на
+  // контейнер umami, поэтому CSP не ослабляется (script/connect остаются 'self')
+  // и ad-block реже режет запрос. Можно указать абсолютный URL поддомена.
+  PUBLIC_UMAMI_SRC: z.string().default("/stats/script.js"),
 });
 
 /** Безопасно парсим: собираем только нужные ключи, остальные игнорируем. */
@@ -171,4 +181,32 @@ export function authorMonogram(locale: "ru" | "en"): string {
   if (words.length === 0) return "·";
   if (words.length === 1) return (words[0]?.slice(0, 2) ?? "").toUpperCase();
   return ((words[0]?.[0] ?? "") + (words[1]?.[0] ?? "")).toUpperCase();
+}
+
+/** Конфиг трекера Umami для вставки в <head>. */
+export interface UmamiConfig {
+  websiteId: string;
+  src: string;
+  hostUrl: string;
+  domains: string;
+}
+
+/**
+ * Конфиг трекера Umami или null, когда website id не задан (локальная разработка,
+ * preview, CI): скрипт не рендерится, событий нет.
+ *
+ * hostUrl = каталог трекер-скрипта на нашем домене, чтобы события уходили на тот
+ * же first-party путь (`${hostUrl}/api/send` через прокси Caddy), а не на голый
+ * origin, где ручки нет. Для абсолютного src берётся его директория как есть.
+ * domains ограничивает отправку продакшн-хостом: даже с заданным id локальная
+ * сборка и preview не засоряют статистику чужими событиями.
+ */
+export function umami(): UmamiConfig | null {
+  const websiteId = config.PUBLIC_UMAMI_WEBSITE_ID.trim();
+  if (!websiteId) return null;
+  const src = config.PUBLIC_UMAMI_SRC.trim() || "/stats/script.js";
+  const dir = src.replace(/\/[^/]*$/, "") || "/";
+  const hostUrl = new URL(dir, config.PUBLIC_DOMAIN).toString().replace(/\/$/, "");
+  const domains = new URL(config.PUBLIC_DOMAIN).host;
+  return { websiteId, src, hostUrl, domains };
 }

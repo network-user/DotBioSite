@@ -63,6 +63,7 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
             data-body={t("contact.emailBody")}
             aria-label={t("contact.email")}
             data-reveal
+            data-umami-event="contact-email"
           >
             <span class="contact__channel-glow" aria-hidden="true" />
             <Icon name="mail" size={20} />
@@ -235,7 +236,7 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
 <style>
   .contact__channels {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 1fr;
     gap: var(--sp-2);
     max-width: 720px;
     margin-inline: auto;
@@ -381,6 +382,12 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
     }
   }
 
+  @media (min-width: 560px) {
+    .contact__channels {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
   @media (min-width: 720px) {
     .contact__channels {
       gap: var(--sp-3);
@@ -390,19 +397,6 @@ const contactChannels = allSocials.filter((s) => s.id === "github" || s.id === "
       gap: var(--sp-3);
       padding: var(--sp-4);
       font-size: var(--fs-15);
-    }
-  }
-
-  /* Узкие экраны: декоративная trailing-иконка (стрелка/external) съедает
-     место, которого и так мало в ряду из трёх колонок - убираем её, метка
-     остаётся и получает всю ширину. */
-  @media (max-width: 420px) {
-    .contact__channel {
-      font-size: var(--fs-12);
-    }
-
-    .contact__channel-trailing {
-      display: none;
     }
   }
 

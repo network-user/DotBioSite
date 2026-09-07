@@ -65,6 +65,8 @@ const initialHash = Astro.url.hash.replace("#", "");
         data-alternate={altLocale}
         aria-label={`Switch language to ${altLocale.toUpperCase()}`}
         lang={altLocale}
+        data-umami-event="switch-lang"
+        data-umami-event-to={altLocale}
       >
         <span aria-hidden="true">{t("nav.toggleLang")}</span>
       </a>
@@ -116,6 +118,8 @@ const initialHash = Astro.url.hash.replace("#", "");
   }
 
   .header__brand {
+    display: inline-flex;
+    align-items: center;
     font-family: var(--font-stack-display);
     font-weight: var(--fw-extrabold);
     font-size: var(--fs-18);
@@ -123,6 +127,7 @@ const initialHash = Astro.url.hash.replace("#", "");
     line-height: 1;
     color: var(--text);
     padding: var(--sp-2) var(--sp-3);
+    min-height: var(--tap-min);
     flex-shrink: 0;
     min-width: 0;
   }
@@ -263,7 +268,9 @@ const initialHash = Astro.url.hash.replace("#", "");
   @media (max-width: 767px) {
     .header__inner {
       position: relative;
-      width: calc(100% - (var(--sp-4) * 2));
+      width: auto;
+      margin-inline-start: max(var(--sp-4), env(safe-area-inset-left));
+      margin-inline-end: max(var(--sp-4), env(safe-area-inset-right));
       padding-inline: var(--sp-3);
       box-shadow: var(--shadow-2);
     }
@@ -292,6 +299,9 @@ const initialHash = Astro.url.hash.replace("#", "");
         opacity var(--dur-fast) var(--ease-standard),
         visibility var(--dur-fast) var(--ease-standard),
         transform var(--dur-fast) var(--ease-soft);
+      max-height: calc(100dvh - 80px - env(safe-area-inset-top));
+      overflow-y: auto;
+      overscroll-behavior: contain;
       pointer-events: none;
     }
 

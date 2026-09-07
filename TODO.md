@@ -30,10 +30,13 @@
 
 - [x] ~~Заменить Google Fonts `@import` на selfhosted~~ - сделано через
       `@fontsource-variable/inter` (npm), шрифт попадает в bundle при билде.
-- [ ] Добавить PWA manifest + service worker для offline‑кеша главной страницы.
-- [ ] Подключить self‑hosted Plausible или Umami (без cookies, GDPR‑friendly).
-- [ ] Настроить custom domain в Cloudflare Pages (`dotcore.app` или другое).
-- [ ] Sitemap.xml + robots.txt.
+- [x] ~~Sitemap.xml + robots.txt~~ - `src/pages/sitemap.xml.ts`, `robots.txt.ts`,
+      CI `seo:check`.
+- [x] ~~PWA manifest~~ - `public/manifest.webmanifest` (+ icons). Service worker
+      для offline‑кеша главной - ещё нет.
+- [x] ~~Self-hosted Umami~~ - first-party `/stats/*` через Caddy, опц. env.
+- [ ] Service worker для offline‑кеша главной страницы.
+- [ ] Настроить custom domain (DNS / фронт-Caddy), если ещё не на прод-домене.
 
 ## Возможные расширения
 
@@ -45,6 +48,6 @@
 
 ## Безопасность
 
-- [ ] Включить CSP‑заголовки через `_headers` файл для Cloudflare Pages.
-- [ ] Subresource integrity для внешних шрифтов (если останутся).
+- [x] ~~CSP и security-заголовки~~ - `public/_headers` + `deploy/Caddyfile.container`.
+- [ ] Subresource integrity для внешних шрифтов (если появятся; сейчас self-hosted).
 - [ ] Rate‑limit на форму обратной связи (если появится).

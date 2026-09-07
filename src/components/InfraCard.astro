@@ -100,6 +100,8 @@ const telegramUrl = projectTelegramUrl(p);
               target="_blank"
               rel="noopener noreferrer"
               class="infra-card__cta cta cta--ghost"
+              data-umami-event="open-repo"
+              data-umami-event-project={p.slug}
             >
               <Icon name="github" size={16} />
               <span>{t("projects.viewSource")}</span>
@@ -122,6 +124,8 @@ const telegramUrl = projectTelegramUrl(p);
               target="_blank"
               rel="noopener noreferrer"
               class="infra-card__cta cta cta--ghost"
+              data-umami-event="open-bot"
+              data-umami-event-project={p.slug}
             >
               <Icon name="telegram" size={16} />
               <span>{t("projects.openBot")}</span>

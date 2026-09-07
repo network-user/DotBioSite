@@ -1,0 +1,101 @@
+# Стек аналитики портфолио: Umami + Postgres.
+#
+# Живёт рядом с сайтом, но поднимается ОТДЕЛЬНО (свой compose), чтобы пересборка
+# статики портфолио его не трогала. Как встроено в общую схему co-hosting:
+#
+#   - контейнер `umami` подключён к внешней сети `dotsound` (как и `portfolio`),
+#     поэтому Caddy контейнера portfolio проксирует на него трекер
+#     (/stats/script.js, /stats/api/send), а фронт-Caddy DotSound - дашборд на
+#     поддомене analytics.<домен>. Наружу umami порты сам НЕ публикует.
+#   - Postgres сидит в приватной сети `internal`, в dotsound и наружу не виден.
+#     Данные - в именованном томе umami-db-data.
+#   - `umami-init` одноразово инициализирует аккаунт админа из .env (пароль
+#     генерит setup.sh). Идемпотентно и НЕ фатально: см. seed-admin.sh.
+#
+# Секреты - из deploy/analytics/.env (создаёт setup.sh, в git не идёт).
+# Реальное имя внешней сети сверь: docker network ls | grep dotsound
+# и при отличии передай DOTSOUND_NETWORK=<имя>.
+
+name: portfolio-analytics
+
+services:
+  umami-db:
+    image: postgres:16-alpine
+    container_name: umami-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami
+      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD:?set UMAMI_DB_PASSWORD in deploy/analytics/.env}
+    volumes:
+      - umami-db-data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U umami -d umami"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  umami:
+    image: ${UMAMI_IMAGE:-ghcr.io/umami-software/umami:postgresql-latest}
+    container_name: umami
+    restart: unless-stopped
+    environment:
+      DATABASE_TYPE: postgresql
+      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@umami-db:5432/umami
+      APP_SECRET: ${UMAMI_APP_SECRET:?set UMAMI_APP_SECRET in deploy/analytics/.env}
+      # Не слать анонимную телеметрию апстриму - self-hosted, приватно.
+      DISABLE_TELEMETRY: "1"
+    depends_on:
+      umami-db:
+        condition: service_healthy
+    networks:
+      - internal
+      - dotsound
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Одноразовая инициализация админа из .env. Ждёт миграций umami, ставит логин
+  # и bcrypt-пароль, помечает готовность флагом в томе umami-seed. Падение не
+  # блокирует стек (restart: "no", umami от него не зависит).
+  umami-init:
+    image: postgres:16-alpine
+    container_name: umami-init
+    restart: "no"
+    depends_on:
+      umami-db:
+        condition: service_healthy
+      umami:
+        condition: service_started
+    environment:
+      PGHOST: umami-db
+      PGUSER: umami
+      PGDATABASE: umami
+      PGPASSWORD: ${UMAMI_DB_PASSWORD}
+      UMAMI_ADMIN_USERNAME: ${UMAMI_ADMIN_USERNAME:-admin}
+      UMAMI_ADMIN_PASSWORD: ${UMAMI_ADMIN_PASSWORD:-}
+    volumes:
+      - ./seed-admin.sh:/seed-admin.sh:ro
+      - umami-seed:/seed
+    networks:
+      - internal
+    entrypoint: ["sh", "/seed-admin.sh"]
+
+volumes:
+  umami-db-data:
+  umami-seed:
+
+networks:
+  internal:
+  dotsound:
+    external: true
+    name: ${DOTSOUND_NETWORK:-dotsoundbackend_dotsound}

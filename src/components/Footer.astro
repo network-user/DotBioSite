@@ -32,6 +32,8 @@ const brand = authorName(locale);
               rel="noopener noreferrer me"
               class="footer__icon-link"
               aria-label={t(`contact.${s.id}`)}
+              data-umami-event="open-social"
+              data-umami-event-net={s.id}
             >
               <Icon name={s.id} size={16} />
             </a>

@@ -380,7 +380,8 @@ export function projectStartISO(p: Project): string | undefined {
   if (key === 0) return undefined;
   const year = Math.floor(key / 100);
   const month = key % 100;
-  return month > 0 ? `${year}-${String(month).padStart(2, "0")}` : String(year);
+  // Full ISO date (day = 01 when only month precision) for schema.org validators.
+  return month > 0 ? `${year}-${String(month).padStart(2, "0")}-01` : `${year}-01-01`;
 }
 
 /**
@@ -403,5 +404,6 @@ export function projectUpdatedISO(p: Project): string | undefined {
 
   const year = Math.floor(bestKey / 100);
   const month = bestKey % 100;
-  return month > 0 ? `${year}-${String(month).padStart(2, "0")}` : String(year);
+  // Full ISO date (day = 01 when only month precision) for schema.org validators.
+  return month > 0 ? `${year}-${String(month).padStart(2, "0")}-01` : `${year}-01-01`;
 }

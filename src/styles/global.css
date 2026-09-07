@@ -216,7 +216,8 @@ ol {
   width: 100%;
   max-width: var(--container-wide);
   margin: 0 auto;
-  padding-inline: var(--sp-5);
+  padding-inline-start: max(var(--sp-5), env(safe-area-inset-left));
+  padding-inline-end: max(var(--sp-5), env(safe-area-inset-right));
 }
 
 .container-narrow {
@@ -233,13 +234,15 @@ ol {
 
 @media (min-width: 768px) {
   .container {
-    padding-inline: var(--sp-7);
+    padding-inline-start: max(var(--sp-7), env(safe-area-inset-left));
+    padding-inline-end: max(var(--sp-7), env(safe-area-inset-right));
   }
 }
 
 @media (min-width: 1200px) {
   .container {
-    padding-inline: var(--sp-8);
+    padding-inline-start: max(var(--sp-8), env(safe-area-inset-left));
+    padding-inline-end: max(var(--sp-8), env(safe-area-inset-right));
   }
 }
 
@@ -267,7 +270,8 @@ ol {
 
 @media (max-width: 767px) {
   .container {
-    padding-inline: var(--sp-4);
+    padding-inline-start: max(var(--sp-4), env(safe-area-inset-left));
+    padding-inline-end: max(var(--sp-4), env(safe-area-inset-right));
   }
 
   .section {
