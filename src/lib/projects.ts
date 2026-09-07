@@ -34,7 +34,7 @@ export interface ProjectLinks {
 }
 
 export type ProjectCategory = "platform" | "bot" | "tool" | "site" | "library";
-export type ProjectStatus = "active" | "wip" | "beta" | "archived";
+export type ProjectStatus = "active" | "wip" | "beta" | "paused" | "archived";
 /**
  * Тир проекта в витрине:
  *   - "product" (по умолчанию): флагманский продукт, featured-карточка, case-

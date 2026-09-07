@@ -59,7 +59,10 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
       <span class="project-card__logo-brand display">{brand}</span>
     </span>
     <span class="project-card__media-glow" aria-hidden="true"></span>
-    <span class="project-card__media-status" aria-hidden="true">
+    <span
+      class={`project-card__media-status project-card__media-status--${p.status}`}
+      aria-hidden="true"
+    >
       <Icon name="dot" size={10} />
       <span>{t(`projects.status.${p.status}`)}</span>
     </span>
@@ -449,6 +452,14 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
     color: var(--project-accent);
   }
 
+  .project-card__media-status--paused {
+    color: var(--text-muted);
+  }
+
+  .project-card__media-status--paused :global(svg) {
+    color: currentColor;
+  }
+
   /* ---------- Head ---------- */
   .project-card__head {
     grid-area: head;
@@ -495,6 +506,9 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
   }
   .project-card__status--beta {
     color: var(--state-info);
+  }
+  .project-card__status--paused {
+    color: var(--text-muted);
   }
   .project-card__status--archived {
     color: var(--text-muted);
