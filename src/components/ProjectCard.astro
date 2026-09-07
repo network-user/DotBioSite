@@ -466,7 +466,9 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
   }
 
   .project-card__media-status--paused {
-    color: var(--text-muted);
+    border-color: color-mix(in srgb, var(--state-paused) 45%, var(--border));
+    background: color-mix(in srgb, var(--state-paused) 12%, rgba(5, 6, 8, 0.78));
+    color: var(--state-paused);
   }
 
   .project-card__media-status--paused :global(svg) {
@@ -521,7 +523,7 @@ const animDelay = `${(index * 0.85).toFixed(2)}s`;
     color: var(--state-info);
   }
   .project-card__status--paused {
-    color: var(--text-muted);
+    color: var(--state-paused);
   }
   .project-card__status--archived {
     color: var(--text-muted);

@@ -70,7 +70,7 @@
       "active": "in production",
       "wip": "in progress",
       "beta": "beta",
-      "paused": "service temporarily unavailable",
+      "paused": "temporarily unavailable",
       "archived": "archived"
     },
     "tier": {

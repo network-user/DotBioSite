@@ -612,7 +612,9 @@ const signatureLede = (signatureLedes[p.slug] ?? {
     color: var(--state-info);
   }
   .case__status--paused {
-    color: var(--text-muted);
+    border-color: color-mix(in srgb, var(--state-paused) 45%, var(--border));
+    background: color-mix(in srgb, var(--state-paused) 8%, transparent);
+    color: var(--state-paused);
   }
   .case__status--archived {
     color: var(--text-muted);
